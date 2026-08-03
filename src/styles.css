@@ -58,6 +58,9 @@ header .sub {
   border: 1px solid var(--line);
   border-radius: 12px;
   padding: 18px;
+  /* Grid items default to min-width:auto, which lets a wide child (the long
+     structure <select> option) push the column past the viewport. */
+  min-width: 0;
 }
 
 .panel h2 {
@@ -81,6 +84,7 @@ header .sub {
   flex-direction: column;
   gap: 6px;
   margin-bottom: 14px;
+  min-width: 0;
 }
 
 .field > span {
@@ -107,6 +111,8 @@ select {
   padding: 7px 9px;
   font: inherit;
   width: 100%;
+  /* A <select> is sized by its longest option unless allowed to shrink. */
+  min-width: 0;
 }
 
 input:focus,
@@ -438,7 +444,8 @@ button.primary:focus-visible {
 
 .percentiles {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* Wraps to fewer columns rather than squeezing cells past their content. */
+  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
   gap: 8px;
 }
 
@@ -452,6 +459,7 @@ button.primary:focus-visible {
   gap: 2px;
   font-size: 15px;
   font-weight: 600;
+  min-width: 0;
 }
 
 .pct-cell .label {
