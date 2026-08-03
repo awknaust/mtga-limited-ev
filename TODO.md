@@ -53,7 +53,24 @@ currently reports.
 Store the global inputs (win rate, pack value, N, seed) in localStorage so they
 survive a reload. Event/preset state probably should not persist.
 
-## 8. Deploy to AWS/S3
+## 8. Gem value of having fun
+
+A global input, alongside pack value: what a game of Magic is worth to you in
+gems. Multiply it by the mean rounds per event and add it to the gross — the
+model already tracks `meanRounds`, so the arithmetic is trivial.
+
+The point is that every preset currently prices out negative, which is only
+true if playing is worth nothing. Even a modest figure flips them, and the
+break-even win rate falls out as "how good do I need to be for this to be
+worth it *after* accounting for enjoying myself".
+
+Needs a "priceless" / ∞ setting at the top of the range, which short-circuits
+the whole calculation: expected net is +∞, ROI is undefined, break-even is 0%,
+and the outputs should say so in words rather than rendering `Infinity` and
+`NaN` through the existing formatters. That is the real work here — every
+figure in the results panel has to have an answer for it.
+
+## 9. Deploy to AWS/S3
 
 `npm run build` already emits a fully static `dist/` — no server, no API, no
 env vars — so S3 static hosting plus CloudFront in front of it is enough.
