@@ -51,6 +51,15 @@ body {
   margin-bottom: 0.75rem;
 }
 
+/* Plain-cased detail sitting inside an uppercased section title. */
+.section-note {
+  font-size: 0.75rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--bs-secondary-color);
+}
+
 .form-label {
   font-size: 0.75rem;
   color: var(--bs-secondary-color);

@@ -203,10 +203,12 @@ export default function App() {
   const maxProb = Math.max(...result.buckets.map((b) => b.probability), 0.0001);
   const structure = config.structure;
   const roundWord = config.format === "bo3" ? "matches" : "games";
+  // Restates the event being priced, for the Results heading — the numbers
+  // below are meaningless without it.
   const structureSummary =
     structure.kind === "rounds"
-      ? `${structure.rounds} rounds played out in full, ${config.format.toUpperCase()}`
-      : `play until ${structure.maxWins} wins or ${structure.maxLosses} losses, ${config.format.toUpperCase()}`;
+      ? `${structure.rounds} rounds played in full · ${config.format.toUpperCase()}`
+      : `to ${structure.maxWins} wins or ${structure.maxLosses} losses · ${config.format.toUpperCase()}`;
 
   const stats: { label: string; value: string; hint: string; tone?: string }[] = [
     {
@@ -248,7 +250,8 @@ export default function App() {
       <header className="mb-4">
         <h1 className="h3 mb-1">MTGA Limited EV</h1>
         <p className="text-body-secondary mb-0">
-          Monte-Carlo EV model for an Arena limited event — {structureSummary}.
+          Monte-Carlo EV model for MTG Arena limited events — any win/loss
+          structure, best-of-one or best-of-three.
         </p>
       </header>
 
@@ -455,38 +458,30 @@ export default function App() {
                     <th scope="col" className="text-end">
                       Packs
                     </th>
-                    <th scope="col" className="text-end">
-                      Net
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {config.payouts.map((t) => {
-                    const net =
-                      t.gems + t.packs * config.packValueGems - config.entryCostGems;
-                    return (
-                      <tr key={t.wins}>
-                        <td className="fw-semibold text-primary">{t.wins}</td>
-                        <td>
-                          <NumberInput
-                            className="form-control form-control-sm text-end"
-                            min={0}
-                            value={t.gems}
-                            onChange={(n) => setTier(t.wins, { gems: n })}
-                          />
-                        </td>
-                        <td>
-                          <NumberInput
-                            className="form-control form-control-sm text-end"
-                            min={0}
-                            value={t.packs}
-                            onChange={(n) => setTier(t.wins, { packs: n })}
-                          />
-                        </td>
-                        <td className={`text-end ${signClass(net)}`}>{gems(net)}</td>
-                      </tr>
-                    );
-                  })}
+                  {config.payouts.map((t) => (
+                    <tr key={t.wins}>
+                      <td className="fw-semibold text-primary">{t.wins}</td>
+                      <td>
+                        <NumberInput
+                          className="form-control form-control-sm text-end"
+                          min={0}
+                          value={t.gems}
+                          onChange={(n) => setTier(t.wins, { gems: n })}
+                        />
+                      </td>
+                      <td>
+                        <NumberInput
+                          className="form-control form-control-sm text-end"
+                          min={0}
+                          value={t.packs}
+                          onChange={(n) => setTier(t.wins, { packs: n })}
+                        />
+                      </td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -496,7 +491,12 @@ export default function App() {
         <div className="col-lg-8">
           <div className="card">
             <div className="card-body">
-              <h2 className="section-title">Results</h2>
+              <h2 className="section-title d-flex flex-wrap align-items-baseline gap-2">
+                Results
+                <span className="section-note">
+                  {presetName} · {structureSummary}
+                </span>
+              </h2>
 
               <div className="row g-2">
                 {stats.map((s) => (
