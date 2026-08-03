@@ -53,22 +53,16 @@ currently reports.
 Store the global inputs (win rate, pack value, N, seed) in localStorage so they
 survive a reload. Event/preset state probably should not persist.
 
-## 8. Gem value of having fun
+## 8. Gem value of having fun — done, and deliberately not wired
 
-A global input, alongside pack value: what a game of Magic is worth to you in
-gems. Multiply it by the mean rounds per event and add it to the gross — the
-model already tracks `meanRounds`, so the arithmetic is trivial.
+The "Fun (gems / game)" input and its ∞ toggle exist in the global inputs. They
+are a joke and feed into nothing: the model has no term for them and should not
+grow one. Leave them inert.
 
-The point is that every preset currently prices out negative, which is only
-true if playing is worth nothing. Even a modest figure flips them, and the
-break-even win rate falls out as "how good do I need to be for this to be
-worth it *after* accounting for enjoying myself".
-
-Needs a "priceless" / ∞ setting at the top of the range, which short-circuits
-the whole calculation: expected net is +∞, ROI is undefined, break-even is 0%,
-and the outputs should say so in words rather than rendering `Infinity` and
-`NaN` through the existing formatters. That is the real work here — every
-figure in the results panel has to have an answer for it.
+If anyone is ever tempted, the reason not to is that "priceless" is genuinely
+load-bearing — an infinite value makes expected net +∞, ROI undefined and
+break-even 0%, and every figure in the results panel would need an answer for
+it instead of rendering `Infinity` and `NaN` through the formatters.
 
 ## 9. Deploy to AWS/S3
 

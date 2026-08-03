@@ -120,6 +120,9 @@ export default function App() {
   // edit can fall back to "Custom" and return to the preset when undone —
   // Premier and Cube are identical, so the right name can't be inferred.
   const [anchor, setAnchor] = useState<string | null>(PRESETS[0].name);
+  // Deliberately inert: the model has no term for this, and shouldn't.
+  const [funValue, setFunValue] = useState(0);
+  const [funPriceless, setFunPriceless] = useState(false);
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -143,6 +146,7 @@ export default function App() {
     winRate: `${uid}-win-rate`,
     entry: `${uid}-entry`,
     packValue: `${uid}-pack-value`,
+    funValue: `${uid}-fun-value`,
     trials: `${uid}-trials`,
     seed: `${uid}-seed`,
   };
@@ -303,16 +307,57 @@ export default function App() {
                   />
                 </div>
                 <div className="col-6">
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary w-100"
-                    onClick={() => modal.current?.show()}
-                  >
-                    <i className="bi bi-gear me-1" aria-hidden="true" />
-                    Advanced
-                  </button>
+                  <label htmlFor={ids.funValue} className="form-label">
+                    Fun (gems / game)
+                    <InfoTip
+                      label="About the value of fun"
+                      content="Not wired to anything. The model prices gems and packs; it has no opinion on whether you enjoyed yourself."
+                    />
+                  </label>
+                  <div className="input-group">
+                    {funPriceless ? (
+                      <input
+                        id={ids.funValue}
+                        className="form-control text-end"
+                        value="∞"
+                        readOnly
+                      />
+                    ) : (
+                      <NumberInput
+                        id={ids.funValue}
+                        min={0}
+                        value={funValue}
+                        onChange={setFunValue}
+                      />
+                    )}
+                    <button
+                      type="button"
+                      className={`btn ${funPriceless ? "btn-primary" : "btn-outline-secondary"}`}
+                      onClick={() => setFunPriceless((p) => !p)}
+                      aria-pressed={funPriceless}
+                      title="Priceless"
+                    >
+                      ∞
+                    </button>
+                  </div>
                 </div>
               </div>
+
+              {funPriceless && (
+                <div className="form-text mt-1">
+                  Priceless. The other numbers below are, on reflection, a rounding
+                  error.
+                </div>
+              )}
+
+              <button
+                type="button"
+                className="btn btn-outline-secondary w-100 mt-3"
+                onClick={() => modal.current?.show()}
+              >
+                <i className="bi bi-gear me-1" aria-hidden="true" />
+                Advanced
+              </button>
             </div>
           </div>
 
