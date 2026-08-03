@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   CUSTOM_PRESET,
   PRESETS,
@@ -32,31 +32,81 @@ const clampInt = (n: number, lo: number, hi: number): number =>
   Math.max(lo, Math.min(hi, Math.round(n) || lo));
 
 /**
- * Number input that drops focus on wheel events — otherwise scrolling the page
- * with the cursor over a focused field silently edits the value.
+ * Number input for whole-number amounts.
+ *
+ * Drops focus on wheel events — otherwise scrolling the page with the cursor
+ * over a focused field silently edits the value.
+ *
+ * `step` is deliberately left at 1 rather than set to a convenient spinner
+ * increment: the attribute is a *validation* rule counted from `min`, so a
+ * step of 1000 from a min of 1 makes 100,000 invalid, and an invalid field
+ * silently blocks form submission.
  */
 function NumberInput({
   value,
   onChange,
   min,
-  step,
+  id,
 }: {
   value: number;
   onChange: (n: number) => void;
   min?: number;
-  step?: number;
+  id?: string;
 }) {
   return (
     <input
+      id={id}
       type="number"
       min={min}
-      step={step}
+      step={1}
       value={value}
       onWheel={(e) => e.currentTarget.blur()}
       onChange={(e) => onChange(Number(e.target.value) || 0)}
     />
   );
 }
+
+/** Small "i" button that reveals an explanatory bubble on click. */
+function InfoTip({ label, children }: { label: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const onPointerDown = (e: MouseEvent) => {
+      if (!ref.current?.contains(e.target as Node)) setOpen(false);
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
+
+  return (
+    <span className="infotip" ref={ref}>
+      <button
+        type="button"
+        className="info-btn"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+      >
+        i
+      </button>
+      {open && (
+        <span role="tooltip" className="info-bubble">
+          {children}
+        </span>
+      )}
+    </span>
+  );
+}
+
 
 export default function App() {
   const [config, setConfig] = useState<EventConfig>(defaultConfig);
@@ -67,6 +117,15 @@ export default function App() {
   // edit can fall back to "Custom" and return to the preset when undone —
   // Premier and Cube are identical, so the right name can't be inferred.
   const [anchor, setAnchor] = useState<string | null>(PRESETS[0].name);
+  const advancedRef = useRef<HTMLDialogElement>(null);
+  const uid = useId();
+  const ids = {
+    format: `${uid}-format`,
+    entry: `${uid}-entry`,
+    packValue: `${uid}-pack-value`,
+    trials: `${uid}-trials`,
+    seed: `${uid}-seed`,
+  };
 
   const result = useMemo(() => simulate(config, trials, seed), [config, trials, seed]);
   const breakEven = useMemo(() => breakEvenWinRate(config), [config]);
@@ -148,7 +207,7 @@ export default function App() {
             <select value={presetName} onChange={(e) => applyPreset(e.target.value)}>
               {PRESETS.map((p) => (
                 <option key={p.name} value={p.name}>
-                  {p.name} — {p.entryCostGems.toLocaleString()} gems
+                  {p.name}
                 </option>
               ))}
               <option value={CUSTOM_PRESET}>{CUSTOM_PRESET}</option>
@@ -172,16 +231,24 @@ export default function App() {
                 <option value="rounds">Fixed rounds</option>
               </select>
             </label>
-            <label className="field">
-              <span>Match format</span>
+            <div className="field">
+              <div className="field-head">
+                <label htmlFor={ids.format}>Match format</label>
+                <InfoTip label="About match format">
+                  Win rate is always entered per game. In best-of-three a per-game
+                  edge compounds — winning 55% of games means winning 57.5% of
+                  matches — so the longer format rewards the better deck.
+                </InfoTip>
+              </div>
               <select
+                id={ids.format}
                 value={config.format}
                 onChange={(e) => set("format", e.target.value as EventFormat)}
               >
                 <option value="bo1">Best of 1</option>
                 <option value="bo3">Best of 3</option>
               </select>
-            </label>
+            </div>
           </div>
 
           <div className="grid2">
@@ -191,7 +258,6 @@ export default function App() {
                   <span>Wins to finish</span>
                   <NumberInput
                     min={1}
-                    step={1}
                     value={structure.maxWins}
                     onChange={(n) =>
                       setStructure({ ...structure, maxWins: clampInt(n, 1, 20) })
@@ -202,7 +268,6 @@ export default function App() {
                   <span>Losses to bust</span>
                   <NumberInput
                     min={1}
-                    step={1}
                     value={structure.maxLosses}
                     onChange={(n) =>
                       setStructure({ ...structure, maxLosses: clampInt(n, 1, 20) })
@@ -215,7 +280,6 @@ export default function App() {
                 <span>Rounds</span>
                 <NumberInput
                   min={1}
-                  step={1}
                   value={structure.rounds}
                   onChange={(n) =>
                     setStructure({ kind: "rounds", rounds: clampInt(n, 1, 20) })
@@ -240,47 +304,56 @@ export default function App() {
           </label>
           {config.format === "bo3" && (
             <p className="note tight">
-              BO3 → <strong>{pct(matchWinRate(config), 2)}</strong> per match. Winning
-              55% of games means winning more than 55% of matches: the longer format
-              favours the better deck.
+              BO3 → <strong>{pct(matchWinRate(config), 2)}</strong> per match.
             </p>
           )}
 
           <div className="grid2">
-            <label className="field">
-              <span>Entry cost (gems)</span>
+            <div className="field">
+              <div className="field-head">
+                <label htmlFor={ids.entry}>Entry cost (gems)</label>
+              </div>
               <NumberInput
+                id={ids.entry}
                 min={0}
-                step={100}
                 value={config.entryCostGems}
                 onChange={(n) => set("entryCostGems", n)}
               />
-            </label>
-            <label className="field">
-              <span>Pack value (gems)</span>
+            </div>
+            <div className="field">
+              <div className="field-head">
+                <label htmlFor={ids.packValue}>Pack value (gems)</label>
+                <InfoTip label="About pack value">
+                  Packs are always counted, but only enter the gem figures once you
+                  price them here. At 0 they contribute nothing to Net, so the
+                  results are gems-only.
+                </InfoTip>
+              </div>
               <NumberInput
+                id={ids.packValue}
                 min={0}
-                step={10}
                 value={config.packValueGems}
                 onChange={(n) => set("packValueGems", n)}
               />
-            </label>
-            <label className="field">
-              <span>Simulated events (N)</span>
-              <NumberInput
-                min={1}
-                step={1000}
-                value={trials}
-                onChange={(n) => setTrials(Math.max(1, Math.min(5_000_000, n || 1)))}
-              />
-            </label>
-            <label className="field">
-              <span>Seed</span>
-              <NumberInput value={seed} onChange={setSeed} />
-            </label>
+            </div>
           </div>
 
-          <h3>Payout schedule</h3>
+          <button
+            type="button"
+            className="link-button"
+            onClick={() => advancedRef.current?.showModal()}
+          >
+            Advanced settings…
+          </button>
+
+          <h3>
+            Payout schedule
+            <InfoTip label="About the payout schedule">
+              Rows follow the structure: lowering the win ceiling drops the rows
+              above it, and raising it again adds empty rows rather than restoring
+              the old numbers. Re-select a preset to refill the table.
+            </InfoTip>
+          </h3>
           <table className="payouts">
             <thead>
               <tr>
@@ -300,7 +373,6 @@ export default function App() {
                     <td>
                       <NumberInput
                         min={0}
-                        step={50}
                         value={t.gems}
                         onChange={(n) => setTier(t.wins, { gems: n })}
                       />
@@ -308,7 +380,6 @@ export default function App() {
                     <td>
                       <NumberInput
                         min={0}
-                        step={1}
                         value={t.packs}
                         onChange={(n) => setTier(t.wins, { packs: n })}
                       />
@@ -319,11 +390,6 @@ export default function App() {
               })}
             </tbody>
           </table>
-          <p className="note">
-            Packs are counted separately and valued at {config.packValueGems} gems each,
-            so "Net" is gems-only unless you give packs a value. Rows follow the
-            structure — lowering the win ceiling drops the rows above it.
-          </p>
         </section>
 
         <section className="panel results">
@@ -461,6 +527,62 @@ export default function App() {
           </p>
         </section>
       </div>
+
+      <dialog
+        ref={advancedRef}
+        className="advanced"
+        // Clicking the backdrop lands on the dialog element itself, not its
+        // contents, which is what makes this a click-outside-to-close check.
+        onClick={(e) => {
+          if (e.target === advancedRef.current) advancedRef.current?.close();
+        }}
+      >
+        <form method="dialog">
+          <h2>Advanced settings</h2>
+          <div className="grid2">
+            <div className="field">
+              <div className="field-head">
+                <label htmlFor={ids.trials}>Simulated events (N)</label>
+                <InfoTip label="About simulated events">
+                  More events narrow the confidence interval on the simulated mean.
+                  The exact column is unaffected — it's computed in closed form, not
+                  sampled.
+                </InfoTip>
+              </div>
+              <NumberInput
+                id={ids.trials}
+                min={1}
+                value={trials}
+                onChange={(n) => setTrials(clampInt(n, 1, 5_000_000))}
+              />
+            </div>
+            <div className="field">
+              <div className="field-head">
+                <label htmlFor={ids.seed}>Seed</label>
+                <InfoTip label="About the seed">
+                  Changes which sample you get, not the distribution it's drawn
+                  from. The same seed always reproduces the same run.
+                </InfoTip>
+              </div>
+              <NumberInput id={ids.seed} value={seed} onChange={setSeed} />
+            </div>
+          </div>
+          <div className="dialog-actions">
+            {/*
+              Closed explicitly rather than by submitting the method="dialog"
+              form: submission is silently refused whenever any field is
+              invalid, which would leave the dialog stuck open.
+            */}
+            <button
+              type="button"
+              className="primary"
+              onClick={() => advancedRef.current?.close()}
+            >
+              Done
+            </button>
+          </div>
+        </form>
+      </dialog>
     </div>
   );
 }
