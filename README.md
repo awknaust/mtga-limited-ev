@@ -8,6 +8,11 @@ npm install && npm run dev
 
 Then open http://localhost:5173.
 
+React + TypeScript, built with Vite. The UI is Bootstrap 5 in dark mode
+(`data-bs-theme="dark"` on `<html>`); `src/styles.css` only retunes Bootstrap's
+CSS variables and adds the few pieces it has no component for. The model in
+`src/lib/draft.ts` is dependency-free and has no UI imports.
+
 ## Model
 
 An event is a sequence of rounds, each won with the match win rate implied by

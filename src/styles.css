@@ -1,422 +1,106 @@
-:root {
-  --bg: #0f1216;
-  --panel: #171b21;
-  --panel-2: #1e242c;
-  --line: #2a323d;
-  --text: #e6eaf0;
-  --muted: #8b97a8;
-  --accent: #6ea8fe;
-  --pos: #4ade80;
-  --neg: #f87171;
-  color-scheme: dark;
-}
+/*
+ * Local layer over Bootstrap. Bootstrap's dark theme is enabled via
+ * data-bs-theme="dark" on <html>; this file only retunes its variables and
+ * adds the handful of pieces Bootstrap has no component for.
+ */
 
-* {
-  box-sizing: border-box;
+[data-bs-theme="dark"] {
+  --bs-body-bg: #0f1216;
+  --bs-body-color: #e6eaf0;
+  --bs-body-font-size: 0.875rem;
+  --bs-border-color: #2a323d;
+  --bs-secondary-color: #8b97a8;
+  --bs-primary: #6ea8fe;
+  --bs-primary-rgb: 110, 168, 254;
+  --bs-link-color: #6ea8fe;
+  --bs-link-color-rgb: 110, 168, 254;
+  --bs-link-hover-color: #8fbcff;
+
+  --bs-card-bg: #171b21;
+  --bs-card-border-color: #2a323d;
+  --bs-card-cap-bg: #1e242c;
+
+  --bs-form-control-bg: #1e242c;
+  --bs-tertiary-bg: #1e242c;
+
+  --bs-success: #4ade80;
+  --bs-success-rgb: 74, 222, 128;
+  --bs-danger: #f87171;
+  --bs-danger-rgb: 248, 113, 113;
+
+  /* Panel-2, used by the stat tiles and inputs. */
+  --app-raised: #1e242c;
 }
 
 body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font: 14px/1.5 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
-.app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 28px 20px 60px;
+.form-control,
+.form-select {
+  background-color: var(--app-raised);
 }
 
-header h1 {
-  margin: 0;
-  font-size: 24px;
-  letter-spacing: -0.02em;
-}
-
-header .sub {
-  margin: 4px 0 24px;
-  color: var(--muted);
-}
-
-.layout {
-  display: grid;
-  grid-template-columns: 360px 1fr;
-  gap: 20px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-}
-
-.panel {
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 18px;
-  /* Grid items default to min-width:auto, which lets a wide child (the long
-     structure <select> option) push the column past the viewport. */
-  min-width: 0;
-}
-
-.panel h2 {
-  margin: 0 0 16px;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--muted);
-}
-
-.panel h3 {
-  margin: 24px 0 10px;
-  font-size: 13px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--muted);
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-bottom: 14px;
-  min-width: 0;
-}
-
-.field > span {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.field strong {
-  color: var(--text);
-}
-
-.grid2 {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0 12px;
-}
-
-input,
-select {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  color: var(--text);
-  border-radius: 7px;
-  padding: 7px 9px;
-  font: inherit;
-  width: 100%;
-  /* A <select> is sized by its longest option unless allowed to shrink. */
-  min-width: 0;
-}
-
-input:focus,
-select:focus {
-  outline: 2px solid var(--accent);
-  outline-offset: -1px;
-}
-
-input[type="range"] {
-  padding: 0;
-  border: none;
-  background: none;
-  accent-color: var(--accent);
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-th {
-  text-align: right;
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
+/* Section headings — small, uppercase, muted. */
+.section-title {
+  font-size: 0.8125rem;
   font-weight: 500;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--line);
-}
-
-td {
-  text-align: right;
-  padding: 4px 8px;
-  border-bottom: 1px solid rgba(42, 50, 61, 0.5);
-}
-
-th:first-child,
-td:first-child {
-  text-align: left;
-}
-
-.payouts input {
-  padding: 4px 6px;
-  text-align: right;
-}
-
-.payouts td.wins,
-.outcomes td.wins {
-  font-weight: 600;
-  color: var(--accent);
-}
-
-.note {
-  color: var(--muted);
-  font-size: 12px;
-  margin: 10px 0 0;
-}
-
-.note.tight {
-  margin: -6px 0 14px;
-}
-
-.field-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 18px;
-}
-
-.field-head label {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.infotip {
-  position: relative;
-  display: inline-flex;
-}
-
-.info-btn {
-  width: 14px;
-  height: 14px;
-  padding: 0;
-  border-radius: 50%;
-  border: 1px solid var(--line);
-  background: var(--panel-2);
-  color: var(--muted);
-  font-size: 10px;
-  font-family: Georgia, "Times New Roman", serif;
-  font-style: italic;
-  font-weight: 700;
-  line-height: 1;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-
-.info-btn:hover,
-.info-btn[aria-expanded="true"] {
-  color: var(--text);
-  border-color: var(--accent);
-  background: var(--accent);
-  color: #0b1220;
-}
-
-.info-btn:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-.info-bubble {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 20;
-  width: 232px;
-  padding: 10px 12px;
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  box-shadow: 0 12px 32px rgb(0 0 0 / 45%);
-  color: var(--text);
-  font-size: 12px;
-  font-weight: 400;
-  line-height: 1.45;
-  text-transform: none;
-  letter-spacing: normal;
-}
-
-/* Arrow. */
-.info-bubble::before {
-  content: "";
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  border: 6px solid transparent;
-  border-bottom-color: var(--line);
-}
-
-h3 .infotip {
-  margin-left: 6px;
-  vertical-align: middle;
-}
-
-.link-button {
-  background: none;
-  border: none;
-  color: var(--accent);
-  font: inherit;
-  padding: 0;
-  cursor: pointer;
-  text-align: left;
-}
-
-.link-button:hover {
-  text-decoration: underline;
-}
-
-.link-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-  border-radius: 3px;
-}
-
-dialog.advanced {
-  background: var(--panel);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 20px;
-  width: min(420px, calc(100vw - 32px));
-  box-shadow: 0 24px 60px rgb(0 0 0 / 55%);
-}
-
-dialog.advanced::backdrop {
-  background: rgb(0 0 0 / 55%);
-}
-
-dialog.advanced h2 {
-  margin: 0 0 16px;
-  font-size: 13px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: var(--muted);
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.75rem;
 }
 
-.dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 18px;
+.form-label {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  margin-bottom: 0.25rem;
 }
 
-button.primary {
-  background: var(--accent);
-  color: #0b1220;
-  border: none;
-  border-radius: 7px;
-  padding: 8px 18px;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
+/*
+ * Stat tile. Bootstrap's .card is too heavy to nest inside another card, so
+ * these are a light raised block instead.
+ */
+.stat {
+  background: var(--app-raised);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.875rem;
 }
 
-button.primary:hover {
-  filter: brightness(1.08);
-}
-
-button.primary:focus-visible {
-  outline: 2px solid var(--text);
-  outline-offset: 2px;
-}
-
-.pos {
-  color: var(--pos);
-}
-
-.neg {
-  color: var(--neg);
-}
-
-.muted {
-  color: var(--muted);
-}
-
-.cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
-  gap: 10px;
-}
-
-.card {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.card .label {
-  font-size: 11px;
+.stat-label,
+.stat .stat-label {
+  font-size: 0.6875rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--muted);
+  color: var(--bs-secondary-color);
 }
 
-.card .value {
-  font-size: 22px;
+.stat-value {
+  font-size: 1.375rem;
   font-weight: 600;
   letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
-.card.pos .value {
-  color: var(--pos);
+.stat-hint {
+  font-size: 0.6875rem;
+  color: var(--bs-secondary-color);
 }
 
-.card.neg .value {
-  color: var(--neg);
-}
-
-.card .hint {
-  font-size: 11px;
-  color: var(--muted);
-}
-
-.chart {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.bar-row {
-  display: grid;
-  grid-template-columns: 36px 1fr 60px;
-  align-items: center;
-  gap: 10px;
-}
-
-.bar-label {
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.bar-track {
-  position: relative;
+/* Distribution chart, built on Bootstrap's .progress. */
+.progress {
   height: 20px;
-  background: var(--panel-2);
-  border-radius: 5px;
-  overflow: hidden;
+  background-color: var(--app-raised);
 }
 
-.bar-fill {
-  height: 100%;
+.progress-bar {
   background: linear-gradient(90deg, #3b82f6, #6ea8fe);
-  border-radius: 5px;
   transition: width 0.15s ease-out;
 }
 
-.bar-exact {
+/* Marker showing where the closed-form probability falls. */
+.exact-tick {
   position: absolute;
   top: 0;
   width: 2px;
@@ -425,47 +109,55 @@ button.primary:focus-visible {
   transform: translateX(-1px);
 }
 
+.bar-label {
+  width: 2.25rem;
+  flex: 0 0 auto;
+}
+
 .bar-value {
-  text-align: right;
-  font-size: 12px;
-  color: var(--muted);
+  width: 3.75rem;
+  flex: 0 0 auto;
 }
 
-.table-scroll {
-  overflow-x: auto;
+/* Small round "i" that opens a popover. */
+.info-btn {
+  width: 15px;
+  height: 15px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--bs-border-color);
+  background: var(--app-raised);
+  color: var(--bs-secondary-color);
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 0.625rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  vertical-align: middle;
 }
 
-.outcomes tfoot td {
-  border-bottom: none;
-  border-top: 1px solid var(--line);
-  padding-top: 8px;
-  font-weight: 600;
+.info-btn:hover,
+.info-btn:focus {
+  background: var(--bs-primary);
+  border-color: var(--bs-primary);
+  color: #0b1220;
 }
 
-.percentiles {
-  display: grid;
-  /* Wraps to fewer columns rather than squeezing cells past their content. */
-  grid-template-columns: repeat(auto-fit, minmax(92px, 1fr));
-  gap: 8px;
+.popover {
+  --bs-popover-max-width: 260px;
+  --bs-popover-body-font-size: 0.75rem;
+  --bs-popover-bg: var(--app-raised);
+  --bs-popover-border-color: var(--bs-border-color);
 }
 
-.pct-cell {
-  background: var(--panel-2);
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  font-size: 15px;
-  font-weight: 600;
-  min-width: 0;
+/* Payout table cells hold inputs, so drop the default vertical padding. */
+.table > :not(caption) > * > * {
+  padding: 0.3rem 0.4rem;
 }
 
-.pct-cell .label {
-  font-size: 11px;
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--muted);
+.table {
+  --bs-table-bg: transparent;
 }
