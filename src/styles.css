@@ -166,6 +166,10 @@ td:first-child {
   margin: 10px 0 0;
 }
 
+.note.tight {
+  margin: -6px 0 14px;
+}
+
 .pos {
   color: var(--pos);
 }

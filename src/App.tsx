@@ -6,9 +6,15 @@ import {
   configFromPreset,
   defaultConfig,
   expectedNetAt,
+  matchWinRate,
   matchesPreset,
+  maxPossibleWins,
+  maxRounds,
+  resizePayouts,
   simulate,
   type EventConfig,
+  type EventFormat,
+  type EventStructure,
   type PayoutTier,
 } from "./lib/draft";
 
@@ -21,6 +27,9 @@ const gems2 = (n: number): string =>
   })}`;
 
 const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
+
+const clampInt = (n: number, lo: number, hi: number): number =>
+  Math.max(lo, Math.min(hi, Math.round(n) || lo));
 
 /**
  * Number input that drops focus on wheel events — otherwise scrolling the page
@@ -87,6 +96,18 @@ export default function App() {
       payouts: config.payouts.map((t) => (t.wins === wins ? { ...t, ...patch } : t)),
     });
 
+  /**
+   * Changing the structure changes how many win counts are reachable, so the
+   * payout table has to be resized to match — rows that still exist keep their
+   * values.
+   */
+  const setStructure = (structure: EventStructure) =>
+    update({
+      ...config,
+      structure,
+      payouts: resizePayouts(config.payouts, maxPossibleWins(structure)),
+    });
+
   const applyPreset = (name: string) => {
     setPresetName(name);
     const preset = PRESETS.find((p) => p.name === name);
@@ -102,14 +123,19 @@ export default function App() {
 
   const maxProb = Math.max(...result.buckets.map((b) => b.probability), 0.0001);
   const profitable = result.meanNet >= 0;
+  const structure = config.structure;
+  const roundWord = config.format === "bo3" ? "matches" : "games";
+  const structureSummary =
+    structure.kind === "rounds"
+      ? `${structure.rounds} rounds played out in full, ${config.format.toUpperCase()}`
+      : `play until ${structure.maxWins} wins or ${structure.maxLosses} losses, ${config.format.toUpperCase()}`;
 
   return (
     <div className="app">
       <header>
         <h1>MTGA Limited EV</h1>
         <p className="sub">
-          Monte-Carlo EV model for an Arena limited event — play until{" "}
-          {config.maxWins} wins or {config.maxLosses} losses, BO1.
+          Monte-Carlo EV model for an Arena limited event — {structureSummary}.
         </p>
       </header>
 
@@ -129,9 +155,79 @@ export default function App() {
             </select>
           </label>
 
+          <div className="grid2">
+            <label className="field">
+              <span>Structure</span>
+              <select
+                value={structure.kind}
+                onChange={(e) =>
+                  setStructure(
+                    e.target.value === "rounds"
+                      ? { kind: "rounds", rounds: 3 }
+                      : { kind: "elimination", maxWins: 7, maxLosses: 3 },
+                  )
+                }
+              >
+                <option value="elimination">Play until N wins / M losses</option>
+                <option value="rounds">Fixed rounds</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>Match format</span>
+              <select
+                value={config.format}
+                onChange={(e) => set("format", e.target.value as EventFormat)}
+              >
+                <option value="bo1">Best of 1</option>
+                <option value="bo3">Best of 3</option>
+              </select>
+            </label>
+          </div>
+
+          <div className="grid2">
+            {structure.kind === "elimination" ? (
+              <>
+                <label className="field">
+                  <span>Wins to finish</span>
+                  <NumberInput
+                    min={1}
+                    step={1}
+                    value={structure.maxWins}
+                    onChange={(n) =>
+                      setStructure({ ...structure, maxWins: clampInt(n, 1, 20) })
+                    }
+                  />
+                </label>
+                <label className="field">
+                  <span>Losses to bust</span>
+                  <NumberInput
+                    min={1}
+                    step={1}
+                    value={structure.maxLosses}
+                    onChange={(n) =>
+                      setStructure({ ...structure, maxLosses: clampInt(n, 1, 20) })
+                    }
+                  />
+                </label>
+              </>
+            ) : (
+              <label className="field">
+                <span>Rounds</span>
+                <NumberInput
+                  min={1}
+                  step={1}
+                  value={structure.rounds}
+                  onChange={(n) =>
+                    setStructure({ kind: "rounds", rounds: clampInt(n, 1, 20) })
+                  }
+                />
+              </label>
+            )}
+          </div>
+
           <label className="field">
             <span>
-              Expected win rate <strong>{pct(config.winRate)}</strong>
+              Expected win rate (per game) <strong>{pct(config.winRate)}</strong>
             </span>
             <input
               type="range"
@@ -142,6 +238,13 @@ export default function App() {
               onChange={(e) => set("winRate", Number(e.target.value))}
             />
           </label>
+          {config.format === "bo3" && (
+            <p className="note tight">
+              BO3 → <strong>{pct(matchWinRate(config), 2)}</strong> per match. Winning
+              55% of games means winning more than 55% of matches: the longer format
+              favours the better deck.
+            </p>
+          )}
 
           <div className="grid2">
             <label className="field">
@@ -218,7 +321,8 @@ export default function App() {
           </table>
           <p className="note">
             Packs are counted separately and valued at {config.packValueGems} gems each,
-            so "Net" is gems-only unless you give packs a value.
+            so "Net" is gems-only unless you give packs a value. Rows follow the
+            structure — lowering the win ceiling drops the rows above it.
           </p>
         </section>
 
@@ -251,6 +355,7 @@ export default function App() {
                 {breakEven === null ? "—" : pct(breakEven, 2)}
               </span>
               <span className="hint">{breakEvenHint}</span>
+
             </div>
             <div className="card">
               <span className="label">P(profit)</span>
@@ -258,9 +363,11 @@ export default function App() {
               <span className="hint">of events end net positive</span>
             </div>
             <div className="card">
-              <span className="label">Games / event</span>
-              <span className="value">{result.meanGames.toFixed(2)}</span>
-              <span className="hint">σ of net: {gems2(result.stdDevNet)} gems</span>
+              <span className="label">{roundWord} / event</span>
+              <span className="value">{result.meanRounds.toFixed(2)}</span>
+              <span className="hint">
+                max {maxRounds(structure)} · σ of net: {gems2(result.stdDevNet)} gems
+              </span>
             </div>
           </div>
 
