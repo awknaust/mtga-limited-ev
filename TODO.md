@@ -52,3 +52,18 @@ currently reports.
 
 Store the global inputs (win rate, pack value, N, seed) in localStorage so they
 survive a reload. Event/preset state probably should not persist.
+
+## 8. Deploy to AWS/S3
+
+`npm run build` already emits a fully static `dist/` — no server, no API, no
+env vars — so S3 static hosting plus CloudFront in front of it is enough.
+
+Worth settling first:
+- bucket stays private, served through CloudFront with an Origin Access
+  Control, rather than a public website-endpoint bucket
+- cache headers: Vite fingerprints the assets, so those can be immutable and
+  long-lived, but `index.html` must be short-lived or a deploy won't be picked
+  up
+- how it ships — a GitHub Actions workflow on push to `main` (sync `dist/`,
+  then invalidate `/index.html`) beats deploying from a laptop
+- whether it needs a domain and certificate, or a CloudFront URL is fine
