@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CUBE_DRAFT,
+  PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
   QUICK_DRAFT,
@@ -228,13 +229,48 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
-  it("exposes all four presets", () => {
+  it("exposes all five presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
       "Cube Draft",
       "Traditional Draft",
+      "Pick Two Draft",
     ]);
+  });
+
+  it("models Pick Two Draft as 4 wins or 2 losses", () => {
+    expect(PICK_TWO_DRAFT.format).toBe("bo1");
+    expect(PICK_TWO_DRAFT.structure).toEqual({
+      kind: "elimination",
+      maxWins: 4,
+      maxLosses: 2,
+    });
+    expect(PICK_TWO_DRAFT.entryCostGems).toBe(900);
+    expect(PICK_TWO_DRAFT.payouts).toHaveLength(5);
+    // A run can go at most 3-2 before the decider.
+    expect(maxRounds(PICK_TWO_DRAFT.structure)).toBe(5);
+  });
+
+  it("matches a hand-computed distribution for Pick Two Draft", () => {
+    // maxLosses of 2 changes the shape: P(k<4) = (k+1)·p^k·q², and the top
+    // tier is p⁴(1 + 4q) rather than the three-loss form.
+    const p = 0.55;
+    const q = 1 - p;
+    const d = exactDistribution(p, PICK_TWO_DRAFT.structure);
+    expect(d).toHaveLength(5);
+    for (let k = 0; k < 4; k++) {
+      expect(d[k]).toBeCloseTo((k + 1) * Math.pow(p, k) * q * q, 12);
+    }
+    expect(d[4]).toBeCloseTo(Math.pow(p, 4) * (1 + 4 * q), 12);
+    expect(d.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
+  });
+
+  it("prices Pick Two Draft at the hand-computed EV", () => {
+    const config = configFromPreset(PICK_TWO_DRAFT, defaultConfig());
+    const d = exactDistribution(0.55, PICK_TWO_DRAFT.structure);
+    const gross = d.reduce((acc, pr, k) => acc + pr * PICK_TWO_DRAFT.payouts[k].gems, 0);
+    expect(expectedNetAt(config, 0.55)).toBeCloseTo(gross - 900, 6);
   });
 
   it("has a payout row for every reachable win count", () => {

@@ -72,6 +72,7 @@ pack value, N and seed are left alone when switching.
 | Quick Draft | 750 | BO1, to 7 wins / 3 losses | 50 / 100 / 200 / 300 / 450 / 650 / 850 / 950 gems, 1–2 packs |
 | Cube Draft | 1,500 | BO1, to 7 wins / 3 losses | Same as Premier |
 | Traditional Draft | 1,500 | BO3, 3 fixed rounds | 0 / 0 / 1000 / 3000 gems, 1 / 1 / 4 / 6 packs |
+| Pick Two Draft | 900 | BO1, to 4 wins / 2 losses | 50 / 150 / 800 / 1000 / 1300 gems, 1 / 1 / 1 / 2 / 3 packs |
 | Custom | — | Keeps whatever is on screen | |
 
 Editing any structural or payout field moves the selector to **Custom**, and
@@ -93,9 +94,10 @@ single event.
 ## A note on entry costs
 
 The preset entry costs are Arena's **gem** prices: 1,500 for Premier,
-Traditional and Cube, 750 for Quick. The alternative is gold — 10,000 and 5,000
-respectively — so enter those instead if that's how you buy in, keeping in mind
-that gold and gems aren't interchangeable at a fixed rate.
+Traditional and Cube, 900 for Pick Two, 750 for Quick. The alternative is gold —
+10,000, 6,000 and 5,000 respectively — so enter those instead if that's how you
+buy in, keeping in mind that gold and gems aren't interchangeable at a fixed
+rate.
 
 The model values only gems and whatever you assign to packs — never the drafted
 card pool, which is where much of a draft's real return sits.
