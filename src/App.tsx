@@ -253,10 +253,69 @@ export default function App() {
       </header>
 
       <div className="row g-3 align-items-start">
-        <div className="col-lg-4">
+        <div className="col-lg-4 vstack gap-3">
+          {/* Assumptions that hold whichever event you price. */}
           <div className="card">
             <div className="card-body">
-              <h2 className="section-title">Inputs</h2>
+              <h2 className="section-title">Global inputs</h2>
+
+              <div className="mb-3">
+                <label htmlFor={ids.winRate} className="form-label">
+                  Expected win rate (per game){" "}
+                  <span className="fw-semibold text-body">{pct(config.winRate)}</span>
+                </label>
+                <input
+                  id={ids.winRate}
+                  type="range"
+                  className="form-range"
+                  min={0}
+                  max={1}
+                  step={0.005}
+                  value={config.winRate}
+                  onChange={(e) => set("winRate", Number(e.target.value))}
+                />
+                {config.format === "bo3" && (
+                  <div className="form-text">
+                    BO3 →{" "}
+                    <span className="fw-semibold">{pct(matchWinRate(config), 2)}</span>{" "}
+                    per match.
+                  </div>
+                )}
+              </div>
+
+              <div className="row g-2 align-items-end">
+                <div className="col-6">
+                  <label htmlFor={ids.packValue} className="form-label">
+                    Pack value (gems)
+                    <InfoTip
+                      label="About pack value"
+                      content="Packs are always counted, but they only enter the gem figures once you price them here. At 0 they contribute nothing to Net, so the results are gems-only."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.packValue}
+                    min={0}
+                    value={config.packValueGems}
+                    onChange={(n) => set("packValueGems", n)}
+                  />
+                </div>
+                <div className="col-6">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary w-100"
+                    onClick={() => modal.current?.show()}
+                  >
+                    <i className="bi bi-gear me-1" aria-hidden="true" />
+                    Advanced
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="card">
+            <div className="card-body">
+              <h2 className="section-title">Event</h2>
 
               <div className="mb-3">
                 <label htmlFor={ids.preset} className="form-label">
@@ -365,30 +424,6 @@ export default function App() {
                 )}
               </div>
 
-              <div className="mb-3">
-                <label htmlFor={ids.winRate} className="form-label">
-                  Expected win rate (per game){" "}
-                  <span className="fw-semibold text-body">{pct(config.winRate)}</span>
-                </label>
-                <input
-                  id={ids.winRate}
-                  type="range"
-                  className="form-range"
-                  min={0}
-                  max={1}
-                  step={0.005}
-                  value={config.winRate}
-                  onChange={(e) => set("winRate", Number(e.target.value))}
-                />
-                {config.format === "bo3" && (
-                  <div className="form-text">
-                    BO3 →{" "}
-                    <span className="fw-semibold">{pct(matchWinRate(config), 2)}</span>{" "}
-                    per match.
-                  </div>
-                )}
-              </div>
-
               <div className="row g-2 mb-3">
                 <div className="col-6">
                   <label htmlFor={ids.entry} className="form-label">
@@ -401,30 +436,7 @@ export default function App() {
                     onChange={(n) => set("entryCostGems", n)}
                   />
                 </div>
-                <div className="col-6">
-                  <label htmlFor={ids.packValue} className="form-label">
-                    Pack value (gems)
-                    <InfoTip
-                      label="About pack value"
-                      content="Packs are always counted, but they only enter the gem figures once you price them here. At 0 they contribute nothing to Net, so the results are gems-only."
-                    />
-                  </label>
-                  <NumberInput
-                    id={ids.packValue}
-                    min={0}
-                    value={config.packValueGems}
-                    onChange={(n) => set("packValueGems", n)}
-                  />
-                </div>
               </div>
-
-              <button
-                type="button"
-                className="btn btn-link btn-sm p-0"
-                onClick={() => modal.current?.show()}
-              >
-                Advanced settings…
-              </button>
 
               <h3 className="section-title mt-4">
                 Payout schedule
