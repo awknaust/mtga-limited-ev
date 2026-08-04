@@ -32,30 +32,79 @@ const CHART = { width: 220, height: 44 };
  * smallest, a largest — since only an average can land between two boxes. A
  * range reading 0.0 to 8.0 boxes implies a precision the thing does not have.
  */
-const amountText = (key: HoldingKey, n: number, m: Money, whole = false): string => {
+const amountText = (key: HoldingKey, n: number, m: Money, exact = false): string => {
   if (key === "gems") return m.fmt(n);
   // Gold is Arena-internal and has its own rate against gems, so it is never
   // shown in dollars — the same reason format.ts refuses to convert it.
   if (key === "gold") return Math.round(n).toLocaleString();
-  if (whole) return n.toLocaleString();
+  if (exact) return n.toLocaleString();
   return n.toFixed(n > 0 && n < 1 ? 2 : 1);
+};
+
+/**
+ * The same amount as an axis label, where the room runs out well before the
+ * significant digits do. Thousands abbreviate, since a tick saying which
+ * thousand it is says enough — the figures that need to be read exactly are
+ * printed above the chart.
+ */
+const tickText = (key: HoldingKey, n: number, m: Money): string => {
+  if (key === "gems" && m.unit === "usd") return m.fmt(n);
+  const a = Math.abs(n);
+  if (key === "gems" || key === "gold") {
+    return a >= 1000 ? `${Math.round(n / 1000)}k` : String(Math.round(n));
+  }
+  return n.toLocaleString();
+};
+
+/**
+ * Where to letter the axis of a card chart.
+ *
+ * D3 picks round values, but not how many: asking for four gives anywhere
+ * from one to six depending on how the range falls. One is not an axis, and
+ * six will not fit, so this asks again when it comes back short and drops
+ * every other when it comes back crowded. Whole holdings keep whole ticks —
+ * half a box is not a place on the axis.
+ */
+const axisTicks = (
+  x: ReturnType<typeof scaleLinear<number, number>>,
+  whole: boolean,
+  most: number,
+): number[] => {
+  const at = (count: number): number[] => {
+    const ticks = x.ticks(count);
+    return whole ? ticks.filter(Number.isInteger) : ticks;
+  };
+  let ticks = at(4);
+  if (ticks.length < 3) ticks = at(6);
+  while (ticks.length > most) ticks = ticks.filter((_, i) => i % 2 === 0);
+  return ticks;
 };
 
 /**
  * The spread across runs, small enough to sit in a card.
  *
- * No axes: the numbers that matter are printed above it, and a 44px chart has
- * no room to letter them. The bars carry the shape, the marker carries the
- * middle, and the ends carry the range.
+ * The axis is lettered in HTML rather than in the SVG. The chart is stretched
+ * to whatever width the card has, and text in a non-uniformly scaled SVG
+ * stretches with it — the bars can take that, letters cannot. So the labels
+ * sit under the chart and are positioned by the same scale that placed the
+ * bars, which keeps them crisp at any card width.
  */
 function MiniHistogram({
   bins,
   median,
+  whole,
   label,
+  tickText,
+  mostTicks,
 }: {
   bins: Bin[];
   median: number;
+  /** Whether the amounts are whole things, so the ticks must be too. */
+  whole: boolean;
   label: string;
+  tickText: (value: number) => string;
+  /** How many labels the card has room for, which the widest ones decide. */
+  mostTicks: number;
 }) {
   if (!bins.length) return null;
   const lo = bins[0].from;
@@ -69,8 +118,11 @@ function MiniHistogram({
     .domain([lo, hi === lo ? lo + 1 : hi])
     .range([0, CHART.width]);
   const y = scaleLinear().domain([0, peak]).range([CHART.height, 0]);
+  const ticks = axisTicks(x, whole, mostTicks);
+  const at = (value: number): number => (x(value) / CHART.width) * 100;
 
   return (
+    <>
     <svg
       viewBox={`0 0 ${CHART.width} ${CHART.height}`}
       className="chart-svg mini-chart mt-2"
@@ -78,6 +130,17 @@ function MiniHistogram({
       aria-label={label}
       preserveAspectRatio="none"
     >
+      {/* Behind the bars, so a gridline never cuts one in half. */}
+      {ticks.map((t) => (
+        <line
+          key={t}
+          x1={x(t)}
+          x2={x(t)}
+          y1={0}
+          y2={CHART.height}
+          className="chart-gridline"
+        />
+      ))}
       {bins.map((b) => (
         <rect
           key={b.from}
@@ -98,6 +161,21 @@ function MiniHistogram({
         className="chart-marker-median"
       />
     </svg>
+    {/* Nudged inward at the ends, so the first and last are not half cut off. */}
+    <div className="mini-ticks stat-hint">
+      {ticks.map((t) => (
+        <span
+          key={t}
+          style={{
+            left: `${at(t)}%`,
+            transform: `translateX(${at(t) < 8 ? 0 : at(t) > 92 ? -100 : -50}%)`,
+          }}
+        >
+          {tickText(t)}
+        </span>
+      ))}
+    </div>
+    </>
   );
 }
 
@@ -112,9 +190,9 @@ function HoldingCard({
   config: EventConfig;
   m: Money;
 }) {
-  const { label } = holding(bankrollKey);
+  const { label, whole } = holding(bankrollKey);
   const rate = holdingRate(config, bankrollKey);
-  const text = (n: number, whole = false) => amountText(bankrollKey, n, m, whole);
+  const text = (n: number, exact = false) => amountText(bankrollKey, n, m, exact);
 
   return (
     <div className="col-sm-6 col-xl-4">
@@ -136,18 +214,21 @@ function HoldingCard({
         {totals.min === totals.max ? (
           <div className="stat-hint mt-2">the same in every run</div>
         ) : (
-          <>
-            <MiniHistogram
-              bins={totals.histogram}
-              median={totals.median}
-              label={`Spread of ${label.toLowerCase()} across runs`}
-            />
-            {/* The chart carries no axis, so its ends are labelled below it. */}
-            <div className="stat-hint d-flex justify-content-between">
-              <span>{text(totals.min, true)}</span>
-              <span>{text(totals.max, true)}</span>
-            </div>
-          </>
+          <MiniHistogram
+            bins={totals.histogram}
+            median={totals.median}
+            whole={whole}
+            label={`Spread of ${label.toLowerCase()} across runs`}
+            tickText={(n) => tickText(bankrollKey, n, m)}
+            /*
+             * Dollar amounts are the long labels — "$112.50" against "45k" —
+             * and they only turn up on the gems card, since gold is never
+             * converted and counts are counts. Four rather than three because
+             * thinning halves: a cap of three takes a four-tick axis down to
+             * two, which is the bare ends again.
+             */
+            mostTicks={bankrollKey === "gems" && m.unit === "usd" ? 4 : 5}
+          />
         )}
       </div>
     </div>

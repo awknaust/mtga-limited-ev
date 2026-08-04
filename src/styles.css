@@ -150,6 +150,23 @@ body {
   height: 44px;
 }
 
+/*
+ * Its axis labels. Positioned rather than spaced, because each one has to sit
+ * where its value falls along a chart that is stretched to the card's width —
+ * a flex row would space them evenly and put every one of them in the wrong
+ * place.
+ */
+.mini-ticks {
+  position: relative;
+  height: 1.15em;
+  margin-top: 0.15rem;
+}
+
+.mini-ticks span {
+  position: absolute;
+  white-space: nowrap;
+}
+
 /* Where the closed-form probability falls, against the simulated bar. */
 .chart-exact-tick {
   stroke: #fbbf24;
