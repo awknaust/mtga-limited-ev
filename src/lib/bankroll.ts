@@ -46,7 +46,45 @@ export type BankrollResult = {
   medianFinalValue: number;
   /** Events played, bucketed for a histogram. */
   histogram: { events: number; count: number }[];
+  /** Where a run ends up, as spendable currency. */
+  gemPercentiles: Percentiles;
+  goldPercentiles: Percentiles;
+  /** Ending value binned for a histogram. */
+  valueHistogram: { from: number; to: number; count: number }[];
 };
+
+export type Percentiles = { p5: number; p25: number; p50: number; p75: number; p95: number };
+
+/** Percentiles of an already-sorted sample. */
+function percentilesOf(sorted: number[]): Percentiles {
+  const at = (q: number): number =>
+    sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(q * sorted.length))] : 0;
+  return { p5: at(0.05), p25: at(0.25), p50: at(0.5), p75: at(0.75), p95: at(0.95) };
+}
+
+/**
+ * Bin a sample for display. Ending value spans orders of magnitude between
+ * events, so the range comes from the data rather than a fixed scale.
+ */
+function binned(
+  sorted: number[],
+  bins = 24,
+): { from: number; to: number; count: number }[] {
+  if (!sorted.length) return [];
+  const lo = sorted[0];
+  const hi = sorted[sorted.length - 1];
+  if (hi === lo) return [{ from: lo, to: lo, count: sorted.length }];
+  const width = (hi - lo) / bins;
+  const out = Array.from({ length: bins }, (_, i) => ({
+    from: lo + i * width,
+    to: lo + (i + 1) * width,
+    count: 0,
+  }));
+  for (const v of sorted) {
+    out[Math.min(bins - 1, Math.floor((v - lo) / width))].count++;
+  }
+  return out;
+}
 
 export type BankrollRun = {
   events: number;
@@ -140,6 +178,8 @@ export function simulateBankrolls(
   const medianFinalValue = sortedValue.length
     ? sortedValue[Math.floor(sortedValue.length / 2)]
     : 0;
+  const sortedGems = runs.map((r) => r.finalGems).sort((a, b) => a - b);
+  const sortedGold = runs.map((r) => r.finalGold).sort((a, b) => a - b);
 
   const counts = new Map<number, number>();
   for (const e of sortedEvents) counts.set(e, (counts.get(e) ?? 0) + 1);
@@ -159,5 +199,8 @@ export function simulateBankrolls(
     histogram: [...counts.entries()]
       .map(([events, count]) => ({ events, count }))
       .sort((a, b) => a.events - b.events),
+    gemPercentiles: percentilesOf(sortedGems),
+    goldPercentiles: percentilesOf(sortedGold),
+    valueHistogram: binned(sortedValue),
   };
 }

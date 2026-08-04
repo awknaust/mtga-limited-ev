@@ -22,7 +22,6 @@ Plays a sequence from a starting balance until it runs dry. Still crude:
 - gold and gems are the only spendable currencies. Packs, points and boxes
   accumulate and count toward ending value but cannot fund an entry, which is
   right for packs and wrong for play-in points once you have twenty.
-- the run cap is a hard 500 and is not exposed in the UI.
 - a run plays one event type forever. Real players switch when a better one is
   available, which is most of the point of comparing events.
 - ending value counts unspent gold at zero, the same gap the per-event view has.

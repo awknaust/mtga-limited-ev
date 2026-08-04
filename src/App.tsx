@@ -5,6 +5,7 @@ import Popover from "bootstrap/js/dist/popover";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
+import { ValueHistogram } from "./components/ValueHistogram";
 import {
   CUSTOM_PRESET,
   PRESETS,
@@ -127,6 +128,10 @@ export default function App() {
   const [presetName, setPresetName] = useState(PRESETS[0].name);
   const [startingGems, setStartingGems] = useState(10_000);
   const [startingGold, setStartingGold] = useState(20_000);
+  // Where the player stops, not a numerical guard — a run that never busts has
+  // to end somewhere, and how long you intend to play is a real input.
+  const [maxEvents, setMaxEvents] = useState(100);
+  const [tab, setTab] = useState<"bankroll" | "event">("bankroll");
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -160,6 +165,7 @@ export default function App() {
     seed: `${uid}-seed`,
     startGems: `${uid}-start-gems`,
     startGold: `${uid}-start-gold`,
+    maxEvents: `${uid}-max-events`,
   };
 
   const isBo3 = config.format === "bo3";
@@ -174,11 +180,11 @@ export default function App() {
     () =>
       simulateBankrolls(
         config,
-        { startingGems, startingGold, maxEvents: 500 },
+        { startingGems, startingGold, maxEvents },
         3000,
         seed,
       ),
-    [config, startingGems, startingGold, seed],
+    [config, startingGems, startingGold, maxEvents, seed],
   );
   // When there is no break-even point, say which side of zero the event sits on.
   const breakEvenHint = useMemo(() => {
@@ -338,6 +344,46 @@ export default function App() {
                     )
                   }
                 />
+              </div>
+
+              <div className="row g-2 mb-3">
+                <div className="col-6">
+                  <label htmlFor={ids.startGems} className="form-label">
+                    Starting gems
+                  </label>
+                  <NumberInput
+                    id={ids.startGems}
+                    min={0}
+                    value={startingGems}
+                    onChange={setStartingGems}
+                  />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.startGold} className="form-label">
+                    Starting gold
+                  </label>
+                  <NumberInput
+                    id={ids.startGold}
+                    min={0}
+                    value={startingGold}
+                    onChange={setStartingGold}
+                  />
+                </div>
+                <div className="col-12">
+                  <label htmlFor={ids.maxEvents} className="form-label">
+                    Stop after (events)
+                    <InfoTip
+                      label="About the event limit"
+                      content="Where you stop playing. A run that never goes broke has to end somewhere, and how long you intend to keep going changes the ending balance."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.maxEvents}
+                    min={1}
+                    value={maxEvents}
+                    onChange={(n) => setMaxEvents(clampInt(n, 1, 2000))}
+                  />
+                </div>
               </div>
 
               <button
@@ -627,53 +673,37 @@ export default function App() {
         <div className="col-lg-8">
           <div className="card">
             <div className="card-body">
-              <h2 className="section-title d-flex flex-wrap align-items-baseline gap-2">
-                Results
-                <span className="section-note">
-                  {presetName} · {structureSummary}
-                </span>
-              </h2>
-
-              <div className="row g-2">
-                {stats.map((s) => (
-                  <div key={s.label} className="col-6 col-xl-4">
-                    <div className="stat h-100">
-                      <div className="stat-label">{s.label}</div>
-                      <div className={`stat-value ${s.tone ?? ""}`}>{s.value}</div>
-                      <div className="stat-hint">{s.hint}</div>
-                    </div>
-                  </div>
+              <ul className="nav nav-tabs mb-3" role="tablist">
+                {(["bankroll", "event"] as const).map((t) => (
+                  <li className="nav-item" key={t}>
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={tab === t}
+                      className={`nav-link ${tab === t ? "active" : ""}`}
+                      onClick={() => setTab(t)}
+                    >
+                      {t === "bankroll" ? "Bankroll" : "Per event"}
+                    </button>
+                  </li>
                 ))}
-              </div>
+                <li className="ms-auto d-flex align-items-center">
+                  <span className="section-note">
+                    {presetName} · {structureSummary}
+                  </span>
+                </li>
+              </ul>
 
-              <h3 className="section-title mt-4">Distribution of outcomes by wins</h3>
-              <DistributionChart buckets={result.buckets} />
-              <div className="form-text">
-                Bars are the simulation; the tick mark is the closed-form probability.
-              </div>
-
-              <h3 className="section-title mt-4">
-                Expected net by win rate
-                <InfoTip
-                  label="About the expected net curve"
-                  content="Closed-form expectation, not the simulation. The dot is where you are, the dashed line is break-even."
-                />
-              </h3>
-              <EvCurveChart config={config} breakEven={breakEven} />
-              <div className="form-text">
-                Per {isBo3 ? "match" : "game"} win rate, against expected net gems.
-              </div>
-
-              <h3 className="section-title mt-4 d-flex flex-wrap align-items-baseline gap-2">
-                Bankroll
-                <span className="section-note">
-                  from {gems(startingGems)} gems and {gems(startingGold)} gold
-                </span>
-                <InfoTip
-                  label="About the bankroll simulation"
-                  content="Plays a sequence rather than one event: entries come out of real balances, winnings go back in, and the run ends when neither currency covers another entry. Capped at 500 events."
-                />
-              </h3>
+              {tab === "bankroll" ? (
+                <>
+                  <div className="form-text mb-2">
+                    Starting from {gems(startingGems)} gems and {gems(startingGold)}{" "}
+                    gold, stopping after {maxEvents} events.
+                    <InfoTip
+                      label="About the bankroll simulation"
+                      content="Plays a sequence rather than one event: entries come out of real balances, gold first where the event takes it, and winnings go back in. A run ends when neither currency covers another entry."
+                    />
+                  </div>
               <div className="row g-2 mb-3">
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
@@ -708,7 +738,7 @@ export default function App() {
                   <div className="stat h-100">
                     <div className="stat-label">Never ran dry</div>
                     <div className="stat-value">{pct(bankroll.survivedFraction)}</div>
-                    <div className="stat-hint">of runs hit the 500 cap</div>
+                    <div className="stat-hint">of runs reached the limit</div>
                   </div>
                 </div>
               </div>
@@ -718,6 +748,81 @@ export default function App() {
               />
               <div className="form-text">
                 Events played before running out. The dashed line is the mean.
+              </div>
+
+                  <h3 className="section-title mt-4">Where runs end up</h3>
+                  <div className="row g-2 mb-3">
+                    {(
+                      [
+                        ["gems", bankroll.gemPercentiles],
+                        ["gold", bankroll.goldPercentiles],
+                      ] as const
+                    ).map(([label, p]) => (
+                      <div key={label} className="col-12">
+                        <div className="stat">
+                          <div className="stat-label">Final {label}</div>
+                          <div className="d-flex flex-wrap gap-3 mt-1">
+                            {(
+                              [
+                                ["p5", p.p5],
+                                ["p25", p.p25],
+                                ["median", p.p50],
+                                ["p75", p.p75],
+                                ["p95", p.p95],
+                              ] as const
+                            ).map(([k, v]) => (
+                              <span key={k} className="small">
+                                <span className="text-body-secondary">{k} </span>
+                                <span className="fw-semibold">{gems(v)}</span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <ValueHistogram
+                    bins={bankroll.valueHistogram}
+                    markers={[
+                      { at: startingGems, label: "starting gems" },
+                      { at: bankroll.medianFinalValue, label: "median" },
+                    ]}
+                  />
+                  <div className="form-text">
+                    Ending value across runs — gems plus everything won. Dashed lines
+                    mark where you started and the median outcome.
+                  </div>
+                </>
+              ) : (
+                <>
+              <div className="row g-2">
+                {stats.map((s) => (
+                  <div key={s.label} className="col-6 col-xl-4">
+                    <div className="stat h-100">
+                      <div className="stat-label">{s.label}</div>
+                      <div className={`stat-value ${s.tone ?? ""}`}>{s.value}</div>
+                      <div className="stat-hint">{s.hint}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <h3 className="section-title mt-4">Distribution of outcomes by wins</h3>
+              <DistributionChart buckets={result.buckets} />
+              <div className="form-text">
+                Bars are the simulation; the tick mark is the closed-form probability.
+              </div>
+
+              <h3 className="section-title mt-4">
+                Expected net by win rate
+                <InfoTip
+                  label="About the expected net curve"
+                  content="Closed-form expectation, not the simulation. The dot is where you are, the dashed line is break-even."
+                />
+              </h3>
+              <EvCurveChart config={config} breakEven={breakEven} />
+              <div className="form-text">
+                Per {isBo3 ? "match" : "game"} win rate, against expected net gems.
               </div>
 
               <h3 className="section-title mt-4">Outcome table</h3>
@@ -812,6 +917,8 @@ export default function App() {
                 </span>{" "}
                 gems.
               </div>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -882,28 +989,6 @@ export default function App() {
                     value="∞"
                     disabled
                     readOnly
-                  />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.startGems} className="form-label">
-                    Starting gems
-                  </label>
-                  <NumberInput
-                    id={ids.startGems}
-                    min={0}
-                    value={startingGems}
-                    onChange={setStartingGems}
-                  />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.startGold} className="form-label">
-                    Starting gold
-                  </label>
-                  <NumberInput
-                    id={ids.startGold}
-                    min={0}
-                    value={startingGold}
-                    onChange={setStartingGold}
                   />
                 </div>
                 <div className="col-12">
