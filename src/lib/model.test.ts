@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ARENA_DIRECT,
   CONTENDER_DRAFT,
-  CUBE_DRAFT,
+  PREMIER_CUBE_DRAFT,
   DEFAULT_GOLD_PER_DAY,
   DEFAULT_EVENTS_PER_DAY,
   DEFAULT_DRAFT_PACK_VALUE_GEMS,
@@ -17,6 +17,7 @@ import {
   PRESETS,
   QUICK_DRAFT,
   SEALED,
+  TRADITIONAL_CUBE_DRAFT,
   TRADITIONAL_DRAFT,
   bo3WinRate,
   gameWinRateForMatchRate,
@@ -213,7 +214,7 @@ describe("resizePayouts", () => {
     const grown = resizePayouts(TRADITIONAL_DRAFT.payouts, 7);
     expect(grown).toHaveLength(8);
     // Play-in points survive the resize along with the rest of the row.
-    expect(grown[3]).toEqual({ wins: 3, gems: 3000, packs: 6, playInPoints: 2 });
+    expect(grown[3]).toEqual({ wins: 3, gems: 2500, packs: 6, playInPoints: 2 });
     expect(grown[7]).toEqual({ wins: 7, gems: 0, packs: 0 });
   });
 
@@ -269,8 +270,9 @@ describe("drafted cards", () => {
   it("keeps cards from drafts and sealed, none from phantom events", () => {
     expect(PREMIER_DRAFT.draftPacks).toBe(3);
     expect(SEALED.draftPacks).toBe(6);
-    // Cube is phantom: you play with the cards, you do not keep them.
-    expect(CUBE_DRAFT.draftPacks).toBe(0);
+    // Both cubes are phantom: you play with the cards, you do not keep them.
+    expect(PREMIER_CUBE_DRAFT.draftPacks).toBe(0);
+    expect(TRADITIONAL_CUBE_DRAFT.draftPacks).toBe(0);
     expect(ARENA_DIRECT.draftPacks).toBe(0);
   });
 
@@ -287,7 +289,7 @@ describe("drafted cards", () => {
   });
 
   it("leaves phantom events untouched by the card rate", () => {
-    const cube = configFromPreset(CUBE_DRAFT, defaultConfig());
+    const cube = configFromPreset(PREMIER_CUBE_DRAFT, defaultConfig());
     expect(expectedNetAt(cube, 0.55)).toBeCloseTo(
       expectedNetAt({ ...cube, draftPackValueGems: 9999 }, 0.55),
       9,
@@ -546,10 +548,25 @@ describe("presets", () => {
     expect(defaultConfig().packValueGems).toBe(DEFAULT_PACK_VALUE_GEMS);
   });
 
-  it("gives Cube the Premier structure", () => {
-    expect(CUBE_DRAFT.payouts).toEqual(PREMIER_DRAFT.payouts);
-    expect(CUBE_DRAFT.entryCostGems).toBe(PREMIER_DRAFT.entryCostGems);
-    expect(CUBE_DRAFT.structure).toEqual(PREMIER_DRAFT.structure);
+  it("gives Premier Cube the Premier structure and gem ladder, but not its packs", () => {
+    expect(PREMIER_CUBE_DRAFT.entryCostGems).toBe(PREMIER_DRAFT.entryCostGems);
+    expect(PREMIER_CUBE_DRAFT.structure).toEqual(PREMIER_DRAFT.structure);
+    expect(PREMIER_CUBE_DRAFT.payouts.map((t) => t.gems)).toEqual(
+      PREMIER_DRAFT.payouts.map((t) => t.gems),
+    );
+    // Packs diverge from five wins up, paying more to offset the phantom pool.
+    expect(PREMIER_CUBE_DRAFT.payouts.map((t) => t.packs)).toEqual([
+      1, 1, 2, 2, 3, 5, 6, 7,
+    ]);
+  });
+
+  it("gives both cubes the same gem ladder as their non-cube twin", () => {
+    expect(TRADITIONAL_CUBE_DRAFT.payouts.map((t) => t.gems)).toEqual(
+      TRADITIONAL_DRAFT.payouts.map((t) => t.gems),
+    );
+    // ...but one pack fewer at 3-0, and no play-in points at all.
+    expect(TRADITIONAL_CUBE_DRAFT.payouts.map((t) => t.packs)).toEqual([1, 1, 3, 5]);
+    expect(TRADITIONAL_DRAFT.payouts.map((t) => t.packs)).toEqual([1, 1, 3, 6]);
   });
 
   it("models Traditional Draft as three BO3 rounds", () => {
@@ -559,12 +576,13 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
-  it("exposes all eight presets", () => {
+  it("exposes all nine presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
-      "Cube Draft",
+      "Premier Cube Draft",
       "Traditional Draft",
+      "Traditional Cube Draft",
       "Pick Two Draft",
       "Sealed",
       "Contender Draft",

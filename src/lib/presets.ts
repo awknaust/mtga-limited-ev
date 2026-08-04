@@ -11,30 +11,33 @@
 
 import { ARENA_DIRECT } from "../data/presets/arena-direct";
 import { CONTENDER_DRAFT } from "../data/presets/contender-draft";
-import { CUBE_DRAFT } from "../data/presets/cube-draft";
 import { PICK_TWO_DRAFT } from "../data/presets/pick-two-draft";
+import { PREMIER_CUBE_DRAFT } from "../data/presets/premier-cube-draft";
 import { PREMIER_DRAFT } from "../data/presets/premier-draft";
 import { QUICK_DRAFT } from "../data/presets/quick-draft";
 import { SEALED } from "../data/presets/sealed";
+import { TRADITIONAL_CUBE_DRAFT } from "../data/presets/traditional-cube-draft";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
 import type { EventConfig, EventPreset } from "./types";
 
 export {
   ARENA_DIRECT,
   CONTENDER_DRAFT,
-  CUBE_DRAFT,
   PICK_TWO_DRAFT,
+  PREMIER_CUBE_DRAFT,
   PREMIER_DRAFT,
   QUICK_DRAFT,
   SEALED,
+  TRADITIONAL_CUBE_DRAFT,
   TRADITIONAL_DRAFT,
 };
 
 export const PRESETS: EventPreset[] = [
   PREMIER_DRAFT,
   QUICK_DRAFT,
-  CUBE_DRAFT,
+  PREMIER_CUBE_DRAFT,
   TRADITIONAL_DRAFT,
+  TRADITIONAL_CUBE_DRAFT,
   PICK_TWO_DRAFT,
   SEALED,
   CONTENDER_DRAFT,
