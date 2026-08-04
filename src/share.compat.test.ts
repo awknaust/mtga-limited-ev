@@ -53,7 +53,7 @@ function fingerprint(state: ShareState): string {
     `gold       ${c.goldPerDay}/day over ${c.eventsPerDay} events, goldPerGem=${goldRate}`,
     `payouts    ${encodePayouts(c.payouts)}`,
     `bankroll   gems=${state.startingGems} gold=${state.startingGold} maxEvents=${state.maxEvents} spend=${state.spendWinnings}`,
-    `sim        trials=${state.trials} seed=${state.seed}`,
+    `sim        trials=${state.trials} runs=${state.bankrollRuns} seed=${state.seed}`,
     `display    tab=${state.tab} unit=${state.unit} gemsPerUsd=${state.gemsPerUsd}`,
   ].join("\n");
 }
@@ -127,6 +127,7 @@ describe("the parameter names are the contract", () => {
         ],
       },
       trials: 12,
+      bankrollRuns: 17,
       seed: 13,
       startingGems: 14,
       startingGold: 15,
@@ -167,6 +168,7 @@ describe("the parameter names are the contract", () => {
       "playInValue",
       "preset",
       "rounds",
+      "runs",
       "seed",
       "spendWinnings",
       "startGems",
@@ -225,7 +227,7 @@ describe("the defaults are the contract", () => {
       gold       1350/day over 1 events, goldPerGem=6.6667
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-      sim        trials=100000 seed=1
+      sim        trials=100000 runs=10000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=400"
     `);
   });

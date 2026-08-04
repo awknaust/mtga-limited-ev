@@ -8,6 +8,7 @@ import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
+import { RunLog } from "./components/RunLog";
 import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
 import {
@@ -264,6 +265,12 @@ export default function App() {
   const [initial] = useState(() => decodeShareState(window.location.search));
   const [config, setConfig] = useState<EventConfig>(initial.config);
   const [trials, setTrials] = useState(initial.trials);
+  /*
+   * Counted apart from `trials` because a run costs far more than an event:
+   * one plays a whole sequence, so matching the per-event count would be tens
+   * of times the work for a shape a few thousand runs already settle.
+   */
+  const [bankrollRuns, setBankrollRuns] = useState(initial.bankrollRuns);
   const [seed, setSeed] = useState(initial.seed);
   const [presetName, setPresetName] = useState(initial.presetName);
   const [startingGems, setStartingGems] = useState(initial.startingGems);
@@ -301,6 +308,7 @@ export default function App() {
       presetName,
       config,
       trials,
+      bankrollRuns,
       seed,
       startingGems,
       startingGold,
@@ -320,6 +328,7 @@ export default function App() {
     presetName,
     config,
     trials,
+    bankrollRuns,
     seed,
     startingGems,
     startingGold,
@@ -392,6 +401,7 @@ export default function App() {
     playBoxValue: `${uid}-play-box-value`,
     collectorBoxValue: `${uid}-collector-box-value`,
     trials: `${uid}-trials`,
+    bankrollRuns: `${uid}-bankroll-runs`,
     seed: `${uid}-seed`,
     startGems: `${uid}-start-gems`,
     startGold: `${uid}-start-gold`,
@@ -406,19 +416,15 @@ export default function App() {
 
   const result = useMemo(() => simulate(config, trials, seed), [config, trials, seed]);
   const breakEven = useMemo(() => breakEvenWinRate(config), [config]);
-  /*
-   * Fewer trials than the per-event run, since each one plays a whole sequence
-   * rather than a single event. A few thousand is plenty for the shape.
-   */
   const bankroll = useMemo(
     () =>
       simulateBankrolls(
         config,
         { startingGems, startingGold, maxEvents, spendWinnings },
-        3000,
+        bankrollRuns,
         seed,
       ),
-    [config, startingGems, startingGold, maxEvents, spendWinnings, seed],
+    [config, startingGems, startingGold, maxEvents, spendWinnings, bankrollRuns, seed],
   );
   // When there is no break-even point, say which side of zero the event sits on.
   const breakEvenHint = useMemo(() => {
@@ -1115,6 +1121,14 @@ export default function App() {
                       />
                     )}
                   </TabPanel>
+
+                  <RunLog
+                    samples={bankroll.samples}
+                    config={config}
+                    m={m}
+                    isBo3={isBo3}
+                    runs={bankroll.trials}
+                  />
                 </>
               ) : (
                 <>
@@ -1508,6 +1522,21 @@ export default function App() {
                       min={1}
                       value={trials}
                       onChange={(n) => setTrials(clampInt(n, 1, 5_000_000))}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.bankrollRuns} className="form-label">
+                      Bankroll runs (N)
+                      <InfoTip
+                        label="About bankroll runs"
+                        content="Counted apart from simulated events, because one run plays a whole sequence of them. A few thousand settle the shape; far more is slow for little gain."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.bankrollRuns}
+                      min={1}
+                      value={bankrollRuns}
+                      onChange={(n) => setBankrollRuns(clampInt(n, 1, 200_000))}
                     />
                   </div>
                   <div className="col-6">

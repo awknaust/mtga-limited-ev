@@ -475,6 +475,81 @@ describe("bankroll", () => {
     expect(boxes.histogram.at(-1)!.to).toBeGreaterThan(boxes.max);
   });
 
+  it("keeps a sample of runs in full, ordered by what they came to", () => {
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const res = simulateBankrolls(config, roll, 400, 19);
+
+    // A hundred kept out of four hundred played, and the rest carry no log.
+    expect(res.samples).toHaveLength(100);
+    // Drawn across the whole sequence rather than off the front.
+    expect(simulateBankrolls(config, roll, 20, 19).samples).toHaveLength(20);
+    expect(res.samples.every((s) => s.run.log !== undefined)).toBe(true);
+
+    const values = res.samples.map((s) => s.value);
+    expect([...values].sort((a, b) => a - b)).toEqual(values);
+    // Landmarks in the same order, so stepping between them goes one way.
+    const labelled = res.samples.filter((s) => s.label !== undefined);
+    expect(labelled.map((s) => s.label)).toEqual(["p5", "p25", "median", "p75", "p95"]);
+  });
+
+  it("logs an event per event, and the balances it left behind", () => {
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const res = simulateBankrolls(config, roll, 200, 23);
+    for (const { run, value } of res.samples) {
+      const log = run.log ?? [];
+      expect(log).toHaveLength(run.events);
+      expect(log.map((e) => e.event)).toEqual(log.map((_, i) => i + 1));
+      // The last row's balances are where the run ended, which is what the
+      // percentile beside it was computed from.
+      if (log.length) {
+        expect(log[log.length - 1].gemBalance).toBe(run.finalGems);
+        expect(log[log.length - 1].goldBalance).toBe(run.finalGold);
+      }
+      expect(value).toBeCloseTo(runValue(config, run), 9);
+      // Rounds bound the wins: you cannot win five of three matches.
+      for (const e of log) {
+        expect(e.wins).toBeLessThanOrEqual(e.rounds);
+        expect(e.rounds).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it("logged payouts add up to the totals the run reports", () => {
+    // The log is a second telling of the same run, so it has to agree with the
+    // counters — a log that drifted would illustrate a run nobody played.
+    const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
+    const res = simulateBankrolls(config, { ...roll, startingGems: 30_000 }, 120, 29);
+    for (const { run } of res.samples) {
+      const log = run.log ?? [];
+      const sum = (pick: (e: (typeof log)[number]) => number) =>
+        log.reduce((a, e) => a + pick(e), 0);
+      expect(sum((e) => e.packs)).toBe(run.packs);
+      expect(sum((e) => e.playInPoints)).toBe(run.playInPoints);
+      expect(sum((e) => e.playBoxes)).toBe(run.playBoxes);
+    }
+  });
+
+  it("records nothing unless asked", () => {
+    // Thousands of runs each holding an object per event, for five to be read.
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const run = simulateBankroll(config, roll, seededRandom(3));
+    expect(run.log).toBeUndefined();
+    expect(simulateBankroll(config, roll, seededRandom(3), true).log).toBeDefined();
+  });
+
+  it("stops recording a run long enough to bury the page", () => {
+    // Two hundred and fifty events kept; the run itself plays on, and every
+    // total still counts all of it.
+    const config = { ...configFromPreset(PREMIER_DRAFT, defaultConfig()), winRate: 1 };
+    const long = { ...roll, startingGems: 100_000, maxEvents: 400 };
+    const run = simulateBankroll(config, long, seededRandom(5), true);
+    expect(run.events).toBe(400);
+    expect(run.log).toHaveLength(250);
+    expect(run.packs).toBeGreaterThan(
+      (run.log ?? []).reduce((a, e) => a + e.packs, 0),
+    );
+  });
+
   it("histograms every holding across every run", () => {
     const res = simulateBankrolls(defaultConfig(), roll, 200, 13);
     for (const key of HOLDING_KEYS) {

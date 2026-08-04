@@ -10,7 +10,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-0-1_0-0-0-2
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -24,7 +24,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=20000 gold=15000 maxEvents=200 spend=true
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -38,7 +38,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -52,7 +52,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    0-0_100-1_200-2_400-3_800-4_1600-5
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -66,7 +66,7 @@ values     pack=0 playIn=0 playBox=0 collBox=0
 gold       0/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=400"
 `;
 
@@ -80,7 +80,7 @@ values     pack=0 playIn=0 playBox=0 collBox=0
 gold       0/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_200-1_300-1_450-1_650-1_850-1_950-2
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=400"
 `;
 
@@ -94,7 +94,7 @@ values     pack=132 playIn=200 playBox=61867 collBox=252133
 gold       0/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=400"
 `;
 
@@ -108,7 +108,7 @@ values     pack=132 playIn=250 playBox=60000 collBox=250000
 gold       900/day over 2 events, goldPerGem=5.0000
 payouts    10-1_20-1_300-2-1_4000-3-0-1_5000-4-0-0-2_12000-6-4-0-3
 bankroll   gems=12000 gold=5000 maxEvents=50 spend=true
-sim        trials=250000 seed=77
+sim        trials=250000 runs=10000 seed=77
 display    tab=event unit=usd gemsPerUsd=350"
 `;
 
@@ -122,7 +122,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=about unit=usd gemsPerUsd=350"
 `;
 
@@ -136,7 +136,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -150,7 +150,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_200-1_300-1_450-1_650-1_850-1_950-2
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -164,7 +164,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    0-1_250-1_1000-3_2500-6-2
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -178,7 +178,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=worthless
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -192,7 +192,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-0-1_0-0-0-2
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -206,7 +206,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    0-0_0-0_0-0_1400-3_2800-6_3200-8_4200-14_7200-22
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -220,7 +220,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_150-1_800-1_1000-2_1300-3
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -234,7 +234,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-5_1800-6_2200-7
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -248,7 +248,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -262,7 +262,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    50-1_100-1_200-1_300-1_450-1_650-1_850-1_950-2
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -276,7 +276,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    200-3_200-3_600-3_1200-3_1200-3_1200-3_2200-3_2200-3
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -290,7 +290,7 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    0-1_250-1_1000-3_2500-5
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
@@ -304,6 +304,6 @@ values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       1350/day over 1 events, goldPerGem=6.6667
 payouts    0-1_250-1_1000-3_2500-6-2
 bankroll   gems=3400 gold=0 maxEvents=20 spend=false
-sim        trials=100000 seed=1
+sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
