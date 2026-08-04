@@ -47,9 +47,11 @@ jobs:
     if: >-
       github.event_name == 'push' ||
       github.event.pull_request.head.repo.full_name == github.repository
-    # No `environment:` here on purpose. It would give the deploy a tracked URL
-    # in the GitHub UI, but environments on a private repo need Pro, and this
-    # repo is private on Free. The step summary below carries the URL instead.
+    # Gives the deploy a tracked URL in the GitHub UI. Only possible because the
+    # repo is public — GitHub Free allows environments on public repos only.
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'preview' }}
+      url: ${{ steps.deploy.outputs.deployment-url }}
     steps:
       - uses: actions/checkout@v7
 

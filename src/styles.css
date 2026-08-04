@@ -298,3 +298,21 @@ body {
 .table {
   --bs-table-bg: transparent;
 }
+
+/*
+ * Sits outside the panels rather than inside one, so it needs its own rule
+ * from them. Matches .about's type: both are prose about the model rather
+ * than part of it.
+ */
+.site-footer {
+  margin: 2rem auto 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--bs-border-color);
+  max-width: 70ch;
+  text-align: center;
+}
+
+.site-footer p {
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+}

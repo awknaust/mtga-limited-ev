@@ -404,8 +404,8 @@ export default function App() {
       <header className="mb-4">
         <h1 className="h3 mb-1">MTGA Limited EV</h1>
         <p className="text-body-secondary mb-0">
-          Monte-Carlo EV model for MTG Arena limited events — any win/loss
-          structure, best-of-one or best-of-three.
+          What draft and sealed events really pay at your win rate — and where
+          the break-even sits.
         </p>
       </header>
 
@@ -1061,6 +1061,25 @@ export default function App() {
         </div>
       </div>
 
+      <footer className="site-footer">
+        <p className="mb-1">
+          An expected-value model for MTG Arena limited events. Reward and
+          drop-rate figures come from Wizards; the per-event payout ladders are
+          community-sourced and are the softer half. The About tab says what
+          each reward is valued at and what the model leaves out.
+        </p>
+        <p className="mb-0">
+          <a
+            className="link-secondary"
+            href="https://github.com/awknaust/mtga-limited-ev"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <i className="bi bi-github me-1" aria-hidden="true" />
+            Source on GitHub
+          </a>
+        </p>
+      </footer>
 
       <div className="modal fade" tabIndex={-1} ref={modalEl} aria-hidden="true">
         <div className="modal-dialog modal-dialog-centered">

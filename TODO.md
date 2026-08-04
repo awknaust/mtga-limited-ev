@@ -59,27 +59,6 @@ glance. The obstacle is scale: Arena Direct's curve runs to six figures while
 the others sit in the low thousands, so one linear axis cannot show both
 readably.
 
-## Deploy — workflow written, account side pending
-
-`.github/workflows/deploy.yml` runs the tests, builds once, and direct-uploads
-that artifact to Cloudflare Pages with `wrangler pages deploy`. `main`
-publishes; every other branch gets its own preview URL off the same `--branch`
-flag. `public/_headers` settles caching: `/assets/*` is fingerprinted by Vite so
-it is `immutable` for a year, while `index.html` keeps Pages' default
-`max-age=0, must-revalidate`, since it is the file that names the new hashes and
-a cached copy would pin a visitor to the previous deploy.
-
-Nothing here is free-tier sensitive — static asset requests are unmetered, and
-building in Actions means Cloudflare's 500 builds/month cap is never touched.
-
-What is left is all on the Cloudflare account rather than in this repo:
-
-- the Pages project and the API token behind `CLOUDFLARE_API_TOKEN` /
-  `CLOUDFLARE_ACCOUNT_ID` must exist before the first run
-- the custom domain is not attached, so it serves from `.pages.dev`
-- no `environment:` in the workflow: GitHub Free allows those only on public
-  repos and this one is private. Worth adding back if that changes.
-
 ## Settled, and not worth reopening
 
 - **The fun input is inert on purpose.** "Fun (gems / game)" is a joke that
@@ -92,5 +71,16 @@ What is left is all on the Cloudflare account rather than in this repo:
   which already carry the closed-form check alongside.
 - **D3 computes, React renders.** Scales and ticks from D3, SVG from React, so
   neither library fights the other for the DOM.
-- **Deploy is Cloudflare Pages, not S3 and CloudFront.** The original plan; the
-  static bundle needs nothing the free tier withholds.
+- **Deploy is Cloudflare Pages, not S3 and CloudFront.** The original plan, and
+  the static bundle needs nothing the free tier withholds. It ships from
+  `.github/workflows/deploy.yml`: tests, one build, then a direct upload of that
+  same artifact, so what ships is what passed. `main` publishes to
+  <https://mtga-limited-ev.awknaust.me>; every other branch gets its own preview
+  URL. Direct uploads do not count against Cloudflare's 500 builds/month, which
+  is the point of building in Actions rather than letting Pages do it.
+- **`index.html` must never be cached.** `public/_headers` makes `/assets/*`
+  immutable for a year, safe because Vite fingerprints those filenames, and
+  leaves `index.html` on Pages' `max-age=0, must-revalidate`. It is the file
+  naming the new hashes, so a cached copy pins a visitor to the previous deploy
+  with no way to dislodge it. Do not add a dashboard Cache Rule on the custom
+  domain either — Cloudflare's own docs warn it reintroduces exactly this.
