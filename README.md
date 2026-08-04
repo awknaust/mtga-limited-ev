@@ -11,7 +11,28 @@ Then open http://localhost:5173.
 React + TypeScript, built with Vite. The UI is Bootstrap 5 in dark mode
 (`data-bs-theme="dark"` on `<html>`); `src/styles.css` only retunes Bootstrap's
 CSS variables and adds the few pieces it has no component for. The model in
-`src/lib/draft.ts` is dependency-free and has no UI imports.
+`src/lib` is dependency-free and has no UI imports.
+
+## Layout
+
+```
+src/lib/            the model — no React, no DOM, runs anywhere
+  types.ts          domain types
+  structure.ts      event shape helpers, BO3 conversion, payout resizing
+  payouts.ts        win count → gems
+  distribution.ts   closed-form outcome distributions
+  rng.ts            seeded PRNG
+  simulate.ts       Monte Carlo run, expected value, break-even
+  presets.ts        named events + the pack-value derivation
+  index.ts          barrel; import from "./lib"
+src/data/presets/   one event per file, data only, `satisfies EventPreset`
+src/App.tsx         the entire UI
+```
+
+Adding an event means adding a file under `src/data/presets` and listing it in
+`PRESETS` — no model changes, as long as its shape is elimination or fixed
+rounds. `satisfies` means a wrong field name, a bad structure kind or a
+mistyped value is a compile error pointing at the offending line.
 
 ## Model
 
@@ -56,7 +77,7 @@ format rewards the better deck. 0, 0.5 and 1 are fixed points.
 | Match format | Best of 1 or best of 3 |
 | Expected win rate | Per-game, applied independently to every game |
 | Entry cost | Gems; set by the preset, editable |
-| Pack value | Gems per booster; **defaults to 0**, so packs are counted but contribute no value |
+| Pack value | Gems per booster; **defaults to 22** (see below). Set to 0 to price events in gems alone |
 | Payout schedule | Editable gems + packs per win count; resizes with the structure |
 | N | Number of simulated events |
 | Seed | Same seed ⇒ same run |
@@ -110,7 +131,7 @@ a card — 20 for a rare, 40 for a mythic, which at the usual ~1:7 mythic upgrad
 rate averages ≈22.9 a slot, or ≈21.3 once the occasional wildcard in that slot
 is accounted for. It excludes vault progress and bonus sheets, both of which
 would push it higher. The full derivation is on `DEFAULT_PACK_VALUE_GEMS` in
-[src/lib/draft.ts](src/lib/draft.ts).
+[src/lib/presets.ts](src/lib/presets.ts).
 
 It is the most subjective input here. A ±10 gem error moves expected net by
 roughly 30 gems an event; break-even win rates barely move. Set it to 0 to price

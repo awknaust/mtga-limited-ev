@@ -1,0 +1,148 @@
+/** Monte Carlo simulation and the expected-value figures derived from it. */
+
+import { exactDistribution } from "./distribution";
+import { grossValue, netValue, payoutFor } from "./payouts";
+import { mulberry32 } from "./rng";
+import { bo3WinRate, matchWinRate, maxPossibleWins } from "./structure";
+import type {
+  EventConfig,
+  EventStructure,
+  SimResult,
+  WinBucket,
+} from "./types";
+
+/**
+ * Play one event. `pMatch` is the per-round win probability — already converted
+ * from the game win rate for BO3.
+ */
+export function simulateEvent(
+  structure: EventStructure,
+  pMatch: number,
+  rand: () => number,
+): { wins: number; rounds: number } {
+  if (structure.kind === "rounds") {
+    let wins = 0;
+    for (let i = 0; i < structure.rounds; i++) {
+      if (rand() < pMatch) wins++;
+    }
+    return { wins, rounds: structure.rounds };
+  }
+
+  let wins = 0;
+  let losses = 0;
+  let rounds = 0;
+  while (wins < structure.maxWins && losses < structure.maxLosses) {
+    rounds++;
+    if (rand() < pMatch) wins++;
+    else losses++;
+  }
+  return { wins, rounds };
+}
+
+export function simulate(config: EventConfig, trials: number, seed = 1): SimResult {
+  const rand = mulberry32(seed);
+  const pMatch = matchWinRate(config);
+  const topWins = maxPossibleWins(config.structure);
+  const counts = new Array<number>(topWins + 1).fill(0);
+  let totalRounds = 0;
+  let sumNet = 0;
+  let sumSqNet = 0;
+  let profitable = 0;
+
+  for (let i = 0; i < trials; i++) {
+    const { wins, rounds } = simulateEvent(config.structure, pMatch, rand);
+    counts[wins]++;
+    totalRounds += rounds;
+    const net = netValue(config, wins);
+    sumNet += net;
+    sumSqNet += net * net;
+    if (net > 0) profitable++;
+  }
+
+  const exact = exactDistribution(pMatch, config.structure);
+
+  const buckets: WinBucket[] = counts.map((count, wins) => {
+    const tier = payoutFor(config, wins);
+    return {
+      wins,
+      count,
+      probability: trials > 0 ? count / trials : 0,
+      exactProbability: exact[wins] ?? 0,
+      grossGems: grossValue(config, wins),
+      netGems: netValue(config, wins),
+      packs: tier.packs,
+    };
+  });
+
+  const meanNet = trials > 0 ? sumNet / trials : 0;
+  const variance = trials > 1 ? sumSqNet / trials - meanNet * meanNet : 0;
+  const stdDevNet = Math.sqrt(Math.max(0, variance));
+
+  const exactMeanNet = exact.reduce(
+    (acc, pr, wins) => acc + pr * netValue(config, wins),
+    0,
+  );
+
+  const meanGross = buckets.reduce((acc, b) => acc + b.probability * b.grossGems, 0);
+  const meanPacks = buckets.reduce((acc, b) => acc + b.probability * b.packs, 0);
+
+  return {
+    trials,
+    buckets,
+    meanNet,
+    exactMeanNet,
+    meanGross,
+    meanPacks,
+    meanRounds: trials > 0 ? totalRounds / trials : 0,
+    stdDevNet,
+    stdErrNet: trials > 0 ? stdDevNet / Math.sqrt(trials) : 0,
+    probProfit: trials > 0 ? profitable / trials : 0,
+    roi: config.entryCostGems > 0 ? meanNet / config.entryCostGems : 0,
+    totalNet: sumNet,
+    percentiles: netPercentiles(buckets),
+  };
+}
+
+/**
+ * Percentiles of the per-event net result, read off the (discrete) outcome
+ * distribution sorted by net value.
+ */
+function netPercentiles(buckets: WinBucket[]): SimResult["percentiles"] {
+  const sorted = [...buckets].sort((a, b) => a.netGems - b.netGems);
+  const at = (target: number): number => {
+    let cum = 0;
+    for (const b of sorted) {
+      cum += b.probability;
+      if (cum >= target) return b.netGems;
+    }
+    return sorted.length ? sorted[sorted.length - 1].netGems : 0;
+  };
+  return { p5: at(0.05), p25: at(0.25), p50: at(0.5), p75: at(0.75), p95: at(0.95) };
+}
+
+/** Expected net gems per event at a given per-game win rate, closed form. */
+export function expectedNetAt(config: EventConfig, winRate: number): number {
+  const pMatch = config.format === "bo3" ? bo3WinRate(winRate) : winRate;
+  const dist = exactDistribution(pMatch, config.structure);
+  return dist.reduce((acc, p, wins) => acc + p * netValue(config, wins), 0);
+}
+
+/**
+ * Per-game win rate at which the event breaks even, or null if it never does
+ * within [0, 1]. Bisection — expected value is monotonic in win rate for any
+ * sane (non-decreasing) payout table.
+ */
+export function breakEvenWinRate(config: EventConfig): number | null {
+  const lo0 = expectedNetAt(config, 0);
+  const hi0 = expectedNetAt(config, 1);
+  if (lo0 > 0 || hi0 < 0) return null;
+
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (expectedNetAt(config, mid) < 0) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}

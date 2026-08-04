@@ -18,7 +18,7 @@ import {
   type EventFormat,
   type EventStructure,
   type PayoutTier,
-} from "./lib/draft";
+} from "./lib";
 
 const gems = (n: number): string =>
   `${n < 0 ? "−" : ""}${Math.abs(Math.round(n)).toLocaleString()}`;

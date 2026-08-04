@@ -20,7 +20,7 @@ import {
   resizePayouts,
   simulate,
   type EventStructure,
-} from "./draft";
+} from "./index";
 
 const ELIM: EventStructure = { kind: "elimination", maxWins: 7, maxLosses: 3 };
 
