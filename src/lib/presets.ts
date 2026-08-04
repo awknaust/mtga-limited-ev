@@ -162,17 +162,26 @@ export const DAILY_WIN_CAP = DAILY_WIN_GOLD.length;
 /**
  * Default gold earned per day from everything other than the event's wins.
  *
- * Zero, and the reasoning is the point. A daily quest pays roughly 600 gold,
- * but it pays that whether or not you enter a draft — you can clear it in a
- * free format. Crediting it to a paid entry is counting income the entry did
- * not cause, and it is not neutral between events: at 10,000 gold for Premier
- * against 5,000 for Quick, a flat daily credit subsidises the cheaper event
- * twice as hard and moves the answer to which event is better.
+ * A daily quest, which pays roughly 600 gold and is not hard to clear.
  *
- * What the event *does* generate is its own daily-win gold, which the model
- * now derives from DAILY_WIN_GOLD rather than assuming.
+ * This makes the field a *budget* rather than an attribution: what a day of
+ * playing puts toward entries, whoever earned it. The stricter reading — only
+ * gold the entry itself caused — would put this at 0, because a quest can be
+ * cleared in a free format and pays whether or not you draft. That reading
+ * answers "what did this entry return"; this one answers "how far does a day
+ * of playing get me", which is the question someone deciding what to queue is
+ * actually asking.
+ *
+ * Worth knowing what it costs, because it is not neutral between events. At
+ * 10,000 gold for Premier against 5,000 for Quick, a flat daily credit covers
+ * twice as much of the cheaper event, so raising it moves Quick's break-even
+ * further than Premier's and shifts where the two cross. Set it to 0 for the
+ * attribution reading.
+ *
+ * The quest figure is not on Wizards' drop-rates page, unlike DAILY_WIN_GOLD,
+ * and it varies with which quest you draw — it is the softer number of the two.
  */
-export const DEFAULT_OTHER_GOLD_PER_DAY = 0;
+export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
 
 /**
  * Events played per day.

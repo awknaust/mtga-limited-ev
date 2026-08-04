@@ -230,8 +230,8 @@ describe("the defaults are the contract", () => {
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23
       values     pack=22 playIn=200 playBox=61867 collBox=252133
-      gold       other=0/day over 1 events, goldPerGem=6.6667
-      charges    1426.7 gems (488.8 gold/event)
+      gold       other=600/day over 1 events, goldPerGem=6.6667
+      charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3000 gold=0 maxEvents=20 spend=false
       sim        trials=100000 seed=1

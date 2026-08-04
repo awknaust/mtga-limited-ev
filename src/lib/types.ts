@@ -72,11 +72,12 @@ export type EventConfig = {
    * Gold earned in a day from everything *except* this event's own wins —
    * quests, and games played outside it.
    *
-   * Zero by default, and deliberately: that gold arrives whether or not you
-   * enter, so counting it as a return on the entry flatters the event. The
-   * field exists for players who genuinely earmark quest income as their draft
-   * budget, which is a real way to play but a choice rather than an accounting
-   * fact. Divided across `eventsPerDay`, since it does not repeat per event.
+   * A daily quest by default, so this is the day's *budget* toward entries
+   * rather than what the entry itself earned back. Set it to 0 for the
+   * stricter reading, where an event is credited only the gold its own wins
+   * generate.
+   *
+   * Divided across `eventsPerDay`, since it does not repeat per event.
    */
   otherGoldPerDay: number;
   /**

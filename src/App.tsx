@@ -1422,7 +1422,7 @@ export default function App() {
                       Other gold per day
                       <InfoTip
                         label="About other gold per day"
-                        content="Gold from quests and games outside this event, which you earn whether or not you enter it. The gold the event's own wins pay is counted separately, off the daily-win ladder. Zero by default."
+                        content="Gold from quests and games outside this event, counted as budget toward entries. Defaults to 600, roughly a daily quest. The gold the event's own wins pay is counted separately, off the daily-win ladder."
                       />
                     </label>
                     <GoldInput

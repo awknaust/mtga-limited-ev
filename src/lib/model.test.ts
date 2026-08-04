@@ -605,15 +605,28 @@ describe("the daily-win ladder", () => {
 
 describe("gold entries", () => {
   it("credits an event the gold its own wins generate", () => {
-    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    // Isolated from the daily quest, which is a budget rather than something
+    // the event earns — see the default below.
+    const config = { ...configFromPreset(PREMIER_DRAFT, defaultConfig()), otherGoldPerDay: 0 };
     expect(config.entryCostGold).toBe(10000);
-    expect(config.otherGoldPerDay).toBe(DEFAULT_OTHER_GOLD_PER_DAY);
     expect(config.eventsPerDay).toBe(DEFAULT_EVENTS_PER_DAY);
     // A 55% win rate averages 3.39 wins, which is 489 gold off the ladder —
     // not the 750 a full day pays, and not the 1,350 the model used to credit.
     expect(meanWinsPerEvent(config)).toBeCloseTo(3.39, 2);
     expect(goldPerEvent(config)).toBeCloseTo(489, 0);
     expect(goldFundedFraction(config)).toBeCloseTo(489 / 10000, 2);
+  });
+
+  it("adds a daily quest on top by default", () => {
+    // The default treats the day's quest as budget toward entries. It is the
+    // softer of the two figures — not on the drop-rates page, and it varies
+    // with the quest drawn — so it is pinned on its own rather than buried in
+    // a total.
+    expect(DEFAULT_OTHER_GOLD_PER_DAY).toBe(600);
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    expect(config.otherGoldPerDay).toBe(600);
+    expect(goldPerEvent(config)).toBeCloseTo(489 + 600, 0);
+    expect(goldPerEvent({ ...config, otherGoldPerDay: 0 })).toBeCloseTo(489, 0);
   });
 
   it("charges the full gem price when the event takes no gold", () => {
@@ -640,9 +653,10 @@ describe("gold entries", () => {
   });
 
   it("saturates at the cap however many events are played", () => {
-    const base = defaultConfig();
+    const base = { ...defaultConfig(), otherGoldPerDay: 0 };
     // Five events at 3.39 wins each already reach fifteen, so the day's total
-    // is pinned at 750 from there on.
+    // is pinned at 750 from there on. The quest is held out: it is a flat
+    // daily figure and would mask the ladder's own ceiling.
     for (const n of [5, 10, 50]) {
       expect(goldPerEvent({ ...base, eventsPerDay: n }) * n).toBeCloseTo(750, 6);
     }
@@ -657,9 +671,10 @@ describe("gold entries", () => {
   });
 
   it("adds gold earned outside the event on top, divided across the day", () => {
-    const base = defaultConfig();
+    const base = { ...defaultConfig(), otherGoldPerDay: 0 };
     const wins = goldPerEvent(base);
     expect(goldPerEvent({ ...base, otherGoldPerDay: 600 })).toBeCloseTo(wins + 600, 6);
+    // Divided across the day, because a quest does not come back per event.
     expect(goldPerEvent({ ...base, otherGoldPerDay: 600, eventsPerDay: 2 })).toBeCloseTo(
       goldPerEvent({ ...base, eventsPerDay: 2 }) + 300,
       6,
@@ -673,11 +688,16 @@ describe("gold entries", () => {
   });
 
   it("rises with the win rate, since winning climbs the ladder", () => {
-    const base = defaultConfig();
+    const base = { ...defaultConfig(), otherGoldPerDay: 0 };
     const at = (winRate: number) => goldPerEvent({ ...base, winRate });
     expect(at(0)).toBe(0);
     expect(at(0.4)).toBeLessThan(at(0.55));
     expect(at(0.55)).toBeLessThan(at(0.7));
+    // The quest is flat, so it shifts the curve without tilting it.
+    const withQuest = (winRate: number) =>
+      goldPerEvent({ ...base, otherGoldPerDay: 600, winRate });
+    expect(withQuest(0)).toBe(600);
+    expect(withQuest(0.7) - withQuest(0.4)).toBeCloseTo(at(0.7) - at(0.4), 9);
   });
 
   it("makes the simulated bankroll converge to the closed-form share", () => {
@@ -701,7 +721,12 @@ describe("gold entries", () => {
     expect(b.buckets.map((x) => x.exactProbability)).toEqual(
       a.buckets.map((x) => x.exactProbability),
     );
-    expect(b.meanNet - a.meanNet).toBeCloseTo(1500 * (489 / 10000), 0);
+    // The gap is exactly the entry the gold covers, derived rather than
+    // restated so that retuning the quest default cannot silently pass here.
+    expect(b.meanNet - a.meanNet).toBeCloseTo(
+      1500 * goldFundedFraction(with_),
+      6,
+    );
   });
 
   it("prices the EV curve at each point's own gold, not the config's", () => {
