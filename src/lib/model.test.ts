@@ -328,11 +328,10 @@ describe("presets", () => {
   it("converts physical prizes at 400 gems to the dollar", () => {
     expect(GEMS_PER_USD).toBe(400);
     // 20,000 gems for $49.99 is the largest bundle, so the most generous rate.
-    // Averages of the last three sets' street prices: 155/131/192 for play
-    // boxes, 702/475/900 for collector.
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(Math.round(((155 + 131 + 192) / 3) * 400));
+    // Averaged over Marvel Super Heroes, Edge of Eternities and Aetherdrift.
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(Math.round(((147 + 187 + 130) / 3) * 400));
     expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(
-      Math.round(((702 + 475 + 900) / 3) * 400),
+      Math.round(((599 + 914 + 378) / 3) * 400),
     );
   });
 

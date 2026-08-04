@@ -805,7 +805,7 @@ export default function App() {
                     Play box value (gems)
                     <InfoTip
                       label="About play box value"
-                      content="Average street price of the last three sets' Play Booster boxes, at 400 gems to the dollar. Wizards' published cash substitution is $209.70 a box, before withholding."
+                      content="Average street price across three recent Standard sets, at 400 gems to the dollar. Wizards' published cash substitution is $209.70 a box, before withholding."
                     />
                   </label>
                   <NumberInput
@@ -820,7 +820,7 @@ export default function App() {
                     Collector box value (gems)
                     <InfoTip
                       label="About collector box value"
-                      content="Average street price of the last three sets' Collector Booster boxes, at 400 gems to the dollar. These trade well above the $479.88 MSRP of a 12-pack display."
+                      content="Average street price across three recent Standard sets, at 400 gems to the dollar. These trade well above the $479.88 MSRP of a 12-pack display."
                     />
                   </label>
                   <NumberInput

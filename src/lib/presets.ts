@@ -98,19 +98,30 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 export const GEMS_PER_USD = 400;
 
 /**
- * Street prices of the three most recent sets, in USD, from MTGGoldfish's
- * sealed product list: Star Trek, Reality Fracture and The Hobbit.
+ * Street prices in USD from MTGGoldfish's sealed product list, averaged over
+ * three released, Standard-legal sets:
+ *
+ *     Marvel Super Heroes   play $147   collector $599
+ *     Edge of Eternities    play $187   collector $914
+ *     Aetherdrift           play $130   collector $378
+ *
+ * Only released sets are used — the newest entries on that page are preorders,
+ * whose prices are speculative. Final Fantasy is excluded as an outlier: at
+ * $260 a play box and $2,399 a collector box it would roughly double the
+ * collector average on its own.
+ *
+ * One caveat on the source: for older sets it prints two columns, EV and
+ * Retail, while recent sets show a single figure. These are the single values.
  *
  * @see https://www.mtggoldfish.com/prices/paper/boosters
  */
-const RECENT_PLAY_BOX_USD = [155, 131, 192];
-const RECENT_COLLECTOR_BOX_USD = [702, 475, 900];
+const PLAY_BOX_USD = [147, 187, 130];
+const COLLECTOR_BOX_USD = [599, 914, 378];
 
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 /**
- * Default gem value of a physical Play Booster box: the average of the three
- * most recent sets, converted at GEMS_PER_USD.
+ * Default gem value of a physical Play Booster box, converted at GEMS_PER_USD.
  *
  * Street price rather than sticker. Wizards' own figure is higher — the Arena
  * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
@@ -118,19 +129,18 @@ const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length
  * in most cases), and what a box is worth to you is what you could get for it.
  */
 export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(
-  mean(RECENT_PLAY_BOX_USD) * GEMS_PER_USD,
+  mean(PLAY_BOX_USD) * GEMS_PER_USD,
 );
 
 /**
  * Default gem value of a physical Collector Booster box, same basis.
  *
- * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88,
- * while the last three sets averaged near $692 — because the price tracks the
- * singles inside. It is also the most volatile number in the model: the same
- * three sets span $475 to $900.
+ * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88
+ * — because the price tracks the singles inside. It is also the most volatile
+ * number here: recent sets have ranged from under $400 to over $900.
  */
 export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
-  mean(RECENT_COLLECTOR_BOX_USD) * GEMS_PER_USD,
+  mean(COLLECTOR_BOX_USD) * GEMS_PER_USD,
 );
 
 /** Config built from a preset, leaving win rate and pack value untouched. */
