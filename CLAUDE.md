@@ -1,7 +1,11 @@
 # Notes for Claude
 
-An EV model for MTG Arena limited events. See [README.md](README.md) for the
-model and layout, [TODO.md](TODO.md) for the backlog.
+An EV model for MTG Arena limited events. [TODO.md](TODO.md) has the backlog.
+
+```bash
+npm install && npm run dev    # http://localhost:5173
+npm test
+```
 
 ## Source Arena numbers from Wizards first
 
@@ -74,6 +78,6 @@ and have burned us. Three things to hold to:
 - Distributions and the seeded generator come from libraries (stdlib PMFs,
   `pure-rand`), not hand-rolled maths.
 - Tooltips state what a field does and stop. Caveats and derivations belong in
-  doc comments and the README, where length is free.
+  doc comments, where length is free.
 - Every number a user sees should be checkable: the closed-form column exists to
   keep the simulation honest, and hand-derived values are pinned by tests.
