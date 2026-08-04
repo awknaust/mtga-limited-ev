@@ -31,6 +31,11 @@ export function grossValue(config: EventConfig, wins: number): number {
   );
 }
 
+/** Gold credited to one event, from the daily rate and how many you play. */
+export function goldPerEvent(config: EventConfig): number {
+  return config.eventsPerDay > 0 ? config.goldPerDay / config.eventsPerDay : 0;
+}
+
 /**
  * Long-run share of entries that gold covers.
  *
@@ -40,8 +45,9 @@ export function grossValue(config: EventConfig, wins: number): number {
  * are checked against each other.
  */
 export function goldFundedFraction(config: EventConfig): number {
-  if (config.entryCostGold <= 0 || config.goldPerEvent <= 0) return 0;
-  return Math.min(1, config.goldPerEvent / config.entryCostGold);
+  const perEvent = goldPerEvent(config);
+  if (config.entryCostGold <= 0 || perEvent <= 0) return 0;
+  return Math.min(1, perEvent / config.entryCostGold);
 }
 
 /** Gems actually paid per entry on average, once gold has covered its share. */

@@ -1,7 +1,7 @@
 /** Monte Carlo simulation and the expected-value figures derived from it. */
 
 import { exactDistribution } from "./distribution";
-import { grossValue, netValue, payoutFor } from "./payouts";
+import { goldPerEvent, grossValue, netValue, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
 import { bo3WinRate, matchWinRate, maxPossibleWins } from "./structure";
 import type {
@@ -56,9 +56,10 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
   let gold = 0;
   let goldEntries = 0;
   const takesGold = config.entryCostGold > 0;
+  const goldEarned = goldPerEvent(config);
 
   for (let i = 0; i < trials; i++) {
-    gold += config.goldPerEvent;
+    gold += goldEarned;
     if (takesGold && gold >= config.entryCostGold) {
       gold -= config.entryCostGold;
       goldEntries++;

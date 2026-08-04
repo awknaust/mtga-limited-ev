@@ -68,8 +68,15 @@ export type EventConfig = {
   entryCostGems: number;
   /** Gold price, or 0 where the event takes gems only. */
   entryCostGold: number;
-  /** Gold earned in the time it takes to play one event. */
-  goldPerEvent: number;
+  /** Gold earned in a day of play, from daily wins and quests. */
+  goldPerDay: number;
+  /**
+   * Events played per day. Divides the daily gold to give what one event
+   * earns, so playing more of them earns less each — which is what actually
+   * happens, since daily win gold caps at fifteen wins and quests do not
+   * repeat.
+   */
+  eventsPerDay: number;
   /** Gold worth one gem, for valuing a leftover balance. */
   goldPerGem: number;
   /** Packs' worth of cards kept per entry; 0 for phantom events. */

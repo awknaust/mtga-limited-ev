@@ -80,10 +80,10 @@ export function About({ config }: { config: EventConfig }) {
         </table>
       </div>
       <p className="form-text">
-        "Can it pay an entry?" answers Arena's rules, which is the default. Advanced
-        settings has a switch to treat winnings as liquid instead, which asks how
-        long you could keep playing if they were. Every rate above is editable
-        there too.      </p>
+        "Can it pay an entry?" answers Arena's rules, which is the default: gems and
+        gold are liquid, the rest is not. Advanced settings has a switch to treat
+        the non-liquid rewards as spendable too, which asks how long you could keep
+        playing if they were. Every rate above is editable there.      </p>
       <p className="form-text">
         The defaults are derived rather than guessed — packs and drafted cards from
         Arena's published duplicate-protection values, boxes from street prices,

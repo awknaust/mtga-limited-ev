@@ -11,7 +11,7 @@
  * money and gold cannot, so gold is the cheaper currency to burn.
  */
 
-import { payoutFor } from "./payouts";
+import { goldPerEvent, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
 import { simulateEvent } from "./simulate";
@@ -119,6 +119,7 @@ export function simulateBankroll(
 ): BankrollRun {
   const pMatch = matchWinRate(config);
   const takesGold = config.entryCostGold > 0;
+  const goldEarned = goldPerEvent(config);
 
   let gems = bankroll.startingGems;
   let gold = bankroll.startingGold;
@@ -153,7 +154,7 @@ export function simulateBankroll(
         (tier.playBoxes ?? 0) * config.playBoxValueGems +
         (tier.collectorBoxes ?? 0) * config.collectorBoxValueGems;
     }
-    gold += config.goldPerEvent;
+    gold += goldEarned;
     events++;
   }
 

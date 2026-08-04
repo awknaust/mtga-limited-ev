@@ -61,9 +61,6 @@ free entries is just `goldPerEvent / entryCostGold`, which the closed form uses
 and a test holds the simulation to.
 
 Still rough:
-- the 1,350 default assumes one event a day. Daily win gold caps at fifteen
-  wins and quests do not repeat, so playing more events a day earns less per
-  event — the model has no notion of events per day.
 - the quest half of that figure (~600) is not on Wizards' drop-rates page.
 - gold accrued on gem-only events is simply wasted rather than banked toward
   something else.

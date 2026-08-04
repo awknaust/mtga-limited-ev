@@ -3,7 +3,8 @@ import {
   ARENA_DIRECT,
   CONTENDER_DRAFT,
   CUBE_DRAFT,
-  DEFAULT_GOLD_PER_EVENT,
+  DEFAULT_GOLD_PER_DAY,
+  DEFAULT_EVENTS_PER_DAY,
   DEFAULT_DRAFT_PACK_VALUE_GEMS,
   DEFAULT_PACK_VALUE_GEMS,
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
@@ -26,6 +27,7 @@ import {
   expectedNetAt,
   effectiveEntryGems,
   goldFundedFraction,
+  goldPerEvent,
   grossValue,
   matchWinRate,
   maxPossibleWins,
@@ -314,7 +316,7 @@ describe("bankroll", () => {
   it("stops when neither currency covers another entry", () => {
     // No gold income and a hopeless win rate: entries come only from the
     // starting gems, so the run length is exactly what they buy.
-    const config = { ...defaultConfig(), winRate: 0, goldPerEvent: 0 };
+    const config = { ...defaultConfig(), winRate: 0, goldPerDay: 0 };
     const run = simulateBankroll(config, roll, seededRandom(1));
     // Fully determined: 1,500 out and 50 back each time, so 10,000 buys six
     // entries and leaves 1,300 — short of a seventh.
@@ -325,8 +327,8 @@ describe("bankroll", () => {
   });
 
   it("plays longer when winnings feed back in", () => {
-    const poor = { ...defaultConfig(), winRate: 0.2, goldPerEvent: 0 };
-    const good = { ...defaultConfig(), winRate: 0.7, goldPerEvent: 0 };
+    const poor = { ...defaultConfig(), winRate: 0.2, goldPerDay: 0 };
+    const good = { ...defaultConfig(), winRate: 0.7, goldPerDay: 0 };
     const a = simulateBankrolls(poor, roll, 300, 3);
     const b = simulateBankrolls(good, roll, 300, 3);
     expect(b.meanEvents).toBeGreaterThan(a.meanEvents);
@@ -334,7 +336,7 @@ describe("bankroll", () => {
 
   it("spends gold before gems where the event takes it", () => {
     // Gold alone covers every entry, so the gems are never touched.
-    const config = { ...defaultConfig(), goldPerEvent: 0 };
+    const config = { ...defaultConfig(), goldPerDay: 0 };
     const golden = {
       startingGems: 10_000,
       startingGold: 100_000,
@@ -435,7 +437,8 @@ describe("gold entries", () => {
   it("funds the share of entries the accrual rate covers", () => {
     const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
     expect(config.entryCostGold).toBe(10000);
-    expect(config.goldPerEvent).toBe(DEFAULT_GOLD_PER_EVENT);
+    expect(config.goldPerDay).toBe(DEFAULT_GOLD_PER_DAY);
+    expect(config.eventsPerDay).toBe(DEFAULT_EVENTS_PER_DAY);
     expect(goldFundedFraction(config)).toBeCloseTo(1350 / 10000, 12);
     expect(effectiveEntryGems(config)).toBeCloseTo(1500 * (1 - 0.135), 9);
   });
@@ -447,8 +450,19 @@ describe("gold entries", () => {
     expect(effectiveEntryGems(config)).toBe(2000);
   });
 
+  it("divides the daily gold by how many events you play", () => {
+    const base = { ...defaultConfig(), goldPerDay: 1200 };
+    expect(goldPerEvent({ ...base, eventsPerDay: 1 })).toBe(1200);
+    expect(goldPerEvent({ ...base, eventsPerDay: 2 })).toBe(600);
+    expect(goldPerEvent({ ...base, eventsPerDay: 0.5 })).toBe(2400);
+    // Playing more events funds a smaller share of each entry.
+    expect(goldFundedFraction({ ...base, eventsPerDay: 4 })).toBeLessThan(
+      goldFundedFraction({ ...base, eventsPerDay: 1 }),
+    );
+  });
+
   it("caps at every entry once accrual outpaces the gold price", () => {
-    const config = { ...defaultConfig(), goldPerEvent: 50_000 };
+    const config = { ...defaultConfig(), goldPerDay: 50_000 };
     expect(goldFundedFraction(config)).toBe(1);
     expect(effectiveEntryGems(config)).toBe(0);
   });
@@ -456,8 +470,8 @@ describe("gold entries", () => {
   it("makes the simulated bankroll converge to the closed-form share", () => {
     // The bankroll runs a path — gold piles up and is spent when it suffices —
     // while the closed form is its long-run limit. They have to agree.
-    for (const goldPerEvent of [0, 500, 1350, 4000]) {
-      const config = { ...defaultConfig(), goldPerEvent };
+    for (const goldPerDay of [0, 500, 1350, 4000]) {
+      const config = { ...defaultConfig(), goldPerDay };
       const res = simulate(config, 100_000, 5);
       expect(res.goldEntryFraction).toBeCloseTo(goldFundedFraction(config), 3);
       expect(res.meanEntryGems).toBeCloseTo(effectiveEntryGems(config), 1);
@@ -465,8 +479,8 @@ describe("gold entries", () => {
   });
 
   it("improves expected value without touching the outcome distribution", () => {
-    const without = { ...defaultConfig(), goldPerEvent: 0 };
-    const with_ = { ...defaultConfig(), goldPerEvent: 1350 };
+    const without = { ...defaultConfig(), goldPerDay: 0 };
+    const with_ = { ...defaultConfig(), goldPerDay: 1350 };
     const a = simulate(without, 50_000, 9);
     const b = simulate(with_, 50_000, 9);
     expect(b.meanNet).toBeGreaterThan(a.meanNet);

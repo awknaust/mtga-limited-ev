@@ -15,6 +15,7 @@ import {
   defaultConfig,
   expectedNetAt,
   gameWinRateForFormat,
+  goldPerEvent,
   bo3WinRate,
   matchWinRate,
   maxPossibleWins,
@@ -61,6 +62,7 @@ function NumberInput({
   min,
   id,
   disabled,
+  fractional,
   className = "form-control",
 }: {
   value: number;
@@ -68,6 +70,8 @@ function NumberInput({
   min?: number;
   id?: string;
   disabled?: boolean;
+  /** Allows decimals — "any" imposes no step rule, so nothing is invalidated. */
+  fractional?: boolean;
   className?: string;
 }) {
   return (
@@ -76,7 +80,7 @@ function NumberInput({
       type="number"
       className={className}
       min={min}
-      step={1}
+      step={fractional ? "any" : 1}
       value={value}
       disabled={disabled}
       onWheel={(e) => e.currentTarget.blur()}
@@ -160,7 +164,8 @@ export default function App() {
     entryGold: `${uid}-entry-gold`,
     draftPacks: `${uid}-draft-packs`,
     draftPackValue: `${uid}-draft-pack-value`,
-    goldPerEvent: `${uid}-gold-per-event`,
+    goldPerDay: `${uid}-gold-per-day`,
+    eventsPerDay: `${uid}-events-per-day`,
     goldRate: `${uid}-gold-rate`,
     packValue: `${uid}-pack-value`,
     funValue: `${uid}-fun-value`,
@@ -979,10 +984,10 @@ export default function App() {
                     onChange={(e) => setSpendWinnings(e.target.checked)}
                   />
                   <label htmlFor={ids.spendWinnings} className="form-check-label fw-semibold">
-                    Spend winnings on further entries
+                    Spend non-liquid winnings on entries
                     <InfoTip
-                      label="About spending winnings"
-                      content="Off by default, because none of packs, cards, points or boxes buys an entry in Arena — they only count toward your ending total. Turning it on treats them as liquid at the rates below, which answers how long you could keep playing if they were."
+                      label="About spending non-liquid winnings"
+                      content="Gems and gold are liquid; packs, cards, points and boxes are not — none of them buys an entry in Arena, so by default they only count toward your ending total. Turning this on treats them as liquid at the rates below."
                     />
                   </label>
                 </div>
@@ -1104,19 +1109,40 @@ export default function App() {
                 <h3 className="section-title">Gold</h3>
                 <div className="row g-2">
                   <div className="col-6">
-                    <label htmlFor={ids.goldPerEvent} className="form-label">
-                      Gold earned per event
+                    <label htmlFor={ids.goldPerDay} className="form-label">
+                      Gold earned per day
                       <InfoTip
-                        label="About gold earned per event"
-                        content="A full day of daily wins pays 750 gold and a quest adds roughly 600. This default credits both to one event, which fits drafting about once a day."
+                        label="About gold earned per day"
+                        content="A full day of daily wins pays 750 gold, and a quest adds roughly 600 more."
                       />
                     </label>
                     <NumberInput
-                      id={ids.goldPerEvent}
+                      id={ids.goldPerDay}
                       min={0}
-                      value={config.goldPerEvent}
-                      onChange={(n) => set("goldPerEvent", n)}
+                      value={config.goldPerDay}
+                      onChange={(n) => set("goldPerDay", n)}
                     />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.eventsPerDay} className="form-label">
+                      Events per day
+                      <InfoTip
+                        label="About events per day"
+                        content="Divides the daily gold to give what one event earns. Playing more earns less each, which is what happens — daily win gold stops at fifteen wins and the quest does not come back."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.eventsPerDay}
+                      min={0}
+                      fractional
+                      value={config.eventsPerDay}
+                      onChange={(n) => set("eventsPerDay", n)}
+                    />
+                  </div>
+                  <div className="col-12">
+                    <div className="form-text mt-0">
+                      {gems(goldPerEvent(config))} gold per event.
+                    </div>
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.goldRate} className="form-label">
