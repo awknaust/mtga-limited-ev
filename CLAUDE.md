@@ -84,6 +84,12 @@ and have burned us. Three things to hold to:
   doc comments, where length is free.
 - Every number a user sees should be checkable: the closed-form column exists to
   keep the simulation honest, and hand-derived values are pinned by tests.
+- Nothing loads off-origin, and the CSP in `public/_headers` enforces it — no
+  `unsafe-inline` anywhere, which the app only earns by having no inline script
+  or style and no external script, font or stylesheet. A CDN tag, a web font or
+  an analytics snippet means amending that policy, and the friction is the
+  point. Workflow actions are pinned to commit SHAs for the same reason; let
+  Dependabot move them rather than reverting to tags.
 
 ## Settled, and not worth reopening
 
