@@ -80,10 +80,15 @@ export function About({ config }: { config: EventConfig }) {
         </table>
       </div>
       <p className="form-text">
-        Every rate above is editable in advanced settings. The defaults are derived
-        rather than guessed — packs from Arena's published duplicate-protection
-        values, boxes from street prices, gold from the fact that every event
-        pricing both ways charges 10,000 gold or 1,500 gems.
+        "Can it pay an entry?" answers Arena's rules, which is the default. Advanced
+        settings has a switch to treat winnings as liquid instead, which asks how
+        long you could keep playing if they were. Every rate above is editable
+        there too.      </p>
+      <p className="form-text">
+        The defaults are derived rather than guessed — packs and drafted cards from
+        Arena's published duplicate-protection values, boxes from street prices,
+        gold from the fact that every event pricing both ways charges 10,000 gold or
+        1,500 gems.
       </p>
 
       <h3 className="section-title mt-4">Terms</h3>

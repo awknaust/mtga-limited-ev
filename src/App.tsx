@@ -132,6 +132,8 @@ export default function App() {
   // Where the player stops, not a numerical guard — a run that never busts has
   // to end somewhere, and how long you intend to play is a real input.
   const [maxEvents, setMaxEvents] = useState(20);
+  // Off by default: none of these buys an entry in Arena.
+  const [spendWinnings, setSpendWinnings] = useState(false);
   const [tab, setTab] = useState<"bankroll" | "event" | "about">("bankroll");
 
   const modalEl = useRef<HTMLDivElement>(null);
@@ -170,6 +172,7 @@ export default function App() {
     startGems: `${uid}-start-gems`,
     startGold: `${uid}-start-gold`,
     maxEvents: `${uid}-max-events`,
+    spendWinnings: `${uid}-spend-winnings`,
   };
 
   const isBo3 = config.format === "bo3";
@@ -184,11 +187,11 @@ export default function App() {
     () =>
       simulateBankrolls(
         config,
-        { startingGems, startingGold, maxEvents },
+        { startingGems, startingGold, maxEvents, spendWinnings },
         3000,
         seed,
       ),
-    [config, startingGems, startingGold, maxEvents, seed],
+    [config, startingGems, startingGold, maxEvents, spendWinnings, seed],
   );
   // When there is no break-even point, say which side of zero the event sits on.
   const breakEvenHint = useMemo(() => {
@@ -989,6 +992,24 @@ export default function App() {
                     />
                   </label>
                   <NumberInput id={ids.seed} value={seed} onChange={setSeed} />
+                </div>
+                <div className="col-12">
+                  <div className="form-check">
+                    <input
+                      id={ids.spendWinnings}
+                      type="checkbox"
+                      className="form-check-input"
+                      checked={spendWinnings}
+                      onChange={(e) => setSpendWinnings(e.target.checked)}
+                    />
+                    <label htmlFor={ids.spendWinnings} className="form-check-label">
+                      Spend winnings on further entries
+                      <InfoTip
+                        label="About spending winnings"
+                        content="Off by default, because none of packs, cards, points or boxes buys an entry in Arena — they only count toward your ending total. Turning it on treats them as liquid at the rates below, which answers how long you could keep playing if they were."
+                      />
+                    </label>
+                  </div>
                 </div>
                 <div className="col-6">
                   <label htmlFor={ids.draftPackValue} className="form-label">

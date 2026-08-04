@@ -294,17 +294,22 @@ describe("drafted cards", () => {
 
   it("accumulates cards across a bankroll run", () => {
     const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
-    const run = simulateBankroll(config, {
-      startingGems: 10_000,
-      startingGold: 0,
-      maxEvents: 5,
-    }, seededRandom(21));
+    const run = simulateBankroll(
+      config,
+      { startingGems: 10_000, startingGold: 0, maxEvents: 5, spendWinnings: false },
+      seededRandom(21),
+    );
     expect(run.draftPacks).toBe(run.events * 3);
   });
 });
 
 describe("bankroll", () => {
-  const roll = { startingGems: 10_000, startingGold: 0, maxEvents: 500 };
+  const roll = {
+    startingGems: 10_000,
+    startingGold: 0,
+    maxEvents: 500,
+    spendWinnings: false,
+  };
 
   it("stops when neither currency covers another entry", () => {
     // No gold income and a hopeless win rate: entries come only from the
@@ -330,7 +335,12 @@ describe("bankroll", () => {
   it("spends gold before gems where the event takes it", () => {
     // Gold alone covers every entry, so the gems are never touched.
     const config = { ...defaultConfig(), goldPerEvent: 0 };
-    const golden = { startingGems: 10_000, startingGold: 100_000, maxEvents: 10 };
+    const golden = {
+      startingGems: 10_000,
+      startingGold: 100_000,
+      maxEvents: 10,
+      spendWinnings: false,
+    };
     const run = simulateBankroll(config, golden, seededRandom(2));
     expect(run.events).toBe(10);
     expect(run.finalGems).toBeGreaterThanOrEqual(10_000);
@@ -341,6 +351,33 @@ describe("bankroll", () => {
     const res = simulateBankrolls(config, { ...roll, maxEvents: 40 }, 50, 4);
     expect(res.meanEvents).toBe(40);
     expect(res.survivedFraction).toBe(1);
+  });
+
+  it("cannot fund entries from packs unless told to", () => {
+    // Packs and cards are not currency in Arena, so by default they pile up
+    // without extending the run.
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const held = simulateBankrolls(config, roll, 400, 31);
+    const spent = simulateBankrolls(config, { ...roll, spendWinnings: true }, 400, 31);
+    expect(spent.meanEvents).toBeGreaterThan(held.meanEvents);
+    expect(held.meanPacks).toBeGreaterThan(0);
+  });
+
+  it("does not count banked winnings twice", () => {
+    // With spending on, a pack's value is already in the gem balance, so the
+    // ending total must not add it again.
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const run = simulateBankroll(
+      config,
+      { startingGems: 10_000, startingGold: 0, maxEvents: 3, spendWinnings: true },
+      seededRandom(41),
+    );
+    expect(run.packs).toBeGreaterThan(0);
+    expect(run.winningsBanked).toBe(true);
+    expect(runValue(config, run)).toBeCloseTo(
+      run.finalGems + run.finalGold / config.goldPerGem,
+      9,
+    );
   });
 
   it("is deterministic for a seed", () => {
@@ -381,6 +418,7 @@ describe("bankroll", () => {
       playBoxes: 0,
       collectorBoxes: 0,
       survived: false,
+      winningsBanked: false,
     };
     expect(runValue(config, run)).toBeCloseTo(1000 + 1500, 6);
     // Valuing gold at nothing drops the term entirely.

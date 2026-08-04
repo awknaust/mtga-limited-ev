@@ -25,6 +25,16 @@ export type BankrollConfig = {
    * without a ceiling those runs would not terminate.
    */
   maxEvents: number;
+  /**
+   * Whether packs, cards, points and boxes are converted to gems as they are
+   * won and can fund further entries.
+   *
+   * They cannot in Arena — none of them buys an entry — so this is off by
+   * default and winnings only count toward the ending total. Turning it on
+   * asks a different question: how long could you keep playing if everything
+   * you won were liquid at the rates you have set.
+   */
+  spendWinnings: boolean;
 };
 
 export type BankrollResult = {
@@ -94,6 +104,11 @@ export type BankrollRun = {
   collectorBoxes: number;
   /** True if the run was cut short by the cap rather than by going broke. */
   survived: boolean;
+  /**
+   * True when winnings were converted to gems as they were won, so their value
+   * already sits in `finalGems` and must not be counted again.
+   */
+  winningsBanked: boolean;
 };
 
 /** Play from a starting balance until it runs dry or the cap is reached. */
@@ -123,11 +138,21 @@ export function simulateBankroll(
     const { wins } = simulateEvent(config.structure, pMatch, rand);
     const tier = payoutFor(config, wins);
     gems += tier.gems;
+    // Tallied either way, so the counts stay reportable; whether their value
+    // also lands in the gem balance is what the option decides.
     packs += tier.packs;
     draftPacks += config.draftPacks;
     playInPoints += tier.playInPoints ?? 0;
     playBoxes += tier.playBoxes ?? 0;
     collectorBoxes += tier.collectorBoxes ?? 0;
+    if (bankroll.spendWinnings) {
+      gems +=
+        tier.packs * config.packValueGems +
+        config.draftPacks * config.draftPackValueGems +
+        (tier.playInPoints ?? 0) * config.playInPointValueGems +
+        (tier.playBoxes ?? 0) * config.playBoxValueGems +
+        (tier.collectorBoxes ?? 0) * config.collectorBoxValueGems;
+    }
     gold += config.goldPerEvent;
     events++;
   }
@@ -142,6 +167,7 @@ export function simulateBankroll(
     playBoxes,
     collectorBoxes,
     survived: events >= bankroll.maxEvents,
+    winningsBanked: bankroll.spendWinnings,
   };
 }
 
@@ -153,9 +179,11 @@ export function simulateBankroll(
  * by valuing gold at nothing — drops the gold term to zero.
  */
 export function runValue(config: EventConfig, run: BankrollRun): number {
+  const currency = run.finalGems + run.finalGold / config.goldPerGem;
+  // Already folded into the gem balance as they were won.
+  if (run.winningsBanked) return currency;
   return (
-    run.finalGems +
-    run.finalGold / config.goldPerGem +
+    currency +
     run.packs * config.packValueGems +
     run.draftPacks * config.draftPackValueGems +
     run.playInPoints * config.playInPointValueGems +
