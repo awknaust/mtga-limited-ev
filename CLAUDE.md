@@ -1,6 +1,8 @@
 # Notes for Claude
 
-An EV model for MTG Arena limited events. [TODO.md](TODO.md) has the backlog.
+An EV model for MTG Arena limited events. The backlog is in
+[GitHub issues](https://github.com/awknaust/mtga-limited-ev/issues), labelled
+`data`, `model` and `ui`.
 
 ```bash
 npm install && npm run dev    # http://localhost:5173
@@ -68,7 +70,7 @@ and have burned us. Three things to hold to:
 - **Leave it out rather than guess.** Traditional Sealed was added and then
   removed for exactly this. An absent preset is better than a confidently wrong
   one. When a number is inferred rather than sourced, say so in the commit and
-  note it in `TODO.md`.
+  open an issue.
 
 ## Conventions
 
@@ -82,3 +84,31 @@ and have burned us. Three things to hold to:
   doc comments, where length is free.
 - Every number a user sees should be checkable: the closed-form column exists to
   keep the simulation honest, and hand-derived values are pinned by tests.
+
+## Settled, and not worth reopening
+
+These are decisions rather than backlog, so they are not issues. Each has been
+proposed at least once.
+
+- **The fun input is inert on purpose.** "Fun (gems / game)" is a joke that
+  feeds into nothing, and the model should not grow a term for it. If anyone is
+  tempted by a "priceless" option, note that infinity is genuinely load-bearing:
+  expected net becomes +∞, ROI undefined and break-even 0%, and every figure in
+  the results panel would need an answer instead of rendering `Infinity` and
+  `NaN` through the formatters.
+- **No pie chart.** A pie of the outcome distribution says less than the bars,
+  which already carry the closed-form check alongside.
+- **D3 computes, React renders.** Scales and ticks from D3, SVG from React, so
+  neither library fights the other for the DOM.
+- **Deploy is Cloudflare Pages, not S3 and CloudFront.** It ships from
+  `.github/workflows/deploy.yml`: tests, one build, then a direct upload of that
+  same artifact, so what ships is what passed. `main` publishes to
+  <https://mtga-limited-ev.awknaust.me>; every other branch gets its own preview
+  URL. Direct uploads do not count against Cloudflare's 500 builds/month, which
+  is the point of building in Actions rather than letting Pages do it.
+- **`index.html` must never be cached.** `public/_headers` makes `/assets/*`
+  immutable for a year, safe because Vite fingerprints those filenames, and
+  leaves `index.html` on Pages' `max-age=0, must-revalidate`. It is the file
+  naming the new hashes, so a cached copy pins a visitor to the previous deploy
+  with no way to dislodge it. Do not add a dashboard Cache Rule on the custom
+  domain either — Cloudflare's own docs warn it reintroduces exactly this.
