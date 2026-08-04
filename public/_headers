@@ -1,5 +1,6 @@
 # Cloudflare Pages header rules. Vite copies everything in public/ into dist/
-# untouched, and Pages reads this file from the deployment root.
+# untouched, and Pages reads this file from the deployment root. Rules combine
+# rather than override, so /assets/* also receives the /* headers below.
 #
 # Vite fingerprints everything under /assets/, so those filenames only ever
 # name one build and can be cached forever. index.html must not be: it is the
@@ -9,6 +10,21 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+# The app talks to nothing. No API, no analytics of its own, no third-party
+# script, no font or stylesheet off-origin — which is what makes a strict
+# policy possible without an 'unsafe-inline' escape hatch, and worth keeping
+# that way. Adding an external dependency means amending this line, and that
+# friction is the point.
+#
+# data: is for images only, and covers exactly one thing: the SVG chevron
+# Bootstrap inlines into its select background. connect-src stays 'self'
+# because Cloudflare posts its RUM beacon to /cdn-cgi/rum on this origin.
+# object-src, base-uri and form-action are shut off outright — nothing here
+# embeds plugins, rewrites the document base, or submits a form.
 /*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
+  X-Frame-Options: DENY
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: accelerometer=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), midi=(), payment=(), usb=(), interest-cohort=()

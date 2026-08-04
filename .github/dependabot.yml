@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # The workflow pins actions to commit SHAs so a moved tag cannot change what
+  # runs. That only stays safe if something keeps the pins current — this is
+  # that something. It rewrites the SHA and the trailing "# v7" comment together.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "Bump"
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: "Bump"
+    # Everything here ends up in a bundle served to users, so dev and runtime
+    # dependencies carry the same risk and are not separated.
+    groups:
+      all:
+        patterns: ["*"]
