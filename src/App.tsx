@@ -1063,10 +1063,7 @@ export default function App() {
 
       <footer className="site-footer">
         <p className="mb-1">
-          An expected-value model for MTG Arena limited events. Reward and
-          drop-rate figures come from Wizards; the per-event payout ladders are
-          community-sourced and are the softer half. The About tab says what
-          each reward is valued at and what the model leaves out.
+          An expected-value model for MTG Arena limited events.
         </p>
         <p className="mb-0">
           <a

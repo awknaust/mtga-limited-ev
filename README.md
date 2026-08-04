@@ -12,7 +12,7 @@ beside it, so the two can be read against each other. It also runs a bankroll
 forward — how many events a starting balance buys before it runs dry.
 
 ```bash
-npm install && npm run dev
+npm install && npm run dev    # http://localhost:5173
 npm test
 ```
 
