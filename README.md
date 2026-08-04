@@ -102,6 +102,20 @@ rate.
 The model values only gems and whatever you assign to packs — never the drafted
 card pool, which is where much of a draft's real return sits.
 
+## A note on pack value
+
+Packs default to **22 gems**, not the 200 they cost. That figure assumes a
+complete collection of the set, where the rare/mythic slot pays gems rather than
+a card — 20 for a rare, 40 for a mythic, which at the usual ~1:7 mythic upgrade
+rate averages ≈22.9 a slot, or ≈21.3 once the occasional wildcard in that slot
+is accounted for. It excludes vault progress and bonus sheets, both of which
+would push it higher. The full derivation is on `DEFAULT_PACK_VALUE_GEMS` in
+[src/lib/draft.ts](src/lib/draft.ts).
+
+It is the most subjective input here. A ±10 gem error moves expected net by
+roughly 30 gems an event; break-even win rates barely move. Set it to 0 to price
+events in gems alone.
+
 ## Tests
 
 ```bash

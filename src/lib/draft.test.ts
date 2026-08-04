@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   CUBE_DRAFT,
+  DEFAULT_PACK_VALUE_GEMS,
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
@@ -218,8 +219,10 @@ describe("presets", () => {
 
   it("defaults packs to 22 gems each", () => {
     // Packs carry real value by default, so the headline figures are no longer
-    // gems-only. Several EV expectations move with this number.
-    expect(defaultConfig().packValueGems).toBe(22);
+    // gems-only. Several EV expectations move with this number — see the
+    // derivation on DEFAULT_PACK_VALUE_GEMS before changing it.
+    expect(DEFAULT_PACK_VALUE_GEMS).toBe(22);
+    expect(defaultConfig().packValueGems).toBe(DEFAULT_PACK_VALUE_GEMS);
   });
 
   it("gives Cube the Premier structure", () => {
