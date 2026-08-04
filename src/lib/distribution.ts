@@ -1,53 +1,57 @@
 /** Closed-form outcome distributions, used to check the simulation. */
 
+import binomialPMF from "@stdlib/stats-base-dists-binomial-pmf";
+import negativeBinomialPMF from "@stdlib/stats-base-dists-negative-binomial-pmf";
+
 import type { EventStructure } from "./types";
-
-function logFactorial(n: number): number {
-  let acc = 0;
-  for (let i = 2; i <= n; i++) acc += Math.log(i);
-  return acc;
-}
-
-function choose(n: number, k: number): number {
-  if (k < 0 || k > n) return 0;
-  return Math.round(Math.exp(logFactorial(n) - logFactorial(k) - logFactorial(n - k)));
-}
 
 /**
  * Exact probability of finishing with each win count, index 0..maxPossibleWins.
  *
  * `p` is the per-round (match) win rate, not the per-game rate.
  *
- * Fixed-rounds events are plain binomial. Elimination events end on the
- * deciding round, so:
- *  - finishing with k < maxWins wins means the last round was the final loss:
- *    the preceding k + (maxLosses-1) rounds contain exactly k wins.
- *  - finishing with maxWins wins means the last round was the final win, with
- *    l = 0..maxLosses-1 losses scattered through the preceding rounds.
+ * Both shapes are standard distributions rather than anything bespoke:
+ *
+ * **Fixed rounds** — every round is played, so the win count is binomial in
+ * the number of rounds.
+ *
+ * **Elimination** — the run ends on the deciding round. Finishing below the
+ * ceiling means busting out, which is the negative binomial: the wins are the
+ * failures accumulated before the `maxLosses`-th loss. stdlib parameterises it
+ * as `pmf(x, r, p)` = x failures before the r-th success, so "success" here is
+ * a *loss* and its probability is `1 - p`. Reaching the ceiling is whatever
+ * probability is left over, which avoids a second summation and guarantees the
+ * distribution sums to exactly 1.
  */
 export function exactDistribution(p: number, structure: EventStructure): number[] {
-  const q = 1 - p;
-
   if (structure.kind === "rounds") {
     const n = structure.rounds;
-    return Array.from(
-      { length: n + 1 },
-      (_, k) => choose(n, k) * Math.pow(p, k) * Math.pow(q, n - k),
-    );
+    return Array.from({ length: n + 1 }, (_, k) => binomialPMF(k, n, p));
   }
 
   const { maxWins, maxLosses } = structure;
   const dist = new Array<number>(maxWins + 1).fill(0);
 
-  for (let k = 0; k < maxWins; k++) {
-    dist[k] = choose(k + maxLosses - 1, k) * Math.pow(p, k) * Math.pow(q, maxLosses);
+  /*
+   * A certain win rate makes the run deterministic, and those endpoints sit
+   * outside the negative binomial's support — stdlib returns 0 for a loss
+   * probability of 1 and NaN for 0, neither of which is the answer.
+   */
+  if (p <= 0) {
+    dist[0] = 1;
+    return dist;
+  }
+  if (p >= 1) {
+    dist[maxWins] = 1;
+    return dist;
   }
 
-  let top = 0;
-  for (let l = 0; l < maxLosses; l++) {
-    top += choose(maxWins + l - 1, l) * Math.pow(p, maxWins) * Math.pow(q, l);
+  let busted = 0;
+  for (let k = 0; k < maxWins; k++) {
+    dist[k] = negativeBinomialPMF(k, maxLosses, 1 - p);
+    busted += dist[k];
   }
-  dist[maxWins] = top;
+  dist[maxWins] = 1 - busted;
 
   return dist;
 }

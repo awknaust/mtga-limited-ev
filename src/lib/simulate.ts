@@ -2,7 +2,7 @@
 
 import { exactDistribution } from "./distribution";
 import { grossValue, netValue, payoutFor } from "./payouts";
-import { mulberry32 } from "./rng";
+import { seededRandom } from "./rng";
 import { bo3WinRate, matchWinRate, maxPossibleWins } from "./structure";
 import type {
   EventConfig,
@@ -40,23 +40,16 @@ export function simulateEvent(
 }
 
 export function simulate(config: EventConfig, trials: number, seed = 1): SimResult {
-  const rand = mulberry32(seed);
+  const rand = seededRandom(seed);
   const pMatch = matchWinRate(config);
   const topWins = maxPossibleWins(config.structure);
   const counts = new Array<number>(topWins + 1).fill(0);
   let totalRounds = 0;
-  let sumNet = 0;
-  let sumSqNet = 0;
-  let profitable = 0;
 
   for (let i = 0; i < trials; i++) {
     const { wins, rounds } = simulateEvent(config.structure, pMatch, rand);
     counts[wins]++;
     totalRounds += rounds;
-    const net = netValue(config, wins);
-    sumNet += net;
-    sumSqNet += net * net;
-    if (net > 0) profitable++;
   }
 
   const exact = exactDistribution(pMatch, config.structure);
@@ -74,9 +67,24 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
     };
   });
 
-  const meanNet = trials > 0 ? sumNet / trials : 0;
-  const variance = trials > 1 ? sumSqNet / trials - meanNet * meanNet : 0;
+  /*
+   * Net result is a deterministic function of the win count, so the sample
+   * mean and variance follow exactly from the bucket frequencies. Summing over
+   * a handful of buckets avoids both a per-trial array and the sum-of-squares
+   * shortcut, which loses precision to cancellation when the mean is large
+   * relative to the spread.
+   */
+  const meanNet = buckets.reduce((acc, b) => acc + b.probability * b.netGems, 0);
+  const variance = buckets.reduce(
+    (acc, b) => acc + b.probability * (b.netGems - meanNet) ** 2,
+    0,
+  );
   const stdDevNet = Math.sqrt(Math.max(0, variance));
+  const sumNet = meanNet * trials;
+  const probProfit = buckets.reduce(
+    (acc, b) => acc + (b.netGems > 0 ? b.probability : 0),
+    0,
+  );
 
   const exactMeanNet = exact.reduce(
     (acc, pr, wins) => acc + pr * netValue(config, wins),
@@ -96,7 +104,7 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
     meanRounds: trials > 0 ? totalRounds / trials : 0,
     stdDevNet,
     stdErrNet: trials > 0 ? stdDevNet / Math.sqrt(trials) : 0,
-    probProfit: trials > 0 ? profitable / trials : 0,
+    probProfit,
     roi: config.entryCostGems > 0 ? meanNet / config.entryCostGems : 0,
     totalNet: sumNet,
     percentiles: netPercentiles(buckets),

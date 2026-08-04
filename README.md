@@ -11,7 +11,8 @@ Then open http://localhost:5173.
 React + TypeScript, built with Vite. The UI is Bootstrap 5 in dark mode
 (`data-bs-theme="dark"` on `<html>`); `src/styles.css` only retunes Bootstrap's
 CSS variables and adds the few pieces it has no component for. The model in
-`src/lib` is dependency-free and has no UI imports.
+`src/lib` has no UI imports and depends only on `pure-rand` for the seeded
+generator and stdlib for the two distributions.
 
 ## Layout
 
@@ -56,6 +57,12 @@ Quick, Cube). The run ends on the deciding round, so:
 **Fixed rounds** — play exactly `rounds` rounds with no early exit (Traditional
 Draft). Plainly binomial: `C(n, k) · p^k · q^(n-k)`. Every win count keeps
 non-zero probability, since an 0-2 start still plays round three.
+
+Neither is hand-rolled. The binomial and negative binomial come from stdlib's
+distribution packages, and the seeded generator is `pure-rand`'s xoroshiro128+.
+The one thing handled locally is the pair of degenerate win rates, 0 and 1,
+which sit outside the negative binomial's support but make the run
+deterministic anyway.
 
 ### BO1 vs BO3
 
