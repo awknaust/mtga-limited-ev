@@ -143,6 +143,9 @@ const CONFIG_NUMBERS = [
   // here precisely so a field can be renamed without one.
   ["goldPerDay", "otherGoldPerDay"],
   ["eventsPerDay", "eventsPerDay"],
+  // 0 means "certain", which is how a URL spells the absence of uncertainty —
+  // the same trick `goldPer10k` uses for gold that is worth nothing.
+  ["confMatches", "winRateMatches"],
 ] as const satisfies readonly (readonly [string, keyof EventConfig])[];
 
 /** Bankroll and display fields, which sit outside the config. */

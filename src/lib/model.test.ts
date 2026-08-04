@@ -33,6 +33,13 @@ import {
   meanWinsPerEvent,
   grossValue,
   matchWinRate,
+  netInterval,
+  probProfitable,
+  winRateInterval,
+  winRatePosterior,
+  PRIOR_ALPHA,
+  PRIOR_BETA,
+  ARENA_DIRECT_COLLECTOR,
   maxPossibleWins,
   maxRounds,
   HOLDING_KEYS,
@@ -99,6 +106,100 @@ describe("exactDistribution — fixed rounds", () => {
     for (const p of [0.4, 0.6]) {
       for (const mass of exactDistribution(p, rounds)) expect(mass).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("win rate uncertainty", () => {
+  const at = (winRate: number, winRateMatches: number) => ({
+    ...defaultConfig(),
+    winRate,
+    winRateMatches,
+  });
+
+  it("is switched off entirely when the rate is called certain", () => {
+    const certain = at(0.55, 0);
+    expect(winRatePosterior(certain)).toBeNull();
+    expect(netInterval(certain)).toBeNull();
+    expect(probProfitable(certain)).toBeNull();
+  });
+
+  it("reads the stated rate as a record against the prior", () => {
+    // 20 matches at 55% is 11-9, on top of Beta(10, 10).
+    expect(winRatePosterior(at(0.55, 20))).toEqual({
+      alpha: PRIOR_ALPHA + 11,
+      beta: PRIOR_BETA + 9,
+    });
+  });
+
+  it("shrinks a short hot record toward the coin flip", () => {
+    // 14-6 is a 70% record. The prior is worth as much as the data at this
+    // length, so the posterior should land nearer 60% than 70%.
+    const p = winRatePosterior(at(0.7, 20))!;
+    const mean = p.alpha / (p.alpha + p.beta);
+    expect(mean).toBeCloseTo(0.6, 10);
+    expect(mean).toBeLessThan(0.7);
+  });
+
+  it("lets the data swamp the prior once there is enough of it", () => {
+    const p = winRatePosterior(at(0.7, 2000))!;
+    expect(p.alpha / (p.alpha + p.beta)).toBeGreaterThan(0.69);
+  });
+
+  it("narrows as the record lengthens", () => {
+    const width = (matches: number) => {
+      const [lo, hi] = winRateInterval(winRatePosterior(at(0.55, matches))!);
+      return hi - lo;
+    };
+    expect(width(20)).toBeGreaterThan(width(100));
+    expect(width(100)).toBeGreaterThan(width(500));
+  });
+
+  it("dwarfs the Monte Carlo error it replaced", () => {
+    // The whole point of the issue: the old ± was the standard error of the
+    // simulated mean, which is a far smaller number than what is not known
+    // about the win rate.
+    const config = at(0.55, 100);
+    const [lo, hi] = netInterval(config)!;
+    const monteCarlo = 2 * 1.96 * simulate(config, 100_000, 1).stdErrNet;
+    expect(hi - lo).toBeGreaterThan(20 * monteCarlo);
+  });
+
+  it("straddles break-even on a short record", () => {
+    const [lo, hi] = netInterval(at(0.55, 20))!;
+    expect(lo).toBeLessThan(0);
+    expect(hi).toBeGreaterThan(0);
+  });
+
+  it("stays ordered where expected net is not monotonic in the win rate", () => {
+    /*
+     * The reason the interval is read off sorted values rather than mapped
+     * through the win rate's own quantiles. Arena Direct pays only boxes above
+     * five wins, so zeroing the box values makes winning more actively worse:
+     * the curve humps, worst at both ends. Mapping quantiles through that can
+     * return hi below lo. This must not.
+     */
+    const humped = {
+      ...configFromPreset(ARENA_DIRECT_COLLECTOR, defaultConfig()),
+      winRate: 0.55,
+      winRateMatches: 20,
+      playBoxValueGems: 0,
+      collectorBoxValueGems: 0,
+    };
+    // Confirm the shape really is non-monotonic before relying on it.
+    const ends = [expectedNetAt(humped, 0), expectedNetAt(humped, 1)];
+    const middle = expectedNetAt(humped, 0.55);
+    expect(middle).toBeGreaterThan(Math.max(...ends));
+
+    const [lo, hi] = netInterval(humped)!;
+    expect(hi).toBeGreaterThanOrEqual(lo);
+  });
+
+  it("reports a profitable share that tracks the win rate", () => {
+    const low = probProfitable(at(0.4, 100))!;
+    const high = probProfitable(at(0.75, 100))!;
+    expect(low).toBeGreaterThanOrEqual(0);
+    expect(high).toBeLessThanOrEqual(1);
+    expect(high).toBeGreaterThan(low);
   });
 });
 

@@ -19,6 +19,10 @@ import {
   expectedNetAt,
   goldPerEvent,
   matchWinRate,
+  netInterval,
+  probProfitable,
+  winRateInterval,
+  winRatePosterior,
   maxPossibleWins,
   maxRounds,
   resizePayouts,
@@ -443,6 +447,7 @@ export default function App() {
     maxEvents: `${uid}-max-events`,
     spendWinnings: `${uid}-spend-winnings`,
     gemsPerUsd: `${uid}-gems-per-usd`,
+    confMatches: `${uid}-conf-matches`,
     resultTabs: `${uid}-results`,
     viewTabs: `${uid}-view`,
     topUpTitle: `${uid}-top-up-title`,
@@ -460,6 +465,19 @@ export default function App() {
       ),
     [config, startingGems, startingGold, maxEvents, spendWinnings, bankrollRuns, seed],
   );
+  /*
+   * The win rate is a guess, so these carry how much of one. Null throughout
+   * when the player has called it certain, which is what every figure here was
+   * computed under before.
+   */
+  const posterior = useMemo(() => winRatePosterior(config), [config]);
+  const netBand = useMemo(() => netInterval(config), [config]);
+  const pProfitable = useMemo(() => probProfitable(config), [config]);
+  const rateBand = useMemo(
+    () => (posterior ? winRateInterval(posterior) : null),
+    [posterior],
+  );
+
   // When there is no break-even point, say which side of zero the event sits on.
   const breakEvenHint = useMemo(() => {
     if (breakEven !== null) return "per match";
@@ -559,7 +577,14 @@ export default function App() {
     {
       label: "Expected net / event",
       value: gems2(result.meanNet),
-      hint: `${m.label} · ±${gems2(1.96 * result.stdErrNet)} (95% CI)`,
+      /*
+       * The band the record supports, not the Monte Carlo error — that one
+       * measured how well we averaged and shrank as trials rose, which is not
+       * what anyone reads a ± as meaning.
+       */
+      hint: netBand
+        ? `${m.label} · ${gems2(netBand[0])} to ${gems2(netBand[1])}`
+        : `${m.label} · ±${gems2(1.96 * result.stdErrNet)} (95% CI)`,
       tone: signClass(result.meanNet),
     },
     {
@@ -579,7 +604,10 @@ export default function App() {
     {
       label: "Break-even win rate",
       value: breakEvenShown === null ? "—" : pct(breakEvenShown, 2),
-      hint: breakEvenHint,
+      hint:
+        pProfitable !== null && breakEvenShown !== null
+          ? `${pct(pProfitable)} chance you are above it`
+          : breakEvenHint,
     },
     {
       label: "P(profit)",
@@ -1196,7 +1224,7 @@ export default function App() {
                   content="Closed-form expectation, not the simulation. The dot is where you are, the dashed line is break-even."
                 />
               </h3>
-              <EvCurveChart config={config} breakEven={breakEven} m={m} />
+              <EvCurveChart config={config} breakEven={breakEven} m={m} rateBand={rateBand} />
               <div className="form-text">
                 Per match win rate, against expected net gems.
               </div>
@@ -1349,6 +1377,40 @@ export default function App() {
                       content="Gems and gold are liquid; packs, cards, points and boxes are not — none of them buys an entry in Arena, so by default they only count toward your ending total. Turning this on treats them as liquid at the rates below."
                     />
                   </label>
+                </div>
+              </div>
+
+              <div className="adv-group mb-3">
+                <h3 className="section-title">Win rate confidence</h3>
+                <div className="row g-2">
+                  <div className="col-12">
+                    <label htmlFor={ids.confMatches} className="form-label">
+                      Matches behind your win rate
+                      <InfoTip
+                        label="About win rate confidence"
+                        content="How many matches your win rate is a guess from. Fewer matches means less is known, and the ranges widen to match. Certain treats the number as exact, which is how every figure here used to be computed."
+                      />
+                    </label>
+                    <select
+                      id={ids.confMatches}
+                      className="form-select"
+                      value={config.winRateMatches}
+                      onChange={(e) => set("winRateMatches", Number(e.target.value))}
+                    >
+                      <option value={10}>About 10 — a rough guess</option>
+                      <option value={20}>About 20 — a few drafts</option>
+                      <option value={100}>About 100 — a season</option>
+                      <option value={500}>About 500 — a lot of data</option>
+                      <option value={0}>Certain — treat it as exact</option>
+                    </select>
+                  </div>
+                  <div className="col-12">
+                    <div className="form-text mt-0">
+                      {rateBand
+                        ? `Your record supports ${pct(rateBand[0])} to ${pct(rateBand[1])}.`
+                        : "Ranges are switched off; every figure is a point estimate."}
+                    </div>
+                  </div>
                 </div>
               </div>
 

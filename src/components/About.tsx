@@ -122,6 +122,18 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
           tab prices one entry; the Bankroll tab compounds it.
         </dd>
 
+        <dt className="col-sm-4">Win rate confidence</dt>
+        <dd className="col-sm-8">
+          How many matches your win rate is a guess from, set in Advanced
+          settings. Every other number here is exact once the win rate is fixed,
+          so what you do not know about the rate is the largest uncertainty in
+          the model by a long way — on a short record it is worth hundreds of
+          gems, where the sampling error it replaced was worth about five. The
+          ranges are the middle 95% of what your record supports, and a short
+          record is pulled toward an even one, because Arena pairs you by rank
+          and a handful of matches is weak evidence of anything else.
+        </dd>
+
         <dt className="col-sm-4">Risk of ruin</dt>
         <dd className="col-sm-8">
           The share of possible outcomes in which you could not afford another

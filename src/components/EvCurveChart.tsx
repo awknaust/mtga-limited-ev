@@ -26,10 +26,13 @@ export function EvCurveChart({
   config,
   breakEven,
   m,
+  rateBand,
 }: {
   config: EventConfig;
   breakEven: number | null;
   m: Money;
+  /** Win rates the record supports, shaded behind the curve. Null if certain. */
+  rateBand: [lo: number, hi: number] | null;
 }) {
   const inner = WIDTH - MARGIN.left - MARGIN.right;
   const innerH = HEIGHT - MARGIN.top - MARGIN.bottom;
@@ -81,6 +84,21 @@ export function EvCurveChart({
             </text>
           </g>
         ))}
+
+        {/*
+          The win rates the record supports. Drawn first so everything else
+          reads on top of it, and clamped to the plotted domain — a short record
+          can put the band's edge past either end of the axis.
+        */}
+        {rateBand && (
+          <rect
+            x={x(Math.max(rateBand[0], FROM))}
+            width={Math.max(0, x(Math.min(rateBand[1], TO)) - x(Math.max(rateBand[0], FROM)))}
+            y={0}
+            height={innerH}
+            className="chart-band"
+          />
+        )}
 
         {/* Break-even: where the curve crosses zero. */}
         <line x1={0} x2={inner} y1={y(0)} y2={y(0)} className="chart-zero" />

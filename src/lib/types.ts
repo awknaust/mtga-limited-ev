@@ -56,6 +56,16 @@ export type EventPreset = {
 };
 
 export type EventConfig = {
+  /**
+   * How many matches the win rate above is based on, or 0 for "certain".
+   *
+   * The rate is a guess, and this says how much of a guess. It is read as a
+   * record — this many matches played at that rate — which is what lets one
+   * number carry the uncertainty without asking for a second. Zero switches the
+   * intervals off and returns every figure to a point estimate.
+   */
+  winRateMatches: number;
+
   /** Probability of winning one match, 0..1. A round is a match in every event. */
   winRate: number;
   structure: EventStructure;
