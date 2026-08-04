@@ -713,7 +713,7 @@ export default function App() {
                 Payout schedule
                 <InfoTip
                   label="About the payout schedule"
-                  content="Rows follow the structure. Lowering the win ceiling drops the rows above it; re-select a preset to refill the table."
+                  content="What the event pays for finishing on each win count — you get one row, not the rows below it. On Custom the rows follow the win ceiling, so lowering it drops the ones above."
                 />
               </h3>
               <div className="table-responsive">
