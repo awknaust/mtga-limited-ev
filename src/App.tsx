@@ -699,10 +699,10 @@ export default function App() {
                       content="How many packs' worth of cards you keep from the pool you played with — three for a draft, six for sealed. Zero for phantom events like cube, where the cards are borrowed."
                     />
                   </label>
-                  <NumberInput
+                  <AddonInput
+                    addon={<i className="bi bi-stack" aria-hidden="true" />}
                     id={ids.draftPacks}
                     disabled={locked}
-                    min={0}
                     value={config.draftPacks}
                     onChange={(n) => set("draftPacks", n)}
                   />
@@ -721,23 +721,28 @@ export default function App() {
                   <tr>
                     <th scope="col">Wins</th>
                     <th scope="col" className="text-end">
+                      <i className="bi bi-gem me-1" aria-hidden="true" />
                       Gems
                     </th>
                     <th scope="col" className="text-end">
+                      <i className="bi bi-stack me-1" aria-hidden="true" />
                       Packs
                     </th>
                     {showPlayInPoints && (
                       <th scope="col" className="text-end">
+                        <i className="bi bi-ticket-perforated me-1" aria-hidden="true" />
                         Points
                       </th>
                     )}
                     {showPlayBoxes && (
                       <th scope="col" className="text-end">
+                        <i className="bi bi-box-seam me-1" aria-hidden="true" />
                         Play box
                       </th>
                     )}
                     {showCollectorBoxes && (
                       <th scope="col" className="text-end">
+                        <i className="bi bi-boxes me-1" aria-hidden="true" />
                         Coll. box
                       </th>
                     )}
