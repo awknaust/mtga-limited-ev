@@ -899,7 +899,7 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
-  it("exposes all nine presets", () => {
+  it("exposes all eleven presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
@@ -910,6 +910,8 @@ describe("presets", () => {
       "Sealed",
       "Contender Draft",
       "Arena Direct (Cube)",
+      "Arena Direct (Play)",
+      "Arena Direct (Collector)",
     ]);
   });
 
