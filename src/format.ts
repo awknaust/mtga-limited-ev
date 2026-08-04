@@ -68,8 +68,13 @@ export function money(unit: Unit, gemsPerUsd: number): Money {
     label: "USD",
     fmt: (g) => usd(g / rate),
     fmt1: (g) => usd(g / rate),
-    // Four places is enough to hold a pack's few cents without a long tail.
-    toInput: (g) => Math.round((g / rate) * 10000) / 10000,
+    /*
+     * Inputs show cents, so a collector box reads $630.33 rather than
+     * $630.3325. Rounding here only affects what is displayed — the gem value
+     * behind an untouched field is unchanged — but editing a sub-cent figure
+     * such as a pack's $0.055 will snap it to the nearest cent.
+     */
+    toInput: (g) => Math.round((g / rate) * 100) / 100,
     fromInput: (n) => n * rate,
     fractional: true,
   };
