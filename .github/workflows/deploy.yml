@@ -11,6 +11,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
+# Read-only for every job that does not say otherwise, which is the one that
+# matters: `test` runs `npm ci`, and `npm ci` runs whatever lifecycle scripts
+# the pull request's own package.json and lockfile ask for. That is
+# attacker-controlled code, so the token it holds must be able to do nothing.
+# The write scope the preview comment needs is granted on `deploy` alone.
 permissions:
   contents: read
 
@@ -42,6 +47,14 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
+    # Replaces the top-level block for this job rather than adding to it, so
+    # `contents: read` has to be restated. This job never runs code from the
+    # pull request — it checks out, downloads the already-built dist and hands
+    # it to wrangler — which is what makes the write scope safe to grant here
+    # and nowhere else.
+    permissions:
+      contents: read
+      pull-requests: write
     # Deploys need the Cloudflare secrets, and GitHub withholds those from two
     # kinds of run: pull requests opened from forks, and anything Dependabot
     # triggers — its runs read a separate secrets store, so ours arrive empty.
@@ -79,3 +92,33 @@ jobs:
             --branch=${{ github.head_ref || github.ref_name }}
 
       - run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
+
+      # The step summary and the Environments panel both hold the preview URL
+      # already, and both are places a reviewer has to go looking. This puts it
+      # in the timeline instead.
+      #
+      # `gh` rather than a commenting action: it is already on the runner, and
+      # a fourth third-party action would be a fourth SHA to keep pinned.
+      #
+      # --edit-last rewrites this job's own previous comment instead of adding
+      # one per push, so a branch that is pushed ten times still has a single
+      # comment showing where the preview is now. --create-if-none covers the
+      # first run, when there is nothing to edit.
+      - name: Comment the preview URL on the pull request
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          # The alias tracks the branch, so it keeps working as review fixes
+          # land; the hash URL is pinned to this one commit. Older wrangler
+          # cannot report the alias, hence the fallback.
+          ALIAS: ${{ steps.deploy.outputs.pages-deployment-alias-url || steps.deploy.outputs.deployment-url }}
+          EXACT: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          {
+            echo "**Preview:** $ALIAS"
+            echo
+            echo "Pinned to \`$GITHUB_SHA\`: $EXACT"
+          } > comment.md
+          gh pr comment "$PR" --body-file comment.md --edit-last --create-if-none
