@@ -101,7 +101,7 @@ export function ValueHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          {`Ending value (${m.unit === "gems" ? "Gem" : "USD"}-eq)`}
+          {`Ending value (${m.unit === "gems" ? "gems" : "USD"})`}
         </text>
         <text
           transform="rotate(-90)"

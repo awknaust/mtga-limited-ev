@@ -275,9 +275,8 @@ export function PayoutBreakdown({
         ) : (
           <>
             What the ending total is made of, at the rates set on the left.
-            Valued and added up, these are the gem-equivalent figure beside
-            them. Bars are the spread across possible outcomes, the dashed line
-            the median.
+            Valued and added up, these are the gem value beside them. Bars are
+            the spread across possible outcomes, the dashed line the median.
           </>
         )}
       </div>
