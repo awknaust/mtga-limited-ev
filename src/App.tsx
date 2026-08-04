@@ -304,6 +304,11 @@ export default function App() {
   const [bankrollRuns, setBankrollRuns] = useState(initial.bankrollRuns);
   const [seed, setSeed] = useState(initial.seed);
   const [presetName, setPresetName] = useState(initial.presetName);
+  // Deliberately outside the share state: a link should carry the model, not
+  // whether the sender happened to have a panel folded open.
+  const [eventDetailsOpen, setEventDetailsOpen] = useState(
+    initial.presetName === CUSTOM_PRESET,
+  );
   const [startingGems, setStartingGems] = useState(initial.startingGems);
   const [startingGold, setStartingGold] = useState(initial.startingGold);
   // Where the player stops, not a numerical guard — a run that never busts has
@@ -400,7 +405,14 @@ export default function App() {
   // the unit behind them changes.
   const gems = m.fmt;
   const gems2 = m.fmt1;
-  const eqLabel = unit === "gems" ? "Gem-eq" : "USD-eq";
+  /*
+   * Two forms because the label sits in two grammatical slots: `valueLabel`
+   * stands alone ("Final gem value"), `unitLabel` only ever qualifies a figure
+   * already named ("Mean ending value (gems)"), where repeating "value" reads
+   * as a stutter.
+   */
+  const valueLabel = unit === "gems" ? "Gem value" : "Dollar value";
+  const unitLabel = unit === "gems" ? "gems" : "USD";
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -559,6 +571,15 @@ export default function App() {
   const isCustom = presetName === CUSTOM_PRESET;
   const locked = !isCustom;
   /*
+   * Switching to Custom opens the panel, because on Custom the panel is the
+   * editor and an empty card would look like the app had lost its inputs.
+   * Switching back does not close it: having opened the schedule to read it,
+   * you probably want it open for the next preset too.
+   */
+  useEffect(() => {
+    if (isCustom) setEventDetailsOpen(true);
+  }, [isCustom]);
+  /*
    * Most events award no play-in points, so the column is hidden for them. It
    * is always shown on Custom — otherwise a schedule that started at zero
    * could never grow one.
@@ -570,7 +591,7 @@ export default function App() {
   const showCollectorBoxes =
     isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
   const viewItems = [
-    { key: "value" as const, label: eqLabel },
+    { key: "value" as const, label: valueLabel },
     { key: "breakdown" as const, label: "Payout breakdown" },
   ];
   const structure = config.structure;
@@ -799,7 +820,7 @@ export default function App() {
                 </select>
                 {locked ? (
                   <div className="form-text">
-                    Read-only. Choose Custom… to edit these values.
+                    Read-only. Choose Custom… to edit.
                   </div>
                 ) : (
                   /*
@@ -827,225 +848,240 @@ export default function App() {
                 )}
               </div>
 
-              <div className="row g-2 mb-3">
-                <div className="col-6">
-                  <label htmlFor={ids.structure} className="form-label">
-                    Structure
-                  </label>
-                  <select
-                    id={ids.structure}
-                    className="form-select"
-                    disabled={locked}
-                    value={structure.kind}
-                    onChange={(e) =>
-                      setStructure(
-                        e.target.value === "rounds"
-                          ? { kind: "rounds", rounds: 3 }
-                          : { kind: "elimination", maxWins: 7, maxLosses: 3 },
-                      )
-                    }
-                  >
-                    <option value="elimination">Wins / losses</option>
-                    <option value="rounds">Fixed rounds</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="row g-2 mb-3">
-                {structure.kind === "elimination" ? (
-                  <>
-                    <div className="col-6">
-                      <label htmlFor={ids.maxWins} className="form-label">
-                        Wins to finish
-                      </label>
-                      <NumberInput
-                        id={ids.maxWins}
-                        disabled={locked}
-                        min={1}
-                        value={structure.maxWins}
-                        onChange={(n) =>
-                          setStructure({ ...structure, maxWins: clampInt(n, 1, 20) })
-                        }
-                      />
-                    </div>
-                    <div className="col-6">
-                      <label htmlFor={ids.maxLosses} className="form-label">
-                        Losses to bust
-                      </label>
-                      <NumberInput
-                        id={ids.maxLosses}
-                        disabled={locked}
-                        min={1}
-                        value={structure.maxLosses}
-                        onChange={(n) =>
-                          setStructure({ ...structure, maxLosses: clampInt(n, 1, 20) })
-                        }
-                      />
-                    </div>
-                  </>
-                ) : (
+              {/*
+               * Collapsed by default: on a preset every field here is
+               * read-only reference, and the payout table is the tallest
+               * thing in the column. Custom opens it unprompted, since
+               * there the panel is the editor rather than a record.
+               */}
+              <details
+                className="event-details"
+                open={eventDetailsOpen}
+                onToggle={(e) => setEventDetailsOpen(e.currentTarget.open)}
+              >
+                <summary className="event-details-summary">
+                  Entry cost and payout schedule
+                </summary>
+                <div className="row g-2 mb-3">
                   <div className="col-6">
-                    <label htmlFor={ids.rounds} className="form-label">
-                      Rounds
+                    <label htmlFor={ids.structure} className="form-label">
+                      Structure
                     </label>
-                    <NumberInput
-                      id={ids.rounds}
+                    <select
+                      id={ids.structure}
+                      className="form-select"
                       disabled={locked}
-                      min={1}
-                      value={structure.rounds}
-                      onChange={(n) =>
-                        setStructure({ kind: "rounds", rounds: clampInt(n, 1, 20) })
+                      value={structure.kind}
+                      onChange={(e) =>
+                        setStructure(
+                          e.target.value === "rounds"
+                            ? { kind: "rounds", rounds: 3 }
+                            : { kind: "elimination", maxWins: 7, maxLosses: 3 },
+                        )
                       }
+                    >
+                      <option value="elimination">Wins / losses</option>
+                      <option value="rounds">Fixed rounds</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="row g-2 mb-3">
+                  {structure.kind === "elimination" ? (
+                    <>
+                      <div className="col-6">
+                        <label htmlFor={ids.maxWins} className="form-label">
+                          Wins to finish
+                        </label>
+                        <NumberInput
+                          id={ids.maxWins}
+                          disabled={locked}
+                          min={1}
+                          value={structure.maxWins}
+                          onChange={(n) =>
+                            setStructure({ ...structure, maxWins: clampInt(n, 1, 20) })
+                          }
+                        />
+                      </div>
+                      <div className="col-6">
+                        <label htmlFor={ids.maxLosses} className="form-label">
+                          Losses to bust
+                        </label>
+                        <NumberInput
+                          id={ids.maxLosses}
+                          disabled={locked}
+                          min={1}
+                          value={structure.maxLosses}
+                          onChange={(n) =>
+                            setStructure({ ...structure, maxLosses: clampInt(n, 1, 20) })
+                          }
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="col-6">
+                      <label htmlFor={ids.rounds} className="form-label">
+                        Rounds
+                      </label>
+                      <NumberInput
+                        id={ids.rounds}
+                        disabled={locked}
+                        min={1}
+                        value={structure.rounds}
+                        onChange={(n) =>
+                          setStructure({ kind: "rounds", rounds: clampInt(n, 1, 20) })
+                        }
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div className="row g-2 mb-3">
+                  <div className="col-6">
+                    <label htmlFor={ids.entry} className="form-label">
+                      Entry cost ({m.label})
+                    </label>
+                    <MoneyInput
+                      id={ids.entry}
+                      disabled={locked}
+                      m={m}
+                      gemValue={config.entryCostGems}
+                      onChange={(n) => set("entryCostGems", n)}
                     />
                   </div>
-                )}
-              </div>
-
-              <div className="row g-2 mb-3">
-                <div className="col-6">
-                  <label htmlFor={ids.entry} className="form-label">
-                    Entry cost ({m.label})
-                  </label>
-                  <MoneyInput
-                    id={ids.entry}
-                    disabled={locked}
-                    m={m}
-                    gemValue={config.entryCostGems}
-                    onChange={(n) => set("entryCostGems", n)}
-                  />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.entryGold} className="form-label">
-                    Entry cost (gold)
-                    <InfoTip
-                      label="About the gold entry"
-                      content="Most events price the entry in gold as well as gems. Set 0 for events that do not. Gold accrues as you play and pays the entry whenever enough has built up."
+                  <div className="col-6">
+                    <label htmlFor={ids.entryGold} className="form-label">
+                      Entry cost (gold)
+                      <InfoTip
+                        label="About the gold entry"
+                        content="Most events price the entry in gold as well as gems. Set 0 for events that do not. Gold accrues as you play and pays the entry whenever enough has built up."
+                      />
+                    </label>
+                    <GoldInput
+                      id={ids.entryGold}
+                      disabled={locked}
+                      value={config.entryCostGold}
+                      onChange={(n) => set("entryCostGold", n)}
                     />
-                  </label>
-                  <GoldInput
-                    id={ids.entryGold}
-                    disabled={locked}
-                    value={config.entryCostGold}
-                    onChange={(n) => set("entryCostGold", n)}
-                  />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.draftPacks} className="form-label">
-                    Draft packs kept
-                    <InfoTip
-                      label="About draft packs kept"
-                      content="How many packs' worth of cards you keep from the pool you played with — three for a draft, six for sealed. Zero for phantom events like cube, where the cards are borrowed."
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.draftPacks} className="form-label">
+                      Draft packs kept
+                      <InfoTip
+                        label="About draft packs kept"
+                        content="How many packs' worth of cards you keep from the pool you played with — three for a draft, six for sealed. Zero for phantom events like cube, where the cards are borrowed."
+                      />
+                    </label>
+                    <AddonInput
+                      addon={<i className="bi bi-stack" aria-hidden="true" />}
+                      id={ids.draftPacks}
+                      disabled={locked}
+                      value={config.draftPacks}
+                      onChange={(n) => set("draftPacks", n)}
                     />
-                  </label>
-                  <AddonInput
-                    addon={<i className="bi bi-stack" aria-hidden="true" />}
-                    id={ids.draftPacks}
-                    disabled={locked}
-                    value={config.draftPacks}
-                    onChange={(n) => set("draftPacks", n)}
-                  />
+                  </div>
                 </div>
-              </div>
 
-              <h3 className="section-title mt-4">
-                Payout schedule
-                <InfoTip
-                  label="About the payout schedule"
-                  content="What the event pays for finishing on each win count — you get one row, not the rows below it. On Custom the rows follow the win ceiling, so lowering it drops the ones above."
-                />
-              </h3>
-              <div className="table-responsive">
-                <table className="table table-sm align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th scope="col">Wins</th>
-                    <th scope="col" className="text-end">
-                      <i className="bi bi-gem me-1" aria-hidden="true" />
-                      Gems
-                    </th>
-                    <th scope="col" className="text-end">
-                      <i className="bi bi-stack me-1" aria-hidden="true" />
-                      Packs
-                    </th>
-                    {showPlayInPoints && (
+                <h3 className="section-title mt-4">
+                  Payout schedule
+                  <InfoTip
+                    label="About the payout schedule"
+                    content="What the event pays for finishing on each win count — you get one row, not the rows below it. On Custom the rows follow the win ceiling, so lowering it drops the ones above."
+                  />
+                </h3>
+                <div className="table-responsive">
+                  <table className="table table-sm align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th scope="col">Wins</th>
                       <th scope="col" className="text-end">
-                        <i className="bi bi-ticket-perforated me-1" aria-hidden="true" />
-                        Points
+                        <i className="bi bi-gem me-1" aria-hidden="true" />
+                        Gems
                       </th>
-                    )}
-                    {showPlayBoxes && (
                       <th scope="col" className="text-end">
-                        <i className="bi bi-box-seam me-1" aria-hidden="true" />
-                        Play box
+                        <i className="bi bi-stack me-1" aria-hidden="true" />
+                        Packs
                       </th>
-                    )}
-                    {showCollectorBoxes && (
-                      <th scope="col" className="text-end">
-                        <i className="bi bi-boxes me-1" aria-hidden="true" />
-                        Coll. box
-                      </th>
-                    )}
-                  </tr>
-                </thead>
-                <tbody>
-                  {config.payouts.map((t) => (
-                    <tr key={t.wins}>
-                      <td className="fw-semibold text-primary">{t.wins}</td>
-                      <td>
-                        <GemInput
-                          compact
-                          disabled={locked}
-                          value={t.gems}
-                          onChange={(n) => setTier(t.wins, { gems: n })}
-                        />
-                      </td>
-                      <td>
-                        <AddonInput
-                          compact
-                          addon={<i className="bi bi-stack" aria-hidden="true" />}
-                          disabled={locked}
-                          value={t.packs}
-                          onChange={(n) => setTier(t.wins, { packs: n })}
-                        />
-                      </td>
                       {showPlayInPoints && (
-                        <td>
-                          <AddonInput
-                            compact
-                            addon={<i className="bi bi-ticket-perforated" aria-hidden="true" />}
-                            disabled={locked}
-                            value={t.playInPoints ?? 0}
-                            onChange={(n) => setTier(t.wins, { playInPoints: n })}
-                          />
-                        </td>
+                        <th scope="col" className="text-end">
+                          <i className="bi bi-ticket-perforated me-1" aria-hidden="true" />
+                          Points
+                        </th>
                       )}
                       {showPlayBoxes && (
-                        <td>
-                          <AddonInput
-                            compact
-                            addon={<i className="bi bi-box-seam" aria-hidden="true" />}
-                            disabled={locked}
-                            value={t.playBoxes ?? 0}
-                            onChange={(n) => setTier(t.wins, { playBoxes: n })}
-                          />
-                        </td>
+                        <th scope="col" className="text-end">
+                          <i className="bi bi-box-seam me-1" aria-hidden="true" />
+                          Play box
+                        </th>
                       )}
                       {showCollectorBoxes && (
+                        <th scope="col" className="text-end">
+                          <i className="bi bi-boxes me-1" aria-hidden="true" />
+                          Coll. box
+                        </th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {config.payouts.map((t) => (
+                      <tr key={t.wins}>
+                        <td className="fw-semibold text-primary">{t.wins}</td>
+                        <td>
+                          <GemInput
+                            compact
+                            disabled={locked}
+                            value={t.gems}
+                            onChange={(n) => setTier(t.wins, { gems: n })}
+                          />
+                        </td>
                         <td>
                           <AddonInput
                             compact
-                            addon={<i className="bi bi-boxes" aria-hidden="true" />}
+                            addon={<i className="bi bi-stack" aria-hidden="true" />}
                             disabled={locked}
-                            value={t.collectorBoxes ?? 0}
-                            onChange={(n) => setTier(t.wins, { collectorBoxes: n })}
+                            value={t.packs}
+                            onChange={(n) => setTier(t.wins, { packs: n })}
                           />
                         </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-                </table>
-              </div>
+                        {showPlayInPoints && (
+                          <td>
+                            <AddonInput
+                              compact
+                              addon={<i className="bi bi-ticket-perforated" aria-hidden="true" />}
+                              disabled={locked}
+                              value={t.playInPoints ?? 0}
+                              onChange={(n) => setTier(t.wins, { playInPoints: n })}
+                            />
+                          </td>
+                        )}
+                        {showPlayBoxes && (
+                          <td>
+                            <AddonInput
+                              compact
+                              addon={<i className="bi bi-box-seam" aria-hidden="true" />}
+                              disabled={locked}
+                              value={t.playBoxes ?? 0}
+                              onChange={(n) => setTier(t.wins, { playBoxes: n })}
+                            />
+                          </td>
+                        )}
+                        {showCollectorBoxes && (
+                          <td>
+                            <AddonInput
+                              compact
+                              addon={<i className="bi bi-boxes" aria-hidden="true" />}
+                              disabled={locked}
+                              value={t.collectorBoxes ?? 0}
+                              onChange={(n) => setTier(t.wins, { collectorBoxes: n })}
+                            />
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                  </table>
+                </div>
+              </details>
             </div>
           </div>
         </div>
@@ -1092,7 +1128,7 @@ export default function App() {
                 </div>
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
-                    <div className="stat-label">Mean ending value ({eqLabel})</div>
+                    <div className="stat-label">Mean ending value ({unitLabel})</div>
                     <div className={`stat-value ${signClass(bankroll.meanFinalValue - startingGems)}`}>
                       {gems(bankroll.meanFinalValue)}
                     </div>
@@ -1154,7 +1190,7 @@ export default function App() {
                     {view === "value" ? (
                       <>
                         <div className="stat mb-3">
-                          <div className="stat-label">Final {eqLabel}</div>
+                          <div className="stat-label">Final {valueLabel}</div>
                           <div className="d-flex flex-wrap gap-3 mt-1">
                             {(
                               [
@@ -1189,7 +1225,7 @@ export default function App() {
                           ]}
                         />
                         <div className="form-text">
-                          Gem-equivalent value across possible outcomes: gems, leftover gold,
+                          {valueLabel} across possible outcomes: gems, leftover gold,
                           and everything won.
                         </div>
                       </>

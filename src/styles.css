@@ -83,6 +83,67 @@ body {
   margin-bottom: 0.75rem;
 }
 
+/*
+ * The preset's read-only fields, folded away. Styled as a section title so the
+ * closed state reads as another heading in the column rather than a control
+ * that has gone missing, with the marker as the only hint that it opens.
+ */
+.event-details-summary {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  /* Top-aligned, not centred: the label wraps to two lines in a narrow column,
+   * and a centred marker then floats between them instead of leading the
+   * first line. The offset centres it against that first line. */
+  align-items: flex-start;
+  gap: 0.4rem;
+}
+
+/* Safari draws its own triangle unless the webkit pseudo-element is cleared. */
+.event-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.event-details-summary::before {
+  content: "";
+  flex: none;
+  width: 0;
+  height: 0;
+  margin-top: 0.3rem;
+  border-left: 0.3rem solid currentColor;
+  border-top: 0.3rem solid transparent;
+  border-bottom: 0.3rem solid transparent;
+  transition: transform 0.15s ease-in-out;
+}
+
+.event-details[open] > .event-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.event-details-summary:hover {
+  color: var(--bs-body-color);
+}
+
+.event-details-summary:focus-visible {
+  outline: 2px solid var(--bs-focus-ring-color);
+  outline-offset: 2px;
+}
+
+.event-details[open] > .event-details-summary {
+  margin-bottom: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .event-details-summary::before {
+    transition: none;
+  }
+}
+
 /* Plain-cased detail sitting inside an uppercased section title. */
 .section-note {
   font-size: 0.75rem;

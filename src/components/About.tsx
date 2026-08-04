@@ -94,12 +94,13 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
 
       <h3 className="section-title mt-4">Terms</h3>
       <dl className="row mb-0">
-        <dt className="col-sm-4">Gem-equivalent</dt>
+        <dt className="col-sm-4">Gem value</dt>
         <dd className="col-sm-8">
           Everything you hold at the end, converted to gems at the rates above:
           the gem balance, leftover gold, and every pack, point and box won along
-          the way. It is the only figure that compares two possible outcomes
-          fairly, since events pay in different currencies.
+          the way. Gem-equivalent is the same figure under its longer name. It is
+          the only one that compares two possible outcomes fairly, since events
+          pay in different currencies.
         </dd>
 
         <dt className="col-sm-4">Possible outcome</dt>
