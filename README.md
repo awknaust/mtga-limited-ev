@@ -19,5 +19,5 @@ npm test
 Reward and drop-rate figures come from [Wizards' published drop
 rates](https://magic.wizards.com/en/mtgarena/drop-rates). The per-event payout
 ladders are not published anywhere official and are community-sourced; they are
-the softest data here, and [TODO.md](TODO.md) records which ones still want
-confirming against the in-game screens.
+the softest data here, and some still want confirming against the in-game
+screens.
