@@ -728,7 +728,7 @@ export default function App() {
                 <>
                   <div className="form-text mb-2">
                     Starting from {gems(startingGems)} gems and {gems(startingGold)}{" "}
-                    gold, stopping after {maxEvents} events.
+                    gold, stopping after at most {maxEvents} events.
                     <InfoTip
                       label="About the bankroll simulation"
                       content="Plays a sequence rather than one event: entries come out of real balances, gold first where the event takes it, and winnings go back in. A run ends when neither currency covers another entry."
