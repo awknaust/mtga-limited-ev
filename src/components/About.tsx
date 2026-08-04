@@ -111,9 +111,9 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
 
         <dt className="col-sm-4">Break-even win rate</dt>
         <dd className="col-sm-8">
-          The win rate at which one event returns exactly its entry cost. Quoted per
-          game for best-of-one events and per match for best-of-three, matching the
-          slider.
+          The match win rate at which one event returns exactly its entry cost,
+          in the same unit as the slider. A round is a match in every event here,
+          whether that match is a single game or up to three.
         </dd>
 
         <dt className="col-sm-4">Expected net</dt>
@@ -150,6 +150,16 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
           including where it stops paying, but each event is credited the gold
           an average number of wins would earn. A run that went badly is still
           credited the same gold as one that went well.
+        </li>
+        <li>
+          Any difference between one pack and another. There is a single pack
+          value, and every pack in every ladder is counted at it. Arena is not
+          so tidy: Contender Draft's top rows pay mythic packs, which are all
+          rares and mythics and worth several times an ordinary one, and cube
+          events pay packs from sets that are no longer Standard. The mythic
+          packs are folded into the pack column at face count — fourteen at six
+          wins, twenty-two at seven — so those two rows are understated rather
+          than approximated.
         </li>
         <li>Tax withholding on cash prizes, which Arena Direct's terms mention.</li>
       </ul>
