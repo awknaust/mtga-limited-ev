@@ -42,11 +42,16 @@ jobs:
   deploy:
     needs: test
     runs-on: ubuntu-latest
-    # Deploys need the Cloudflare secrets, which GitHub withholds from pull
-    # requests opened from forks. Those still get the test job.
+    # Deploys need the Cloudflare secrets, and GitHub withholds those from two
+    # kinds of run: pull requests opened from forks, and anything Dependabot
+    # triggers — its runs read a separate secrets store, so ours arrive empty.
+    # Dependabot's branches live in this repo, so the fork check alone lets them
+    # through and wrangler fails on a blank token. Both still get the test job,
+    # which is the half that actually vets a dependency bump.
     if: >-
       github.event_name == 'push' ||
-      github.event.pull_request.head.repo.full_name == github.repository
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.actor != 'dependabot[bot]')
     # Gives the deploy a tracked URL in the GitHub UI. Only possible because the
     # repo is public — GitHub Free allows environments on public repos only.
     environment:
