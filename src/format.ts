@@ -67,6 +67,34 @@ export type Money = {
 /** A 0..1 fraction as a percentage. Not a unit, so it never converts. */
 export const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
 
+/**
+ * An amount as an axis tick, abbreviated to thousands.
+ *
+ * A tick saying which thousand it is says enough — the figures that have to be
+ * read exactly are printed beside the chart, and an axis lettered `20,000` in
+ * full spends six characters where three would do, which is what runs the
+ * labels into each other on a wide chart.
+ *
+ * `prefix` carries the currency marker where there is one. Gems take theirs so
+ * that two axes side by side cannot be read as each other's; gold takes none,
+ * having none.
+ */
+export const tickAmount = (n: number, prefix = ""): string => {
+  const a = Math.abs(n);
+  const body = a >= 1000 ? `${Math.round(a / 1000)}k` : `${Math.round(a)}`;
+  return `${n < 0 ? "−" : ""}${prefix}${body}`;
+};
+
+/**
+ * A gem-valued axis tick, in whichever unit is showing.
+ *
+ * Gems abbreviate. Dollars are handed to `fmt` instead: they run three orders
+ * of magnitude smaller, so they fit as they are, and rounding to the nearest
+ * thousand would flatten an entire axis to zero.
+ */
+export const gemTick = (m: Money, gems: number): string =>
+  m.unit === "gems" ? tickAmount(gems, m.symbol) : m.fmt(gems);
+
 const withSign = (n: number, body: string): string => (n < 0 ? `−${body}` : body);
 
 /**

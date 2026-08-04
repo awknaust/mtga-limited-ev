@@ -1,7 +1,7 @@
 import { line, scaleLinear } from "d3";
 
 import { expectedNetAt, type EventConfig } from "../lib";
-import type { Money } from "../format";
+import { gemTick, type Money } from "../format";
 
 const WIDTH = 560;
 const HEIGHT = 262;
@@ -72,7 +72,7 @@ export function EvCurveChart({
           <g key={t} transform={`translate(0,${y(t)})`}>
             <line x1={0} x2={inner} className="chart-gridline" />
             <text x={-8} dy="0.32em" textAnchor="end" className="chart-tick">
-              {m.fmt(t)}
+              {gemTick(m, t)}
             </text>
           </g>
         ))}
