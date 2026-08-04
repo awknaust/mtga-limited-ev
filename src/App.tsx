@@ -8,7 +8,8 @@ import {
   configFromPreset,
   defaultConfig,
   expectedNetAt,
-  gameWinRateForMatchRate,
+  gameWinRateForFormat,
+  bo3WinRate,
   matchWinRate,
   maxPossibleWins,
   maxRounds,
@@ -140,7 +141,6 @@ export default function App() {
     maxLosses: `${uid}-max-losses`,
     rounds: `${uid}-rounds`,
     winRate: `${uid}-win-rate`,
-    matchWinRate: `${uid}-match-win-rate`,
     entry: `${uid}-entry`,
     packValue: `${uid}-pack-value`,
     funValue: `${uid}-fun-value`,
@@ -151,15 +151,17 @@ export default function App() {
     seed: `${uid}-seed`,
   };
 
+  const isBo3 = config.format === "bo3";
+
   const result = useMemo(() => simulate(config, trials, seed), [config, trials, seed]);
   const breakEven = useMemo(() => breakEvenWinRate(config), [config]);
   // When there is no break-even point, say which side of zero the event sits on.
   const breakEvenHint = useMemo(() => {
-    if (breakEven !== null) return "per game";
+    if (breakEven !== null) return isBo3 ? "per match" : "per game";
     return expectedNetAt(config, 1) < 0
       ? "unreachable — even a perfect run pays less than entry"
       : "always profitable, even at a 0% win rate";
-  }, [breakEven, config]);
+  }, [breakEven, config, isBo3]);
 
   const update = setConfig;
 
@@ -211,8 +213,15 @@ export default function App() {
   const showCollectorBoxes =
     isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
   const structure = config.structure;
-  const isBo3 = config.format === "bo3";
   const roundWord = isBo3 ? "matches" : "games";
+  /*
+   * Everything the user reads is in per-round units. The model stores a
+   * per-game rate, so both the slider and the break-even figure convert for
+   * best-of-three — otherwise the two would be quoted in different units.
+   */
+  const roundWinRate = matchWinRate(config);
+  const breakEvenShown =
+    breakEven === null ? null : isBo3 ? bo3WinRate(breakEven) : breakEven;
   // Restates the event being priced, for the Results heading — the numbers
   // below are meaningless without it.
   const structureSummary =
@@ -240,7 +249,7 @@ export default function App() {
     },
     {
       label: "Break-even win rate",
-      value: breakEven === null ? "—" : pct(breakEven, 2),
+      value: breakEvenShown === null ? "—" : pct(breakEvenShown, 2),
       hint: breakEvenHint,
     },
     {
@@ -272,10 +281,16 @@ export default function App() {
             <div className="card-body">
               <h2 className="section-title">Global inputs</h2>
 
+              {/*
+                One slider, reading in whichever unit the event actually runs
+                on: matches for best-of-three, games for best-of-one. Only one
+                of the two is ever needed, and the match rate is the number a
+                best-of-three player has a feel for.
+              */}
               <div className="mb-3">
                 <label htmlFor={ids.winRate} className="form-label">
-                  {isBo3 ? "Game win rate" : "Win rate"}{" "}
-                  <span className="fw-semibold text-body">{pct(config.winRate)}</span>
+                  {isBo3 ? "Match win rate" : "Win rate"}{" "}
+                  <span className="fw-semibold text-body">{pct(roundWinRate)}</span>
                 </label>
                 <input
                   id={ids.winRate}
@@ -284,43 +299,15 @@ export default function App() {
                   min={0}
                   max={1}
                   step={0.005}
-                  value={config.winRate}
-                  onChange={(e) => set("winRate", Number(e.target.value))}
+                  value={roundWinRate}
+                  onChange={(e) =>
+                    set(
+                      "winRate",
+                      gameWinRateForFormat(Number(e.target.value), config.format),
+                    )
+                  }
                 />
               </div>
-
-              {/*
-                In best-of-three the match rate is what the model actually
-                runs on, and it is the number a player has intuition for, so
-                it gets its own slider. Dragging it inverts the conversion to
-                find the game rate that produces it. Best-of-one omits this:
-                the two rates are the same number.
-              */}
-              {isBo3 && (
-                <div className="mb-3">
-                  <label htmlFor={ids.matchWinRate} className="form-label">
-                    Match win rate{" "}
-                    <span className="fw-semibold text-body">
-                      {pct(matchWinRate(config))}
-                    </span>
-                  </label>
-                  <input
-                    id={ids.matchWinRate}
-                    type="range"
-                    className="form-range"
-                    min={0}
-                    max={1}
-                    step={0.005}
-                    value={matchWinRate(config)}
-                    onChange={(e) =>
-                      set(
-                        "winRate",
-                        gameWinRateForMatchRate(Number(e.target.value)),
-                      )
-                    }
-                  />
-                </div>
-              )}
 
               <button
                 type="button"
