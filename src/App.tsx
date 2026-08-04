@@ -156,6 +156,7 @@ export default function App() {
     entry: `${uid}-entry`,
     entryGold: `${uid}-entry-gold`,
     goldPerEvent: `${uid}-gold-per-event`,
+    goldRate: `${uid}-gold-rate`,
     packValue: `${uid}-pack-value`,
     funValue: `${uid}-fun-value`,
     playInValue: `${uid}-play-in-value`,
@@ -476,7 +477,7 @@ export default function App() {
                     Match format
                     <InfoTip
                       label="About match format"
-                      content="Win rate is always entered per game. Best-of-three converts it to a match rate: 55% of games is 57.5% of matches."
+                      content="Whether one round is a single game or a best-of-three match. It also changes what the win rate slider measures."
                     />
                   </label>
                   <select
@@ -1015,6 +1016,27 @@ export default function App() {
                     min={0}
                     value={config.goldPerEvent}
                     onChange={(n) => set("goldPerEvent", n)}
+                  />
+                </div>
+                <div className="col-12">
+                  <label htmlFor={ids.goldRate} className="form-label">
+                    Gems per 10,000 gold
+                    <InfoTip
+                      label="About the gold exchange rate"
+                      content="What leftover gold is counted as worth. Every event that prices both ways charges 10,000 gold or 1,500 gems, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.goldRate}
+                    min={0}
+                    value={
+                      Number.isFinite(config.goldPerGem)
+                        ? Math.round(10000 / config.goldPerGem)
+                        : 0
+                    }
+                    onChange={(n) =>
+                      set("goldPerGem", n > 0 ? 10000 / n : Number.POSITIVE_INFINITY)
+                    }
                   />
                 </div>
                 <div className="col-12">
