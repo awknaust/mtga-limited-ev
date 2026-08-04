@@ -1,19 +1,31 @@
 version: 2
+
+# This file configures *version* updates only — the routine "a newer release
+# exists" pull requests. It has no bearing on *security* updates, which are
+# enabled on the repository itself, fire whenever an advisory lands against
+# something in the lockfile, and ignore the schedule below entirely. Slowing
+# this file down therefore costs nothing in security response: the vulnerable
+# case still arrives the day it is published.
+#
+# Twice a year, grouped into one pull request per ecosystem. The workflow pins
+# actions to commit SHAs so a moved tag cannot change what runs; something has
+# to keep those pins current or they are merely frozen, and this is it — just
+# at a cadence that does not produce noise nobody reads.
 updates:
-  # The workflow pins actions to commit SHAs so a moved tag cannot change what
-  # runs. That only stays safe if something keeps the pins current — this is
-  # that something. It rewrites the SHA and the trailing "# v7" comment together.
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: semiannually
     commit-message:
       prefix: "Bump"
+    groups:
+      all:
+        patterns: ["*"]
 
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: semiannually
     commit-message:
       prefix: "Bump"
     # Everything here ends up in a bundle served to users, so dev and runtime
@@ -21,3 +33,11 @@ updates:
     groups:
       all:
         patterns: ["*"]
+    # A release has to have been out a while before Dependabot proposes it.
+    # Freshly published versions are where compromised packages surface, and a
+    # month-old major has had time to have its breakage found by someone else.
+    # Cooldown applies to version updates only, so an advisory still cuts
+    # straight through this.
+    cooldown:
+      default-days: 7
+      semver-major-days: 30
