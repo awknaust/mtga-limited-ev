@@ -384,7 +384,7 @@ export default function App() {
                     Match format
                     <InfoTip
                       label="About match format"
-                      content="Win rate is always entered per game. In best-of-three a per-game edge compounds — winning 55% of games means winning 57.5% of matches — so the longer format rewards the better deck."
+                      content="Win rate is always entered per game. Best-of-three converts it to a match rate: 55% of games is 57.5% of matches."
                     />
                   </label>
                   <select
@@ -464,7 +464,7 @@ export default function App() {
                 Payout schedule
                 <InfoTip
                   label="About the payout schedule"
-                  content="Rows follow the structure: lowering the win ceiling drops the rows above it, and raising it again adds empty rows rather than restoring the old numbers. Re-select a preset to refill the table."
+                  content="Rows follow the structure. Lowering the win ceiling drops the rows above it; re-select a preset to refill the table."
                 />
               </h3>
               <table className="table table-sm align-middle mb-0">
@@ -693,7 +693,7 @@ export default function App() {
                     Simulated events (N)
                     <InfoTip
                       label="About simulated events"
-                      content="More events narrow the confidence interval on the simulated mean. The exact column is unaffected — it is computed in closed form, not sampled."
+                      content="More events narrow the confidence interval on the simulated mean. The exact column is computed in closed form, not sampled."
                     />
                   </label>
                   <NumberInput
@@ -718,7 +718,7 @@ export default function App() {
                     Play-in point value (gems)
                     <InfoTip
                       label="About play-in point value"
-                      content="Priced off what the points buy: 20 of them cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point. That only holds if you would have entered the Open anyway — unspent points are worth nothing, and any beyond a multiple of 20 are stranded until you collect enough to redeem. Only the traditional events award them."
+                      content="Priced off what the points buy: 20 of them cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point."
                     />
                   </label>
                   <NumberInput

@@ -9,7 +9,6 @@ import {
   QUICK_DRAFT,
   SEALED,
   TRADITIONAL_DRAFT,
-  TRADITIONAL_SEALED,
   bo3WinRate,
   breakEvenWinRate,
   configFromPreset,
@@ -236,7 +235,7 @@ describe("presets", () => {
     const awarding = PRESETS.filter((p) =>
       p.payouts.some((t) => (t.playInPoints ?? 0) > 0),
     ).map((p) => p.name);
-    expect(awarding).toEqual(["Traditional Draft", "Traditional Sealed"]);
+    expect(awarding).toEqual(["Traditional Draft"]);
   });
 
   it("prices play-in points into the gross", () => {
@@ -280,7 +279,7 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
-  it("exposes all seven presets", () => {
+  it("exposes all six presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
@@ -288,7 +287,6 @@ describe("presets", () => {
       "Traditional Draft",
       "Pick Two Draft",
       "Sealed",
-      "Traditional Sealed",
     ]);
   });
 
@@ -304,29 +302,18 @@ describe("presets", () => {
     expect(new Set(SEALED.payouts.map((t) => t.packs))).toEqual(new Set([3]));
   });
 
-  it("models Traditional Sealed as BO3 elimination", () => {
-    // The only preset that is both best-of-three and elimination — Traditional
-    // Draft is best-of-three but plays a fixed three rounds.
-    expect(TRADITIONAL_SEALED.format).toBe("bo3");
-    expect(TRADITIONAL_SEALED.structure).toEqual({
-      kind: "elimination",
-      maxWins: 4,
-      maxLosses: 2,
-    });
-    expect(TRADITIONAL_SEALED.entryCostGems).toBe(2000);
-    expect(maxRounds(TRADITIONAL_SEALED.structure)).toBe(5);
-  });
 
   it("converts the win rate for BO3 elimination, not just BO3 rounds", () => {
-    // Guards the combination: elimination reads the structure, bo3 reads the
-    // format, and both have to apply at once.
-    const config = configFromPreset(TRADITIONAL_SEALED, defaultConfig());
+    // No preset currently pairs best-of-three with elimination, but the model
+    // supports it: elimination reads the structure, bo3 reads the format, and
+    // both have to apply at once.
+    const structure: EventStructure = { kind: "elimination", maxWins: 4, maxLosses: 2 };
+    const config = { ...defaultConfig(), format: "bo3" as const, structure };
     const pMatch = matchWinRate({ ...config, winRate: 0.55 });
     expect(pMatch).toBeCloseTo(bo3WinRate(0.55), 12);
-    const d = exactDistribution(pMatch, TRADITIONAL_SEALED.structure);
+    const d = exactDistribution(pMatch, structure);
     expect(d).toHaveLength(5);
     expect(d.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
-    // 4 wins or 2 losses: below the ceiling this is the negative binomial.
     for (let k = 0; k < 4; k++) {
       expect(d[k]).toBeCloseTo((k + 1) * Math.pow(pMatch, k) * (1 - pMatch) ** 2, 12);
     }

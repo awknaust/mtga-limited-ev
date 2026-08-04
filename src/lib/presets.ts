@@ -15,7 +15,6 @@ import { PREMIER_DRAFT } from "../data/presets/premier-draft";
 import { QUICK_DRAFT } from "../data/presets/quick-draft";
 import { SEALED } from "../data/presets/sealed";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
-import { TRADITIONAL_SEALED } from "../data/presets/traditional-sealed";
 import type { EventConfig, EventPreset, EventStructure } from "./types";
 
 export {
@@ -25,7 +24,6 @@ export {
   QUICK_DRAFT,
   SEALED,
   TRADITIONAL_DRAFT,
-  TRADITIONAL_SEALED,
 };
 
 export const PRESETS: EventPreset[] = [
@@ -35,7 +33,6 @@ export const PRESETS: EventPreset[] = [
   TRADITIONAL_DRAFT,
   PICK_TWO_DRAFT,
   SEALED,
-  TRADITIONAL_SEALED,
 ];
 
 /** Selector value for a hand-edited schedule that matches no preset. */

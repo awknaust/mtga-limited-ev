@@ -2,18 +2,18 @@
 
 Rough backlog, unordered. Notes are pointers, not designs.
 
-## 1. Sealed events — done, but check the payout numbers
+## 1. Sealed events — Sealed done, Traditional Sealed pulled
 
-Sealed and Traditional Sealed are in. Both fell out of the existing structure
-union with no model change, as expected — though note Traditional Sealed is
-BO3 *elimination* (4 wins / 2 losses), not fixed rounds like Traditional Draft.
+Sealed is in: 2,000 gems (gems only), BO1, 7 wins or 3 losses. Its structure
+and entry cost are corroborated, and the 0-win and 7-win rows were confirmed
+independently. The middle of the gem ladder came from a badly-extracted table
+and is worth a check against the in-game screen.
 
-Structures and entry costs (2,000 gems, gems only) are corroborated across
-sources and can be trusted. **The payout tables are less certain.** They came
-from a page whose table extracted badly — duplicated rows, a pack column that
-came through as a range — and only the 7-win Sealed row (2,200 gems, 3 packs)
-was independently confirmed. Worth checking both ladders against the in-game
-event screen; they are two data files and take a minute to correct.
+Traditional Sealed was added and then removed — the payout data was not good
+enough to ship. Structure and entry are known (2,000 gems, BO3, 4 match wins
+or 2 match losses) and it is the one shape no preset now exercises: BO3 paired
+with elimination. Add it back once the ladder and its play-in points are
+confirmed in game.
 
 ## 2. Box events (including value)
 
@@ -27,10 +27,8 @@ Play-in points are a third reward column alongside gems and packs, valued at
 200 gems each by default (20 points buy a 4,000 gem Arena Open play-in), with
 the rate editable in advanced settings.
 
-Only the traditional events award them: 2 points for a 3-0 in Traditional
-Draft, and 2 from 3 wins in Traditional Sealed. **Whether Traditional Sealed's
-4-win tier pays more than two is unconfirmed** — the 4-win row currently
-repeats the same 2. Worth a look at the in-game track.
+Traditional Draft is the only event awarding them: 2 points for a 3-0.
+Traditional Sealed also awards them but is not currently modelled — see item 1.
 
 ## 4. Gold entry fees, and prefer gold when available
 

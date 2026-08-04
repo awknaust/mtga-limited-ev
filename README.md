@@ -103,7 +103,6 @@ pack value, N and seed are left alone when switching.
 | Traditional Draft | 1,500 | BO3, 3 fixed rounds | 0 / 0 / 1000 / 3000 gems, 1 / 1 / 4 / 6 packs, 2 play-in points at 3-0 |
 | Pick Two Draft | 900 | BO1, to 4 wins / 2 losses | 50 / 150 / 800 / 1000 / 1300 gems, 1 / 1 / 1 / 2 / 3 packs |
 | Sealed | 2,000 | BO1, to 7 wins / 3 losses | 200 / 200 / 600 / 1200 / 1200 / 1200 / 2200 / 2200 gems, 3 packs flat |
-| Traditional Sealed | 2,000 | BO3, to 4 wins / 2 losses | 200 / 200 / 200 / 200 / 2200 gems, 1–5 packs, 2 play-in points from 3 wins |
 | Custom | — | Keeps whatever is on screen | |
 
 Editing any structural or payout field moves the selector to **Custom**, and
@@ -124,12 +123,11 @@ single event.
 
 ## A note on entry costs
 
-The preset entry costs are Arena's **gem** prices: 2,000 for both Sealed events,
+The preset entry costs are Arena's **gem** prices: 2,000 for Sealed,
 1,500 for Premier, Traditional and Cube, 900 for Pick Two, 750 for Quick. The
 draft events can be entered with gold instead — 10,000, 6,000 and 5,000
 respectively — so enter that if it's how you buy in, keeping in mind that gold
-and gems aren't interchangeable at a fixed rate. The Sealed events take gems
-only.
+and gems aren't interchangeable at a fixed rate. Sealed takes gems only.
 
 The model values only gems and whatever you assign to packs — never the drafted
 card pool, which is where much of a draft's real return sits.
@@ -150,7 +148,7 @@ events in gems alone.
 
 ## A note on play-in points
 
-Only the traditional events award them, and they default to **200 gems** each:
+Traditional Draft is the only event that awards them. They default to **200 gems** each:
 20 points buy an Arena Open play-in that otherwise costs 4,000 gems.
 
 That is a replacement cost, and it only holds if you would have entered the Open
@@ -160,9 +158,8 @@ optimistic of the three value inputs. Set it to 0 in advanced settings to price
 events without them.
 
 They matter more than their size suggests. At a 55% win rate they are worth
-about 76 gems an event on Traditional Draft and 173 on Traditional Sealed, which
-moves Traditional Draft's break-even from 62.70% to 60.76% — the best of any
-event in the app.
+about 76 gems an event on Traditional Draft, moving its break-even from 62.70%
+to 60.76% — the best of any event in the app.
 
 ## Tests
 
