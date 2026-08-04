@@ -353,18 +353,33 @@ export default function App() {
                   {/* Ellipsis by convention: picking it puts you in an editor. */}
                   <option value={CUSTOM_PRESET}>{CUSTOM_PRESET}…</option>
                 </select>
-                {locked && (
-                  <div className="d-flex align-items-center gap-2 mt-2">
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm"
-                      onClick={() => setPresetName(CUSTOM_PRESET)}
-                    >
-                      <i className="bi bi-copy me-1" aria-hidden="true" />
-                      Copy to Custom…
-                    </button>
-                    <span className="form-text m-0">Presets are read-only.</span>
+                {locked ? (
+                  <div className="form-text">
+                    Read-only. Choose Custom… to edit these values.
                   </div>
+                ) : (
+                  /*
+                   * Loading a preset's numbers into a custom schedule is a rare
+                   * enough move to keep quiet. The select resets to its
+                   * placeholder after each use, and PRESETS never contains
+                   * Custom, so it cannot copy from itself.
+                   */
+                  <select
+                    className="form-select form-select-sm mt-2"
+                    aria-label="Copy values from an event"
+                    value=""
+                    onChange={(e) => {
+                      const preset = PRESETS.find((p) => p.name === e.target.value);
+                      if (preset) setConfig(configFromPreset(preset, config));
+                    }}
+                  >
+                    <option value="">Copy from…</option>
+                    {PRESETS.map((p) => (
+                      <option key={p.name} value={p.name}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
 
