@@ -111,9 +111,9 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
 
         <dt className="col-sm-4">Break-even win rate</dt>
         <dd className="col-sm-8">
-          The win rate at which one event returns exactly its entry cost. Quoted per
-          game for best-of-one events and per match for best-of-three, matching the
-          slider.
+          The match win rate at which one event returns exactly its entry cost,
+          in the same unit as the slider. A round is a match in every event here,
+          whether that match is a single game or up to three.
         </dd>
 
         <dt className="col-sm-4">Expected net</dt>
