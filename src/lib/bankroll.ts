@@ -12,7 +12,6 @@
  */
 
 import { payoutFor } from "./payouts";
-import { GOLD_PER_GEM } from "./presets";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
 import { simulateEvent } from "./simulate";
@@ -148,13 +147,14 @@ export function simulateBankroll(
 /**
  * Gem-equivalent value of everything a run ends holding.
  *
- * Gems, the leftover gold converted at the rate Arena's own dual pricing
- * implies, and every non-currency reward at the rate the config carries.
+ * Gems, the leftover gold at the config's exchange rate, and every
+ * non-currency reward at the rate the config carries. A rate of Infinity — set
+ * by valuing gold at nothing — drops the gold term to zero.
  */
 export function runValue(config: EventConfig, run: BankrollRun): number {
   return (
     run.finalGems +
-    run.finalGold / GOLD_PER_GEM +
+    run.finalGold / config.goldPerGem +
     run.packs * config.packValueGems +
     run.playInPoints * config.playInPointValueGems +
     run.playBoxes * config.playBoxValueGems +

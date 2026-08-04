@@ -191,6 +191,7 @@ export function defaultConfig(): EventConfig {
     packValueGems: DEFAULT_PACK_VALUE_GEMS,
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
     goldPerEvent: DEFAULT_GOLD_PER_EVENT,
+    goldPerGem: GOLD_PER_GEM,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   } as EventConfig);

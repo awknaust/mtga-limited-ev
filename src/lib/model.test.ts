@@ -9,6 +9,7 @@ import {
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   GEMS_PER_USD,
+  GOLD_PER_GEM,
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
@@ -33,6 +34,7 @@ import {
   simulate,
   simulateBankroll,
   simulateBankrolls,
+  runValue,
   seededRandom,
   type EventStructure,
 } from "./index";
@@ -315,6 +317,25 @@ describe("bankroll", () => {
     // Most runs buy one entry and lose it; a few win a box worth more than
     // sixty thousand gems, so the mean sits far above the middle.
     expect(res.meanFinalValue).toBeGreaterThan(res.medianFinalValue);
+  });
+
+  it("values leftover gold at the configured rate", () => {
+    // 10,000 gold for 1,500 gems is what every dual-priced event charges.
+    expect(GOLD_PER_GEM).toBeCloseTo(10000 / 1500, 12);
+    const config = { ...defaultConfig(), goldPerGem: GOLD_PER_GEM };
+    const run = {
+      events: 0,
+      finalGems: 1000,
+      finalGold: 10_000,
+      packs: 0,
+      playInPoints: 0,
+      playBoxes: 0,
+      collectorBoxes: 0,
+      survived: false,
+    };
+    expect(runValue(config, run)).toBeCloseTo(1000 + 1500, 6);
+    // Valuing gold at nothing drops the term entirely.
+    expect(runValue({ ...config, goldPerGem: Infinity }, run)).toBe(1000);
   });
 
   it("histogram accounts for every run", () => {

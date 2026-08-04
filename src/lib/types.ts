@@ -65,6 +65,8 @@ export type EventConfig = {
   entryCostGold: number;
   /** Gold earned in the time it takes to play one event. */
   goldPerEvent: number;
+  /** Gold worth one gem, for valuing a leftover balance. */
+  goldPerGem: number;
   /** Gem value assigned to one booster pack (0 = packs counted but valued at nothing). */
   packValueGems: number;
   /** Gem value assigned to one play-in point. */
