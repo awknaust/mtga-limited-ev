@@ -752,46 +752,26 @@ export default function App() {
               </div>
 
                   <h3 className="section-title mt-4">Where you end up</h3>
-                  {bankroll.meanEvents === 0 && (
-                    <div className="alert alert-warning py-2 px-3 small" role="alert">
-                      Not enough to enter once. This event costs{" "}
-                      {gems(config.entryCostGems)} gems
-                      {config.entryCostGold > 0
-                        ? ` or ${gems(config.entryCostGold)} gold`
-                        : " and takes no gold"}
-                      .
+                  <div className="stat mb-3">
+                    <div className="stat-label">Final gem-equivalent</div>
+                    <div className="d-flex flex-wrap gap-3 mt-1">
+                      {(
+                        [
+                          ["p5", bankroll.valuePercentiles.p5],
+                          ["p25", bankroll.valuePercentiles.p25],
+                          ["median", bankroll.valuePercentiles.p50],
+                          ["p75", bankroll.valuePercentiles.p75],
+                          ["p95", bankroll.valuePercentiles.p95],
+                        ] as const
+                      ).map(([k, v]) => (
+                        <span key={k} className="small">
+                          <span className="text-body-secondary">{k} </span>
+                          <span className={`fw-semibold ${signClass(v - startingGems)}`}>
+                            {gems(v)}
+                          </span>
+                        </span>
+                      ))}
                     </div>
-                  )}
-
-                  <div className="row g-2 mb-3">
-                    {(
-                      [
-                        ["gems", bankroll.gemPercentiles],
-                        ["gold", bankroll.goldPercentiles],
-                      ] as const
-                    ).map(([label, p]) => (
-                      <div key={label} className="col-12">
-                        <div className="stat">
-                          <div className="stat-label">Final {label}</div>
-                          <div className="d-flex flex-wrap gap-3 mt-1">
-                            {(
-                              [
-                                ["p5", p.p5],
-                                ["p25", p.p25],
-                                ["median", p.p50],
-                                ["p75", p.p75],
-                                ["p95", p.p95],
-                              ] as const
-                            ).map(([k, v]) => (
-                              <span key={k} className="small">
-                                <span className="text-body-secondary">{k} </span>
-                                <span className="fw-semibold">{gems(v)}</span>
-                              </span>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
                   </div>
                   <ValueHistogram
                     bins={bankroll.valueHistogram}

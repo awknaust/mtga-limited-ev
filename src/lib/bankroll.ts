@@ -34,8 +34,6 @@ export type BankrollResult = {
   eventPercentiles: { p5: number; p25: number; p50: number; p75: number; p95: number };
   /** Share of runs that hit `maxEvents` rather than running out of currency. */
   survivedFraction: number;
-  meanFinalGems: number;
-  meanFinalGold: number;
   meanPacks: number;
   /** Gems plus the gem value of everything won along the way. */
   meanFinalValue: number;
@@ -46,9 +44,8 @@ export type BankrollResult = {
   medianFinalValue: number;
   /** Events played, bucketed for a histogram. */
   histogram: { events: number; count: number }[];
-  /** Where a run ends up, as spendable currency. */
-  gemPercentiles: Percentiles;
-  goldPercentiles: Percentiles;
+  /** Where a run ends up, in gem-equivalent terms. */
+  valuePercentiles: Percentiles;
   /** Ending value binned for a histogram. */
   valueHistogram: { from: number; to: number; count: number }[];
 };
@@ -185,8 +182,7 @@ export function simulateBankrolls(
   const medianFinalValue = sortedValue.length
     ? sortedValue[Math.floor(sortedValue.length / 2)]
     : 0;
-  const sortedGems = runs.map((r) => r.finalGems).sort((a, b) => a - b);
-  const sortedGold = runs.map((r) => r.finalGold).sort((a, b) => a - b);
+
 
   const counts = new Map<number, number>();
   for (const e of sortedEvents) counts.set(e, (counts.get(e) ?? 0) + 1);
@@ -198,16 +194,13 @@ export function simulateBankrolls(
     survivedFraction: runs.length
       ? runs.filter((r) => r.survived).length / runs.length
       : 0,
-    meanFinalGems: mean((r) => r.finalGems),
-    meanFinalGold: mean((r) => r.finalGold),
     meanPacks: mean((r) => r.packs),
     meanFinalValue: mean((r) => runValue(config, r)),
     medianFinalValue,
     histogram: [...counts.entries()]
       .map(([events, count]) => ({ events, count }))
       .sort((a, b) => a.events - b.events),
-    gemPercentiles: percentilesOf(sortedGems),
-    goldPercentiles: percentilesOf(sortedGold),
+    valuePercentiles: percentilesOf(sortedValue),
     valueHistogram: binned(sortedValue),
   };
 }

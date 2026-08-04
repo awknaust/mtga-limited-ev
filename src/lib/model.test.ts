@@ -304,11 +304,11 @@ describe("bankroll", () => {
 
   it("counts winnings that are not currency toward final value", () => {
     const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
-    const res = simulateBankrolls(config, roll, 200, 11);
-    // Packs and play-in points are won but cannot pay an entry, so they show
-    // up in value rather than in the gem balance.
-    expect(res.meanPacks).toBeGreaterThan(0);
-    expect(res.meanFinalValue).toBeGreaterThan(res.meanFinalGems);
+    const run = simulateBankroll(config, roll, seededRandom(11));
+    // Packs and play-in points are won but cannot pay an entry, so they land
+    // in the gem-equivalent value rather than the gem balance.
+    expect(run.packs).toBeGreaterThan(0);
+    expect(runValue(config, run)).toBeGreaterThan(run.finalGems);
   });
 
   it("reports a median beside the mean, since a rare prize skews it", () => {
