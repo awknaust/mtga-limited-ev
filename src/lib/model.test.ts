@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  ARENA_DIRECT,
   CONTENDER_DRAFT,
   CUBE_DRAFT,
   DEFAULT_PACK_VALUE_GEMS,
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
+  DEFAULT_PLAY_BOX_VALUE_GEMS,
+  DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+  GEMS_PER_USD,
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
@@ -279,7 +283,7 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
-  it("exposes all seven presets", () => {
+  it("exposes all eight presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
@@ -288,7 +292,44 @@ describe("presets", () => {
       "Pick Two Draft",
       "Sealed",
       "Contender Draft",
+      "Arena Direct (Cube)",
     ]);
+  });
+
+  it("models Arena Direct as a two-loss run paying physical product", () => {
+    // Quoted from the terms: "Entry is valid until 7 wins or 2 losses".
+    expect(ARENA_DIRECT.structure).toEqual({
+      kind: "elimination",
+      maxWins: 7,
+      maxLosses: 2,
+    });
+    expect(ARENA_DIRECT.entryCostGems).toBe(8000);
+    // Gems and packs stop entirely once the prize becomes a box.
+    expect(ARENA_DIRECT.payouts[6]).toEqual({
+      wins: 6,
+      gems: 0,
+      packs: 0,
+      playBoxes: 1,
+    });
+    expect(ARENA_DIRECT.payouts[7].playBoxes).toBe(2);
+  });
+
+  it("prices boxes into the gross", () => {
+    const config = configFromPreset(ARENA_DIRECT, defaultConfig());
+    expect(config.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(grossValue(config, 7)).toBe(2 * config.playBoxValueGems);
+    expect(grossValue(config, 6)).toBe(config.playBoxValueGems);
+    // Valuing boxes at nothing strips the top two tiers back to zero.
+    const worthless = { ...config, playBoxValueGems: 0 };
+    expect(grossValue(worthless, 6)).toBe(0);
+    expect(grossValue(worthless, 7)).toBe(0);
+  });
+
+  it("converts physical prizes at 400 gems to the dollar", () => {
+    expect(GEMS_PER_USD).toBe(400);
+    // 20,000 gems for $49.99 is the largest bundle, so the most generous rate.
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(Math.round(209.7 * 400));
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(Math.round(479.88 * 400));
   });
 
   it("models Contender Draft as paying nothing below three wins", () => {

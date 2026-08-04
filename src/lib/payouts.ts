@@ -21,7 +21,9 @@ export function grossValue(config: EventConfig, wins: number): number {
   return (
     tier.gems +
     tier.packs * config.packValueGems +
-    (tier.playInPoints ?? 0) * config.playInPointValueGems
+    (tier.playInPoints ?? 0) * config.playInPointValueGems +
+    (tier.playBoxes ?? 0) * config.playBoxValueGems +
+    (tier.collectorBoxes ?? 0) * config.collectorBoxValueGems
   );
 }
 

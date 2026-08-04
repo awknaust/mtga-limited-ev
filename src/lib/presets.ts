@@ -9,6 +9,7 @@
  * contiguous from 0) are covered by tests.
  */
 
+import { ARENA_DIRECT } from "../data/presets/arena-direct";
 import { CONTENDER_DRAFT } from "../data/presets/contender-draft";
 import { CUBE_DRAFT } from "../data/presets/cube-draft";
 import { PICK_TWO_DRAFT } from "../data/presets/pick-two-draft";
@@ -19,6 +20,7 @@ import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
 import type { EventConfig, EventPreset } from "./types";
 
 export {
+  ARENA_DIRECT,
   CONTENDER_DRAFT,
   CUBE_DRAFT,
   PICK_TWO_DRAFT,
@@ -36,6 +38,7 @@ export const PRESETS: EventPreset[] = [
   PICK_TWO_DRAFT,
   SEALED,
   CONTENDER_DRAFT,
+  ARENA_DIRECT,
 ];
 
 /** Selector value for a hand-edited schedule that matches no preset. */
@@ -85,6 +88,44 @@ export const DEFAULT_PACK_VALUE_GEMS = 22;
  */
 export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 
+/**
+ * Gems per US dollar, for pricing physical prizes.
+ *
+ * From the largest gem bundle: 20,000 gems for $49.99, so 400 gems a dollar.
+ * Smaller bundles are worse, which makes this the most generous conversion and
+ * therefore the most conservative way to value a physical prize in gems.
+ */
+export const GEMS_PER_USD = 400;
+
+/**
+ * Default gem value of a physical Play Booster box.
+ *
+ * $209.70, which is not a market price but Wizards' own figure: the Arena
+ * Direct terms say they "may replace this with a $209.70 cash prize per Play
+ * Booster box" if supplies run out. That makes it the declared cash equivalent
+ * of exactly this prize, which beats any retail average — and it is what you
+ * would actually receive in the substitution case.
+ *
+ * Street prices run well below it. Secrets of Strixhaven play boxes were
+ * around $126 against a $159.99 MSRP, so if you would sell the box rather than
+ * keep it, something nearer 50,000 gems is the honest figure. Note also that
+ * cash prizes are taxed — the terms mention 30% withholding in most cases.
+ */
+export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(209.7 * GEMS_PER_USD);
+
+/**
+ * Default gem value of a physical Collector Booster box.
+ *
+ * No event here awards one yet, so there is no Wizards substitution figure to
+ * lean on. Priced at MSRP instead: collector boosters are $39.99 each for 2026
+ * sets and a display is 12 of them, so $479.88.
+ *
+ * This is the softest number in the model. Collector box street prices swing
+ * hard with set popularity — well under MSRP for weak sets, far over it for
+ * scarce ones.
+ */
+export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(479.88 * GEMS_PER_USD);
+
 /** Config built from a preset, leaving win rate and pack value untouched. */
 export function configFromPreset(preset: EventPreset, base: EventConfig): EventConfig {
   return {
@@ -101,5 +142,7 @@ export function defaultConfig(): EventConfig {
     winRate: 0.55,
     packValueGems: DEFAULT_PACK_VALUE_GEMS,
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
+    playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
+    collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   } as EventConfig);
 }

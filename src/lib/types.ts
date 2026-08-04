@@ -19,6 +19,10 @@ export type PayoutTier = {
    * them, so this is optional and absent means none.
    */
   playInPoints?: number;
+  /** Physical Play Booster boxes, shipped after the event. Arena Direct only. */
+  playBoxes?: number;
+  /** Physical Collector Booster boxes. */
+  collectorBoxes?: number;
 };
 
 /** Whether one round is a single game or a best-of-three match. */
@@ -59,6 +63,10 @@ export type EventConfig = {
   packValueGems: number;
   /** Gem value assigned to one play-in point. */
   playInPointValueGems: number;
+  /** Gem value assigned to one physical Play Booster box. */
+  playBoxValueGems: number;
+  /** Gem value assigned to one physical Collector Booster box. */
+  collectorBoxValueGems: number;
   /** Payout table, one entry per possible win count (0..maxPossibleWins). */
   payouts: PayoutTier[];
 };
@@ -74,6 +82,8 @@ export type WinBucket = {
   netGems: number;
   packs: number;
   playInPoints: number;
+  playBoxes: number;
+  collectorBoxes: number;
 };
 
 export type SimResult = {

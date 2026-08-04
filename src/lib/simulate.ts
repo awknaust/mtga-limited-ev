@@ -65,6 +65,8 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
       netGems: netValue(config, wins),
       packs: tier.packs,
       playInPoints: tier.playInPoints ?? 0,
+      playBoxes: tier.playBoxes ?? 0,
+      collectorBoxes: tier.collectorBoxes ?? 0,
     };
   });
 

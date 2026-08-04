@@ -15,20 +15,19 @@ or 2 match losses) and it is the one shape no preset now exercises: BO3 paired
 with elimination. Add it back once the ladder and its play-in points are
 confirmed in game.
 
-## 2. Box events, and mythic packs
+## 2. Box events — done, mythic packs still open
 
-Events paying a fixed box of packs rather than a win-scaled ladder. Needs a
-think about whether this is just a payout table with flat rows, or a genuinely
-different reward shape that the `PayoutTier` type does not cover.
+Physical boxes are payout tier fields (`playBoxes`, `collectorBoxes`) with gem
+rates in advanced settings, and Arena Direct (Powered Cube) is modelled.
 
-Related and already biting: **mythic packs**. Contender Draft's top two tiers
-pay them alongside regular packs, and they are currently folded into `packs`
-at face count, which understates those tiers. A `mythicPacks` field with its
-own gem value would fix it — the same shape the play-in point change took.
+Still open: **mythic packs**. Contender Draft's top two tiers pay them
+alongside regular packs and they are folded into `packs` at face count, which
+understates those tiers. A `mythicPacks` field with its own rate would fix it —
+the same shape the play-in and box changes took.
 
-Arena Direct pays *physical* booster boxes at six or more wins, which is a
-harder problem: a real-world good with a real-world price, in an event whose
-value is mostly not gems at all.
+Also unmodelled: the 30% tax withholding the Arena Direct terms mention on cash
+substitutions, and that a box is only worth its sticker price if you want the
+cards. Both make Arena Direct look better than it is.
 
 ## 3. Value for play-in points — done, one number to confirm
 

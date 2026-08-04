@@ -143,6 +143,8 @@ export default function App() {
     packValue: `${uid}-pack-value`,
     funValue: `${uid}-fun-value`,
     playInValue: `${uid}-play-in-value`,
+    playBoxValue: `${uid}-play-box-value`,
+    collectorBoxValue: `${uid}-collector-box-value`,
     trials: `${uid}-trials`,
     seed: `${uid}-seed`,
   };
@@ -202,6 +204,10 @@ export default function App() {
    */
   const showPlayInPoints =
     isCustom || config.payouts.some((t) => (t.playInPoints ?? 0) > 0);
+  const showPlayBoxes =
+    isCustom || config.payouts.some((t) => (t.playBoxes ?? 0) > 0);
+  const showCollectorBoxes =
+    isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
   const structure = config.structure;
   const roundWord = config.format === "bo3" ? "matches" : "games";
   // Restates the event being priced, for the Results heading — the numbers
@@ -513,6 +519,16 @@ export default function App() {
                         Points
                       </th>
                     )}
+                    {showPlayBoxes && (
+                      <th scope="col" className="text-end">
+                        Play box
+                      </th>
+                    )}
+                    {showCollectorBoxes && (
+                      <th scope="col" className="text-end">
+                        Coll. box
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -545,6 +561,28 @@ export default function App() {
                             min={0}
                             value={t.playInPoints ?? 0}
                             onChange={(n) => setTier(t.wins, { playInPoints: n })}
+                          />
+                        </td>
+                      )}
+                      {showPlayBoxes && (
+                        <td>
+                          <NumberInput
+                            className="form-control form-control-sm text-end"
+                            disabled={locked}
+                            min={0}
+                            value={t.playBoxes ?? 0}
+                            onChange={(n) => setTier(t.wins, { playBoxes: n })}
+                          />
+                        </td>
+                      )}
+                      {showCollectorBoxes && (
+                        <td>
+                          <NumberInput
+                            className="form-control form-control-sm text-end"
+                            disabled={locked}
+                            min={0}
+                            value={t.collectorBoxes ?? 0}
+                            onChange={(n) => setTier(t.wins, { collectorBoxes: n })}
                           />
                         </td>
                       )}
@@ -760,6 +798,36 @@ export default function App() {
                     min={0}
                     value={config.playInPointValueGems}
                     onChange={(n) => set("playInPointValueGems", n)}
+                  />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.playBoxValue} className="form-label">
+                    Play box value (gems)
+                    <InfoTip
+                      label="About play box value"
+                      content="Wizards' own substitution figure of $209.70 a box, converted at 400 gems to the dollar. Street prices are lower — nearer 50,000 gems if you would sell it."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.playBoxValue}
+                    min={0}
+                    value={config.playBoxValueGems}
+                    onChange={(n) => set("playBoxValueGems", n)}
+                  />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.collectorBoxValue} className="form-label">
+                    Collector box value (gems)
+                    <InfoTip
+                      label="About collector box value"
+                      content="MSRP of a 12-pack display at $39.99 a booster, converted at 400 gems to the dollar."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.collectorBoxValue}
+                    min={0}
+                    value={config.collectorBoxValueGems}
+                    onChange={(n) => set("collectorBoxValueGems", n)}
                   />
                 </div>
               </div>
