@@ -2,17 +2,21 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import Popover from "bootstrap/js/dist/popover";
 
-import { money, type Unit } from "./format";
+import { money, pct, type Unit } from "./format";
 import { About } from "./components/About";
+import { CountHistogram } from "./components/CountHistogram";
+import { BankrollCurrencyView, EventCurrencyView } from "./components/CurrencyViews";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
-import { EventsHistogram } from "./components/EventsHistogram";
+import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
 import {
   CUSTOM_PRESET,
   PRESETS,
   breakEvenWinRate,
   configFromPreset,
+  currency,
+  currencyRate,
   defaultConfig,
   expectedNetAt,
   gameWinRateForFormat,
@@ -21,16 +25,28 @@ import {
   matchWinRate,
   maxPossibleWins,
   maxRounds,
+  paidCurrencies,
   resizePayouts,
   simulate,
   simulateBankrolls,
+  type CurrencyKey,
   type EventConfig,
   type EventFormat,
   type EventStructure,
   type PayoutTier,
 } from "./lib";
 
-const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
+/**
+ * Which reward the results are counted in. Gem-equivalent is the default and
+ * the only one every event has; the rest appear when the ladder pays them.
+ */
+type ResultView = "value" | CurrencyKey;
+
+const RESULT_TABS = [
+  { key: "bankroll" as const, label: "Bankroll" },
+  { key: "event" as const, label: "Per event" },
+  { key: "about" as const, label: "About" },
+];
 
 const clampInt = (n: number, lo: number, hi: number): number =>
   Math.max(lo, Math.min(hi, Math.round(n) || lo));
@@ -260,6 +276,7 @@ export default function App() {
   // Off by default: none of these buys an entry in Arena.
   const [spendWinnings, setSpendWinnings] = useState(false);
   const [tab, setTab] = useState<"bankroll" | "event" | "about">("bankroll");
+  const [view, setView] = useState<ResultView>("value");
   const [unit, setUnit] = useState<Unit>("gems");
   // 20,000 gems for $49.99 is the largest bundle, so the best rate on offer.
   const [gemsPerUsd, setGemsPerUsd] = useState(400);
@@ -309,6 +326,8 @@ export default function App() {
     maxEvents: `${uid}-max-events`,
     spendWinnings: `${uid}-spend-winnings`,
     gemsPerUsd: `${uid}-gems-per-usd`,
+    resultTabs: `${uid}-results`,
+    viewTabs: `${uid}-view`,
   };
 
   const isBo3 = config.format === "bo3";
@@ -385,6 +404,24 @@ export default function App() {
     isCustom || config.payouts.some((t) => (t.playBoxes ?? 0) > 0);
   const showCollectorBoxes =
     isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
+  /*
+   * Which rewards get a results tab. Deliberately not the three predicates
+   * above: those force themselves on for Custom so a column can be grown from
+   * zero, which is right for an editor and wrong for a result — a tab for a
+   * reward the ladder never pays would be a chart of zero.
+   */
+  const paid = paidCurrencies(config.payouts);
+  const viewItems = [
+    { key: "value" as const, label: eqLabel },
+    ...paid.map((key) => ({ key, label: currency(key).label })),
+  ];
+  // Editing a ladder can retire the reward being looked at, so the selection is
+  // derived rather than trusted; nothing has to reset it on the way past.
+  const activeView: ResultView =
+    view === "value" || paid.includes(view) ? view : "value";
+  // A ladder paying nothing but gems has one lens, and a strip of one pill
+  // says less than no strip at all.
+  const hasViews = viewItems.length > 1;
   const structure = config.structure;
   const roundWord = isBo3 ? "matches" : "games";
   /*
@@ -412,7 +449,7 @@ export default function App() {
     {
       label: "Expected gross",
       value: gems2(result.meanGross),
-      hint: `${m.label} + ${result.meanPacks.toFixed(2)} packs / event`,
+      hint: `${m.label} + ${result.currencies.packs.mean.toFixed(2)} packs / event`,
     },
     {
       label: "ROI",
@@ -856,29 +893,56 @@ export default function App() {
         <div className="col-lg-8">
           <div className="card">
             <div className="card-body">
-              <ul className="nav nav-tabs mb-3" role="tablist">
-                {(["bankroll", "event", "about"] as const).map((t) => (
-                  <li className="nav-item" key={t}>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={tab === t}
-                      className={`nav-link ${tab === t ? "active" : ""}`}
-                      onClick={() => setTab(t)}
-                    >
-                      {t === "bankroll" ? "Bankroll" : t === "event" ? "Per event" : "About"}
-                    </button>
-                  </li>
-                ))}
-                <li className="ms-auto d-flex align-items-center">
+              <Tabs
+                group={ids.resultTabs}
+                items={RESULT_TABS}
+                active={tab}
+                onSelect={setTab}
+                label="Results"
+                trailing={
                   <span className="section-note">
                     {presetName} · {structureSummary}
                   </span>
-                </li>
-              </ul>
+                }
+              />
 
+              <TabPanel group={ids.resultTabs} active={tab}>
               {tab === "about" ? (
                 <About config={config} m={m} />
+              ) : (
+                <>
+                  {/*
+                    Second strip, and pills rather than tabs so it reads as
+                    the subdivision it is: the tabs above choose the question,
+                    these choose what the answer is counted in.
+                  */}
+                  {hasViews ? (
+                    <Tabs
+                      group={ids.viewTabs}
+                      items={viewItems}
+                      active={activeView}
+                      onSelect={setView}
+                      label="Counted in"
+                      variant="pills"
+                    />
+                  ) : null}
+                  <TabPanel group={ids.viewTabs} active={activeView} labelled={hasViews}>
+              {activeView !== "value" ? (
+                tab === "bankroll" ? (
+                  <BankrollCurrencyView
+                    totals={bankroll.currencies[activeView]}
+                    currencyKey={activeView}
+                    rate={currencyRate(config, activeView)}
+                    m={m}
+                    liquidating={spendWinnings}
+                  />
+                ) : (
+                  <EventCurrencyView
+                    outcome={result.currencies[activeView]}
+                    rate={currencyRate(config, activeView)}
+                    m={m}
+                  />
+                )
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
@@ -913,8 +977,14 @@ export default function App() {
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
                     <div className="stat-label">Packs won</div>
-                    <div className="stat-value">{bankroll.meanPacks.toFixed(1)}</div>
-                    <div className="stat-hint">over the whole run</div>
+                    <div className="stat-value">
+                      {bankroll.currencies.packs.mean.toFixed(1)}
+                    </div>
+                    <div className="stat-hint">
+                      {spendWinnings
+                        ? "over the run, then converted to gems"
+                        : "over the whole run"}
+                    </div>
                   </div>
                 </div>
                 <div className="col-6 col-xl-3">
@@ -925,9 +995,14 @@ export default function App() {
                   </div>
                 </div>
               </div>
-                  <EventsHistogram
-                    histogram={bankroll.histogram}
+                  <CountHistogram
+                    histogram={bankroll.histogram.map((h) => ({
+                      value: h.events,
+                      count: h.count,
+                    }))}
                     median={bankroll.eventPercentiles.p50}
+                    axisLabel="Events played"
+                    ariaLabel="Distribution of events played before running out"
                   />
               <div className="form-text">
                 Events played before running out.
@@ -983,7 +1058,16 @@ export default function App() {
               </div>
 
               <h3 className="section-title mt-4">Distribution of outcomes by wins</h3>
-              <DistributionChart buckets={result.buckets} />
+              <DistributionChart
+                rows={result.buckets.map((b) => ({
+                  value: b.wins,
+                  probability: b.probability,
+                  exactProbability: b.exactProbability,
+                }))}
+                axisLabel="Wins"
+                rowLabel={(w) => `${w}W`}
+                ariaLabel="Distribution of outcomes by win count"
+              />
               <div className="form-text">
                 Bars are the simulation; the tick mark is the closed-form probability.
               </div>
@@ -1094,6 +1178,10 @@ export default function App() {
               </div>
                 </>
               )}
+                  </TabPanel>
+                </>
+              )}
+              </TabPanel>
             </div>
           </div>
         </div>

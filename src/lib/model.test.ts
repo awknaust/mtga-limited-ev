@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   ARENA_DIRECT,
   CONTENDER_DRAFT,
+  CURRENCY_KEYS,
   PREMIER_CUBE_DRAFT,
   DEFAULT_GOLD_PER_DAY,
   DEFAULT_EVENTS_PER_DAY,
@@ -23,6 +24,7 @@ import {
   gameWinRateForMatchRate,
   breakEvenWinRate,
   configFromPreset,
+  currencyRate,
   defaultConfig,
   exactDistribution,
   expectedNetAt,
@@ -33,6 +35,8 @@ import {
   matchWinRate,
   maxPossibleWins,
   maxRounds,
+  paidCurrencies,
+  payoutFor,
   playInPointsFor,
   resizePayouts,
   simulate,
@@ -307,6 +311,96 @@ describe("drafted cards", () => {
   });
 });
 
+describe("reward currencies", () => {
+  it("lists what a ladder pays, and only that", () => {
+    expect(paidCurrencies(PREMIER_DRAFT.payouts)).toEqual(["packs"]);
+    expect(paidCurrencies(TRADITIONAL_DRAFT.payouts)).toEqual(["packs", "playInPoints"]);
+    expect(paidCurrencies(ARENA_DIRECT.payouts)).toEqual(["packs", "playBoxes"]);
+    // Zeroing the tiers retires the currency, whatever the conversion rate is.
+    const gemsOnly = PREMIER_DRAFT.payouts.map((t) => ({ ...t, packs: 0 }));
+    expect(paidCurrencies(gemsOnly)).toEqual([]);
+  });
+
+  it("collapses win counts that pay the same amount", () => {
+    // Arena Direct pays a box at six wins and two at seven; the six win counts
+    // below that pay none, and they land in one row rather than six.
+    const config = configFromPreset(ARENA_DIRECT, defaultConfig());
+    const res = simulate(config, 20_000, 9);
+    const boxes = res.currencies.playBoxes;
+    const exact = exactDistribution(matchWinRate(config), config.structure);
+
+    expect(boxes.buckets.map((b) => b.amount)).toEqual([0, 1, 2]);
+    expect(boxes.buckets[0].exactProbability).toBeCloseTo(
+      exact.slice(0, 6).reduce((a, b) => a + b, 0),
+      12,
+    );
+    expect(boxes.exactMean).toBeCloseTo(exact[6] + 2 * exact[7], 12);
+    expect(boxes.probAny).toBeCloseTo(exact[6] + exact[7], 2);
+  });
+
+  it("simulates what the closed form says", () => {
+    // One round at even odds, a box for winning it: half an expected box.
+    const config = {
+      ...defaultConfig(),
+      winRate: 0.5,
+      format: "bo1" as const,
+      structure: { kind: "rounds" as const, rounds: 1 },
+      payouts: [
+        { wins: 0, gems: 0, packs: 0 },
+        { wins: 1, gems: 0, packs: 0, playBoxes: 1 },
+      ],
+    };
+    const boxes = simulate(config, 20_000, 5).currencies.playBoxes;
+    expect(boxes.exactMean).toBeCloseTo(0.5, 12);
+    expect(boxes.mean).toBeCloseTo(0.5, 2);
+  });
+
+  it("gives an unpaid currency one bucket of nothing", () => {
+    const res = simulate(configFromPreset(PREMIER_DRAFT, defaultConfig()), 2000, 3);
+    const boxes = res.currencies.playBoxes;
+    expect(boxes.buckets).toHaveLength(1);
+    expect(boxes.buckets[0].amount).toBe(0);
+    expect(boxes.buckets[0].probability).toBeCloseTo(1, 12);
+    expect(boxes.mean).toBe(0);
+    expect(boxes.probAny).toBe(0);
+  });
+
+  it("accounts for every event, whatever the currency", () => {
+    const res = simulate(configFromPreset(SEALED, defaultConfig()), 5000, 2);
+    for (const key of CURRENCY_KEYS) {
+      const total = res.currencies[key].buckets.reduce((a, b) => a + b.probability, 0);
+      expect(total).toBeCloseTo(1, 12);
+    }
+  });
+
+  it("adds back up to the gross the gem-equivalent view shows", () => {
+    // The whole point of counting rewards separately is that nothing is lost
+    // in the folding, so the counts times their rates must return the gross.
+    const config = configFromPreset(ARENA_DIRECT, defaultConfig());
+    const res = simulate(config, 20_000, 11);
+    const fromGems = res.buckets.reduce(
+      (acc, b) => acc + b.probability * payoutFor(config, b.wins).gems,
+      0,
+    );
+    const fromCounts = CURRENCY_KEYS.reduce(
+      (acc, key) => acc + res.currencies[key].mean * currencyRate(config, key),
+      0,
+    );
+    const fromCards = config.draftPacks * config.draftPackValueGems;
+    expect(fromGems + fromCounts + fromCards).toBeCloseTo(res.meanGross, 6);
+  });
+
+  it("prices each currency off its own rate", () => {
+    const config = defaultConfig();
+    expect(currencyRate(config, "packs")).toBe(DEFAULT_PACK_VALUE_GEMS);
+    expect(currencyRate(config, "playInPoints")).toBe(DEFAULT_PLAY_IN_POINT_VALUE_GEMS);
+    expect(currencyRate(config, "playBoxes")).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(currencyRate(config, "collectorBoxes")).toBe(
+      DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+    );
+  });
+});
+
 describe("bankroll", () => {
   const roll = {
     startingGems: 10_000,
@@ -364,7 +458,45 @@ describe("bankroll", () => {
     const held = simulateBankrolls(config, roll, 400, 31);
     const spent = simulateBankrolls(config, { ...roll, spendWinnings: true }, 400, 31);
     expect(spent.meanEvents).toBeGreaterThan(held.meanEvents);
-    expect(held.meanPacks).toBeGreaterThan(0);
+    expect(held.currencies.packs.mean).toBeGreaterThan(0);
+    /*
+     * And the extra entries win extra packs, which is why the per-currency
+     * view refuses to report a count while winnings are being liquidated: the
+     * number is not what this event pays, it is what it pays plus what the
+     * entries it funded paid.
+     */
+    expect(spent.currencies.packs.mean).toBeGreaterThan(held.currencies.packs.mean);
+  });
+
+  it("counts every reward a run wins, not just packs", () => {
+    const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
+    const res = simulateBankrolls(config, roll, 300, 19);
+    expect(res.currencies.packs.mean).toBeGreaterThan(0);
+    expect(res.currencies.playInPoints.mean).toBeGreaterThan(0);
+    // Traditional Draft pays no physical product, so there is nothing to show.
+    expect(res.currencies.playBoxes.mean).toBe(0);
+    expect(res.currencies.playBoxes.probAny).toBe(0);
+  });
+
+  it("histograms every currency across every run", () => {
+    const res = simulateBankrolls(defaultConfig(), roll, 200, 13);
+    for (const key of CURRENCY_KEYS) {
+      const counted = res.currencies[key].histogram.reduce((a, h) => a + h.count, 0);
+      expect(counted).toBe(200);
+    }
+  });
+
+  it("reports a median beside the mean for a rare physical prize", () => {
+    // Two entries' worth of gems against a box that needs six wins from two
+    // losses: the middle run wins none, and the mean sits above every outcome
+    // the median run sees. Reporting one without the other would mislead.
+    const config = configFromPreset(ARENA_DIRECT, defaultConfig());
+    const res = simulateBankrolls(config, { ...roll, startingGems: 16_000 }, 400, 29);
+    const boxes = res.currencies.playBoxes;
+    expect(boxes.median).toBe(0);
+    expect(boxes.mean).toBeGreaterThan(0);
+    expect(boxes.probAny).toBeGreaterThan(0);
+    expect(boxes.probAny).toBeLessThan(0.5);
   });
 
   it("does not count banked winnings twice", () => {

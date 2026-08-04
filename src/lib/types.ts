@@ -9,6 +9,10 @@
  *    early exit (Traditional Draft).
  */
 
+// Type-only, and so erased: the currency table is built from these types in
+// currency.ts, and only SimResult refers back to it.
+import type { CurrencyKey, CurrencyOutcome } from "./currency";
+
 export type PayoutTier = {
   /** Number of match wins this tier pays out for. */
   wins: number;
@@ -113,12 +117,17 @@ export type WinBucket = {
 export type SimResult = {
   trials: number;
   buckets: WinBucket[];
+  /**
+   * The same outcomes counted in each reward rather than in gems, one entry
+   * per currency — including those this event never pays, which come back as
+   * a single bucket of zero.
+   */
+  currencies: Record<CurrencyKey, CurrencyOutcome>;
   /** Mean net gems per event (simulated). */
   meanNet: number;
   /** Mean net gems per event (closed form). */
   exactMeanNet: number;
   meanGross: number;
-  meanPacks: number;
   /** Mean rounds (matches) played per event. */
   meanRounds: number;
   /** Standard deviation of net gems across events. */

@@ -11,6 +11,7 @@
  * money and gold cannot, so gold is the cheaper currency to burn.
  */
 
+import { CURRENCY_KEYS, type CurrencyKey } from "./currency";
 import { goldPerEvent, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
@@ -44,7 +45,15 @@ export type BankrollResult = {
   eventPercentiles: { p5: number; p25: number; p50: number; p75: number; p95: number };
   /** Share of runs that hit `maxEvents` rather than running out of currency. */
   survivedFraction: number;
-  meanPacks: number;
+  /**
+   * What a run wins of each reward, counted rather than valued.
+   *
+   * Tallied whatever `spendWinnings` says, but only meaningful with it off:
+   * liquidating converts each reward to gems as it is won, so a run ends
+   * holding none of them, and the extra entries that buys change how many are
+   * won in the first place.
+   */
+  currencies: Record<CurrencyKey, CurrencyTotals>;
   /** Gems plus the gem value of everything won along the way. */
   meanFinalValue: number;
   /**
@@ -61,6 +70,34 @@ export type BankrollResult = {
 };
 
 export type Percentiles = { p5: number; p25: number; p50: number; p75: number; p95: number };
+
+/** How much of one currency a run ends up with, across runs. */
+export type CurrencyTotals = {
+  mean: number;
+  /**
+   * Worth reporting beside the mean for the same reason ending value is: one
+   * run in fifty winning a box pulls the mean off every outcome anyone sees.
+   */
+  median: number;
+  /** Share of runs winning any at all. */
+  probAny: number;
+  /** Run totals, one entry per distinct total, ascending. */
+  histogram: { amount: number; count: number }[];
+};
+
+/** Summarise one currency's run totals. Takes the sample already sorted. */
+function totalsOf(sorted: number[]): CurrencyTotals {
+  const counts = new Map<number, number>();
+  for (const v of sorted) counts.set(v, (counts.get(v) ?? 0) + 1);
+  return {
+    mean: sorted.length ? sorted.reduce((a, b) => a + b, 0) / sorted.length : 0,
+    median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0,
+    probAny: sorted.length ? sorted.filter((v) => v > 0).length / sorted.length : 0,
+    histogram: [...counts.entries()]
+      .map(([amount, count]) => ({ amount, count }))
+      .sort((a, b) => a.amount - b.amount),
+  };
+}
 
 /** Percentiles of an already-sorted sample. */
 function percentilesOf(sorted: number[]): Percentiles {
@@ -228,7 +265,12 @@ export function simulateBankrolls(
     survivedFraction: runs.length
       ? runs.filter((r) => r.survived).length / runs.length
       : 0,
-    meanPacks: mean((r) => r.packs),
+    currencies: Object.fromEntries(
+      CURRENCY_KEYS.map((key) => [
+        key,
+        totalsOf(runs.map((r) => r[key]).sort((a, b) => a - b)),
+      ]),
+    ) as Record<CurrencyKey, CurrencyTotals>,
     meanFinalValue: mean((r) => runValue(config, r)),
     medianFinalValue,
     histogram: [...counts.entries()]

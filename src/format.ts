@@ -35,6 +35,9 @@ export type Money = {
   fractional: boolean;
 };
 
+/** A 0..1 fraction as a percentage. Not a unit, so it never converts. */
+export const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
+
 const withSign = (n: number, body: string): string => (n < 0 ? `−${body}` : body);
 
 /**
