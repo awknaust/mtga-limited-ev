@@ -165,7 +165,7 @@ export type EventLog = {
   /** Position in the run, from one. */
   event: number;
   wins: number;
-  /** Rounds played: matches in best-of-three, games in best-of-one. */
+  /** Matches played, whether each was one game or up to three. */
   rounds: number;
   /** True when gold covered the entry, so no gems were spent on it. */
   paidWithGold: boolean;

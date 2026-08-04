@@ -21,7 +21,6 @@ export const TRADITIONAL_CUBE_DRAFT = {
   entryCostGems: 1500,
   entryCostGold: 10000,
   draftPacks: 0,
-  format: "bo3",
   structure: { kind: "rounds", rounds: 3 },
   payouts: [
     { wins: 0, gems: 0, packs: 1 },

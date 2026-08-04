@@ -23,7 +23,6 @@ export const PICK_TWO_DRAFT = {
   entryCostGems: 900,
   entryCostGold: 6000,
   draftPacks: 3,
-  format: "bo1",
   structure: { kind: "elimination", maxWins: 4, maxLosses: 2 },
   payouts: [
     { wins: 0, gems: 50, packs: 1 },

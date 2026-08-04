@@ -27,7 +27,6 @@ import {
   maxPossibleWins,
   resizePayouts,
   type EventConfig,
-  type EventFormat,
   type EventStructure,
   type PayoutTier,
 } from "./lib";
@@ -119,8 +118,7 @@ function baselineConfig(presetName: string): EventConfig {
 /**
  * Rounded to six places on the way out.
  *
- * Best-of-three win rates come off a bisection, so the stored per-game rate is
- * a full-precision double that would otherwise spell out seventeen digits. Six
+ * The win rate can carry many decimals once it has been dragged, and six
  * places is four more than any figure on screen resolves.
  */
 const num = (n: number): string =>
@@ -254,8 +252,6 @@ export function encodeShareState(state: ShareState): string {
     if (value !== base[field]) params.set(key, num(value));
   }
 
-  if (state.config.format !== base.format) params.set("format", state.config.format);
-
   if (!sameStructure(state.config.structure, base.structure)) {
     encodeStructure(params, state.config.structure);
   }
@@ -343,7 +339,6 @@ export function decodeShareState(search: string): ShareState {
     ...numbers,
     structure,
     payouts,
-    format: oneOf<EventFormat>(params, "format", ["bo1", "bo3"], base.format),
     goldPerGem: decodeGoldPerGem(params, base.goldPerGem),
   };
 

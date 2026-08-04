@@ -110,7 +110,6 @@ describe("round trips", () => {
       config: {
         ...defaultConfig(),
         winRate: 0.6125,
-        format: "bo3",
         structure: { kind: "rounds", rounds: 4 },
         entryCostGems: 1234,
         entryCostGold: 9000,

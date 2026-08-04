@@ -1,13 +1,13 @@
 import { line, scaleLinear } from "d3";
 
-import { bo3WinRate, expectedNetAt, type EventConfig } from "../lib";
+import { expectedNetAt, type EventConfig } from "../lib";
 import type { Money } from "../format";
 
 const WIDTH = 560;
 const HEIGHT = 262;
 const MARGIN = { top: 12, right: 16, bottom: 50, left: 74 };
 
-/** Per-game rates to sample. Wide enough to contain every preset's break-even. */
+/** Match win rates to sample. Wide enough to contain every preset's break-even. */
 const FROM = 0.3;
 const TO = 0.85;
 const STEPS = 120;
@@ -19,9 +19,8 @@ const STEPS = 120;
  * worth. The curve is the closed-form expectation, not the simulation, so it
  * is smooth and exact.
  *
- * Sampled on the per-game rate, since that is what `expectedNetAt` takes, but
- * plotted against whichever unit the event runs on so the axis matches the
- * slider.
+ * Sampled and plotted on the match win rate, which is the unit `expectedNetAt`
+ * takes and the one the slider sets, so the axis needs no conversion.
  */
 export function EvCurveChart({
   config,
@@ -34,15 +33,13 @@ export function EvCurveChart({
 }) {
   const inner = WIDTH - MARGIN.left - MARGIN.right;
   const innerH = HEIGHT - MARGIN.top - MARGIN.bottom;
-  const isBo3 = config.format === "bo3";
-  const toAxis = (gameRate: number) => (isBo3 ? bo3WinRate(gameRate) : gameRate);
 
   const points = Array.from({ length: STEPS + 1 }, (_, i) => {
-    const gameRate = FROM + ((TO - FROM) * i) / STEPS;
-    return { axis: toAxis(gameRate), net: expectedNetAt(config, gameRate) };
+    const rate = FROM + ((TO - FROM) * i) / STEPS;
+    return { axis: rate, net: expectedNetAt(config, rate) };
   });
 
-  const x = scaleLinear().domain([toAxis(FROM), toAxis(TO)]).range([0, inner]);
+  const x = scaleLinear().domain([FROM, TO]).range([0, inner]);
   const netExtent = [
     Math.min(...points.map((p) => p.net)),
     Math.max(...points.map((p) => p.net)),
@@ -56,9 +53,9 @@ export function EvCurveChart({
     .x((p) => x(p.axis))
     .y((p) => y(p.net))(points);
 
-  const current = toAxis(config.winRate);
+  const current = config.winRate;
   const currentNet = expectedNetAt(config, config.winRate);
-  const breakEvenAxis = breakEven === null ? null : toAxis(breakEven);
+  const breakEvenAxis = breakEven;
 
   return (
     <svg
@@ -117,7 +114,7 @@ export function EvCurveChart({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          {isBo3 ? "Match win rate" : "Game win rate"}
+          Match win rate
         </text>
         <text
           transform="rotate(-90)"

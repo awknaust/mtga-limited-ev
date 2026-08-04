@@ -18,7 +18,6 @@ export const TRADITIONAL_DRAFT = {
   entryCostGems: 1500,
   entryCostGold: 10000,
   draftPacks: 3,
-  format: "bo3",
   structure: { kind: "rounds", rounds: 3 },
   payouts: [
     { wins: 0, gems: 0, packs: 1 },

@@ -25,9 +25,6 @@ export type PayoutTier = {
   collectorBoxes?: number;
 };
 
-/** Whether one round is a single game or a best-of-three match. */
-export type EventFormat = "bo1" | "bo3";
-
 /** Play until a win or loss threshold is hit. */
 export type EliminationStructure = {
   kind: "elimination";
@@ -54,15 +51,13 @@ export type EventPreset = {
    * phantom events, where the cards are borrowed for the event only.
    */
   draftPacks?: number;
-  format: EventFormat;
   structure: EventStructure;
   payouts: PayoutTier[];
 };
 
 export type EventConfig = {
-  /** Per-game win probability, 0..1. Converted to a match rate for BO3. */
+  /** Probability of winning one match, 0..1. A round is a match in every event. */
   winRate: number;
-  format: EventFormat;
   structure: EventStructure;
   /** Entry cost in gems. */
   entryCostGems: number;

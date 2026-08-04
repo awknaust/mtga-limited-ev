@@ -2,7 +2,7 @@
 
 exports[`the captured corpus > pins everything arena direct — physical boxes in the ladder resolves to 1`] = `
 "preset     Arena Direct (Cube)
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / 0 gold
 draft      0 packs @ 23
@@ -17,7 +17,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything bankroll only resolves to 1`] = `
 "preset     Premier Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
@@ -32,7 +32,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything bare origin resolves to 1`] = `
 "preset     Premier Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
@@ -47,7 +47,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything custom elimination shape resolves to 1`] = `
 "preset     Custom
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":5,"maxLosses":2}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
@@ -62,7 +62,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything demo 2 — premier, gems only, no gold resolves to 1`] = `
 "preset     Premier Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 0
@@ -77,7 +77,7 @@ display    tab=event unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything demo 3 — quick, gems only, no gold resolves to 1`] = `
 "preset     Quick Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      750 gems / 5000 gold
 draft      3 packs @ 0
@@ -92,7 +92,7 @@ display    tab=event unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything demo 4 — premier at the post's card values resolves to 1`] = `
 "preset     Premier Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 110
@@ -107,7 +107,7 @@ display    tab=event unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything demo 5 — full custom worst case resolves to 1`] = `
 "preset     Custom
-winRate    0.6125 (bo3)
+winRate    0.6125
 structure  {"kind":"rounds","rounds":5}
 entry      1234 gems / 9000 gold
 draft      4 packs @ 110
@@ -122,7 +122,7 @@ display    tab=event unit=usd gemsPerUsd=350"
 
 exports[`the captured corpus > pins everything display only resolves to 1`] = `
 "preset     Premier Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
@@ -137,7 +137,7 @@ display    tab=about unit=usd gemsPerUsd=350"
 
 exports[`the captured corpus > pins everything one slider moved resolves to 1`] = `
 "preset     Premier Draft
-winRate    0.62 (bo1)
+winRate    0.62
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
@@ -152,7 +152,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything preset switch only resolves to 1`] = `
 "preset     Quick Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      750 gems / 5000 gold
 draft      3 packs @ 23
@@ -167,13 +167,13 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything traditional draft — bo3, fixed rounds, play-in points resolves to 1`] = `
 "preset     Traditional Draft
-winRate    0.55 (bo3)
+winRate    0.55
 structure  {"kind":"rounds","rounds":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
 values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       other=600/day over 1 events, goldPerGem=6.6667
-charges    1361.6 gems (922.4 gold/event)
+charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-6-2
 bankroll   gems=3000 gold=0 maxEvents=20 spend=false
 sim        trials=100000 runs=10000 seed=1
@@ -182,7 +182,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the captured corpus > pins everything unspent gold counted as worthless resolves to 1`] = `
 "preset     Premier Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
@@ -197,7 +197,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=arena-direct-collector resolves to 1`] = `
 "preset     Arena Direct (Collector)
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / 0 gold
 draft      6 packs @ 23
@@ -212,7 +212,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=arena-direct-cube resolves to 1`] = `
 "preset     Arena Direct (Cube)
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / 0 gold
 draft      0 packs @ 23
@@ -227,7 +227,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=arena-direct-play resolves to 1`] = `
 "preset     Arena Direct (Play)
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / 0 gold
 draft      6 packs @ 23
@@ -242,7 +242,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=contender-draft resolves to 1`] = `
 "preset     Contender Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      3000 gems / 20000 gold
 draft      3 packs @ 23
@@ -257,7 +257,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=pick-two-draft resolves to 1`] = `
 "preset     Pick Two Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":4,"maxLosses":2}
 entry      900 gems / 6000 gold
 draft      3 packs @ 23
@@ -272,7 +272,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=premier-cube-draft resolves to 1`] = `
 "preset     Premier Cube Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      0 packs @ 23
@@ -287,7 +287,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=premier-draft resolves to 1`] = `
 "preset     Premier Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
@@ -302,7 +302,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=quick-draft resolves to 1`] = `
 "preset     Quick Draft
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      750 gems / 5000 gold
 draft      3 packs @ 23
@@ -317,7 +317,7 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=sealed resolves to 1`] = `
 "preset     Sealed
-winRate    0.55 (bo1)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      2000 gems / 0 gold
 draft      6 packs @ 23
@@ -332,13 +332,13 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=traditional-cube-draft resolves to 1`] = `
 "preset     Traditional Cube Draft
-winRate    0.55 (bo3)
+winRate    0.55
 structure  {"kind":"rounds","rounds":3}
 entry      1500 gems / 10000 gold
 draft      0 packs @ 23
 values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       other=600/day over 1 events, goldPerGem=6.6667
-charges    1361.6 gems (922.4 gold/event)
+charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-5
 bankroll   gems=3000 gold=0 maxEvents=20 spend=false
 sim        trials=100000 runs=10000 seed=1
@@ -347,13 +347,13 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=traditional-draft resolves to 1`] = `
 "preset     Traditional Draft
-winRate    0.55 (bo3)
+winRate    0.55
 structure  {"kind":"rounds","rounds":3}
 entry      1500 gems / 10000 gold
 draft      3 packs @ 23
 values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       other=600/day over 1 events, goldPerGem=6.6667
-charges    1361.6 gems (922.4 gold/event)
+charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-6-2
 bankroll   gems=3000 gold=0 maxEvents=20 spend=false
 sim        trials=100000 runs=10000 seed=1
@@ -362,13 +362,13 @@ display    tab=bankroll unit=gems gemsPerUsd=400"
 
 exports[`the preset definitions are the contract > pins what ?preset=traditional-sealed resolves to 1`] = `
 "preset     Traditional Sealed
-winRate    0.55 (bo3)
+winRate    0.55
 structure  {"kind":"elimination","maxWins":4,"maxLosses":2}
 entry      2000 gems / 0 gold
 draft      6 packs @ 23
 values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       other=600/day over 1 events, goldPerGem=6.6667
-charges    2000.0 gems (965.7 gold/event)
+charges    2000.0 gems (951.9 gold/event)
 payouts    200-1_500-2_1200-3_1800-4_2200-5
 bankroll   gems=3000 gold=0 maxEvents=20 spend=false
 sim        trials=100000 runs=10000 seed=1

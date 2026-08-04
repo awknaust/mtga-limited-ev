@@ -20,8 +20,6 @@ import {
   SEALED,
   TRADITIONAL_CUBE_DRAFT,
   TRADITIONAL_DRAFT,
-  bo3WinRate,
-  gameWinRateForMatchRate,
   breakEvenWinRate,
   configFromPreset,
   defaultConfig,
@@ -101,59 +99,6 @@ describe("exactDistribution — fixed rounds", () => {
     for (const p of [0.4, 0.6]) {
       for (const mass of exactDistribution(p, rounds)) expect(mass).toBeGreaterThan(0);
     }
-  });
-});
-
-describe("bo3WinRate", () => {
-  it("keeps the fixed points 0, 0.5 and 1", () => {
-    expect(bo3WinRate(0)).toBeCloseTo(0, 12);
-    expect(bo3WinRate(0.5)).toBeCloseTo(0.5, 12);
-    expect(bo3WinRate(1)).toBeCloseTo(1, 12);
-  });
-
-  it("amplifies an edge — the better deck wins more often over three games", () => {
-    expect(bo3WinRate(0.55)).toBeCloseTo(0.57475, 10);
-    expect(bo3WinRate(0.6)).toBeGreaterThan(0.6);
-    expect(bo3WinRate(0.4)).toBeLessThan(0.4);
-  });
-
-  it("equals P(2-0) + P(2-1)", () => {
-    const p = 0.62;
-    const straight = p * p;
-    const comeback = 2 * p * p * (1 - p);
-    expect(bo3WinRate(p)).toBeCloseTo(straight + comeback, 12);
-  });
-
-  it("inverts back to the game rate", () => {
-    for (const p of [0, 0.12, 0.4, 0.5, 0.55, 0.83, 1]) {
-      expect(gameWinRateForMatchRate(bo3WinRate(p))).toBeCloseTo(p, 9);
-    }
-  });
-
-  it("inverting a match rate reproduces it", () => {
-    // The direction the match slider actually drives.
-    for (const m of [0.05, 0.3, 0.5, 0.6, 0.95]) {
-      expect(bo3WinRate(gameWinRateForMatchRate(m))).toBeCloseTo(m, 9);
-    }
-  });
-
-  it("keeps the endpoints exact", () => {
-    expect(gameWinRateForMatchRate(0)).toBe(0);
-    expect(gameWinRateForMatchRate(1)).toBe(1);
-    expect(gameWinRateForMatchRate(0.5)).toBeCloseTo(0.5, 9);
-  });
-
-  it("needs a lower game rate than the match rate it produces", () => {
-    // Above 50% the format amplifies, so reaching a 60% match rate takes less
-    // than 60% of games.
-    expect(gameWinRateForMatchRate(0.6)).toBeLessThan(0.6);
-    expect(gameWinRateForMatchRate(0.4)).toBeGreaterThan(0.4);
-  });
-
-  it("is applied only for bo3 configs", () => {
-    const bo1 = { ...defaultConfig(), winRate: 0.55, format: "bo1" as const };
-    expect(matchWinRate(bo1)).toBeCloseTo(0.55, 12);
-    expect(matchWinRate({ ...bo1, format: "bo3" })).toBeCloseTo(0.57475, 10);
   });
 });
 
@@ -893,7 +838,6 @@ describe("presets", () => {
   });
 
   it("models Traditional Draft as three BO3 rounds", () => {
-    expect(TRADITIONAL_DRAFT.format).toBe("bo3");
     expect(TRADITIONAL_DRAFT.structure).toEqual({ kind: "rounds", rounds: 3 });
     expect(TRADITIONAL_DRAFT.entryCostGems).toBe(1500);
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
@@ -984,7 +928,6 @@ describe("presets", () => {
   });
 
   it("models Sealed as BO1 to 7 wins or 3 losses", () => {
-    expect(SEALED.format).toBe("bo1");
     expect(SEALED.structure).toEqual({
       kind: "elimination",
       maxWins: 7,
@@ -1003,7 +946,7 @@ describe("presets", () => {
     const structure: EventStructure = { kind: "elimination", maxWins: 4, maxLosses: 2 };
     const config = { ...defaultConfig(), format: "bo3" as const, structure };
     const pMatch = matchWinRate({ ...config, winRate: 0.55 });
-    expect(pMatch).toBeCloseTo(bo3WinRate(0.55), 12);
+    expect(pMatch).toBeCloseTo(0.55, 12);
     const d = exactDistribution(pMatch, structure);
     expect(d).toHaveLength(5);
     expect(d.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
@@ -1013,7 +956,6 @@ describe("presets", () => {
   });
 
   it("models Pick Two Draft as 4 wins or 2 losses", () => {
-    expect(PICK_TWO_DRAFT.format).toBe("bo1");
     expect(PICK_TWO_DRAFT.structure).toEqual({
       kind: "elimination",
       maxWins: 4,

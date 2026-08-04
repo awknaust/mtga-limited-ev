@@ -8,7 +8,7 @@ import type { EventStructure } from "./types";
 /**
  * Exact probability of finishing with each win count, index 0..maxPossibleWins.
  *
- * `p` is the per-round (match) win rate, not the per-game rate.
+ * `p` is the per-round win rate, and a round is a match.
  *
  * Both shapes are standard distributions rather than anything bespoke:
  *

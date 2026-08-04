@@ -32,7 +32,6 @@ export const CONTENDER_DRAFT = {
   entryCostGems: 3000,
   entryCostGold: 20000,
   draftPacks: 3,
-  format: "bo1",
   structure: { kind: "elimination", maxWins: 7, maxLosses: 3 },
   payouts: [
     { wins: 0, gems: 0, packs: 0 },
