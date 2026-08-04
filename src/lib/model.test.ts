@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   ARENA_DIRECT,
   CONTENDER_DRAFT,
-  CURRENCY_KEYS,
   PREMIER_CUBE_DRAFT,
   DEFAULT_GOLD_PER_DAY,
   DEFAULT_EVENTS_PER_DAY,
@@ -24,7 +23,6 @@ import {
   gameWinRateForMatchRate,
   breakEvenWinRate,
   configFromPreset,
-  currencyRate,
   defaultConfig,
   exactDistribution,
   expectedNetAt,
@@ -35,8 +33,10 @@ import {
   matchWinRate,
   maxPossibleWins,
   maxRounds,
-  paidCurrencies,
-  payoutFor,
+  HOLDING_KEYS,
+  heldKeys,
+  holdingRate,
+  paidRewards,
   playInPointsFor,
   resizePayouts,
   simulate,
@@ -311,93 +311,46 @@ describe("drafted cards", () => {
   });
 });
 
-describe("reward currencies", () => {
+describe("holdings", () => {
   it("lists what a ladder pays, and only that", () => {
-    expect(paidCurrencies(PREMIER_DRAFT.payouts)).toEqual(["packs"]);
-    expect(paidCurrencies(TRADITIONAL_DRAFT.payouts)).toEqual(["packs", "playInPoints"]);
-    expect(paidCurrencies(ARENA_DIRECT.payouts)).toEqual(["packs", "playBoxes"]);
-    // Zeroing the tiers retires the currency, whatever the conversion rate is.
+    expect(paidRewards(PREMIER_DRAFT.payouts)).toEqual(["packs"]);
+    expect(paidRewards(TRADITIONAL_DRAFT.payouts)).toEqual(["packs", "playInPoints"]);
+    expect(paidRewards(ARENA_DIRECT.payouts)).toEqual(["packs", "playBoxes"]);
+    // Zeroing the tiers retires the reward, whatever the conversion rate is.
     const gemsOnly = PREMIER_DRAFT.payouts.map((t) => ({ ...t, packs: 0 }));
-    expect(paidCurrencies(gemsOnly)).toEqual([]);
+    expect(paidRewards(gemsOnly)).toEqual([]);
   });
 
-  it("collapses win counts that pay the same amount", () => {
-    // Arena Direct pays a box at six wins and two at seven; the six win counts
-    // below that pay none, and they land in one row rather than six.
-    const config = configFromPreset(ARENA_DIRECT, defaultConfig());
-    const res = simulate(config, 20_000, 9);
-    const boxes = res.currencies.playBoxes;
-    const exact = exactDistribution(matchWinRate(config), config.structure);
+  it("shows the balances alongside whatever the event pays", () => {
+    const premier = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    // Gems always, gold because it accrues daily whatever the event charges,
+    // and drafted cards because the pool is yours to keep.
+    expect(heldKeys(premier)).toEqual(["gems", "gold", "packs", "draftPacks"]);
 
-    expect(boxes.buckets.map((b) => b.amount)).toEqual([0, 1, 2]);
-    expect(boxes.buckets[0].exactProbability).toBeCloseTo(
-      exact.slice(0, 6).reduce((a, b) => a + b, 0),
-      12,
-    );
-    expect(boxes.exactMean).toBeCloseTo(exact[6] + 2 * exact[7], 12);
-    expect(boxes.probAny).toBeCloseTo(exact[6] + exact[7], 2);
+    // Arena Direct is phantom and gem-priced, but gold still piles up.
+    const direct = configFromPreset(ARENA_DIRECT, defaultConfig());
+    expect(heldKeys(direct)).toEqual(["gems", "gold", "packs", "playBoxes"]);
+
+    // No gold earned and none charged: nothing to report, unless a starting
+    // balance the event cannot spend is sitting there.
+    const noGold = { ...direct, goldPerDay: 0 };
+    expect(heldKeys(noGold)).toEqual(["gems", "packs", "playBoxes"]);
+    expect(heldKeys(noGold, true)).toContain("gold");
   });
 
-  it("simulates what the closed form says", () => {
-    // One round at even odds, a box for winning it: half an expected box.
-    const config = {
-      ...defaultConfig(),
-      winRate: 0.5,
-      format: "bo1" as const,
-      structure: { kind: "rounds" as const, rounds: 1 },
-      payouts: [
-        { wins: 0, gems: 0, packs: 0 },
-        { wins: 1, gems: 0, packs: 0, playBoxes: 1 },
-      ],
-    };
-    const boxes = simulate(config, 20_000, 5).currencies.playBoxes;
-    expect(boxes.exactMean).toBeCloseTo(0.5, 12);
-    expect(boxes.mean).toBeCloseTo(0.5, 2);
-  });
-
-  it("gives an unpaid currency one bucket of nothing", () => {
-    const res = simulate(configFromPreset(PREMIER_DRAFT, defaultConfig()), 2000, 3);
-    const boxes = res.currencies.playBoxes;
-    expect(boxes.buckets).toHaveLength(1);
-    expect(boxes.buckets[0].amount).toBe(0);
-    expect(boxes.buckets[0].probability).toBeCloseTo(1, 12);
-    expect(boxes.mean).toBe(0);
-    expect(boxes.probAny).toBe(0);
-  });
-
-  it("accounts for every event, whatever the currency", () => {
-    const res = simulate(configFromPreset(SEALED, defaultConfig()), 5000, 2);
-    for (const key of CURRENCY_KEYS) {
-      const total = res.currencies[key].buckets.reduce((a, b) => a + b.probability, 0);
-      expect(total).toBeCloseTo(1, 12);
-    }
-  });
-
-  it("adds back up to the gross the gem-equivalent view shows", () => {
-    // The whole point of counting rewards separately is that nothing is lost
-    // in the folding, so the counts times their rates must return the gross.
-    const config = configFromPreset(ARENA_DIRECT, defaultConfig());
-    const res = simulate(config, 20_000, 11);
-    const fromGems = res.buckets.reduce(
-      (acc, b) => acc + b.probability * payoutFor(config, b.wins).gems,
-      0,
-    );
-    const fromCounts = CURRENCY_KEYS.reduce(
-      (acc, key) => acc + res.currencies[key].mean * currencyRate(config, key),
-      0,
-    );
-    const fromCards = config.draftPacks * config.draftPackValueGems;
-    expect(fromGems + fromCounts + fromCards).toBeCloseTo(res.meanGross, 6);
-  });
-
-  it("prices each currency off its own rate", () => {
+  it("prices each holding off its own rate", () => {
     const config = defaultConfig();
-    expect(currencyRate(config, "packs")).toBe(DEFAULT_PACK_VALUE_GEMS);
-    expect(currencyRate(config, "playInPoints")).toBe(DEFAULT_PLAY_IN_POINT_VALUE_GEMS);
-    expect(currencyRate(config, "playBoxes")).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
-    expect(currencyRate(config, "collectorBoxes")).toBe(
-      DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
-    );
+    // Gems are the unit, so they are worth themselves.
+    expect(holdingRate(config, "gems")).toBe(1);
+    expect(holdingRate(config, "gold")).toBeCloseTo(1 / GOLD_PER_GEM, 12);
+    expect(holdingRate(config, "packs")).toBe(DEFAULT_PACK_VALUE_GEMS);
+    expect(holdingRate(config, "playInPoints")).toBe(DEFAULT_PLAY_IN_POINT_VALUE_GEMS);
+    expect(holdingRate(config, "playBoxes")).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(holdingRate(config, "collectorBoxes")).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
+    expect(holdingRate(config, "draftPacks")).toBe(DEFAULT_DRAFT_PACK_VALUE_GEMS);
+    // Gold valued at nothing drops out rather than blowing up, the same way
+    // runValue treats it.
+    expect(holdingRate({ ...config, goldPerGem: Infinity }, "gold")).toBe(0);
   });
 });
 
@@ -458,30 +411,74 @@ describe("bankroll", () => {
     const held = simulateBankrolls(config, roll, 400, 31);
     const spent = simulateBankrolls(config, { ...roll, spendWinnings: true }, 400, 31);
     expect(spent.meanEvents).toBeGreaterThan(held.meanEvents);
-    expect(held.currencies.packs.mean).toBeGreaterThan(0);
+    expect(held.holdings.packs.mean).toBeGreaterThan(0);
     /*
-     * And the extra entries win extra packs, which is why the per-currency
-     * view refuses to report a count while winnings are being liquidated: the
-     * number is not what this event pays, it is what it pays plus what the
-     * entries it funded paid.
+     * And the extra entries win extra packs, which is half of why the
+     * breakdown refuses to itemise a liquidated run: the count is not what
+     * this event pays, it is that plus what the entries it funded paid. The
+     * other half is that their value already sits in the gem balance.
      */
-    expect(spent.currencies.packs.mean).toBeGreaterThan(held.currencies.packs.mean);
+    expect(spent.holdings.packs.mean).toBeGreaterThan(held.holdings.packs.mean);
+  });
+
+  it("breaks the ending total into what it is made of", () => {
+    /*
+     * The claim the breakdown rests on: itemising loses nothing. Every
+     * holding valued at its own rate and added up is the gem-equivalent
+     * figure shown beside it, to the last gem.
+     */
+    for (const preset of [PREMIER_DRAFT, TRADITIONAL_DRAFT, ARENA_DIRECT, SEALED]) {
+      const config = configFromPreset(preset, defaultConfig());
+      const res = simulateBankrolls(config, { ...roll, startingGems: 20_000 }, 200, 23);
+      const summed = HOLDING_KEYS.reduce(
+        (acc, key) => acc + res.holdings[key].mean * holdingRate(config, key),
+        0,
+      );
+      expect(summed).toBeCloseTo(res.meanFinalValue, 6);
+    }
+  });
+
+  it("holds gems and gold as balances, not as counts", () => {
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const res = simulateBankrolls(config, roll, 300, 19);
+    // Gold accrues every event and buys entries at 10,000 a time, so a run
+    // ends holding some of both.
+    expect(res.holdings.gems.mean).toBeGreaterThan(0);
+    expect(res.holdings.gold.mean).toBeGreaterThan(0);
+    // A balance is binned rather than tallied, so its bars need not be whole.
+    expect(res.holdings.gems.histogram.length).toBeGreaterThan(1);
+    expect(res.holdings.gems.min).toBeLessThanOrEqual(res.holdings.gems.median);
+    expect(res.holdings.gems.median).toBeLessThanOrEqual(res.holdings.gems.max);
   });
 
   it("counts every reward a run wins, not just packs", () => {
     const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
     const res = simulateBankrolls(config, roll, 300, 19);
-    expect(res.currencies.packs.mean).toBeGreaterThan(0);
-    expect(res.currencies.playInPoints.mean).toBeGreaterThan(0);
+    expect(res.holdings.packs.mean).toBeGreaterThan(0);
+    expect(res.holdings.playInPoints.mean).toBeGreaterThan(0);
+    expect(res.holdings.draftPacks.mean).toBeGreaterThan(0);
     // Traditional Draft pays no physical product, so there is nothing to show.
-    expect(res.currencies.playBoxes.mean).toBe(0);
-    expect(res.currencies.playBoxes.probAny).toBe(0);
+    expect(res.holdings.playBoxes.mean).toBe(0);
+    expect(res.holdings.playBoxes.probAny).toBe(0);
   });
 
-  it("histograms every currency across every run", () => {
+  it("bins whole things on whole boundaries", () => {
+    const config = configFromPreset(ARENA_DIRECT, defaultConfig());
+    const res = simulateBankrolls(config, { ...roll, startingGems: 60_000 }, 300, 29);
+    const boxes = res.holdings.playBoxes;
+    // Nobody wins half a box, so no bar may start or end at one.
+    for (const bin of boxes.histogram) {
+      expect(Number.isInteger(bin.from)).toBe(true);
+      expect(Number.isInteger(bin.to)).toBe(true);
+    }
+    expect(boxes.histogram[0].from).toBe(boxes.min);
+    expect(boxes.histogram.at(-1)!.to).toBeGreaterThan(boxes.max);
+  });
+
+  it("histograms every holding across every run", () => {
     const res = simulateBankrolls(defaultConfig(), roll, 200, 13);
-    for (const key of CURRENCY_KEYS) {
-      const counted = res.currencies[key].histogram.reduce((a, h) => a + h.count, 0);
+    for (const key of HOLDING_KEYS) {
+      const counted = res.holdings[key].histogram.reduce((a, h) => a + h.count, 0);
       expect(counted).toBe(200);
     }
   });
@@ -492,7 +489,7 @@ describe("bankroll", () => {
     // the median run sees. Reporting one without the other would mislead.
     const config = configFromPreset(ARENA_DIRECT, defaultConfig());
     const res = simulateBankrolls(config, { ...roll, startingGems: 16_000 }, 400, 29);
-    const boxes = res.currencies.playBoxes;
+    const boxes = res.holdings.playBoxes;
     expect(boxes.median).toBe(0);
     expect(boxes.mean).toBeGreaterThan(0);
     expect(boxes.probAny).toBeGreaterThan(0);

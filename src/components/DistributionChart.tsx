@@ -1,48 +1,27 @@
 import { scaleBand, scaleLinear } from "d3";
 
+import type { WinBucket } from "../lib";
+
 const WIDTH = 560;
 const ROW = 26;
 const MARGIN = { top: 8, right: 56, bottom: 46, left: 48 };
 
-export type DistributionRow = {
-  /** Whatever the outcome is counted in — wins, packs, boxes. */
-  value: number;
-  probability: number;
-  exactProbability: number;
-};
-
 /**
- * A discrete outcome distribution as horizontal bars, one per possible value,
- * with a tick marking the closed-form probability against the simulated bar.
- *
- * Used for win counts and for the reward each of them pays, which is the same
- * chart twice: the rewards are a function of the win count, so their
- * distribution is the win distribution regrouped, closed form and all.
+ * Outcome distribution as horizontal bars, one per win count, with a tick
+ * marking the closed-form probability against the simulated bar.
  *
  * D3 supplies the scales and ticks; React renders the SVG. Keeping the DOM
  * under React avoids the two libraries both trying to own these nodes.
  */
-export function DistributionChart({
-  rows,
-  axisLabel,
-  rowLabel = (v) => String(v),
-  ariaLabel,
-}: {
-  rows: DistributionRow[];
-  /** Names what the rows are counted in, down the left-hand side. */
-  axisLabel: string;
-  /** How one row's value reads as a tick — "3W" for a win count, say. */
-  rowLabel?: (value: number) => string;
-  ariaLabel: string;
-}) {
-  const height = MARGIN.top + rows.length * ROW + MARGIN.bottom;
+export function DistributionChart({ buckets }: { buckets: WinBucket[] }) {
+  const height = MARGIN.top + buckets.length * ROW + MARGIN.bottom;
   const inner = WIDTH - MARGIN.left - MARGIN.right;
 
-  const maxP = Math.max(...rows.map((r) => Math.max(r.probability, r.exactProbability)));
+  const maxP = Math.max(...buckets.map((b) => Math.max(b.probability, b.exactProbability)));
   const x = scaleLinear().domain([0, maxP || 1]).nice().range([0, inner]);
   const y = scaleBand<number>()
-    .domain(rows.map((r) => r.value))
-    .range([0, rows.length * ROW])
+    .domain(buckets.map((b) => b.wins))
+    .range([0, buckets.length * ROW])
     .padding(0.22);
 
   return (
@@ -50,26 +29,26 @@ export function DistributionChart({
       viewBox={`0 0 ${WIDTH} ${height}`}
       className="chart-svg"
       role="img"
-      aria-label={ariaLabel}
+      aria-label="Distribution of outcomes by win count"
     >
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
         {x.ticks(8).map((t) => (
           <g key={t} transform={`translate(${x(t)},0)`}>
             <line
               y1={0}
-              y2={rows.length * ROW}
+              y2={buckets.length * ROW}
               className="chart-gridline"
             />
-            <text y={rows.length * ROW + 16} className="chart-tick" textAnchor="middle">
+            <text y={buckets.length * ROW + 16} className="chart-tick" textAnchor="middle">
               {`${Math.round(t * 100)}%`}
             </text>
           </g>
         ))}
 
-        {rows.map((r) => {
-          const yPos = y(r.value) ?? 0;
+        {buckets.map((b) => {
+          const yPos = y(b.wins) ?? 0;
           return (
-            <g key={r.value}>
+            <g key={b.wins}>
               <text
                 x={-8}
                 y={yPos + y.bandwidth() / 2}
@@ -77,25 +56,25 @@ export function DistributionChart({
                 textAnchor="end"
                 className="chart-tick"
               >
-                {rowLabel(r.value)}
+                {b.wins}W
               </text>
               <rect
                 x={0}
                 y={yPos}
-                width={Math.max(0, x(r.probability))}
+                width={Math.max(0, x(b.probability))}
                 height={y.bandwidth()}
                 rx={3}
                 className="chart-bar"
               />
               {/* Closed-form probability, as a check on the simulated bar. */}
               <line
-                x1={x(r.exactProbability)}
-                x2={x(r.exactProbability)}
+                x1={x(b.exactProbability)}
+                x2={x(b.exactProbability)}
                 y1={yPos - 2}
                 y2={yPos + y.bandwidth() + 2}
                 className="chart-exact-tick"
               >
-                <title>{`exact: ${(r.exactProbability * 100).toFixed(2)}%`}</title>
+                <title>{`exact: ${(b.exactProbability * 100).toFixed(2)}%`}</title>
               </line>
               <text
                 x={inner + 8}
@@ -103,14 +82,14 @@ export function DistributionChart({
                 dominantBaseline="middle"
                 className="chart-value"
               >
-                {`${(r.probability * 100).toFixed(2)}%`}
+                {`${(b.probability * 100).toFixed(2)}%`}
               </text>
             </g>
           );
         })}
         <text
           x={inner / 2}
-          y={rows.length * ROW + 38}
+          y={buckets.length * ROW + 38}
           textAnchor="middle"
           className="chart-axis-label"
         >
@@ -118,12 +97,12 @@ export function DistributionChart({
         </text>
         <text
           transform="rotate(-90)"
-          x={-(rows.length * ROW) / 2}
+          x={-(buckets.length * ROW) / 2}
           y={-MARGIN.left + 14}
           textAnchor="middle"
           className="chart-axis-label"
         >
-          {axisLabel}
+          Wins
         </text>
       </g>
     </svg>

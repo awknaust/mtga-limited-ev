@@ -141,6 +141,15 @@ body {
   fill: var(--bs-primary);
 }
 
+/*
+ * Card-sized chart. Fixed height rather than an aspect ratio: these sit in a
+ * grid of cards that must line up, and the bars stretch to whatever width the
+ * column gives them.
+ */
+.mini-chart {
+  height: 44px;
+}
+
 /* Where the closed-form probability falls, against the simulated bar. */
 .chart-exact-tick {
   stroke: #fbbf24;

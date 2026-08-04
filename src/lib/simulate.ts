@@ -1,6 +1,5 @@
 /** Monte Carlo simulation and the expected-value figures derived from it. */
 
-import { currencyOutcomes } from "./currency";
 import { exactDistribution } from "./distribution";
 import { goldPerEvent, grossValue, netValue, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
@@ -116,14 +115,15 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
   );
 
   const meanGross = buckets.reduce((acc, b) => acc + b.probability * b.grossGems, 0);
+  const meanPacks = buckets.reduce((acc, b) => acc + b.probability * b.packs, 0);
 
   return {
     trials,
     buckets,
-    currencies: currencyOutcomes(buckets),
     meanNet,
     exactMeanNet,
     meanGross,
+    meanPacks,
     meanRounds: trials > 0 ? totalRounds / trials : 0,
     stdDevNet,
     stdErrNet: trials > 0 ? stdDevNet / Math.sqrt(trials) : 0,
