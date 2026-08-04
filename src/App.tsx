@@ -90,6 +90,7 @@ function AddonInput({
   fractional,
   value,
   onChange,
+  compact,
 }: {
   addon: React.ReactNode;
   id?: string;
@@ -97,11 +98,13 @@ function AddonInput({
   fractional?: boolean;
   value: number;
   onChange: (n: number) => void;
+  /** Narrower marker and field, for the payout table's cramped columns. */
+  compact?: boolean;
 }) {
   return (
     // The marker names the currency at the point of entry, so a field cannot
     // be misread as the other one while the toggle is out of view.
-    <div className="input-group">
+    <div className={`input-group${compact ? " input-group-sm input-group-compact" : ""}`}>
       <span className="input-group-text">{addon}</span>
       <NumberInput
         id={id}
@@ -110,6 +113,7 @@ function AddonInput({
         fractional={fractional}
         value={value}
         onChange={onChange}
+        className={`form-control${compact ? " form-control-sm text-end" : ""}`}
       />
     </div>
   );
@@ -123,6 +127,8 @@ function GemInput(props: {
   id?: string;
   value: number;
   onChange: (n: number) => void;
+  disabled?: boolean;
+  compact?: boolean;
 }) {
   return <AddonInput addon={<i className="bi bi-gem" aria-hidden="true" />} {...props} />;
 }
@@ -742,10 +748,9 @@ export default function App() {
                     <tr key={t.wins}>
                       <td className="fw-semibold text-primary">{t.wins}</td>
                       <td>
-                        <NumberInput
-                          className="form-control form-control-sm text-end"
+                        <GemInput
+                          compact
                           disabled={locked}
-                          min={0}
                           value={t.gems}
                           onChange={(n) => setTier(t.wins, { gems: n })}
                         />

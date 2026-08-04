@@ -41,6 +41,13 @@ body {
   background-color: var(--app-raised);
 }
 
+/* Table cells have no room for the full-width marker. */
+.input-group-compact .input-group-text {
+  min-width: 0;
+  padding-inline: 0.35rem;
+  font-size: 0.7rem;
+}
+
 /* Currency addon: a marker, not a control — keep it quieter than the field. */
 .input-group-text {
   background-color: var(--bs-body-bg);
