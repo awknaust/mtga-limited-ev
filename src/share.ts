@@ -88,7 +88,7 @@ export function defaultShareState(): ShareState {
     spendWinnings: false,
     tab: "bankroll",
     unit: "gems",
-    gemsPerUsd: 400,
+    gemsPerUsd: 200,
   };
 }
 

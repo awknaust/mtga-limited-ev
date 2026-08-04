@@ -1142,14 +1142,23 @@ describe("presets", () => {
     expect(grossValue(worthless, 7)).toBe(0);
   });
 
-  it("converts physical prizes at 400 gems to the dollar", () => {
-    expect(GEMS_PER_USD).toBe(400);
-    // 20,000 gems for $49.99 is the largest bundle, so the most generous rate.
+  it("converts physical prizes at 200 gems to the dollar", () => {
+    expect(GEMS_PER_USD).toBe(200);
+    // 20,000 gems for $99.99 is the largest bundle, so the most generous rate.
     // Averaged over Marvel Super Heroes, Edge of Eternities and Aetherdrift.
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(Math.round(((147 + 187 + 130) / 3) * 400));
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(Math.round(((147 + 187 + 130) / 3) * 200));
     expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(
-      Math.round(((599 + 914 + 378) / 3) * 400),
+      Math.round(((599 + 914 + 378) / 3) * 200),
     );
+    /*
+     * Pinned outright as well, because the two lines above re-derive the value
+     * exactly as the source does and so agree with it whatever the rate says.
+     * That is why this test passed throughout the period GEMS_PER_USD was 400
+     * — double every other bundle on the ladder — and it is the hole these two
+     * literals close.
+     */
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(30_933);
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(126_067);
   });
 
   it("models Contender Draft as paying nothing below three wins", () => {

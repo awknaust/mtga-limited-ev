@@ -120,11 +120,18 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 /**
  * Gems per US dollar, for pricing physical prizes.
  *
- * From the largest gem bundle: 20,000 gems for $49.99, so 400 gems a dollar.
- * Smaller bundles are worse, which makes this the most generous conversion and
- * therefore the most conservative way to value a physical prize in gems.
+ * From the largest gem bundle: 20,000 gems for $99.99, so 200 gems a dollar.
+ * Smaller bundles are worse — 7,000 for $39.99 is 175 a dollar, 3,400 for
+ * $19.99 is 170, 750 for $4.99 is 150 — which makes this the most generous
+ * conversion and therefore the most conservative way to value a physical prize
+ * in gems.
+ *
+ * The rest of the ladder is written out because this constant was wrong once,
+ * at 400 from a misremembered $49.99, and nothing flagged it: a rate double
+ * every other bundle's should not have survived a reading. Anyone changing it
+ * should check the new figure sits above the neighbours and not far above.
  */
-export const GEMS_PER_USD = 400;
+export const GEMS_PER_USD = 200;
 
 /**
  * Gold per gem, for valuing a leftover gold balance.

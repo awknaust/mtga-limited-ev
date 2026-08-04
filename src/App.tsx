@@ -251,6 +251,44 @@ function MoneyInput({
 }
 
 /**
+ * A gem-valued input pinned to dollars, whatever the display unit.
+ *
+ * Box prices are quoted in dollars everywhere they are sourced — street price
+ * on MTGGoldfish, Wizards' cash substitution — so editing them in gems means
+ * converting by hand to check a figure against the page it came from.
+ *
+ * Only the field is dollars. The stored value is still gems, so the rate
+ * applies at the edit and not inside the simulation, and `gemsPerUsd` stays
+ * what its own tooltip says it is: a display setting. The visible consequence
+ * is that changing the rate re-prices a box that was already set, because the
+ * gems behind it are what is held.
+ */
+function UsdInput({
+  gemValue,
+  onChange,
+  gemsPerUsd,
+  id,
+  disabled,
+}: {
+  gemValue: number;
+  onChange: (gems: number) => void;
+  gemsPerUsd: number;
+  id?: string;
+  disabled?: boolean;
+}) {
+  const usd = useMemo(() => money("usd", gemsPerUsd), [gemsPerUsd]);
+  return (
+    <MoneyInput
+      id={id}
+      m={usd}
+      gemValue={gemValue}
+      onChange={onChange}
+      disabled={disabled}
+    />
+  );
+}
+
+/**
  * Bootstrap popover on a small "i" button.
  *
  * Uses the `focus` trigger so the next click anywhere dismisses it. Buttons
@@ -328,7 +366,7 @@ export default function App() {
    */
   const [view, setView] = useState<"value" | "breakdown">("value");
   const [unit, setUnit] = useState<Unit>(initial.unit);
-  // 20,000 gems for $49.99 is the largest bundle, so the best rate on offer.
+  // 20,000 gems for $99.99 is the largest bundle, so the best rate on offer.
   const [gemsPerUsd, setGemsPerUsd] = useState(initial.gemsPerUsd);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   // Set when a preset switch lands on an event the balance cannot enter. Not
@@ -1607,33 +1645,33 @@ export default function App() {
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.playBoxValue} className="form-label">
-                      Play box value ({m.label})
+                      Play box value (USD)
                       <InfoTip
                         label="About play box value"
-                        content="Average street price across three recent Standard sets, at 400 gems to the dollar. Wizards' published cash substitution is $209.70 a box, before withholding."
+                        content="Average street price across three recent Standard sets. Wizards' published cash substitution is $209.70 a box, before withholding."
                       />
                     </label>
-                    <MoneyInput
-                    id={ids.playBoxValue}
-                    m={m}
-                    gemValue={config.playBoxValueGems}
-                    onChange={(n) => set("playBoxValueGems", n)}
-                  />
+                    <UsdInput
+                      id={ids.playBoxValue}
+                      gemsPerUsd={gemsPerUsd}
+                      gemValue={config.playBoxValueGems}
+                      onChange={(n) => set("playBoxValueGems", n)}
+                    />
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.collectorBoxValue} className="form-label">
-                      Collector box value ({m.label})
+                      Collector box value (USD)
                       <InfoTip
                         label="About collector box value"
-                        content="Average street price across three recent Standard sets, at 400 gems to the dollar. These trade well above the $479.88 MSRP of a 12-pack display."
+                        content="Average street price across three recent Standard sets. These trade well above the $479.88 MSRP of a 12-pack display."
                       />
                     </label>
-                    <MoneyInput
-                    id={ids.collectorBoxValue}
-                    m={m}
-                    gemValue={config.collectorBoxValueGems}
-                    onChange={(n) => set("collectorBoxValueGems", n)}
-                  />
+                    <UsdInput
+                      id={ids.collectorBoxValue}
+                      gemsPerUsd={gemsPerUsd}
+                      gemValue={config.collectorBoxValueGems}
+                      onChange={(n) => set("collectorBoxValueGems", n)}
+                    />
                   </div>
                 </div>
               </div>
@@ -1707,7 +1745,7 @@ export default function App() {
                       Gems per US dollar
                       <InfoTip
                         label="About the dollar conversion"
-                        content="Used only for showing figures in USD; the simulation always runs in gems. 400 comes from the largest bundle, 20,000 gems for $49.99, which is the best rate on offer."
+                        content="Used only for showing figures in USD; the simulation always runs in gems. 200 comes from the largest bundle, 20,000 gems for $99.99, which is the best rate on offer."
                       />
                     </label>
                     <GemInput
