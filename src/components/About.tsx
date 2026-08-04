@@ -127,6 +127,21 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
           event limit. Ruin is being unable to pay the stake, not holding
           nothing — a busted run may still be sitting on packs and points.
         </dd>
+
+        <dt className="col-sm-4">Chance of a box</dt>
+        <dd className="col-sm-8">
+          Shown only for events that pay one. The share of possible outcomes in
+          which you finish holding at least one box, counting play and collector
+          boxes alike, over the whole run rather than a single entry — so it
+          rises with your starting balance and your event limit as well as with
+          your win rate. It is the figure a mean cannot give you, since nobody
+          is shipped a fifth of a box.
+
+          The range beside it is the win rate's, carried through: the chance if
+          your true rate sits at each end of what your record supports. It is
+          not a margin of error on the simulation, and more runs will not narrow
+          it — only more matches played will.
+        </dd>
       </dl>
 
       <SectionHeading className="mt-4" title="What it does not model" />

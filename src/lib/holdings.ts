@@ -43,6 +43,24 @@ export function paidRewards(payouts: PayoutTier[]): TierRewardKey[] {
   return TIER_REWARD_KEYS.filter((key) => payouts.some((t) => (t[key] ?? 0) > 0));
 }
 
+/**
+ * The rewards that arrive as physical product.
+ *
+ * Taken as a pair rather than one at a time because what a player is asking is
+ * whether a box turns up, not which kind: a run that won a collector box and a
+ * run that won a play box both came away with a box. The two are still counted
+ * separately everywhere else, since they are worth very different amounts.
+ */
+export const BOX_KEYS = [
+  "playBoxes",
+  "collectorBoxes",
+] as const satisfies readonly TierRewardKey[];
+
+/** Whether a ladder pays a box at any win count. */
+export function paysBoxes(payouts: PayoutTier[]): boolean {
+  return payouts.some((t) => BOX_KEYS.some((key) => (t[key] ?? 0) > 0));
+}
+
 export const HOLDINGS = [
   { key: "gems", label: "Gems", whole: false },
   { key: "gold", label: "Gold", whole: false },

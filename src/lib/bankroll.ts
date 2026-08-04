@@ -11,11 +11,17 @@
  * money and gold cannot, so gold is the cheaper currency to burn.
  */
 
-import { HOLDING_KEYS, holding, type HoldingKey } from "./holdings";
+import { exactDistribution } from "./distribution";
+import { BOX_KEYS, HOLDING_KEYS, holding, paysBoxes, type HoldingKey } from "./holdings";
 import { goldPerEvent, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
-import { drawWinRate, winRatePosterior } from "./uncertainty";
+import {
+  CREDIBLE_LEVEL,
+  drawWinRate,
+  winRateInterval,
+  winRatePosterior,
+} from "./uncertainty";
 import { simulateEvent } from "./simulate";
 import type { EventConfig } from "./types";
 
@@ -58,6 +64,12 @@ export type BankrollResult = {
    * counts stay reportable, but only as a record of what passed through.
    */
   holdings: Record<HoldingKey, HoldingTotals>;
+  /**
+   * The chance of coming away with a box, where the ladder pays one at all.
+   *
+   * Null when it does not, which is every event here but the Arena Directs.
+   */
+  boxChance: BoxChance | null;
   /** Gems plus the gem value of everything won along the way. */
   meanFinalValue: number;
   /**
@@ -76,6 +88,37 @@ export type BankrollResult = {
    * summaries above have something you can actually look at underneath them.
    */
   samples: SampleRun[];
+};
+
+/**
+ * How often a run comes away with a box, and how far that answer moves with
+ * the win rate.
+ *
+ * A box is the only reason to enter an Arena Direct, and it is the one reward
+ * a mean cannot describe. `holdings.playBoxes.mean` of 0.21 is not an outcome
+ * anybody has: nobody is shipped a fifth of a box. The question people arrive
+ * with is whether they get one, which is a probability, and how much that
+ * probability leans on a win rate they are guessing at, which is an interval.
+ *
+ * Both kinds count together here, for the reason `BOX_KEYS` gives. `holdings`
+ * still reports them apart, and it should — a collector box is worth several
+ * play boxes.
+ */
+export type BoxChance = {
+  /** Share of runs ending with at least one box, of either kind. */
+  probAny: number;
+  /**
+   * The same chance at each end of the win rate's credible interval, or null
+   * when the rate is called certain and there is no range left to report.
+   *
+   * The reading is "if my true rate is at the bad end of what my record
+   * supports, my chance is this" — not a margin of error on the simulation.
+   * That one is sampling noise and shrinks with more runs; this one does not,
+   * because it is uncertainty about the player rather than about the model.
+   */
+  interval: [lo: number, hi: number] | null;
+  /** What `interval` covers, so a caller labelling it need not assume. */
+  level: number;
 };
 
 export type Percentiles = { p5: number; p25: number; p50: number; p75: number; p95: number };
@@ -381,6 +424,114 @@ export function runValue(config: EventConfig, run: BankrollRun): number {
   );
 }
 
+/** Boxes a run came away with, both kinds together. */
+const boxesWon = (run: BankrollRun): number => run.playBoxes + run.collectorBoxes;
+
+/**
+ * Chance that a single event pays at least one box, at a given win rate.
+ *
+ * Closed form, off the exact win-count distribution: a win count either pays a
+ * box or it does not, so the answer is the weight the distribution puts on the
+ * counts that do. No runs, no seed and no bankroll, which is what makes it
+ * worth carrying beside the simulated figure — a run of one event has to agree
+ * with it, and that is a check the simulation cannot perform on itself.
+ */
+export function boxChancePerEvent(config: EventConfig, p = matchWinRate(config)): number {
+  const dist = exactDistribution(p, config.structure);
+  return config.payouts.reduce(
+    (acc, t) => (BOX_KEYS.some((key) => (t[key] ?? 0) > 0) ? acc + (dist[t.wins] ?? 0) : acc),
+    0,
+  );
+}
+
+/**
+ * How many runs each end of the box interval is read off.
+ *
+ * Capped rather than matched to the main sample, because these are two extra
+ * passes over work that already reruns on every keystroke, and a proportion
+ * settles far sooner than a mean does: two thousand runs put the standard
+ * error near a single point, which is finer than a figure printed to one
+ * decimal place can honestly claim. Tripling a simulation that takes a second
+ * at its heaviest settings, to sharpen a number nobody can read to that
+ * precision, is the wrong trade.
+ */
+const INTERVAL_RUNS = 2000;
+
+/**
+ * Chance of a box over a run played at one fixed win rate.
+ *
+ * Fixed, rather than drawn per run the way the main sample is: the interval
+ * asks what the chance would be *if* the true rate were this, so the rate is
+ * the one thing that must not vary between the runs answering it.
+ */
+function probBoxAt(
+  config: EventConfig,
+  bankroll: BankrollConfig,
+  pMatch: number,
+  trials: number,
+  seed: number,
+): number {
+  const rand = seededRandom(seed);
+  let hits = 0;
+  for (let i = 0; i < trials; i++) {
+    if (boxesWon(simulateBankroll(config, bankroll, rand, false, pMatch)) > 0) hits++;
+  }
+  return trials ? hits / trials : 0;
+}
+
+/**
+ * Summarise the box question, or return null where the ladder pays no boxes.
+ *
+ * The point estimate comes off the main sample, which already draws a rate per
+ * run and so has the uncertainty folded through it. The interval cannot: it
+ * has to hold the rate still at each end, so it costs two further passes. They
+ * are only paid for on a ladder that pays boxes, which in practice means the
+ * Arena Directs — the events whose entry is steep enough that runs are a few
+ * events long and the passes are cheap.
+ *
+ * The two ends share a seed deliberately. Common random numbers make the gap
+ * between them the work of the win rate rather than of sampling noise, which
+ * is what stops a genuinely narrow interval from coming out inverted.
+ *
+ * Only the ends are evaluated, so this is the chance at each end of the
+ * plausible rate range rather than the range of the chance. The two agree
+ * whenever a box gets easier as the win rate rises, which is every ladder here
+ * — boxes sit at the top of them. A custom ladder paying a box at exactly six
+ * wins and nothing at seven would break it, since winning more would then step
+ * straight past the prize, so the pair is sorted rather than assumed ordered.
+ */
+function boxChanceOf(
+  config: EventConfig,
+  bankroll: BankrollConfig,
+  runs: BankrollRun[],
+  seed: number,
+): BoxChance | null {
+  if (!paysBoxes(config.payouts)) return null;
+
+  const boxes = runs.map(boxesWon);
+  const posterior = winRatePosterior(config);
+  const trials = Math.min(runs.length, INTERVAL_RUNS);
+
+  let interval: [number, number] | null = null;
+  if (posterior && trials > 0) {
+    /*
+     * A stream of its own rather than the main sample's, which by here has
+     * been advanced a variable number of times and would make the ends depend
+     * on how long the runs before them happened to be.
+     */
+    const ends = winRateInterval(posterior).map((p) =>
+      probBoxAt(config, bankroll, p, trials, seed + 1),
+    );
+    interval = [Math.min(...ends), Math.max(...ends)];
+  }
+
+  return {
+    probAny: runs.length ? boxes.filter((n) => n > 0).length / runs.length : 0,
+    interval,
+    level: CREDIBLE_LEVEL,
+  };
+}
+
 export function simulateBankrolls(
   config: EventConfig,
   bankroll: BankrollConfig,
@@ -446,6 +597,7 @@ export function simulateBankrolls(
         ),
       ]),
     ) as Record<HoldingKey, HoldingTotals>,
+    boxChance: boxChanceOf(config, bankroll, runs, seed),
     meanFinalValue: mean((r) => runValue(config, r)),
     medianFinalValue,
     histogram: [...counts.entries()]

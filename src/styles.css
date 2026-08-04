@@ -255,6 +255,148 @@ body {
   color: var(--bs-secondary-color);
 }
 
+/*
+ * A row of stat tiles wider than the room for it. See StatStrip for why the
+ * tiles scroll rather than wrap.
+ *
+ * Bootstrap's carousel is the nearest component and is the wrong shape: it
+ * animates whole slides and owns the DOM it animates, where this wants a plain
+ * overflow box that a trackpad and a screen reader can drive themselves.
+ */
+.stat-strip {
+  position: relative;
+}
+
+.stat-strip-track {
+  display: flex;
+  /* Matches the g-2 gutter the tiles sat in as a grid. */
+  gap: 0.5rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  /*
+   * Hidden rather than styled. A horizontal bar under four tiles reads as a
+   * defect on the platforms that reserve space for one, and the arrows say
+   * the same thing in a form that suits the row — proximity snapping, not
+   * mandatory, so a flick that lands mid-tile is left where the reader put it.
+   */
+  scrollbar-width: none;
+  /*
+   * Scroll anchoring off. It exists to stop content inserted above the
+   * viewport from shoving the page about, and here it does the opposite of
+   * what is wanted: a tile added at the *front* of the strip is exactly the
+   * case it compensates for, so switching to an event that pays boxes left the
+   * strip scrolled one tile along and the new leading tile out of sight.
+   */
+  overflow-anchor: none;
+  /* Keeps the focus ring off the tiles' own rounded corners. */
+  border-radius: 0.625rem;
+}
+
+.stat-strip-track::-webkit-scrollbar {
+  display: none;
+}
+
+/*
+ * Two tiles to a view, four once there is room — the breakpoints the tiles
+ * used as `col-6 col-xl-3`, so a strip that fits looks like the grid it
+ * replaced. Basis rather than width: n tiles and n-1 gaps fill the track
+ * exactly, which is what makes a page scroll land on a tile boundary.
+ */
+.stat-strip-item {
+  flex: 0 0 calc((100% - 0.5rem) / 2);
+  min-width: 0;
+  scroll-snap-align: start;
+}
+
+@media (min-width: 1200px) {
+  .stat-strip-item {
+    flex-basis: calc((100% - 1.5rem) / 4);
+  }
+}
+
+/*
+ * The edge fades. Purely a signal that the row continues, so they are inert to
+ * the pointer and sit under the arrows.
+ */
+.stat-strip::before,
+.stat-strip::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1.5rem;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease-in-out;
+}
+
+.stat-strip::before {
+  left: 0;
+  background: linear-gradient(to right, var(--bs-card-bg), transparent);
+}
+
+.stat-strip::after {
+  right: 0;
+  background: linear-gradient(to left, var(--bs-card-bg), transparent);
+}
+
+.stat-strip.has-prev::before,
+.stat-strip.has-next::after {
+  opacity: 1;
+}
+
+/*
+ * Overhanging the track, into the card's own padding. Sitting them fully
+ * inside would cover a tile's figure, and fully outside would indent the row
+ * from everything stacked below it.
+ *
+ * The width and the offset are a pair, and the sums are tight enough to be
+ * worth writing down: 1.5rem across at an offset of 0.875rem leaves 0.625rem
+ * of the button over the track, which clears a tile's 0.875rem of padding, and
+ * 0.875rem outside it, which clears the card's 1rem. Both margins are fixed
+ * while a tile's width is not, so an arrow that grazes a figure does so at
+ * every size — it was 2px into the first hint before these numbers were.
+ */
+.stat-strip-arrow {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 24px square, which is the smallest target WCAG 2.5.8 will accept. */
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  transform: translateY(-50%);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 50%;
+  background: var(--bs-card-bg);
+  color: var(--bs-body-color);
+  box-shadow: 0 1px 5px rgb(0 0 0 / 0.3);
+}
+
+.stat-strip-arrow:hover {
+  background: var(--app-raised);
+  color: var(--bs-body-color);
+}
+
+.stat-strip-arrow.start {
+  left: -0.875rem;
+}
+
+.stat-strip-arrow.end {
+  right: -0.875rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-strip::before,
+  .stat-strip::after {
+    transition: none;
+  }
+}
+
 /* D3 charts. Scales come from the library; these are the marks. */
 .chart-svg {
   display: block;

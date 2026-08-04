@@ -10,6 +10,7 @@ import { EventsHistogram } from "./components/EventsHistogram";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
 import { RunLog } from "./components/RunLog";
 import { SectionHeading } from "./components/SectionHeading";
+import { StatStrip, type StatTile } from "./components/StatStrip";
 import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
 import {
@@ -610,6 +611,85 @@ export default function App() {
       ? `${structure.rounds} rounds played in full`
       : `to ${structure.maxWins} wins or ${structure.maxLosses} losses`;
 
+  /** Null unless the ladder pays boxes, which is what makes the strip move. */
+  const box = bankroll.boxChance;
+  const packsTile: StatTile = {
+    key: "packs",
+    label: "Mean packs won",
+    value: bankroll.holdings.packs.mean.toFixed(1),
+    hint: spendWinnings ? "over the run, then converted to gems" : "over the whole run",
+  };
+  const runTiles: StatTile[] = [
+    {
+      key: "events",
+      label: "Mean events played",
+      value: bankroll.meanEvents.toFixed(1),
+      hint: `median ${bankroll.eventPercentiles.p50}`,
+    },
+    {
+      key: "value",
+      label: `Mean ending value (${unitLabel})`,
+      value: gems(bankroll.meanFinalValue),
+      tone: signClass(bankroll.meanFinalValue - startingGems),
+      // No hint: the median is in the percentile strip below and the starting
+      // balance is an input a few inches away.
+    },
+    {
+      key: "ruin",
+      // The model stores the survival rate; ruin is the figure with a name,
+      // and the direction people quote it in.
+      label: "Risk of ruin",
+      value: pct(1 - bankroll.survivedFraction),
+      hint: `went broke inside ${maxEvents} events`,
+    },
+  ];
+  /**
+   * The bankroll tiles, in the order they earn their place.
+   *
+   * Four show and the rest sit behind the strip's arrow, so the order is a
+   * claim about what the event is for rather than a layout detail. Boxes take
+   * the front wherever the ladder pays them: they are the only reason to enter
+   * an Arena Direct, and they are the one reward a mean cannot describe,
+   * because 0.2 boxes is not something anyone receives. Packs give up their
+   * slot in that case rather than their place — they are still a real part of
+   * the payout, one arrow to the right.
+   *
+   * Five is the most this ever runs to. The closed-form chance for a single
+   * entry was a sixth for a while and has been taken out again: it answers a
+   * question nobody asked of a page about bankrolls, and sitting in the same
+   * row as the run-level chance it mostly invited the two to be confused. It
+   * still exists as `boxChancePerEvent`, where it does its real work of
+   * holding the simulation to account in the tests.
+   */
+  const bankrollTiles: StatTile[] = box
+    ? [
+        {
+          key: "box",
+          label: (
+            <>
+              <i className="bi bi-box-seam me-1" aria-hidden="true" />
+              Chance of a box
+            </>
+          ),
+          value: pct(box.probAny),
+          /*
+           * The band the record supports, and the reason the tile is worth
+           * more than the figure alone: at twenty matches of record the chance
+           * of a box can span a factor of three, which is the difference
+           * between a plan and a hope. Falls back to the sampling error of the
+           * simulated proportion when the rate is called certain, the same way
+           * the expected-net tile does, since there is then nothing else for a
+           * ± to describe.
+           */
+          hint: box.interval
+            ? `${pct(box.interval[0])} to ${pct(box.interval[1])} (${pct(box.level, 0)})`
+            : `±${pct(1.96 * Math.sqrt((box.probAny * (1 - box.probAny)) / bankroll.trials))} (95% CI)`,
+        },
+        ...runTiles,
+        packsTile,
+      ]
+    : [runTiles[0], runTiles[1], packsTile, runTiles[2]];
+
   const stats: { label: string; value: string; hint: string; tone?: string }[] = [
     {
       label: "Expected net / event",
@@ -1112,53 +1192,9 @@ export default function App() {
                     limit. The figures below summarise a few thousand different
                     possible outcomes.
                   </div>
-              <div className="row g-2 mb-3">
-                <div className="col-6 col-xl-3">
-                  <div className="stat h-100">
-                    <div className="stat-label">Mean events played</div>
-                    <div className="stat-value">{bankroll.meanEvents.toFixed(1)}</div>
-                    <div className="stat-hint">
-                      median {bankroll.eventPercentiles.p50}
-                    </div>
+                  <div className="mb-3">
+                    <StatStrip tiles={bankrollTiles} label="Bankroll summary" />
                   </div>
-                </div>
-                <div className="col-6 col-xl-3">
-                  <div className="stat h-100">
-                    <div className="stat-label">Mean ending value ({unitLabel})</div>
-                    <div className={`stat-value ${signClass(bankroll.meanFinalValue - startingGems)}`}>
-                      {gems(bankroll.meanFinalValue)}
-                    </div>
-                    {/* No hint: the median is in the percentile strip below and
-                        the starting balance is an input a few inches away. */}
-                  </div>
-                </div>
-                <div className="col-6 col-xl-3">
-                  <div className="stat h-100">
-                    <div className="stat-label">Mean packs won</div>
-                    <div className="stat-value">
-                      {bankroll.holdings.packs.mean.toFixed(1)}
-                    </div>
-                    <div className="stat-hint">
-                      {spendWinnings
-                        ? "over the run, then converted to gems"
-                        : "over the whole run"}
-                    </div>
-                  </div>
-                </div>
-                <div className="col-6 col-xl-3">
-                  <div className="stat h-100">
-                    {/* The model stores the survival rate; ruin is the figure
-                        with a name, and the direction people quote it in. */}
-                    <div className="stat-label">Risk of ruin</div>
-                    <div className="stat-value">
-                      {pct(1 - bankroll.survivedFraction)}
-                    </div>
-                    <div className="stat-hint">
-                      went broke inside {maxEvents} events
-                    </div>
-                  </div>
-                </div>
-              </div>
                   <SectionHeading
                     className="mt-4"
                     title="How many events you can play"

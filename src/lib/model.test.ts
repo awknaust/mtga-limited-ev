@@ -20,6 +20,7 @@ import {
   SEALED,
   TRADITIONAL_CUBE_DRAFT,
   TRADITIONAL_DRAFT,
+  boxChancePerEvent,
   breakEvenWinRate,
   configFromPreset,
   defaultConfig,
@@ -38,6 +39,7 @@ import {
   probProfitable,
   winRateInterval,
   winRatePosterior,
+  CREDIBLE_LEVEL,
   PRIOR_ALPHA,
   PRIOR_BETA,
   ARENA_DIRECT_COLLECTOR,
@@ -47,6 +49,7 @@ import {
   heldKeys,
   holdingRate,
   paidRewards,
+  paysBoxes,
   playInPointsFor,
   resizePayouts,
   simulate,
@@ -696,6 +699,147 @@ describe("bankroll", () => {
   it("histogram accounts for every run", () => {
     const res = simulateBankrolls(defaultConfig(), roll, 200, 13);
     expect(res.histogram.reduce((a, h) => a + h.count, 0)).toBe(200);
+  });
+});
+
+describe("the chance of a box", () => {
+  /** Enough for one entry, and capped at one event, so a run is one event. */
+  const oneEvent = {
+    startingGems: 8_000,
+    startingGold: 0,
+    maxEvents: 1,
+    spendWinnings: false,
+  };
+  /** Room to keep entering, which is what makes the run-level chance differ. */
+  const several = { ...oneEvent, startingGems: 40_000, maxEvents: 20 };
+  const direct = () => configFromPreset(ARENA_DIRECT, defaultConfig());
+
+  it("names the ladders that pay physical product", () => {
+    expect(paysBoxes(ARENA_DIRECT.payouts)).toBe(true);
+    expect(paysBoxes(ARENA_DIRECT_COLLECTOR.payouts)).toBe(true);
+    expect(paysBoxes(PREMIER_DRAFT.payouts)).toBe(false);
+    // Zeroing the tiers retires the reward, the way paidRewards reads it too.
+    const noBoxes = ARENA_DIRECT.payouts.map((t) => ({ ...t, playBoxes: 0 }));
+    expect(paysBoxes(noBoxes)).toBe(false);
+  });
+
+  it("prices one event's chance in closed form", () => {
+    /*
+     * Seven wins or two losses at an even rate. Finishing on k wins is k
+     * wins before the second loss, which at p = ½ is (k + 1)/2^(k + 2), and
+     * that sums to 15/16 over k = 0..5. So reaching six wins — where the play
+     * boxes start — is the 1/16 left over.
+     */
+    expect(boxChancePerEvent(direct(), 0.5)).toBeCloseTo(1 / 16, 12);
+
+    // Same structure, but the collector ladder pays only at seven. That is
+    // 9/256 of the same distribution rather than the 16/256 above.
+    const collector = configFromPreset(ARENA_DIRECT_COLLECTOR, defaultConfig());
+    expect(boxChancePerEvent(collector, 0.5)).toBeCloseTo(9 / 256, 12);
+  });
+
+  it("counts both kinds of box as one thing", () => {
+    // A collector box hung at five wins, below the play boxes at six and
+    // seven: the chance is the three tiers together, not the larger of them.
+    const base = direct();
+    const config = {
+      ...base,
+      payouts: base.payouts.map((t) =>
+        t.wins === 5 ? { ...t, collectorBoxes: 1 } : t,
+      ),
+    };
+    // 12/256 at five, on top of the 16/256 already at six and seven.
+    expect(boxChancePerEvent(config, 0.5)).toBeCloseTo(28 / 256, 12);
+  });
+
+  it("rises with the win rate, and reaches both ends", () => {
+    expect(boxChancePerEvent(direct(), 0.3)).toBeLessThan(
+      boxChancePerEvent(direct(), 0.6),
+    );
+    // A player who cannot lose reaches seven wins every time; one who cannot
+    // win is out at nought. Both sit outside the negative binomial's support,
+    // so this is also the guard on exactDistribution's endpoints holding.
+    expect(boxChancePerEvent(direct(), 1)).toBe(1);
+    expect(boxChancePerEvent(direct(), 0)).toBe(0);
+  });
+
+  it("agrees with the closed form over a single event", () => {
+    // The check the closed form is carried for. One entry, one event, and a
+    // rate called certain so every run is played at the same one.
+    const config = { ...direct(), winRate: 0.5, winRateMatches: 0 };
+    const res = simulateBankrolls(config, oneEvent, 20_000, 7);
+    expect(res.boxChance?.probAny).toBeCloseTo(boxChancePerEvent(config), 2);
+  });
+
+  it("is asked only of ladders that pay boxes", () => {
+    const premier = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    expect(simulateBankrolls(premier, several, 200, 5).boxChance).toBeNull();
+    expect(simulateBankrolls(direct(), several, 200, 5).boxChance).not.toBeNull();
+  });
+
+  it("counts a run's boxes whichever kind turned up", () => {
+    const base = direct();
+    // Play boxes at six and seven, and a collector box at five as well.
+    const config = {
+      ...base,
+      payouts: base.payouts.map((t) =>
+        t.wins === 5 ? { ...t, collectorBoxes: 1 } : t,
+      ),
+    };
+    const res = simulateBankrolls(config, several, 500, 17);
+    const box = res.boxChance!;
+    // Winning either counts, so the chance of one covers each kind's own, and
+    // strictly beats them where both kinds actually turn up.
+    expect(box.probAny).toBeGreaterThan(res.holdings.playBoxes.probAny);
+    expect(box.probAny).toBeGreaterThan(res.holdings.collectorBoxes.probAny);
+    // And no run holds a box the per-kind counts have not also recorded.
+    expect(box.probAny).toBeLessThanOrEqual(
+      res.holdings.playBoxes.probAny + res.holdings.collectorBoxes.probAny,
+    );
+  });
+
+  it("improves with a bankroll that buys more entries", () => {
+    const config = direct();
+    const one = simulateBankrolls(config, several, 800, 3).boxChance!;
+    const many = simulateBankrolls(
+      config,
+      { ...several, startingGems: 200_000 },
+      800,
+      3,
+    ).boxChance!;
+    expect(many.probAny).toBeGreaterThan(one.probAny);
+    // Neither can beat the entry, and the closed form is what says so: one
+    // event's chance is a property of the ladder, and a bankroll only ever
+    // buys more attempts at it.
+    expect(one.probAny).toBeGreaterThan(boxChancePerEvent(config));
+  });
+
+  it("widens the interval when the record behind the rate is short", () => {
+    const base = direct();
+    const width = (matches: number): number => {
+      const res = simulateBankrolls(
+        { ...base, winRateMatches: matches },
+        several,
+        1_000,
+        11,
+      );
+      const [lo, hi] = res.boxChance!.interval!;
+      // Ordered whichever way the win rate happens to help.
+      expect(lo).toBeLessThanOrEqual(hi);
+      return hi - lo;
+    };
+    // Twenty matches of record is a few drafts and leaves the rate wide open;
+    // five hundred has all but settled it. The box chance inherits both.
+    expect(width(20)).toBeGreaterThan(width(500));
+  });
+
+  it("drops the interval when the rate is called certain", () => {
+    const config = { ...direct(), winRateMatches: 0 };
+    const box = simulateBankrolls(config, several, 200, 13).boxChance!;
+    expect(box.interval).toBeNull();
+    // Still says what an interval would have covered, so the label need not
+    // reach for the constant itself.
+    expect(box.level).toBe(CREDIBLE_LEVEL);
   });
 });
 
