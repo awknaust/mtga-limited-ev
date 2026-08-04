@@ -5,7 +5,7 @@ An EV model for MTG Arena limited events. The backlog is in
 `data`, `model` and `ui`.
 
 ```bash
-npm install && npm run dev    # http://localhost:5173
+npm install && npm run dev    # Vite prints the URL; the port is not fixed
 npm test
 ```
 
@@ -90,6 +90,44 @@ and have burned us. Three things to hold to:
   an analytics snippet means amending that policy, and the friction is the
   point. Workflow actions are pinned to commit SHAs for the same reason; let
   Dependabot move them rather than reverting to tags.
+
+## More than one agent works here at once
+
+Assume you are not alone. Several sessions run against this repository
+concurrently, and the failures that causes are quiet ones — files changing
+between two of your own commands, a commit absorbing work you did not write, a
+dev server dying because someone else claimed its port. Every rule below comes
+from that happening.
+
+- **Never work in the main checkout.** Start with `EnterWorktree`, or take an
+  `isolation: "worktree"` agent. `/Users/awknaust/mtga-limited-ev` is shared
+  ground: switching branches there rewrites files under every other session and
+  under the running dev server. Main is somewhere to merge into, not to work in.
+- **Fetch, and branch from `origin/main`.** Not from local `main`, and not from
+  whatever the shared tree happens to have checked out — that has been seventeen
+  commits behind, and a branch cut from it is born needing a rebase.
+  `EnterWorktree` already branches from `origin/<default>`, so mostly this means
+  not overriding it. Take the same care rebasing: a branch here once read as
+  nine commits behind its own remote, and replaying it onto main as it stood
+  would have dropped all nine.
+- **Never `git add -A`, and never `git commit -a`.** Stage paths you name. In an
+  isolated tree those commands are harmless; in a shared one they have picked up
+  another session's worktree as a gitlink, and unrelated edits to
+  `.claude/launch.json`.
+- **Do not fix the dev server's port.** `launch.json` is tracked, so a port
+  written there is a port every worktree fights over. `autoPort` lets Vite take
+  a free one. For the same reason, no document here should name a port: read it
+  off the server's own output.
+- **Say which area you are taking.** Branches keep commits apart but not
+  attention. `src/__snapshots__/share.compat.test.ts.snap`, `src/lib/presets.ts`
+  and `src/App.tsx` are where two agents collide, and two sessions re-recording
+  the same snapshot against different bases will conflict every time.
+
+One thing that already works, worth not weakening: `share.compat.test.ts` fails
+loudly when a link's meaning moves. That guard is how a starting-gems change
+was caught after it had been swept into an unrelated commit whose message never
+mentioned it. If it fires for a change you did not make, find out whose it is
+before re-recording.
 
 ## Settled, and not worth reopening
 

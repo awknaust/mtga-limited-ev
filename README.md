@@ -20,7 +20,7 @@ average — how many events the balance buys, where you tend to end up, and the
 risk of ruin, the share of runs that go broke inside your event limit.
 
 ```bash
-npm install && npm run dev    # http://localhost:5173
+npm install && npm run dev    # Vite prints the URL it picked
 npm test
 ```
 
