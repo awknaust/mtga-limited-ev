@@ -60,15 +60,15 @@ export const PRESETS: EventPreset[] = [
 /**
  * Matches the default win rate is taken to rest on.
  *
- * Twenty, which is three or four drafts — roughly what someone has behind an
- * opinion about their own win rate when they come looking for a number like
- * this. It is deliberately small. At twenty matches the plausible range on
- * Premier Draft still straddles break-even, and that is the honest answer: a
- * few drafts cannot tell you whether you are above it.
+ * A hundred, which is a season of fairly regular play and enough that the prior
+ * has stopped doing much of the work. It still leaves a range wide enough to
+ * straddle break-even on Premier Draft, which is the honest answer — a hundred
+ * matches pins a win rate to within a few points, not to the decimal the slider
+ * displays.
  *
  * Set the field to 0 to treat the rate as exact and report point estimates.
  */
-export const DEFAULT_WIN_RATE_MATCHES = 20;
+export const DEFAULT_WIN_RATE_MATCHES = 100;
 
 /** Selector value for a hand-edited schedule that matches no preset. */
 export const CUSTOM_PRESET = "Custom";

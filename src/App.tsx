@@ -20,6 +20,7 @@ import {
   goldPerEvent,
   matchWinRate,
   netInterval,
+  CREDIBLE_LEVEL,
   probProfitable,
   winRateInterval,
   winRatePosterior,
@@ -52,7 +53,8 @@ type TopUp = {
  * What the confidence selector offers, shortest record first.
  *
  * Twenty is a few drafts, a hundred is a season's worth, five hundred is enough
- * that the prior stops mattering. Certain is 0, which switches the ranges off.
+ * that the prior stops mattering at all. Certain is 0, which switches the
+ * ranges off.
  */
 const CONFIDENCE_CHOICES = [
   { matches: 20, label: "20" },
@@ -593,7 +595,7 @@ export default function App() {
       // simulated mean when the rate is called certain, since there is then
       // nothing else for a ± to describe.
       hint: netBand
-        ? `${m.label} · ${gems2(netBand[0])} to ${gems2(netBand[1])}`
+        ? `${m.label} · ${gems2(netBand[0])} to ${gems2(netBand[1])} (${pct(CREDIBLE_LEVEL, 0)})`
         : `${m.label} · ±${gems2(1.96 * result.stdErrNet)} (95% CI)`,
       tone: signClass(result.meanNet),
     },
@@ -1395,10 +1397,10 @@ export default function App() {
                 <div className="row g-2">
                   <div className="col-12">
                     <label htmlFor={ids.confMatches} className="form-label">
-                      Matches behind your win rate
+                      Matches played
                       <InfoTip
-                        label="About win rate confidence"
-                        content="How many matches your win rate is a guess from. Fewer matches means less is known, so the ranges widen to match. Certain treats the rate as exact and reports point estimates instead."
+                        label="About matches played"
+                        content="The number of matches you used to estimate your win rate. Fewer matches means less certain outcomes, and every range below widens to match. Certain treats the rate as exact and reports single figures instead."
                       />
                     </label>
                     {/*
@@ -1411,7 +1413,7 @@ export default function App() {
                     <div
                       className="btn-group w-100"
                       role="group"
-                      aria-label="Matches behind your win rate"
+                      aria-label="Matches played"
                     >
                       {CONFIDENCE_CHOICES.map((choice, i) => (
                         <button
@@ -1434,8 +1436,8 @@ export default function App() {
                   <div className="col-12">
                     <div className="form-text mt-0">
                       {rateBand
-                        ? `Your record supports ${pct(rateBand[0])} to ${pct(rateBand[1])}.`
-                        : "Ranges are switched off; every figure is a point estimate."}
+                        ? `Your true win rate is in ${pct(rateBand[0])} to ${pct(rateBand[1])}, with ${pct(CREDIBLE_LEVEL, 0)} probability.`
+                        : "Ranges are switched off; every figure below is a single number."}
                     </div>
                   </div>
                 </div>

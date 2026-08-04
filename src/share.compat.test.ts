@@ -230,7 +230,7 @@ describe("the defaults are the contract", () => {
   it("pins what an omitted parameter resolves to", () => {
     expect(fingerprint(defaultShareState())).toMatchInlineSnapshot(`
       "preset     Premier Draft
-      winRate    0.55 over 20 matches
+      winRate    0.55 over 100 matches
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23

@@ -124,14 +124,20 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
 
         <dt className="col-sm-4">Win rate confidence</dt>
         <dd className="col-sm-8">
-          How many matches your win rate is a guess from, set in Advanced
+          How many matches your win rate is estimated from, set in Advanced
           settings. Every other number here is exact once the win rate is fixed,
           so what you do not know about the rate is the largest uncertainty in
-          the model by a long way, and on a short record it is worth hundreds of
-          gems. The
-          ranges are the middle 95% of what your record supports, and a short
-          record is pulled toward an even one, because Arena pairs you by rank
-          and a handful of matches is weak evidence of anything else.
+          the model by a long way — on a short record it is worth hundreds of
+          gems. Each range covers 90% of the rates your record supports, and it
+          means what it sounds like: your true rate is inside it nine times in
+          ten. A short record is pulled toward an even one, because Arena pairs
+          you by rank and a handful of matches is weak evidence of anything
+          else.
+
+          The ranges reach the Per event tab and the curve beside it. The
+          Bankroll tab still plays every run at the single rate on the slider,
+          so its figures — including risk of ruin — are what happens if that
+          rate is exactly right.
         </dd>
 
         <dt className="col-sm-4">Risk of ruin</dt>

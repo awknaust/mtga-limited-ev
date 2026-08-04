@@ -48,6 +48,22 @@ export const PRIOR_BETA = 10;
  */
 const DRAWS = 400;
 
+/**
+ * How much of the posterior the reported ranges cover.
+ *
+ * Ninety rather than ninety-five, because the ranges are read as "what could
+ * happen to me" rather than tested against, and the last five points of cover
+ * buy a great deal of width at the tails for very little meaning.
+ *
+ * These are credible intervals, not confidence intervals, and the difference is
+ * the one that matters when writing the label: a credible interval genuinely
+ * does mean the true rate lies inside it with that probability. The frequentist
+ * reading — that the *procedure* covers the truth nine times in ten — is what
+ * people usually assume a confidence interval says and is not what it says. So
+ * the plain-language phrasing is available here honestly.
+ */
+export const CREDIBLE_LEVEL = 0.9;
+
 /** A Beta posterior over the match win rate. */
 export type Posterior = { alpha: number; beta: number };
 
@@ -71,7 +87,7 @@ export function winRatePosterior(config: EventConfig): Posterior | null {
 /** A central interval on the win rate itself, for the band under the curve. */
 export function winRateInterval(
   posterior: Posterior,
-  level = 0.95,
+  level = CREDIBLE_LEVEL,
 ): [lo: number, hi: number] {
   const tail = (1 - level) / 2;
   return [
@@ -103,7 +119,7 @@ function sortedNets(config: EventConfig, posterior: Posterior): number[] {
 /** Central credible interval on expected net, or null if the rate is certain. */
 export function netInterval(
   config: EventConfig,
-  level = 0.95,
+  level = CREDIBLE_LEVEL,
 ): [lo: number, hi: number] | null {
   const posterior = winRatePosterior(config);
   if (!posterior) return null;
