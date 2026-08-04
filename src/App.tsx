@@ -9,7 +9,6 @@ import {
   defaultConfig,
   expectedNetAt,
   matchWinRate,
-  matchesPreset,
   maxPossibleWins,
   maxRounds,
   resizePayouts,
@@ -52,12 +51,14 @@ function NumberInput({
   onChange,
   min,
   id,
+  disabled,
   className = "form-control",
 }: {
   value: number;
   onChange: (n: number) => void;
   min?: number;
   id?: string;
+  disabled?: boolean;
   className?: string;
 }) {
   return (
@@ -68,6 +69,7 @@ function NumberInput({
       min={min}
       step={1}
       value={value}
+      disabled={disabled}
       onWheel={(e) => e.currentTarget.blur()}
       onChange={(e) => onChange(Number(e.target.value) || 0)}
     />
@@ -116,10 +118,6 @@ export default function App() {
   const [trials, setTrials] = useState(100_000);
   const [seed, setSeed] = useState(1);
   const [presetName, setPresetName] = useState(PRESETS[0].name);
-  // Last preset picked from the dropdown. Kept separately from presetName so an
-  // edit can fall back to "Custom" and return to the preset when undone —
-  // Premier and Cube are identical, so the right name can't be inferred.
-  const [anchor, setAnchor] = useState<string | null>(PRESETS[0].name);
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -159,14 +157,7 @@ export default function App() {
       : "always profitable, even at a 0% win rate";
   }, [breakEven, config]);
 
-  /**
-   * Apply a hand edit. The selector shows "Custom" whenever the schedule has
-   * moved off the last-picked preset, and snaps back if the edit is undone.
-   */
-  const update = (next: EventConfig) => {
-    setConfig(next);
-    setPresetName(anchor && matchesPreset(next, anchor) ? anchor : CUSTOM_PRESET);
-  };
+  const update = setConfig;
 
   const set = <K extends keyof EventConfig>(key: K, value: EventConfig[K]) =>
     update({ ...config, [key]: value });
@@ -189,23 +180,28 @@ export default function App() {
       payouts: resizePayouts(config.payouts, maxPossibleWins(structure)),
     });
 
+  /** Presets load their own values; "Custom" keeps whatever is on screen. */
   const applyPreset = (name: string) => {
     setPresetName(name);
     const preset = PRESETS.find((p) => p.name === name);
-    if (preset) {
-      setAnchor(name);
-      setConfig(configFromPreset(preset, config));
-    } else {
-      // "Custom" keeps whatever is on screen, and drops the anchor so the
-      // selector stays on Custom instead of snapping back to a matching preset.
-      setAnchor(null);
-    }
+    if (preset) setConfig(configFromPreset(preset, config));
   };
 
   const maxProb = Math.max(...result.buckets.map((b) => b.probability), 0.0001);
-  // Only the traditional events award play-in points, so the column and the
-  // stat hint stay out of the way everywhere else.
-  const awardsPlayInPoints = config.payouts.some((t) => (t.playInPoints ?? 0) > 0);
+  /*
+   * A preset describes a real event, so its definition is read-only; "Copy to
+   * Custom" takes the values and unlocks them. Only editing an event you own
+   * avoids the question of what a half-edited "Premier Draft" means.
+   */
+  const isCustom = presetName === CUSTOM_PRESET;
+  const locked = !isCustom;
+  /*
+   * Most events award no play-in points, so the column is hidden for them. It
+   * is always shown on Custom — otherwise a schedule that started at zero
+   * could never grow one.
+   */
+  const showPlayInPoints =
+    isCustom || config.payouts.some((t) => (t.playInPoints ?? 0) > 0);
   const structure = config.structure;
   const roundWord = config.format === "bo3" ? "matches" : "games";
   // Restates the event being priced, for the Results heading — the numbers
@@ -354,8 +350,22 @@ export default function App() {
                       {p.name}
                     </option>
                   ))}
-                  <option value={CUSTOM_PRESET}>{CUSTOM_PRESET}</option>
+                  {/* Ellipsis by convention: picking it puts you in an editor. */}
+                  <option value={CUSTOM_PRESET}>{CUSTOM_PRESET}…</option>
                 </select>
+                {locked && (
+                  <div className="d-flex align-items-center gap-2 mt-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => setPresetName(CUSTOM_PRESET)}
+                    >
+                      <i className="bi bi-copy me-1" aria-hidden="true" />
+                      Copy to Custom…
+                    </button>
+                    <span className="form-text m-0">Presets are read-only.</span>
+                  </div>
+                )}
               </div>
 
               <div className="row g-2 mb-3">
@@ -366,6 +376,7 @@ export default function App() {
                   <select
                     id={ids.structure}
                     className="form-select"
+                    disabled={locked}
                     value={structure.kind}
                     onChange={(e) =>
                       setStructure(
@@ -390,6 +401,7 @@ export default function App() {
                   <select
                     id={ids.format}
                     className="form-select"
+                    disabled={locked}
                     value={config.format}
                     onChange={(e) => set("format", e.target.value as EventFormat)}
                   >
@@ -408,6 +420,7 @@ export default function App() {
                       </label>
                       <NumberInput
                         id={ids.maxWins}
+                        disabled={locked}
                         min={1}
                         value={structure.maxWins}
                         onChange={(n) =>
@@ -421,6 +434,7 @@ export default function App() {
                       </label>
                       <NumberInput
                         id={ids.maxLosses}
+                        disabled={locked}
                         min={1}
                         value={structure.maxLosses}
                         onChange={(n) =>
@@ -436,6 +450,7 @@ export default function App() {
                     </label>
                     <NumberInput
                       id={ids.rounds}
+                      disabled={locked}
                       min={1}
                       value={structure.rounds}
                       onChange={(n) =>
@@ -453,6 +468,7 @@ export default function App() {
                   </label>
                   <NumberInput
                     id={ids.entry}
+                    disabled={locked}
                     min={0}
                     value={config.entryCostGems}
                     onChange={(n) => set("entryCostGems", n)}
@@ -477,7 +493,7 @@ export default function App() {
                     <th scope="col" className="text-end">
                       Packs
                     </th>
-                    {awardsPlayInPoints && (
+                    {showPlayInPoints && (
                       <th scope="col" className="text-end">
                         Points
                       </th>
@@ -491,6 +507,7 @@ export default function App() {
                       <td>
                         <NumberInput
                           className="form-control form-control-sm text-end"
+                          disabled={locked}
                           min={0}
                           value={t.gems}
                           onChange={(n) => setTier(t.wins, { gems: n })}
@@ -499,15 +516,17 @@ export default function App() {
                       <td>
                         <NumberInput
                           className="form-control form-control-sm text-end"
+                          disabled={locked}
                           min={0}
                           value={t.packs}
                           onChange={(n) => setTier(t.wins, { packs: n })}
                         />
                       </td>
-                      {awardsPlayInPoints && (
+                      {showPlayInPoints && (
                         <td>
                           <NumberInput
                             className="form-control form-control-sm text-end"
+                            disabled={locked}
                             min={0}
                             value={t.playInPoints ?? 0}
                             onChange={(n) => setTier(t.wins, { playInPoints: n })}

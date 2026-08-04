@@ -106,10 +106,13 @@ pack value, N and seed are left alone when switching.
 | Contender Draft | 3,000 | BO1, to 7 wins / 3 losses | nothing below 3 wins, then 1400 / 2800 / 3200 / 4200 / 7200 gems and 3 / 6 / 8 / 14 / 22 packs |
 | Custom | — | Keeps whatever is on screen | |
 
-Editing any structural or payout field moves the selector to **Custom**, and
-undoing the edit snaps it back to the preset. Premier and Cube are structurally
-identical, so the app remembers which one you picked rather than inferring it
-from the values.
+A preset describes a real event, so its definition is **read-only** — structure,
+format, thresholds, entry cost and payout schedule are all locked. **Copy to
+Custom…** takes the values as they stand and unlocks them; picking **Custom…**
+from the dropdown does the same without changing anything on screen.
+
+The Points column is hidden on events that award no play-in points, but always
+shown on Custom, so a schedule that starts at zero can still grow one.
 
 The payout table is tied to the structure: lowering the win ceiling drops the
 rows above it, and raising it again adds empty rows rather than restoring the

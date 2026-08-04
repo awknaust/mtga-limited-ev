@@ -18,7 +18,6 @@ import {
   expectedNetAt,
   grossValue,
   matchWinRate,
-  matchesPreset,
   maxPossibleWins,
   maxRounds,
   playInPointsFor,
@@ -415,24 +414,7 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.structure).toEqual({ kind: "rounds", rounds: 3 });
   });
 
-  it("tracks whether a config still matches the selected preset", () => {
-    const config = defaultConfig();
-    expect(matchesPreset(config, "Premier Draft")).toBe(true);
-    // Cube is structurally identical, so it matches too — which is why the UI
-    // remembers the selection rather than deriving it.
-    expect(matchesPreset(config, "Cube Draft")).toBe(true);
-    expect(matchesPreset(config, "Quick Draft")).toBe(false);
-    expect(matchesPreset({ ...config, entryCostGems: 1600 }, "Premier Draft")).toBe(
-      false,
-    );
-  });
 
-  it("notices a structure or format change, not just payout edits", () => {
-    const config = defaultConfig();
-    const restructured = { ...config, structure: { kind: "rounds", rounds: 7 } as const };
-    expect(matchesPreset(restructured, "Premier Draft")).toBe(false);
-    expect(matchesPreset({ ...config, format: "bo3" }, "Premier Draft")).toBe(false);
-  });
 
   it("keeps win rate and pack value when switching preset", () => {
     const base = { ...defaultConfig(), winRate: 0.61, packValueGems: 200 };

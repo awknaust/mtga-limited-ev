@@ -16,7 +16,7 @@ import { PREMIER_DRAFT } from "../data/presets/premier-draft";
 import { QUICK_DRAFT } from "../data/presets/quick-draft";
 import { SEALED } from "../data/presets/sealed";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
-import type { EventConfig, EventPreset, EventStructure } from "./types";
+import type { EventConfig, EventPreset } from "./types";
 
 export {
   CONTENDER_DRAFT,
@@ -94,43 +94,6 @@ export function configFromPreset(preset: EventPreset, base: EventConfig): EventC
     structure: { ...preset.structure },
     payouts: preset.payouts.map((t) => ({ ...t })),
   };
-}
-
-function sameStructure(a: EventStructure, b: EventStructure): boolean {
-  if (a.kind === "rounds" && b.kind === "rounds") return a.rounds === b.rounds;
-  if (a.kind === "elimination" && b.kind === "elimination") {
-    return a.maxWins === b.maxWins && a.maxLosses === b.maxLosses;
-  }
-  return false;
-}
-
-/**
- * Whether a config still matches a preset's entry cost, format, structure and
- * payout schedule.
- *
- * Premier and Cube are structurally identical, so this can't be used to *derive*
- * which preset is selected — only to check whether an edit has moved the config
- * off the one the user picked.
- */
-export function matchesPreset(config: EventConfig, presetName: string): boolean {
-  const p = PRESETS.find((x) => x.name === presetName);
-  if (!p) return false;
-  return (
-    p.entryCostGems === config.entryCostGems &&
-    p.format === config.format &&
-    sameStructure(p.structure, config.structure) &&
-    p.payouts.length === config.payouts.length &&
-    p.payouts.every((t, i) => {
-      const c = config.payouts[i];
-      return (
-        c &&
-        c.wins === t.wins &&
-        c.gems === t.gems &&
-        c.packs === t.packs &&
-        (c.playInPoints ?? 0) === (t.playInPoints ?? 0)
-      );
-    })
-  );
 }
 
 export function defaultConfig(): EventConfig {
