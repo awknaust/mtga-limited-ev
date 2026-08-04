@@ -818,11 +818,7 @@ export default function App() {
                   {/* Ellipsis by convention: picking it puts you in an editor. */}
                   <option value={CUSTOM_PRESET}>{CUSTOM_PRESET}…</option>
                 </select>
-                {locked ? (
-                  <div className="form-text">
-                    Read-only. Choose Custom… to edit.
-                  </div>
-                ) : (
+                {!locked && (
                   /*
                    * Loading a preset's numbers into a custom schedule is a rare
                    * enough move to keep quiet. The select resets to its
