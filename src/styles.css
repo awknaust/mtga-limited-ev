@@ -144,6 +144,28 @@ body {
   }
 }
 
+/*
+ * Headings over a block of results, which are read rather than filled in — so
+ * they carry the weight of a heading, where .section-title above is a label
+ * for the controls beside it.
+ */
+.section-head {
+  margin-bottom: 0.75rem;
+}
+
+.section-head-title {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  color: var(--bs-body-color);
+  margin-bottom: 0;
+}
+
+.section-head-sub {
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+  margin-top: 0.125rem;
+}
+
 /* Plain-cased detail sitting inside an uppercased section title. */
 .section-note {
   font-size: 0.75rem;
@@ -288,9 +310,16 @@ body {
   stroke-width: 1;
 }
 
-/* Where you began, against how it turned out. */
+/*
+ * Where you began, against how it turned out.
+ *
+ * Rose rather than the grey it was: the line crosses bars drawn in the primary
+ * blue, and a muted grey over them reads as part of the chrome — a gridline
+ * that has gone astray — rather than as a landmark. Warm and cool are the two
+ * things that stay apart on a blue field, and the median has the other one.
+ */
 .chart-marker-start {
-  stroke: #94a3b8;
+  stroke: #f472b6;
   stroke-width: 1.5;
   stroke-dasharray: 2 3;
 }
@@ -301,15 +330,27 @@ body {
   stroke-dasharray: 6 3;
 }
 
+/*
+ * Both landmark labels, sized and weighted to be read rather than glanced at.
+ * 10px unweighted was thin enough that the colour was doing all the work, and
+ * a hue can only carry a label that is already legible without it.
+ */
 .chart-marker-label-start,
 .chart-marker-label-median {
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
+/*
+ * A lighter rose than the line it labels. Text and a 1.5px dash want opposite
+ * things here — the line sits over the bars and needs to hold its own against
+ * the primary blue, the label sits over the card and needs the brightness the
+ * amber median has, which the mid rose was a good way short of.
+ */
 .chart-marker-label-start {
-  fill: #94a3b8;
+  fill: #f9a8d4;
 }
 
 .chart-marker-label-median {
