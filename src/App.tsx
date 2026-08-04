@@ -289,8 +289,12 @@ export default function App() {
               */}
               <div className="mb-3">
                 <label htmlFor={ids.winRate} className="form-label">
-                  {isBo3 ? "Match win rate" : "Win rate"}{" "}
+                  {isBo3 ? "Match win rate" : "Game win rate"}{" "}
                   <span className="fw-semibold text-body">{pct(roundWinRate)}</span>
+                  <InfoTip
+                    label="About the win rate"
+                    content="Best-of-one events are decided per game, best-of-three per match, so the slider reads in whichever the event uses. A 55% game win rate is a 57.5% match win rate."
+                  />
                 </label>
                 <input
                   id={ids.winRate}
