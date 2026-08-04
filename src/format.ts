@@ -38,14 +38,43 @@ export type Money = {
 const withSign = (n: number, body: string): string => (n < 0 ? `−${body}` : body);
 
 /**
+ * Formatters keyed by how many decimal places they print, built once each.
+ * Constructing an `Intl.NumberFormat` is not cheap and these run inside chart
+ * and table renders.
+ *
+ * Pinned to `en-US` rather than following the reader's locale, which the gem
+ * formatters do. Gems are whole numbers, so localising them only changes the
+ * thousands separator and is harmless. A dollar amount also has a decimal
+ * separator, and it has to agree with the input sitting next to it — an
+ * `<input type="number">` accepts a period and nothing else, whatever the
+ * locale, so a reader shown `8,50` would be editing a field reading `8.50`.
+ */
+const usdFormats: Record<number, Intl.NumberFormat> = {};
+
+const usdFormat = (digits: number): Intl.NumberFormat =>
+  (usdFormats[digits] ??= new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: digits,
+    maximumFractionDigits: digits,
+  }));
+
+/**
  * Dollar amounts here span five orders of magnitude — a pack is worth a few
  * cents and a collector box several hundred dollars — so precision follows
  * size rather than being fixed at two places.
+ *
+ * Intl rather than `toFixed`, which printed no thousands separator: at a low
+ * gems-per-dollar rate a collector box read `$6303.33` while every gem figure
+ * beside it was grouped.
  */
 const usd = (value: number): string => {
   const a = Math.abs(value);
-  const digits = a >= 1 ? 2 : a >= 0.01 ? 3 : 4;
-  return withSign(value, `$${a.toFixed(digits)}`);
+  // Zero takes the ordinary two places rather than falling through to the
+  // small-amount branch. It has no significant digits to preserve, and an
+  // axis reading $0.0000 between −$250.00 and $250.00 just looks broken.
+  const digits = a === 0 || a >= 1 ? 2 : a >= 0.01 ? 3 : 4;
+  return withSign(value, usdFormat(digits).format(a));
 };
 
 const gemsWhole = (value: number): string =>
@@ -88,6 +117,10 @@ export function money(unit: Unit, gemsPerUsd: number): Money {
      * Always two places, so $8.50 does not display as $8.5. A price with a
      * missing cents digit reads as a truncation of some other number, which is
      * the one thing a money field should never do.
+     *
+     * Deliberately `toFixed` and not the Intl formatter above: this is a form
+     * value, not a label. It carries no symbol and no grouping — a number
+     * field rejects both — and its decimal separator must stay a period.
      */
     inputText: (g) => cents(g).toFixed(2),
     fromInput: (n) => n * rate,
