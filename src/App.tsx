@@ -31,7 +31,21 @@ import {
   type EventStructure,
   type PayoutTier,
 } from "./lib";
-import { decodeShareState, encodeShareState, type Tab } from "./share";
+import {
+  STARTING_ENTRIES,
+  decodeShareState,
+  encodeShareState,
+  type Tab,
+} from "./share";
+
+/** An event the current balance cannot enter, and what to do about it. */
+type TopUp = {
+  name: string;
+  entryGems: number;
+  /** 0 where the event takes gems only, which changes what the prompt says. */
+  goldPrice: number;
+  suggested: number;
+};
 
 const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
@@ -293,6 +307,9 @@ export default function App() {
   // 20,000 gems for $49.99 is the largest bundle, so the best rate on offer.
   const [gemsPerUsd, setGemsPerUsd] = useState(initial.gemsPerUsd);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  // Set when a preset switch lands on an event the balance cannot enter. Not
+  // in the URL: it describes a moment, not a configuration worth sharing.
+  const [topUp, setTopUp] = useState<TopUp | null>(null);
 
   /*
    * replaceState, not pushState: these are live-edited fields, and a history
@@ -379,6 +396,28 @@ export default function App() {
     };
   }, []);
 
+  const topUpEl = useRef<HTMLDivElement>(null);
+  const topUpModal = useRef<Modal | null>(null);
+  useEffect(() => {
+    if (!topUpEl.current) return;
+    topUpModal.current = new Modal(topUpEl.current);
+    return () => {
+      topUpModal.current?.dispose();
+      topUpModal.current = null;
+    };
+  }, []);
+  /*
+   * Shown from an effect rather than from the handler that sets it, so the
+   * body has rendered before the dialog appears — calling show() inline would
+   * fade in the previous prompt's text for a frame.
+   *
+   * `topUp` is deliberately not cleared when the dialog closes: the content
+   * would vanish mid-fade, and the next switch overwrites it anyway.
+   */
+  useEffect(() => {
+    if (topUp) topUpModal.current?.show();
+  }, [topUp]);
+
   const uid = useId();
   const ids = {
     preset: `${uid}-preset`,
@@ -410,6 +449,7 @@ export default function App() {
     gemsPerUsd: `${uid}-gems-per-usd`,
     resultTabs: `${uid}-results`,
     viewTabs: `${uid}-view`,
+    topUpTitle: `${uid}-top-up-title`,
   };
 
   const isBo3 = config.format === "bo3";
@@ -461,7 +501,27 @@ export default function App() {
   const applyPreset = (name: string) => {
     setPresetName(name);
     const preset = PRESETS.find((p) => p.name === name);
-    if (preset) setConfig(configFromPreset(preset, config));
+    if (!preset) return;
+    setConfig(configFromPreset(preset, config));
+
+    /*
+     * Switching to an event you cannot afford produces a page of zeroes: the
+     * bankroll run ends before its first entry, so every figure on that tab is
+     * the starting balance restated. That reads as a broken app rather than as
+     * an empty wallet, so it is worth interrupting for — but only in that case,
+     * which is why the test is whether *either* currency covers one entry
+     * rather than whether both do.
+     */
+    const gemsCover = startingGems >= preset.entryCostGems;
+    const goldPrice = preset.entryCostGold ?? 0;
+    const goldCovers = goldPrice > 0 && startingGold >= goldPrice;
+    if (gemsCover || goldCovers) return;
+    setTopUp({
+      name: preset.name,
+      entryGems: preset.entryCostGems,
+      goldPrice,
+      suggested: STARTING_ENTRIES * preset.entryCostGems,
+    });
   };
 
   /*
@@ -1000,37 +1060,37 @@ export default function App() {
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
-                    Plays a sequence rather than one event in isolation: entries
-                    come out of your real balances, gold first where the event
-                    takes it, and winnings fund the next entry. A run ends when
-                    neither currency covers another.
+                    You start with the balance above and enter the same event
+                    over and over. Each entry is paid in gold if the event has a
+                    gold price and in gems otherwise, and whatever you win goes
+                    back into the pot to pay for the next one. A run stops when
+                    you can no longer afford an entry, or when it hits your event
+                    limit. The figures below summarise a few thousand different
+                    possible outcomes.
                   </div>
               <div className="row g-2 mb-3">
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
-                    <div className="stat-label">Events played</div>
+                    <div className="stat-label">Mean events played</div>
                     <div className="stat-value">{bankroll.meanEvents.toFixed(1)}</div>
                     <div className="stat-hint">
-                      median {bankroll.eventPercentiles.p50} · p5–p95{" "}
-                      {bankroll.eventPercentiles.p5}–{bankroll.eventPercentiles.p95}
+                      median {bankroll.eventPercentiles.p50}
                     </div>
                   </div>
                 </div>
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
-                    <div className="stat-label">Ending value ({eqLabel})</div>
+                    <div className="stat-label">Mean ending value ({eqLabel})</div>
                     <div className={`stat-value ${signClass(bankroll.meanFinalValue - startingGems)}`}>
                       {gems(bankroll.meanFinalValue)}
                     </div>
-                    <div className="stat-hint">
-                      median {gems(bankroll.medianFinalValue)} · from{" "}
-                      {gems(startingGems)}
-                    </div>
+                    {/* No hint: the median is in the percentile strip below and
+                        the starting balance is an input a few inches away. */}
                   </div>
                 </div>
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
-                    <div className="stat-label">Packs won</div>
+                    <div className="stat-label">Mean packs won</div>
                     <div className="stat-value">
                       {bankroll.holdings.packs.mean.toFixed(1)}
                     </div>
@@ -1043,9 +1103,15 @@ export default function App() {
                 </div>
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
-                    <div className="stat-label">Never ran dry</div>
-                    <div className="stat-value">{pct(bankroll.survivedFraction)}</div>
-                    <div className="stat-hint">of samples reached the limit</div>
+                    {/* The model stores the survival rate; ruin is the figure
+                        with a name, and the direction people quote it in. */}
+                    <div className="stat-label">Risk of ruin</div>
+                    <div className="stat-value">
+                      {pct(1 - bankroll.survivedFraction)}
+                    </div>
+                    <div className="stat-hint">
+                      went broke inside {maxEvents} events
+                    </div>
                   </div>
                 </div>
               </div>
@@ -1111,7 +1177,7 @@ export default function App() {
                           ]}
                         />
                         <div className="form-text">
-                          Gem-equivalent value across samples: gems, leftover gold,
+                          Gem-equivalent value across possible outcomes: gems, leftover gold,
                           and everything won.
                         </div>
                       </>
@@ -1517,7 +1583,7 @@ export default function App() {
                       Simulated events (Per event)
                       <InfoTip
                         label="About simulated events"
-                        content="How many single events the Per event tab samples; it does not touch the Bankroll tab. More of them narrow the confidence interval on the simulated mean, and the exact column beside it is closed form rather than sampled."
+                        content="How many single events the Per event tab simulates; it does not touch the Bankroll tab. More of them narrow the confidence interval on the mean, and the exact column beside it is closed form rather than simulated."
                       />
                     </label>
                     <NumberInput
@@ -1547,7 +1613,7 @@ export default function App() {
                       Seed
                       <InfoTip
                         label="About the seed"
-                        content="Changes which sample you get, not the distribution it is drawn from. The same seed always reproduces the same run."
+                        content="Changes which possible outcomes you get, not the distribution they are drawn from. The same seed always reproduces the same figures."
                       />
                     </label>
                     <NumberInput id={ids.seed} value={seed} onChange={setSeed} />
@@ -1560,6 +1626,73 @@ export default function App() {
                 Done
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Raised when a preset switch lands on an event the balance cannot
+          enter. Declining is the plain-text option, since the balance on
+          screen may be exactly the one being asked about. */}
+      <div
+        className="modal fade"
+        tabIndex={-1}
+        ref={topUpEl}
+        aria-labelledby={ids.topUpTitle}
+      >
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title h6 mb-0" id={ids.topUpTitle}>
+                Not enough to enter
+              </h2>
+              <button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              />
+            </div>
+            {topUp && (
+              <>
+                <div className="modal-body">
+                  <p className="mb-0">
+                    {topUp.name} costs {gems(topUp.entryGems)} {m.label} and you
+                    have {gems(startingGems)}.
+                    {topUp.goldPrice > 0 && (
+                      <>
+                        {" "}
+                        Your gold does not cover its{" "}
+                        {topUp.goldPrice.toLocaleString()} gold price either.
+                      </>
+                    )}{" "}
+                    Set your balance to{" "}
+                    <span className="fw-semibold text-body">
+                      {gems(topUp.suggested)}
+                    </span>{" "}
+                    — enough for {STARTING_ENTRIES} entries?
+                  </p>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    data-bs-dismiss="modal"
+                  >
+                    Leave it
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setStartingGems(topUp.suggested);
+                      topUpModal.current?.hide();
+                    }}
+                  >
+                    Set to {gems(topUp.suggested)}
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
