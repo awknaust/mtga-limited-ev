@@ -53,14 +53,15 @@ type TopUp = {
  * What the confidence selector offers, shortest record first.
  *
  * Twenty is a few drafts, a hundred is a season's worth, five hundred is enough
- * that the prior stops mattering at all. Certain is 0, which switches the
- * ranges off.
+ * that the prior stops mattering at all. Infinity is stored as 0 and reads as
+ * the limit of the same idea: a record long enough to leave nothing in doubt,
+ * so the ranges collapse to the single figures they are drawn around.
  */
 const CONFIDENCE_CHOICES = [
   { matches: 20, label: "20" },
   { matches: 100, label: "100" },
   { matches: 500, label: "500" },
-  { matches: 0, label: "Certain" },
+  { matches: 0, label: "∞" },
 ];
 
 const RESULT_TABS = [
@@ -1400,7 +1401,7 @@ export default function App() {
                       Matches played
                       <InfoTip
                         label="About matches played"
-                        content="The number of matches you used to estimate your win rate. Fewer matches means less certain outcomes, and every range below widens to match. Certain treats the rate as exact and reports single figures instead."
+                        content="How many matches you estimated your win rate from. Fewer matches means less certain outcomes. Infinity means you know it exactly, and every range collapses to a single figure."
                       />
                     </label>
                     {/*
@@ -1437,7 +1438,7 @@ export default function App() {
                     <div className="form-text mt-0">
                       {rateBand
                         ? `Your true win rate is in ${pct(rateBand[0])} to ${pct(rateBand[1])}, with ${pct(CREDIBLE_LEVEL, 0)} probability.`
-                        : "Ranges are switched off; every figure below is a single number."}
+                        : "An exactly known win rate, so every figure below is a single number."}
                     </div>
                   </div>
                 </div>

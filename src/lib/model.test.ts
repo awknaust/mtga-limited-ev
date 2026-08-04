@@ -33,6 +33,7 @@ import {
   meanWinsPerEvent,
   grossValue,
   matchWinRate,
+  RECORDED_EVENTS,
   netInterval,
   probProfitable,
   winRateInterval,
@@ -549,11 +550,15 @@ describe("bankroll", () => {
     const res = simulateBankrolls(config, roll, 200, 23);
     for (const { run, value } of res.samples) {
       const log = run.log ?? [];
-      expect(log).toHaveLength(run.events);
+      // Capped: a long run keeps its opening events and stops recording, while
+      // `events` goes on counting. Reachable now that a run can be dealt a win
+      // rate well above the one on the slider.
+      expect(log).toHaveLength(Math.min(run.events, RECORDED_EVENTS));
       expect(log.map((e) => e.event)).toEqual(log.map((_, i) => i + 1));
       // The last row's balances are where the run ended, which is what the
-      // percentile beside it was computed from.
-      if (log.length) {
+      // percentile beside it was computed from — but only where the log ran to
+      // the end. A capped log stops mid-run and its last row is not the finish.
+      if (log.length && run.events <= RECORDED_EVENTS) {
         expect(log[log.length - 1].gemBalance).toBe(run.finalGems);
         expect(log[log.length - 1].goldBalance).toBe(run.finalGold);
       }
@@ -573,6 +578,9 @@ describe("bankroll", () => {
     const res = simulateBankrolls(config, { ...roll, startingGems: 30_000 }, 120, 29);
     for (const { run } of res.samples) {
       const log = run.log ?? [];
+      // Only where the log is the whole run: past the cap it is an opening
+      // extract, and an extract is not meant to add up to the totals.
+      if (run.events > RECORDED_EVENTS) continue;
       const sum = (pick: (e: (typeof log)[number]) => number) =>
         log.reduce((a, e) => a + pick(e), 0);
       expect(sum((e) => e.packs)).toBe(run.packs);

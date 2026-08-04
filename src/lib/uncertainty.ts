@@ -116,6 +116,26 @@ function sortedNets(config: EventConfig, posterior: Posterior): number[] {
   return nets.sort((a, b) => a - b);
 }
 
+/**
+ * One win rate drawn from the posterior, by inverse transform.
+ *
+ * Takes a uniform rather than making its own, so a caller already running on a
+ * seeded generator stays reproducible and spends exactly one number per draw.
+ *
+ * Null posterior means the rate was called certain, and the configured rate is
+ * returned unchanged. Approximating that with a very tight Beta would be the
+ * same idea with jitter left in it, and there is nothing to gain by drawing
+ * from a distribution whose whole content is one number.
+ */
+export function drawWinRate(
+  config: EventConfig,
+  posterior: Posterior | null,
+  uniform: number,
+): number {
+  if (!posterior) return config.winRate;
+  return betaQuantile(uniform, posterior.alpha, posterior.beta);
+}
+
 /** Central credible interval on expected net, or null if the rate is certain. */
 export function netInterval(
   config: EventConfig,

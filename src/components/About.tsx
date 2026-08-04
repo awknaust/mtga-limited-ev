@@ -134,10 +134,12 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
           you by rank and a handful of matches is weak evidence of anything
           else.
 
-          The ranges reach the Per event tab and the curve beside it. The
-          Bankroll tab still plays every run at the single rate on the slider,
-          so its figures — including risk of ruin — are what happens if that
-          rate is exactly right.
+          It reaches the Bankroll tab too, where each possible outcome is played
+          at its own win rate drawn from that range — one rate for the whole of
+          a run, since your true rate does not change between events. That makes
+          the ending values spread wider than luck alone would explain, and it
+          lowers the risk of ruin, because the runs dealt a rate above your
+          estimate are the ones that go on paying for themselves.
         </dd>
 
         <dt className="col-sm-4">Risk of ruin</dt>
