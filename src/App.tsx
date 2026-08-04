@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import Popover from "bootstrap/js/dist/popover";
 
+import { money, type Unit } from "./format";
 import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
@@ -28,14 +29,6 @@ import {
   type EventStructure,
   type PayoutTier,
 } from "./lib";
-
-const gems = (n: number): string =>
-  `${n < 0 ? "−" : ""}${Math.abs(Math.round(n)).toLocaleString()}`;
-
-const gems2 = (n: number): string =>
-  `${n < 0 ? "−" : ""}${Math.abs(n).toLocaleString(undefined, {
-    maximumFractionDigits: 1,
-  })}`;
 
 const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
 
@@ -85,6 +78,32 @@ function NumberInput({
       disabled={disabled}
       onWheel={(e) => e.currentTarget.blur()}
       onChange={(e) => onChange(Number(e.target.value) || 0)}
+    />
+  );
+}
+
+/** A gem-valued input, displayed and edited in the active unit. */
+function MoneyInput({
+  gemValue,
+  onChange,
+  m,
+  id,
+  disabled,
+}: {
+  gemValue: number;
+  onChange: (gems: number) => void;
+  m: ReturnType<typeof money>;
+  id?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <NumberInput
+      id={id}
+      disabled={disabled}
+      min={0}
+      fractional={m.fractional}
+      value={m.toInput(gemValue)}
+      onChange={(n) => onChange(m.fromInput(n))}
     />
   );
 }
@@ -139,6 +158,15 @@ export default function App() {
   // Off by default: none of these buys an entry in Arena.
   const [spendWinnings, setSpendWinnings] = useState(false);
   const [tab, setTab] = useState<"bankroll" | "event" | "about">("bankroll");
+  const [unit, setUnit] = useState<Unit>("gems");
+  // 20,000 gems for $49.99 is the largest bundle, so the best rate on offer.
+  const [gemsPerUsd, setGemsPerUsd] = useState(400);
+  const m = useMemo(() => money(unit, gemsPerUsd), [unit, gemsPerUsd]);
+  // Shadowing the old helpers keeps every call site reading naturally while
+  // the unit behind them changes.
+  const gems = m.fmt;
+  const gems2 = m.fmt1;
+  const eqLabel = unit === "gems" ? "Gem-eq" : "USD-eq";
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -178,6 +206,7 @@ export default function App() {
     startGold: `${uid}-start-gold`,
     maxEvents: `${uid}-max-events`,
     spendWinnings: `${uid}-spend-winnings`,
+    gemsPerUsd: `${uid}-gems-per-usd`,
   };
 
   const isBo3 = config.format === "bo3";
@@ -324,7 +353,27 @@ export default function App() {
           {/* Assumptions that hold whichever event you price. */}
           <div className="card">
             <div className="card-body">
-              <h2 className="section-title">Global inputs</h2>
+              <h2 className="section-title d-flex flex-wrap align-items-center justify-content-between gap-2">
+                Global inputs
+                {/* Display only — everything is stored and simulated in gems. */}
+                <span
+                  className="btn-group btn-group-sm"
+                  role="group"
+                  aria-label="Display unit"
+                >
+                  {(["gems", "usd"] as const).map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      className={`btn ${unit === u ? "btn-primary" : "btn-outline-secondary"}`}
+                      aria-pressed={unit === u}
+                      onClick={() => setUnit(u)}
+                    >
+                      {u === "gems" ? "Gems" : "USD"}
+                    </button>
+                  ))}
+                </span>
+              </h2>
 
               {/*
                 One slider, reading in whichever unit the event actually runs
@@ -361,12 +410,12 @@ export default function App() {
               <div className="row g-2 mb-3">
                 <div className="col-6">
                   <label htmlFor={ids.startGems} className="form-label">
-                    Starting gems
+                    Starting {m.label}
                   </label>
-                  <NumberInput
+                  <MoneyInput
                     id={ids.startGems}
-                    min={0}
-                    value={startingGems}
+                    m={m}
+                    gemValue={startingGems}
                     onChange={setStartingGems}
                   />
                 </div>
@@ -557,13 +606,13 @@ export default function App() {
               <div className="row g-2 mb-3">
                 <div className="col-6">
                   <label htmlFor={ids.entry} className="form-label">
-                    Entry cost (gems)
+                    Entry cost ({m.label})
                   </label>
-                  <NumberInput
+                  <MoneyInput
                     id={ids.entry}
                     disabled={locked}
-                    min={0}
-                    value={config.entryCostGems}
+                    m={m}
+                    gemValue={config.entryCostGems}
                     onChange={(n) => set("entryCostGems", n)}
                   />
                 </div>
@@ -723,12 +772,13 @@ export default function App() {
               </ul>
 
               {tab === "about" ? (
-                <About config={config} />
+                <About config={config} m={m} />
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
-                    Starting from {gems(startingGems)} gems and {gems(startingGold)}{" "}
-                    gold, stopping after at most {maxEvents} events.
+                    Starting from {gems(startingGems)} and{" "}
+                    {Math.round(startingGold).toLocaleString()} gold, stopping after
+                    at most {maxEvents} events.
                     <InfoTip
                       label="About the bankroll simulation"
                       content="Plays a sequence rather than one event: entries come out of real balances, gold first where the event takes it, and winnings go back in. A run ends when neither currency covers another entry."
@@ -747,7 +797,7 @@ export default function App() {
                 </div>
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
-                    <div className="stat-label">Ending value (gem eq.)</div>
+                    <div className="stat-label">Ending value ({eqLabel})</div>
                     <div className={`stat-value ${signClass(bankroll.meanFinalValue - startingGems)}`}>
                       {gems(bankroll.meanFinalValue)}
                     </div>
@@ -782,7 +832,7 @@ export default function App() {
 
                   <h3 className="section-title mt-4">Where you end up</h3>
                   <div className="stat mb-3">
-                    <div className="stat-label">Final gem-equivalent</div>
+                    <div className="stat-label">Final {eqLabel}</div>
                     <div className="d-flex flex-wrap gap-3 mt-1">
                       {(
                         [
@@ -804,6 +854,7 @@ export default function App() {
                   </div>
                   <ValueHistogram
                     bins={bankroll.valueHistogram}
+                    m={m}
                     markers={[
                       { at: startingGems, label: "started with", tone: "start" },
                       { at: bankroll.medianFinalValue, label: "median", tone: "median" },
@@ -841,7 +892,7 @@ export default function App() {
                   content="Closed-form expectation, not the simulation. The dot is where you are, the dashed line is break-even."
                 />
               </h3>
-              <EvCurveChart config={config} breakEven={breakEven} />
+              <EvCurveChart config={config} breakEven={breakEven} m={m} />
               <div className="form-text">
                 Per {isBo3 ? "match" : "game"} win rate, against expected net gems.
               </div>
@@ -945,19 +996,6 @@ export default function App() {
         </div>
       </div>
 
-      <footer className="mt-4 pt-3 border-top">
-        <p className="form-text mb-0">
-          Payout tables, derivations behind every default, and the source are at{" "}
-          <a
-            href="https://github.com/awknaust/mtga-limited-ev"
-            target="_blank"
-            rel="noreferrer"
-          >
-            github.com/awknaust/mtga-limited-ev
-          </a>
-          .
-        </p>
-      </footer>
 
       <div className="modal fade" tabIndex={-1} ref={modalEl} aria-hidden="true">
         <div className="modal-dialog modal-dialog-centered">
@@ -1016,48 +1054,48 @@ export default function App() {
                 <div className="row g-2">
                   <div className="col-6">
                     <label htmlFor={ids.draftPackValue} className="form-label">
-                      Draft pack value (gems)
+                      Draft pack value ({m.label})
                       <InfoTip
                         label="About draft pack value"
                         content="What one draft pack of kept cards is worth, assuming a complete set: a rare converts to 20 gems and a mythic to 40, upgrading about 1:7, so roughly 23 a pack."
                       />
                     </label>
-                    <NumberInput
-                      id={ids.draftPackValue}
-                      min={0}
-                      value={config.draftPackValueGems}
-                      onChange={(n) => set("draftPackValueGems", n)}
-                    />
+                    <MoneyInput
+                    id={ids.draftPackValue}
+                    m={m}
+                    gemValue={config.draftPackValueGems}
+                    onChange={(n) => set("draftPackValueGems", n)}
+                  />
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.packValue} className="form-label">
-                      Pack value (gems)
+                      Pack value ({m.label})
                       <InfoTip
                         label="About pack value"
                         content="How much are packs worth to you (in gems)? Default is based on duplicate protection for a complete set."
                       />
                     </label>
-                    <NumberInput
-                      id={ids.packValue}
-                      min={0}
-                      value={config.packValueGems}
-                      onChange={(n) => set("packValueGems", n)}
-                    />
+                    <MoneyInput
+                    id={ids.packValue}
+                    m={m}
+                    gemValue={config.packValueGems}
+                    onChange={(n) => set("packValueGems", n)}
+                  />
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.playInValue} className="form-label">
-                      Play-in point value (gems)
+                      Play-in point value ({m.label})
                       <InfoTip
                         label="About play-in point value"
                         content="Priced off what the points buy: 20 of them cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point."
                       />
                     </label>
-                    <NumberInput
-                      id={ids.playInValue}
-                      min={0}
-                      value={config.playInPointValueGems}
-                      onChange={(n) => set("playInPointValueGems", n)}
-                    />
+                    <MoneyInput
+                    id={ids.playInValue}
+                    m={m}
+                    gemValue={config.playInPointValueGems}
+                    onChange={(n) => set("playInPointValueGems", n)}
+                  />
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.funValue} className="form-label">
@@ -1074,33 +1112,33 @@ export default function App() {
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.playBoxValue} className="form-label">
-                      Play box value (gems)
+                      Play box value ({m.label})
                       <InfoTip
                         label="About play box value"
                         content="Average street price across three recent Standard sets, at 400 gems to the dollar. Wizards' published cash substitution is $209.70 a box, before withholding."
                       />
                     </label>
-                    <NumberInput
-                      id={ids.playBoxValue}
-                      min={0}
-                      value={config.playBoxValueGems}
-                      onChange={(n) => set("playBoxValueGems", n)}
-                    />
+                    <MoneyInput
+                    id={ids.playBoxValue}
+                    m={m}
+                    gemValue={config.playBoxValueGems}
+                    onChange={(n) => set("playBoxValueGems", n)}
+                  />
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.collectorBoxValue} className="form-label">
-                      Collector box value (gems)
+                      Collector box value ({m.label})
                       <InfoTip
                         label="About collector box value"
                         content="Average street price across three recent Standard sets, at 400 gems to the dollar. These trade well above the $479.88 MSRP of a 12-pack display."
                       />
                     </label>
-                    <NumberInput
-                      id={ids.collectorBoxValue}
-                      min={0}
-                      value={config.collectorBoxValueGems}
-                      onChange={(n) => set("collectorBoxValueGems", n)}
-                    />
+                    <MoneyInput
+                    id={ids.collectorBoxValue}
+                    m={m}
+                    gemValue={config.collectorBoxValueGems}
+                    onChange={(n) => set("collectorBoxValueGems", n)}
+                  />
                   </div>
                 </div>
               </div>
@@ -1163,6 +1201,27 @@ export default function App() {
                       onChange={(n) =>
                         set("goldPerGem", n > 0 ? 10000 / n : Number.POSITIVE_INFINITY)
                       }
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="adv-group mb-3">
+                <h3 className="section-title">Display</h3>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label htmlFor={ids.gemsPerUsd} className="form-label">
+                      Gems per US dollar
+                      <InfoTip
+                        label="About the dollar conversion"
+                        content="Used only for showing figures in USD; the simulation always runs in gems. 400 comes from the largest bundle, 20,000 gems for $49.99, which is the best rate on offer."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.gemsPerUsd}
+                      min={1}
+                      value={gemsPerUsd}
+                      onChange={(n) => setGemsPerUsd(Math.max(1, n))}
                     />
                   </div>
                 </div>

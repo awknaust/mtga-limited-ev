@@ -1,5 +1,7 @@
 import { scaleLinear } from "d3";
 
+import type { Money } from "../format";
+
 const WIDTH = 560;
 const HEIGHT = 220;
 const MARGIN = { top: 38, right: 12, bottom: 48, left: 64 };
@@ -8,19 +10,22 @@ const MARGIN = { top: 38, right: 12, bottom: 48, left: 64 };
 const asPct = (f: number): string =>
   `${f > 0 && f < 0.01 ? (f * 100).toFixed(1) : Math.round(f * 100)}%`;
 
-const short = (n: number): string => {
-  const a = Math.abs(n);
-  const sign = n < 0 ? "−" : "";
-  if (a >= 1000) return `${sign}${Math.round(a / 1000)}k`;
-  return `${sign}${Math.round(a)}`;
+/** Gem amounts abbreviate well; dollar amounts are small enough to print. */
+const tickLabel = (m: Money, gemValue: number): string => {
+  if (m.unit !== "gems") return m.fmt(gemValue);
+  const a = Math.abs(gemValue);
+  const sign = gemValue < 0 ? "−" : "";
+  return a >= 1000 ? `${sign}${Math.round(a / 1000)}k` : `${sign}${Math.round(a)}`;
 };
 
 /** Where runs ended up, binned. */
 export function ValueHistogram({
   bins,
+  m,
   markers = [],
 }: {
   bins: { from: number; to: number; count: number }[];
+  m: Money;
   markers?: { at: number; label: string; tone: "start" | "median" }[];
 }) {
   const inner = WIDTH - MARGIN.left - MARGIN.right;
@@ -52,11 +57,11 @@ export function ValueHistogram({
             </text>
           </g>
         ))}
-        {x.ticks(10).map((t) => (
+        {x.ticks(m.unit === "gems" ? 10 : 6).map((t) => (
           <g key={t} transform={`translate(${x(t)},0)`}>
             <line y1={0} y2={innerH} className="chart-gridline" />
             <text y={innerH + 18} textAnchor="middle" className="chart-tick">
-              {short(t)}
+              {tickLabel(m, t)}
             </text>
           </g>
         ))}
@@ -96,7 +101,7 @@ export function ValueHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          Ending value (gems)
+          {`Ending value (${m.unit === "gems" ? "Gem" : "USD"}-eq)`}
         </text>
         <text
           transform="rotate(-90)"

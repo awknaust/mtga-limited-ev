@@ -1,7 +1,7 @@
 import type { EventConfig } from "../lib";
+import type { Money } from "../format";
 
-const gems = (n: number): string =>
-  Number.isFinite(n) ? Math.round(n).toLocaleString() : "—";
+const show = (m: Money, n: number): string => (Number.isFinite(n) ? m.fmt(n) : "—");
 
 /**
  * What the numbers mean and what they leave out.
@@ -9,7 +9,7 @@ const gems = (n: number): string =>
  * Reads the live config rather than hard-coding the defaults, so it cannot
  * drift from what the model is actually using.
  */
-export function About({ config }: { config: EventConfig }) {
+export function About({ config, m }: { config: EventConfig; m: Money }) {
   return (
     <div className="about">
       <h3 className="section-title">How the bankroll simulation works</h3>
@@ -46,35 +46,35 @@ export function About({ config }: { config: EventConfig }) {
               <td>Gold</td>
               <td>Only where the event has a gold price</td>
               <td>
-                {gems(10000 / config.goldPerGem)} gems per 10,000 gold
+                {Math.round(10000 / config.goldPerGem).toLocaleString()} gems per 10,000 gold
               </td>
             </tr>
             <tr>
               <td>Draft packs kept</td>
               <td>No</td>
               <td>
-                {gems(config.draftPackValueGems)} gems each × {config.draftPacks}
+                {show(m, config.draftPackValueGems)} each × {config.draftPacks}
               </td>
             </tr>
             <tr>
               <td>Packs</td>
               <td>No</td>
-              <td>{gems(config.packValueGems)} gems each</td>
+              <td>{show(m, config.packValueGems)} each</td>
             </tr>
             <tr>
               <td>Play-in points</td>
               <td>No</td>
-              <td>{gems(config.playInPointValueGems)} gems each</td>
+              <td>{show(m, config.playInPointValueGems)} each</td>
             </tr>
             <tr>
               <td>Play Booster box</td>
               <td>No</td>
-              <td>{gems(config.playBoxValueGems)} gems each</td>
+              <td>{show(m, config.playBoxValueGems)} each</td>
             </tr>
             <tr>
               <td>Collector Booster box</td>
               <td>No</td>
-              <td>{gems(config.collectorBoxValueGems)} gems each</td>
+              <td>{show(m, config.collectorBoxValueGems)} each</td>
             </tr>
           </tbody>
         </table>
