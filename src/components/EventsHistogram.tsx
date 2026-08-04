@@ -17,10 +17,10 @@ const asPct = (f: number): string =>
  */
 export function EventsHistogram({
   histogram,
-  mean,
+  median,
 }: {
   histogram: { events: number; count: number }[];
-  mean: number;
+  median: number;
 }) {
   const inner = WIDTH - MARGIN.left - MARGIN.right;
   const innerH = HEIGHT - MARGIN.top - MARGIN.bottom;
@@ -86,14 +86,14 @@ export function EventsHistogram({
           />
         ))}
 
-        <g transform={`translate(${x(mean)},0)`}>
+        <g transform={`translate(${x(median)},0)`}>
           <line y1={0} y2={innerH} className="chart-marker-median" />
           <text
             y={-8}
-            textAnchor={x(mean) > inner * 0.75 ? "end" : "middle"}
+            textAnchor={x(median) > inner * 0.75 ? "end" : "middle"}
             className="chart-marker-label-median"
           >
-            {`mean ${mean.toFixed(1)}`}
+            {`median ${median}`}
           </text>
         </g>
         <text

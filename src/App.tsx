@@ -742,10 +742,10 @@ export default function App() {
                   </div>
                 </div>
               </div>
-              <EventsHistogram
-                histogram={bankroll.histogram}
-                mean={bankroll.meanEvents}
-              />
+                  <EventsHistogram
+                    histogram={bankroll.histogram}
+                    median={bankroll.eventPercentiles.p50}
+                  />
               <div className="form-text">
                 Events played before running out.
               </div>
