@@ -33,7 +33,6 @@ export const SEALED = {
   name: "Sealed",
   entryCostGems: 2000,
   draftPacks: 6,
-  format: "bo1",
   structure: { kind: "elimination", maxWins: 7, maxLosses: 3 },
   payouts: [
     { wins: 0, gems: 200, packs: 3 },

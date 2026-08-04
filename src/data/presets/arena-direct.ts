@@ -19,7 +19,6 @@ export const ARENA_DIRECT = {
   name: "Arena Direct (Cube)",
   entryCostGems: 8000,
   draftPacks: 0,
-  format: "bo1",
   structure: { kind: "elimination", maxWins: 7, maxLosses: 2 },
   payouts: [
     { wins: 0, gems: 0, packs: 0 },

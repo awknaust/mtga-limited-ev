@@ -12,8 +12,8 @@ import type {
 } from "./types";
 
 /**
- * Play one event. `pMatch` is the per-round win probability — already converted
- * from the game win rate for BO3.
+ * Play one event. `pMatch` is the per-round win probability, and a round is a
+ * match whether it is one game or up to three.
  */
 export function simulateEvent(
   structure: EventStructure,
@@ -160,7 +160,7 @@ export function expectedNet(config: EventConfig): number {
 }
 
 /**
- * Expected net gems per event at a given per-game win rate.
+ * Expected net gems per event at a given match win rate.
  *
  * Substitutes the rate into the config rather than only into the outcome
  * distribution. Gold comes off the daily-win ladder now, so it moves with the
@@ -172,7 +172,7 @@ export function expectedNetAt(config: EventConfig, winRate: number): number {
 }
 
 /**
- * Per-game win rate at which the event breaks even, or null if it never does
+ * Match win rate at which the event breaks even, or null if it never does
  * within [0, 1]. Bisection — expected value is monotonic in win rate for any
  * sane (non-decreasing) payout table.
  *

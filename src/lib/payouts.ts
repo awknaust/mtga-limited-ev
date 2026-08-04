@@ -38,7 +38,7 @@ export function grossValue(config: EventConfig, wins: number): number {
  * Gold from the daily-win ladder for a number of wins in a day.
  *
  * Fractional wins are interpolated within the step they fall in. A win count is
- * an expectation rather than a whole number of games, and rounding it would put
+ * an expectation rather than a whole number of matches, and rounding it would put
  * a visible stair-step in the EV curve where the model has no real
  * discontinuity.
  */

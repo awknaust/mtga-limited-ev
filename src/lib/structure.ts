@@ -15,45 +15,28 @@ export function maxRounds(structure: EventStructure): number {
 }
 
 /**
- * Probability of taking a best-of-three match given a per-game win rate:
- * win 2-0, or win 2-1 in either order.
- */
-export function bo3WinRate(gameWinRate: number): number {
-  const p = gameWinRate;
-  return p * p * (3 - 2 * p);
-}
-
-/** Per-round (match) win probability implied by the config. */
-export function matchWinRate(config: EventConfig): number {
-  return config.format === "bo3" ? bo3WinRate(config.winRate) : config.winRate;
-}
-
-/**
- * Inverse of `bo3WinRate`: the per-game rate that produces a given match rate.
+ * Per-round win probability, which is what the model runs on.
  *
- * p²(3 − 2p) is a cubic, so this bisects rather than solving it. That is exact
- * enough at 60 iterations and avoids the branch selection a closed form would
- * need. Strictly increasing on [0, 1], so the bisection is well defined.
+ * A round is a match in every event here — a single game in best-of-one, up to
+ * three in best-of-three — and the configured rate is the chance of taking one.
+ * So this is `config.winRate`, and the indirection is kept only because three
+ * modules read better saying what the number means than restating the field.
+ *
+ * It used to convert. The rate was stored per *game* and best-of-three configs
+ * were run through p²(3 − 2p) to get a match rate, on the reasoning that
+ * best-of-three amplifies an edge: 55% of games is 57.5% of matches. Two things
+ * were wrong with that. The slider already asked for a match rate, so the value
+ * was inverted to a game rate on the way in and converted straight back on the
+ * way out — a round trip that computed nothing. And the formula assumes the
+ * games in a match are independent draws at one rate, which sideboarding
+ * breaks: games two and three are not the game that preceded them.
+ *
+ * Best-of-three does still favour the better player. That is now the player's
+ * observation to make when they set the number, rather than something the model
+ * applies on their behalf to a figure they entered as a match rate.
  */
-export function gameWinRateForMatchRate(matchRate: number): number {
-  if (matchRate <= 0) return 0;
-  if (matchRate >= 1) return 1;
-  let lo = 0;
-  let hi = 1;
-  for (let i = 0; i < 60; i++) {
-    const mid = (lo + hi) / 2;
-    if (bo3WinRate(mid) < matchRate) lo = mid;
-    else hi = mid;
-  }
-  return (lo + hi) / 2;
-}
-
-/** Per-game rate implied by a match rate, honouring the config's format. */
-export function gameWinRateForFormat(
-  matchRate: number,
-  format: EventConfig["format"],
-): number {
-  return format === "bo3" ? gameWinRateForMatchRate(matchRate) : matchRate;
+export function matchWinRate(config: EventConfig): number {
+  return config.winRate;
 }
 
 /**

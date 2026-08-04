@@ -42,7 +42,6 @@ export const ARENA_DIRECT_COLLECTOR = {
   name: "Arena Direct (Collector)",
   entryCostGems: 8000,
   draftPacks: 6,
-  format: "bo1",
   structure: { kind: "elimination", maxWins: 7, maxLosses: 2 },
   payouts: [
     { wins: 0, gems: 0, packs: 0 },

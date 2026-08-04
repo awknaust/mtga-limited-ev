@@ -17,9 +17,7 @@ import {
   breakEvenWinRate,
   configFromPreset,
   expectedNetAt,
-  gameWinRateForFormat,
   goldPerEvent,
-  bo3WinRate,
   matchWinRate,
   maxPossibleWins,
   maxRounds,
@@ -27,7 +25,6 @@ import {
   simulate,
   simulateBankrolls,
   type EventConfig,
-  type EventFormat,
   type EventStructure,
   type PayoutTier,
 } from "./lib";
@@ -422,7 +419,6 @@ export default function App() {
   const ids = {
     preset: `${uid}-preset`,
     structure: `${uid}-structure`,
-    format: `${uid}-format`,
     maxWins: `${uid}-max-wins`,
     maxLosses: `${uid}-max-losses`,
     rounds: `${uid}-rounds`,
@@ -452,8 +448,6 @@ export default function App() {
     topUpTitle: `${uid}-top-up-title`,
   };
 
-  const isBo3 = config.format === "bo3";
-
   const result = useMemo(() => simulate(config, trials, seed), [config, trials, seed]);
   const breakEven = useMemo(() => breakEvenWinRate(config), [config]);
   const bankroll = useMemo(
@@ -468,11 +462,11 @@ export default function App() {
   );
   // When there is no break-even point, say which side of zero the event sits on.
   const breakEvenHint = useMemo(() => {
-    if (breakEven !== null) return isBo3 ? "per match" : "per game";
+    if (breakEven !== null) return "per match";
     return expectedNetAt(config, 1) < 0
       ? "unreachable — even a perfect run pays less than entry"
       : "always profitable, even at a 0% win rate";
-  }, [breakEven, config, isBo3]);
+  }, [breakEven, config]);
 
   const update = setConfig;
 
@@ -547,21 +541,19 @@ export default function App() {
     { key: "breakdown" as const, label: "Payout breakdown" },
   ];
   const structure = config.structure;
-  const roundWord = isBo3 ? "matches" : "games";
   /*
-   * Everything the user reads is in per-round units. The model stores a
-   * per-game rate, so both the slider and the break-even figure convert for
-   * best-of-three — otherwise the two would be quoted in different units.
+   * A round is a match in every event here, whether that match is one game or
+   * up to three, so everything the user reads is in matches and nothing needs
+   * converting. The slider sets the rate the model runs on directly.
    */
   const roundWinRate = matchWinRate(config);
-  const breakEvenShown =
-    breakEven === null ? null : isBo3 ? bo3WinRate(breakEven) : breakEven;
+  const breakEvenShown = breakEven;
   // Restates the event being priced, for the Results heading — the numbers
   // below are meaningless without it.
   const structureSummary =
     structure.kind === "rounds"
-      ? `${structure.rounds} rounds played in full · ${config.format.toUpperCase()}`
-      : `to ${structure.maxWins} wins or ${structure.maxLosses} losses · ${config.format.toUpperCase()}`;
+      ? `${structure.rounds} rounds played in full`
+      : `to ${structure.maxWins} wins or ${structure.maxLosses} losses`;
 
   const stats: { label: string; value: string; hint: string; tone?: string }[] = [
     {
@@ -595,7 +587,7 @@ export default function App() {
       hint: "of events end net positive",
     },
     {
-      label: `${roundWord} / event`,
+      label: "matches / event",
       value: result.meanRounds.toFixed(2),
       hint: `max ${maxRounds(structure)} · σ of net: ${gems2(result.stdDevNet)}`,
     },
@@ -660,18 +652,19 @@ export default function App() {
               </h2>
 
               {/*
-                One slider, reading in whichever unit the event actually runs
-                on: matches for best-of-three, games for best-of-one. Only one
-                of the two is ever needed, and the match rate is the number a
-                best-of-three player has a feel for.
+                Reads in matches, which is the unit every event here runs on —
+                a best-of-one match is a single game, a best-of-three is up to
+                three, and the win and loss counters move per match either way.
+                So the slider sets the model's rate directly, with no
+                conversion between the two formats.
               */}
               <div className="mb-3">
                 <label htmlFor={ids.winRate} className="form-label">
-                  {isBo3 ? "Match win rate" : "Game win rate"}{" "}
+                  Match win rate{" "}
                   <span className="win-rate-value text-body">{pct(roundWinRate)}</span>
                   <InfoTip
                     label="About the win rate"
-                    content="Best-of-one events are decided per game, best-of-three per match, so the slider reads in whichever the event uses. A 55% game win rate is a 57.5% match win rate."
+                    content="Your chance of winning one match. A best-of-one match is a single game and a best-of-three is up to three, but either way this is the rate the event's win and loss counters move on."
                   />
                 </label>
                 <input
@@ -686,10 +679,7 @@ export default function App() {
                   // without this a screen reader announces "0.55".
                   aria-valuetext={pct(roundWinRate)}
                   onChange={(e) =>
-                    set(
-                      "winRate",
-                      gameWinRateForFormat(Number(e.target.value), config.format),
-                    )
+                    set("winRate", Number(e.target.value))
                   }
                 />
               </div>
@@ -816,25 +806,6 @@ export default function App() {
                   >
                     <option value="elimination">Wins / losses</option>
                     <option value="rounds">Fixed rounds</option>
-                  </select>
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.format} className="form-label">
-                    Match format
-                    <InfoTip
-                      label="About match format"
-                      content="Whether one round is a single game or a best-of-three match. It also changes what the win rate slider measures."
-                    />
-                  </label>
-                  <select
-                    id={ids.format}
-                    className="form-select"
-                    disabled={locked}
-                    value={config.format}
-                    onChange={(e) => set("format", e.target.value as EventFormat)}
-                  >
-                    <option value="bo1">Best of 1</option>
-                    <option value="bo3">Best of 3</option>
                   </select>
                 </div>
               </div>
@@ -1195,7 +1166,6 @@ export default function App() {
                     samples={bankroll.samples}
                     config={config}
                     m={m}
-                    isBo3={isBo3}
                     runs={bankroll.trials}
                   />
                 </>
@@ -1228,7 +1198,7 @@ export default function App() {
               </h3>
               <EvCurveChart config={config} breakEven={breakEven} m={m} />
               <div className="form-text">
-                Per {isBo3 ? "match" : "game"} win rate, against expected net gems.
+                Per match win rate, against expected net gems.
               </div>
 
               <h3 className="section-title mt-4">Outcome table</h3>

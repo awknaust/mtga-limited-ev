@@ -3,7 +3,7 @@
  * nothing that knows the UI exists.
  *
  *   types.ts         domain types
- *   structure.ts     event shape helpers, BO3 conversion, payout resizing
+ *   structure.ts     event shape helpers, payout resizing
  *   payouts.ts       win count → gems
  *   holdings.ts      what a run ends up holding, and what it is worth
  *   distribution.ts  closed-form outcome distributions

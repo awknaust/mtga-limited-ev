@@ -259,7 +259,6 @@ export function configFromPreset(preset: EventPreset, base: EventConfig): EventC
     entryCostGems: preset.entryCostGems,
     entryCostGold: preset.entryCostGold ?? 0,
     draftPacks: preset.draftPacks ?? 0,
-    format: preset.format,
     structure: { ...preset.structure },
     payouts: preset.payouts.map((t) => ({ ...t })),
   };

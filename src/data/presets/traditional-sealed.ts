@@ -52,7 +52,6 @@ export const TRADITIONAL_SEALED = {
   name: "Traditional Sealed",
   entryCostGems: 2000,
   draftPacks: 6,
-  format: "bo3",
   structure: { kind: "elimination", maxWins: 4, maxLosses: 2 },
   payouts: [
     { wins: 0, gems: 200, packs: 1 },

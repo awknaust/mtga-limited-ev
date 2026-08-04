@@ -38,13 +38,11 @@ export function RunLog({
   samples,
   config,
   m,
-  isBo3,
   runs,
 }: {
   samples: SampleRun[];
   config: EventConfig;
   m: Money;
-  isBo3: boolean;
   /** How many runs were simulated, of which these are the ones kept. */
   runs: number;
 }) {
@@ -152,7 +150,7 @@ export function RunLog({
           <thead>
             <tr>
               <th scope="col">#</th>
-              <th scope="col">{isBo3 ? "Matches" : "Games"}</th>
+              <th scope="col">Matches</th>
               <th scope="col">Entry</th>
               <th scope="col">Payout</th>
               <th scope="col" className="text-end">

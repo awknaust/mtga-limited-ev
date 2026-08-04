@@ -45,7 +45,7 @@ function fingerprint(state: ShareState): string {
   const goldRate = Number.isFinite(c.goldPerGem) ? c.goldPerGem.toFixed(4) : "worthless";
   return [
     `preset     ${state.presetName}`,
-    `winRate    ${c.winRate} (${c.format})`,
+    `winRate    ${c.winRate}`,
     `structure  ${JSON.stringify(c.structure)}`,
     `entry      ${c.entryCostGems} gems / ${c.entryCostGold} gold`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
@@ -113,7 +113,6 @@ describe("the parameter names are the contract", () => {
       config: {
         ...base.config,
         winRate: 0.4321,
-        format: "bo3",
         structure: { kind: "rounds", rounds: 4 },
         entryCostGems: 1,
         entryCostGold: 2,
@@ -163,7 +162,6 @@ describe("the parameter names are the contract", () => {
       "entry",
       "entryGold",
       "eventsPerDay",
-      "format",
       "gemsPerUsd",
       "goldPer10k",
       "goldPerDay",
@@ -230,7 +228,7 @@ describe("the defaults are the contract", () => {
   it("pins what an omitted parameter resolves to", () => {
     expect(fingerprint(defaultShareState())).toMatchInlineSnapshot(`
       "preset     Premier Draft
-      winRate    0.55 (bo1)
+      winRate    0.55
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23
