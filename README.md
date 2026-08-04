@@ -5,6 +5,11 @@ break-even sits.
 
 **<https://mtga-limited-ev.awknaust.me>**
 
+![The app: win rate, balances and the event's payout schedule on the left; on
+the right a bankroll run, with summary figures, a histogram of events played
+before running out, the distribution of ending value, and one sampled run
+broken out match by match.](docs/screenshot.png)
+
 Give it a win rate and it works out what an MTG Arena limited event returns:
 the entry cost against gems, packs, gold, play-in points and physical boxes.
 Every figure is simulated and then checked against a closed form computed
