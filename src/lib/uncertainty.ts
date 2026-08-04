@@ -2,14 +2,11 @@
  * The win rate as something the player is estimating, rather than a number they
  * know.
  *
- * Every other figure in this model is exact given a win rate. The win rate is a
- * guess, and the confidence interval beside expected net measured the wrong
- * thing entirely: it was the standard error of the Monte Carlo mean, so it
- * answered "how precisely did we average" and shrank as trials rose. On Premier
- * Draft it read ±5 gems while the uncertainty from a hundred games of record
- * spans about 770 — and unlike the ±5, that span crosses zero.
- *
- * So the record is treated as data and the rate as a posterior over it.
+ * Every other figure in this model is exact once a win rate is fixed, so what
+ * is not known about the rate is the whole of the uncertainty worth reporting,
+ * and it is large: on Premier Draft a hundred matches of record leaves a span
+ * of roughly 770 gems around expected net, and that span crosses zero. The
+ * record is the data and the rate is a posterior over it.
  */
 
 import betaQuantile from "@stdlib/stats-base-dists-beta-quantile";
@@ -58,9 +55,8 @@ export type Posterior = { alpha: number; beta: number };
  * The posterior implied by a stated rate and the number of matches behind it.
  *
  * The stated rate is read as a record — `matches` played at that rate — which
- * is what makes one number stand in for two. Null when the player has said the
- * rate is certain, which is the case every figure here was computed under
- * before this existed.
+ * is what makes one number stand in for two. Null when the player has called
+ * the rate certain, which asks for point estimates throughout.
  */
 export function winRatePosterior(config: EventConfig): Posterior | null {
   const matches = config.winRateMatches;
@@ -88,13 +84,13 @@ export function winRateInterval(
  * Expected net at each of `DRAWS` posterior win rates, sorted.
  *
  * Sorting is what lets the quantiles come off the values rather than off the
- * rates, and that distinction is load-bearing. Reading them off the rates would
- * assume expected net rises with the win rate, which is *usually* true and is
- * what `breakEvenWinRate` leans on — but Arena Direct with its box values
- * zeroed is a counterexample reachable in one click, since past five wins the
- * ladder pays only boxes. Its curve humps: worst at both ends, best in the
- * middle. Mapping quantiles through that returns an interval that can come out
- * inverted. Sorting the values first is correct either way and costs nothing.
+ * rates, and that distinction is load-bearing. Reading them off the rates
+ * assumes expected net rises with the win rate — true of every preset here, and
+ * what `breakEvenWinRate` leans on, but false one click away. Zero the box
+ * values and Arena Direct pays only boxes past five wins, so winning more
+ * destroys value and the curve humps: worst at both ends, best in the middle.
+ * Quantiles mapped through that can come out inverted. Sorting the values is
+ * correct either way and costs nothing.
  */
 function sortedNets(config: EventConfig, posterior: Posterior): number[] {
   const nets = Array.from({ length: DRAWS }, (_, i) => {

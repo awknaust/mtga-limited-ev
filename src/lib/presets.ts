@@ -66,7 +66,7 @@ export const PRESETS: EventPreset[] = [
  * Premier Draft still straddles break-even, and that is the honest answer: a
  * few drafts cannot tell you whether you are above it.
  *
- * Set the field to 0 for the old behaviour, where the rate is taken as exact.
+ * Set the field to 0 to treat the rate as exact and report point estimates.
  */
 export const DEFAULT_WIN_RATE_MATCHES = 20;
 
