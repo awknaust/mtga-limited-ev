@@ -22,6 +22,13 @@ export type Money = {
   fmt1: (gems: number) => string;
   /** Gems to the number an input should show. */
   toInput: (gems: number) => number;
+  /**
+   * The same value as the text a field should display when it is not being
+   * edited. Separate from `toInput` because a number cannot carry a trailing
+   * zero — 8.5 and 8.50 are one value, and only the string form can say which
+   * of them to print.
+   */
+  inputText: (gems: number) => string;
   /** An input's number back to gems. */
   fromInput: (n: number) => number;
   /** Whether inputs must accept decimals. */
@@ -59,22 +66,30 @@ export function money(unit: Unit, gemsPerUsd: number): Money {
       fmt: gemsWhole,
       fmt1: gemsLoose,
       toInput: (g) => g,
+      inputText: (g) => String(g),
       fromInput: (n) => n,
       fractional: false,
     };
   }
+  /*
+   * Inputs show cents, so a collector box reads $630.33 rather than $630.3325.
+   * Rounding here only affects what is displayed — the gem value behind an
+   * untouched field is unchanged — but editing a sub-cent figure such as a
+   * pack's $0.055 will snap it to the nearest cent.
+   */
+  const cents = (g: number): number => Math.round((g / rate) * 100) / 100;
   return {
     unit,
     label: "USD",
     fmt: (g) => usd(g / rate),
     fmt1: (g) => usd(g / rate),
+    toInput: cents,
     /*
-     * Inputs show cents, so a collector box reads $630.33 rather than
-     * $630.3325. Rounding here only affects what is displayed — the gem value
-     * behind an untouched field is unchanged — but editing a sub-cent figure
-     * such as a pack's $0.055 will snap it to the nearest cent.
+     * Always two places, so $8.50 does not display as $8.5. A price with a
+     * missing cents digit reads as a truncation of some other number, which is
+     * the one thing a money field should never do.
      */
-    toInput: (g) => Math.round((g / rate) * 100) / 100,
+    inputText: (g) => cents(g).toFixed(2),
     fromInput: (n) => n * rate,
     fractional: true,
   };

@@ -56,6 +56,7 @@ function NumberInput({
   id,
   disabled,
   fractional,
+  text,
   className = "form-control",
 }: {
   value: number;
@@ -65,19 +66,55 @@ function NumberInput({
   disabled?: boolean;
   /** Allows decimals — "any" imposes no step rule, so nothing is invalidated. */
   fractional?: boolean;
+  /**
+   * What to display instead of the bare number, for units that fix their
+   * precision. Shown only while the field is idle — see below.
+   */
+  text?: string;
   className?: string;
 }) {
+  /*
+   * Keystrokes are echoed verbatim while the field is being edited, and the
+   * formatted text returns once the value settles. Reformatting as the user
+   * types would fight them: typing "8.5" into a two-place field rewrites it to
+   * "8.50" before the 5 is finished, putting the caret behind two zeros the
+   * user did not type.
+   */
+  const [draft, setDraft] = useState<string | null>(null);
+  const ref = useRef<HTMLInputElement>(null);
+
+  /*
+   * What counts as settled is the native change event, which is not React's
+   * onChange — that one is the input event, and fires on every keystroke.
+   * The native one fires immediately when a number field is stepped with the
+   * spinner or the arrow keys, but not until commit when text is typed. That
+   * is precisely the line wanted here: stepping 8.50 up should read 9.50, not
+   * strip to 9.5 and stay stripped until the field is left.
+   */
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const settle = () => setDraft(null);
+    el.addEventListener("change", settle);
+    return () => el.removeEventListener("change", settle);
+  }, []);
+
   return (
     <input
+      ref={ref}
       id={id}
       type="number"
       className={className}
       min={min}
       step={fractional ? "any" : 1}
-      value={value}
+      value={draft ?? text ?? String(value)}
       disabled={disabled}
       onWheel={(e) => e.currentTarget.blur()}
-      onChange={(e) => onChange(Number(e.target.value) || 0)}
+      onChange={(e) => {
+        setDraft(e.target.value);
+        onChange(Number(e.target.value) || 0);
+      }}
+      onBlur={() => setDraft(null)}
     />
   );
 }
@@ -88,6 +125,7 @@ function AddonInput({
   id,
   disabled,
   fractional,
+  text,
   value,
   onChange,
   compact,
@@ -96,6 +134,7 @@ function AddonInput({
   id?: string;
   disabled?: boolean;
   fractional?: boolean;
+  text?: string;
   value: number;
   onChange: (n: number) => void;
   /** Narrower marker and field, for the payout table's cramped columns. */
@@ -111,6 +150,7 @@ function AddonInput({
         disabled={disabled}
         min={0}
         fractional={fractional}
+        text={text}
         value={value}
         onChange={onChange}
         className={`form-control${compact ? " form-control-sm text-end" : ""}`}
@@ -163,6 +203,7 @@ function MoneyInput({
       id={id}
       disabled={disabled}
       fractional={m.fractional}
+      text={m.inputText(gemValue)}
       value={m.toInput(gemValue)}
       onChange={(n) => onChange(m.fromInput(n))}
     />
