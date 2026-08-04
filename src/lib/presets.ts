@@ -72,6 +72,9 @@ export const DEFAULT_PACK_VALUE_GEMS = 22;
  * Priced off what the points are for: 20 of them buy an Arena Open play-in,
  * which otherwise costs 4,000 gems — so 4000 / 20 = 200 gems a point.
  *
+ * Unlike the pack figure this is not derived from Wizards' published drop
+ * rates; it comes from the Open's advertised entry price.
+ *
  * That is a replacement-cost figure, not a market one. It holds only if you
  * would have entered the Open anyway; points you never spend are worth
  * nothing, and points beyond a multiple of 20 are stranded until you collect
