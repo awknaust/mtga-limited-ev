@@ -215,7 +215,7 @@ describe("the parameter names are the contract", () => {
       "sealed",
       "contender-draft",
       "arena-direct-cube",
-      "arena-direct-sealed",
+      "arena-direct-play",
       "arena-direct-collector",
     ]);
   });

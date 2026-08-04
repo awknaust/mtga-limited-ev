@@ -910,7 +910,7 @@ describe("presets", () => {
       "Sealed",
       "Contender Draft",
       "Arena Direct (Cube)",
-      "Arena Direct (Sealed)",
+      "Arena Direct (Play)",
       "Arena Direct (Collector)",
     ]);
   });

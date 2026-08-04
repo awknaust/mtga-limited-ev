@@ -11,7 +11,7 @@
 
 import { ARENA_DIRECT } from "../data/presets/arena-direct";
 import { ARENA_DIRECT_COLLECTOR } from "../data/presets/arena-direct-collector";
-import { ARENA_DIRECT_SEALED } from "../data/presets/arena-direct-sealed";
+import { ARENA_DIRECT_PLAY } from "../data/presets/arena-direct-play";
 import { CONTENDER_DRAFT } from "../data/presets/contender-draft";
 import { PICK_TWO_DRAFT } from "../data/presets/pick-two-draft";
 import { PREMIER_CUBE_DRAFT } from "../data/presets/premier-cube-draft";
@@ -25,7 +25,7 @@ import type { EventConfig, EventPreset } from "./types";
 export {
   ARENA_DIRECT,
   ARENA_DIRECT_COLLECTOR,
-  ARENA_DIRECT_SEALED,
+  ARENA_DIRECT_PLAY,
   CONTENDER_DRAFT,
   PICK_TWO_DRAFT,
   PREMIER_CUBE_DRAFT,
@@ -45,11 +45,12 @@ export const PRESETS: EventPreset[] = [
   PICK_TWO_DRAFT,
   SEALED,
   CONTENDER_DRAFT,
-  // The Arena Directs sit together at the end: same entry, same structure, and
-  // they differ only in the pool they are played from and what the top of the
-  // ladder pays.
+  // The Arena Directs sit together at the end: same entry and same structure,
+  // differing only in pool and prize. The cube is the phantom one, so it is
+  // named for its pool; the other two are both sealed, so they are named for
+  // what the top of the ladder pays.
   ARENA_DIRECT,
-  ARENA_DIRECT_SEALED,
+  ARENA_DIRECT_PLAY,
   ARENA_DIRECT_COLLECTOR,
 ];
 

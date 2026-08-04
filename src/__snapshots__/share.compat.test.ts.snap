@@ -225,8 +225,8 @@ sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
-exports[`the preset definitions are the contract > pins what ?preset=arena-direct-sealed resolves to 1`] = `
-"preset     Arena Direct (Sealed)
+exports[`the preset definitions are the contract > pins what ?preset=arena-direct-play resolves to 1`] = `
+"preset     Arena Direct (Play)
 winRate    0.55 (bo1)
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / 0 gold

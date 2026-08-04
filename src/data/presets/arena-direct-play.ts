@@ -1,11 +1,18 @@
 import type { EventPreset } from "../../lib/types";
 
 /**
- * Arena Direct (Sealed): 8,000 gems, six packs, best-of-one, 7 wins or 2 losses.
+ * Arena Direct (Play): 8,000 gems, six-pack sealed, best-of-one, 7 wins or 2
+ * losses.
  *
- * The same shape and the same ladder as the cube event — see ARENA_DIRECT — run
- * over a sealed pool instead of a phantom cube. Gems and packs stop at five
- * wins, where the prize becomes a Play Booster box, and seven pays a second.
+ * Named for what it pays rather than what it is played from, because the pool
+ * does not tell the two sealed events apart — both are sealed, and the prize at
+ * the top of the ladder is the whole difference. Here gems and packs stop at
+ * five wins, the prize becomes a Play Booster box at six, and seven pays a
+ * second. ARENA_DIRECT_COLLECTOR is the other half of that pair.
+ *
+ * ARENA_DIRECT keeps its own name from the pool, since being phantom is what
+ * makes it different from both of these; it pays Play boxes on the same ladder
+ * as this one.
  *
  * Arena Direct is a family rather than one event, and the entry price is one of
  * its axes: in-universe sets run at 6,000 gems and Universes Beyond sets at
@@ -31,8 +38,8 @@ import type { EventPreset } from "../../lib/types";
  *
  * @see https://magic.wizards.com/en/news/mtg-arena/arena-direct-terms-and-conditions
  */
-export const ARENA_DIRECT_SEALED = {
-  name: "Arena Direct (Sealed)",
+export const ARENA_DIRECT_PLAY = {
+  name: "Arena Direct (Play)",
   entryCostGems: 8000,
   draftPacks: 6,
   format: "bo1",

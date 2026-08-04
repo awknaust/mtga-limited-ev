@@ -1,13 +1,14 @@
 import type { EventPreset } from "../../lib/types";
 
 /**
- * Arena Direct (Collector): 8,000 gems, six packs, best-of-one, 7 wins or 2
- * losses.
+ * Arena Direct (Collector): 8,000 gems, six-pack sealed, best-of-one, 7 wins or
+ * 2 losses.
  *
- * Same entry and same structure as ARENA_DIRECT_SEALED, and the prize is where
- * they part. The Play variant stops paying gems at five wins and hands over a
- * box at six; this one keeps paying — 14,400 gems and 32 packs at six — and
- * puts everything else on a single Collector Booster box at seven.
+ * Same pool, same entry and same structure as ARENA_DIRECT_PLAY — both are
+ * sealed, and the prize is the whole difference, which is why the pair is named
+ * for what it pays. The Play variant stops paying gems at five wins and hands
+ * over a box at six; this one keeps paying — 14,400 gems and 32 packs at six —
+ * and puts everything else on a single Collector Booster box at seven.
  *
  * That makes it the steepest ladder here by some distance. Six wins is a real
  * prize you can bank, seven trades it for one object worth more than the rest
