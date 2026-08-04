@@ -1511,10 +1511,10 @@ export default function App() {
                 <div className="row g-2">
                   <div className="col-6">
                     <label htmlFor={ids.trials} className="form-label">
-                      Simulated events (N)
+                      Simulated events (Per event)
                       <InfoTip
                         label="About simulated events"
-                        content="More events narrow the confidence interval on the simulated mean. The exact column is computed in closed form, not sampled."
+                        content="How many single events the Per event tab samples; it does not touch the Bankroll tab. More of them narrow the confidence interval on the simulated mean, and the exact column beside it is closed form rather than sampled."
                       />
                     </label>
                     <NumberInput
@@ -1526,10 +1526,10 @@ export default function App() {
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.bankrollRuns} className="form-label">
-                      Bankroll runs (N)
+                      Bankroll runs (Bankroll)
                       <InfoTip
                         label="About bankroll runs"
-                        content="Counted apart from simulated events, because one run plays a whole sequence of them. A few thousand settle the shape; far more is slow for little gain."
+                        content="How many sequences the Bankroll tab plays. Counted apart from simulated events because one run plays a whole sequence of them, so the same number would be tens of times the work."
                       />
                     </label>
                     <NumberInput
