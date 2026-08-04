@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import Popover from "bootstrap/js/dist/popover";
 
+import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
@@ -131,7 +132,7 @@ export default function App() {
   // Where the player stops, not a numerical guard — a run that never busts has
   // to end somewhere, and how long you intend to play is a real input.
   const [maxEvents, setMaxEvents] = useState(20);
-  const [tab, setTab] = useState<"bankroll" | "event">("bankroll");
+  const [tab, setTab] = useState<"bankroll" | "event" | "about">("bankroll");
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -675,7 +676,7 @@ export default function App() {
           <div className="card">
             <div className="card-body">
               <ul className="nav nav-tabs mb-3" role="tablist">
-                {(["bankroll", "event"] as const).map((t) => (
+                {(["bankroll", "event", "about"] as const).map((t) => (
                   <li className="nav-item" key={t}>
                     <button
                       type="button"
@@ -684,7 +685,7 @@ export default function App() {
                       className={`nav-link ${tab === t ? "active" : ""}`}
                       onClick={() => setTab(t)}
                     >
-                      {t === "bankroll" ? "Bankroll" : "Per event"}
+                      {t === "bankroll" ? "Bankroll" : t === "event" ? "Per event" : "About"}
                     </button>
                   </li>
                 ))}
@@ -695,7 +696,9 @@ export default function App() {
                 </li>
               </ul>
 
-              {tab === "bankroll" ? (
+              {tab === "about" ? (
+                <About config={config} />
+              ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
                     Starting from {gems(startingGems)} gems and {gems(startingGold)}{" "}
@@ -915,6 +918,20 @@ export default function App() {
           </div>
         </div>
       </div>
+
+      <footer className="mt-4 pt-3 border-top">
+        <p className="form-text mb-0">
+          Payout tables, derivations behind every default, and the source are at{" "}
+          <a
+            href="https://github.com/awknaust/mtga-limited-ev"
+            target="_blank"
+            rel="noreferrer"
+          >
+            github.com/awknaust/mtga-limited-ev
+          </a>
+          .
+        </p>
+      </footer>
 
       <div className="modal fade" tabIndex={-1} ref={modalEl} aria-hidden="true">
         <div className="modal-dialog modal-dialog-centered">

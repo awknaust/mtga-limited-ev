@@ -190,6 +190,22 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+.about p,
+.about li,
+.about dd {
+  font-size: 0.8125rem;
+  color: var(--bs-secondary-color);
+}
+
+.about dt {
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.about p:last-of-type {
+  margin-bottom: 0;
+}
+
 /* Small round "i" that opens a popover. */
 .info-btn {
   width: 15px;
