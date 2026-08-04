@@ -118,6 +118,16 @@ from that happening.
   written there is a port every worktree fights over. `autoPort` lets Vite take
   a free one. For the same reason, no document here should name a port: read it
   off the server's own output.
+- **`npm install` in the worktree before `npm run dev`.** A fresh worktree has
+  no `node_modules`, so imports resolve up into the main checkout's — which is
+  enough for `npm test` and `tsc`, and that is the trap. Nothing complains until
+  an asset has to be *served* rather than imported: Vite's dev server refuses
+  any path outside its root, so `bootstrap-icons.woff2` comes back **403
+  Restricted** and every `<i class="bi">` in the app renders as tofu. It reads
+  as a CSS bug and is not one — `npm run build` inlines the font and ships fine,
+  and only this worktree's preview is affected. Check
+  `document.fonts.check('16px bootstrap-icons')` before believing an icon is
+  broken.
 - **Say which area you are taking.** Branches keep commits apart but not
   attention. `src/__snapshots__/share.compat.test.ts.snap`, `src/lib/presets.ts`
   and `src/App.tsx` are where two agents collide, and two sessions re-recording
