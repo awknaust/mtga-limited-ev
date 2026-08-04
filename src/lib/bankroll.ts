@@ -70,6 +70,11 @@ export type BankrollResult = {
   valuePercentiles: Percentiles;
   /** Ending value binned for a histogram. */
   valueHistogram: { from: number; to: number; count: number }[];
+  /**
+   * A handful of runs kept whole, one per percentile of ending value, so the
+   * summaries above have something you can actually look at underneath them.
+   */
+  samples: SampleRun[];
 };
 
 export type Percentiles = { p5: number; p25: number; p50: number; p75: number; p95: number };
@@ -155,6 +160,26 @@ function binnedWhole(sorted: number[], bins = 16): Bin[] {
   return out;
 }
 
+/** One event of a run, kept only for the runs that get shown. */
+export type EventLog = {
+  /** Position in the run, from one. */
+  event: number;
+  wins: number;
+  /** Rounds played: matches in best-of-three, games in best-of-one. */
+  rounds: number;
+  /** True when gold covered the entry, so no gems were spent on it. */
+  paidWithGold: boolean;
+  /** What the tier paid. */
+  gems: number;
+  packs: number;
+  playInPoints: number;
+  playBoxes: number;
+  collectorBoxes: number;
+  /** Balances once the event is settled. */
+  gemBalance: number;
+  goldBalance: number;
+};
+
 export type BankrollRun = {
   events: number;
   finalGems: number;
@@ -171,13 +196,22 @@ export type BankrollRun = {
    * already sits in `finalGems` and must not be counted again.
    */
   winningsBanked: boolean;
+  /** Present only when the run was asked to record itself. */
+  log?: EventLog[];
 };
 
-/** Play from a starting balance until it runs dry or the cap is reached. */
+/**
+ * Play from a starting balance until it runs dry or the cap is reached.
+ *
+ * `record` keeps an entry per event. Off by default: every other caller only
+ * wants the totals, and thousands of runs each holding an object per event is
+ * a great deal of rubbish to make for five of them to be read.
+ */
 export function simulateBankroll(
   config: EventConfig,
   bankroll: BankrollConfig,
   rand: () => number,
+  record = false,
 ): BankrollRun {
   const pMatch = matchWinRate(config);
   const takesGold = config.entryCostGold > 0;
@@ -191,6 +225,7 @@ export function simulateBankroll(
   let playInPoints = 0;
   let playBoxes = 0;
   let collectorBoxes = 0;
+  const log: EventLog[] = [];
 
   while (events < bankroll.maxEvents) {
     const payWithGold = takesGold && gold >= config.entryCostGold;
@@ -198,7 +233,7 @@ export function simulateBankroll(
     else if (gems >= config.entryCostGems) gems -= config.entryCostGems;
     else break;
 
-    const { wins } = simulateEvent(config.structure, pMatch, rand);
+    const { wins, rounds } = simulateEvent(config.structure, pMatch, rand);
     const tier = payoutFor(config, wins);
     gems += tier.gems;
     // Tallied either way, so the counts stay reportable; whether their value
@@ -218,6 +253,25 @@ export function simulateBankroll(
     }
     gold += goldEarned;
     events++;
+    // After the gold accrual, so a row's balances are what you would hold
+    // sitting down to the next event rather than mid-settlement. A run longer
+    // than the ceiling keeps its opening events and stops recording; the run
+    // itself plays on, and `events` still counts all of it.
+    if (record && log.length < RECORDED_EVENTS) {
+      log.push({
+        event: events,
+        wins,
+        rounds,
+        paidWithGold: payWithGold,
+        gems: tier.gems,
+        packs: tier.packs,
+        playInPoints: tier.playInPoints ?? 0,
+        playBoxes: tier.playBoxes ?? 0,
+        collectorBoxes: tier.collectorBoxes ?? 0,
+        gemBalance: gems,
+        goldBalance: gold,
+      });
+    }
   }
 
   return {
@@ -231,7 +285,60 @@ export function simulateBankroll(
     collectorBoxes,
     survived: events >= bankroll.maxEvents,
     winningsBanked: bankroll.spendWinnings,
+    log: record ? log : undefined,
   };
+}
+
+/**
+ * How many runs are kept in full, and how much of each.
+ *
+ * Recording every run would be simpler and, at ordinary settings, cheaper than
+ * any alternative — ten thousand short runs cost a few megabytes. It is the
+ * corner that rules it out: `maxEvents` goes to two thousand, and an event that
+ * cannot lose money reaches it every time, so recording everything at those
+ * settings is millions of rows and hundreds of megabytes, rebuilt from scratch
+ * on every keystroke. A hundred runs of two hundred and fifty events is the
+ * same feature with a ceiling on it.
+ */
+const RECORDED_RUNS = 100;
+const RECORDED_EVENTS = 250;
+
+/** A run kept in full, so the summaries have something underneath them. */
+export type SampleRun = {
+  /** Ending value, the same figure the percentiles are drawn from. */
+  value: number;
+  run: BankrollRun;
+  /** Set on the runs standing at a percentile of the recorded sample. */
+  label?: string;
+};
+
+/** Where the shortcuts point, as fractions of the recorded sample. */
+const SAMPLE_AT: { label: string; q: number }[] = [
+  { label: "p5", q: 0.05 },
+  { label: "p25", q: 0.25 },
+  { label: "median", q: 0.5 },
+  { label: "p75", q: 0.75 },
+  { label: "p95", q: 0.95 },
+];
+
+/**
+ * Sort the kept runs by what they came to and label the landmarks.
+ *
+ * Ordered by ending value rather than by when they were played, so stepping
+ * from one to the next walks the distribution the histogram draws instead of
+ * jumping about inside it.
+ */
+function labelSamples(config: EventConfig, kept: BankrollRun[]): SampleRun[] {
+  const samples: SampleRun[] = kept
+    .map((run) => ({ value: runValue(config, run), run }))
+    .sort((a, b) => a.value - b.value);
+
+  for (const { label, q } of SAMPLE_AT) {
+    const at = samples[Math.min(samples.length - 1, Math.floor(q * samples.length))];
+    // Two landmarks can land on one run when few were kept; the first keeps it.
+    if (at && at.label === undefined) at.label = label;
+  }
+  return samples;
 }
 
 /** How much of one holding a run ended with. The two balances are named. */
@@ -269,8 +376,19 @@ export function simulateBankrolls(
   seed = 1,
 ): BankrollResult {
   const rand = seededRandom(seed);
+  /*
+   * Which runs to keep, spread across the whole sequence rather than taken off
+   * the front. A stride rather than a coin flip: the flip would have to come
+   * from somewhere, and drawing it from `rand` would shift every number the
+   * simulation produces, while a second generator buys nothing a stride does
+   * not already give — an even spread, exactly the intended count, and the
+   * same runs every time for a seed.
+   */
+  const stride = Math.max(1, Math.ceil(trials / RECORDED_RUNS));
   const runs: BankrollRun[] = [];
-  for (let i = 0; i < trials; i++) runs.push(simulateBankroll(config, bankroll, rand));
+  for (let i = 0; i < trials; i++) {
+    runs.push(simulateBankroll(config, bankroll, rand, i % stride === 0));
+  }
 
   const mean = (pick: (r: BankrollRun) => number): number =>
     runs.length ? runs.reduce((acc, r) => acc + pick(r), 0) / runs.length : 0;
@@ -313,5 +431,6 @@ export function simulateBankrolls(
       .sort((a, b) => a.events - b.events),
     valuePercentiles: percentilesOf(sortedValue),
     valueHistogram: binned(sortedValue),
+    samples: labelSamples(config, runs.filter((r) => r.log !== undefined)),
   };
 }

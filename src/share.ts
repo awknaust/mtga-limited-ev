@@ -39,6 +39,11 @@ export type ShareState = {
   presetName: string;
   config: EventConfig;
   trials: number;
+  /**
+   * Bankroll runs, which are counted separately from `trials` because they
+   * cost far more: one is a whole sequence of events rather than a single one.
+   */
+  bankrollRuns: number;
   seed: number;
   startingGems: number;
   startingGold: number;
@@ -76,6 +81,7 @@ export function defaultShareState(): ShareState {
     presetName: opening.name,
     config: defaultConfig(),
     trials: 100_000,
+    bankrollRuns: 10_000,
     seed: 1,
     startingGems: STARTING_ENTRIES * opening.entryCostGems,
     startingGold: 0,
@@ -148,6 +154,7 @@ const UI_NUMBERS = [
   ["maxEvents", "maxEvents"],
   ["gemsPerUsd", "gemsPerUsd"],
   ["trials", "trials"],
+  ["runs", "bankrollRuns"],
   ["seed", "seed"],
 ] as const satisfies readonly (readonly [string, keyof ShareState])[];
 
@@ -344,6 +351,11 @@ export function decodeShareState(search: string): ShareState {
     presetName,
     config,
     trials: numberFrom(params, "trials", fallback.trials, { min: 1, max: 5_000_000, int: true }),
+    bankrollRuns: numberFrom(params, "runs", fallback.bankrollRuns, {
+      min: 1,
+      max: 200_000,
+      int: true,
+    }),
     seed: numberFrom(params, "seed", fallback.seed, { int: true }),
     startingGems: numberFrom(params, "startGems", fallback.startingGems),
     startingGold: numberFrom(params, "startGold", fallback.startingGold),
