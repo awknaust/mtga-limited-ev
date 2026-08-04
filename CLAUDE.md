@@ -84,12 +84,19 @@ and have burned us. Three things to hold to:
   doc comments, where length is free.
 - Every number a user sees should be checkable: the closed-form column exists to
   keep the simulation honest, and hand-derived values are pinned by tests.
-- Nothing loads off-origin, and the CSP in `public/_headers` enforces it — no
-  `unsafe-inline` anywhere, which the app only earns by having no inline script
-  or style and no external script, font or stylesheet. A CDN tag, a web font or
+- The build loads nothing off-origin, and the CSP in `public/_headers` enforces
+  it — no `unsafe-inline` anywhere, which the app only earns by having no inline
+  script or style and no external font or stylesheet. A CDN tag, a web font or
   an analytics snippet means amending that policy, and the friction is the
-  point. Workflow actions are pinned to commit SHAs for the same reason; let
-  Dependabot move them rather than reverting to tags.
+  point. The single off-origin entry is `static.cloudflareinsights.com` in
+  `script-src`, and it is not something the build chose: Web Analytics runs on
+  the zone with `auto_install`, so Cloudflare injects that beacon at the edge
+  regardless of what this policy says. Allowing it is what makes the injected
+  script work; the way to be rid of it is to disable auto_install in the
+  dashboard, not to tighten the header. The long comment in `public/_headers`
+  has the details, including why the host is named without a path. Workflow
+  actions are pinned to commit SHAs for the same reason as the rest of this;
+  let Dependabot move them rather than reverting to tags.
 
 ## More than one agent works here at once
 

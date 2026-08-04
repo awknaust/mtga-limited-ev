@@ -10,19 +10,38 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
-# The app talks to nothing. No API, no analytics of its own, no third-party
-# script, no font or stylesheet off-origin — which is what makes a strict
-# policy possible without an 'unsafe-inline' escape hatch, and worth keeping
-# that way. Adding an external dependency means amending this line, and that
-# friction is the point.
+# The app ships nothing off-origin of its own: no API, no analytics bundled
+# into the build, no font or stylesheet from a CDN. That is what makes a strict
+# policy possible without an 'unsafe-inline' escape hatch, and it is worth
+# keeping that way. Adding a dependency to the build means amending this line,
+# and that friction is the point.
+#
+# The one exception is not ours to remove. Web Analytics is enabled on the
+# awknaust.me zone with auto_install, so Cloudflare injects a beacon <script>
+# into every HTML response at the edge, for browser-like requests only — a
+# plain curl will not show it. That injection happens whether or not this file
+# allows it; all a narrow script-src bought was a CSP violation on every page
+# load and roughly a tenth of the traffic actually being recorded. So the
+# choice here is to allow it or to turn auto_install off in the dashboard, not
+# to have no beacon by omission.
+#
+# script-src names the host with no path. Cloudflare serves the beacon from a
+# versioned URL (/beacon.min.js/v4513226...), and a source expression whose
+# path has no trailing slash must match the path exactly — so the
+# .../beacon.min.js that Cloudflare's own CSP documentation suggests would
+# block the very script it is meant to admit. That advice is written for the
+# hand-pasted snippet, which does use the bare URL.
+#
+# connect-src stays 'self' and needs nothing added: under auto_install the
+# beacon reports to /cdn-cgi/rum on this origin. Only the manually embedded
+# snippet posts to cloudflareinsights.com, and this site does not use it.
 #
 # data: is for images only, and covers exactly one thing: the SVG chevron
-# Bootstrap inlines into its select background. connect-src stays 'self'
-# because Cloudflare posts its RUM beacon to /cdn-cgi/rum on this origin.
-# object-src, base-uri and form-action are shut off outright — nothing here
-# embeds plugins, rewrites the document base, or submits a form.
+# Bootstrap inlines into its select background. object-src, base-uri and
+# form-action are shut off outright — nothing here embeds plugins, rewrites
+# the document base, or submits a form.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://static.cloudflareinsights.com; style-src 'self'; img-src 'self' data:; font-src 'self'; connect-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'; upgrade-insecure-requests
   X-Content-Type-Options: nosniff
   Referrer-Policy: strict-origin-when-cross-origin
   X-Frame-Options: DENY
