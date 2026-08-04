@@ -20,7 +20,7 @@ import type { EventConfig, PayoutTier } from "./types";
  * Payout-tier fields paid as a count rather than as gems.
  *
  * Kept apart from the table below because these, and only these, index a
- * `PayoutTier` — gold is not a payout at all and drafted cards come with the
+ * `PayoutTier` — gold is not a payout at all, and draft packs come with the
  * entry rather than the result.
  */
 export const TIER_REWARD_KEYS = [
@@ -44,43 +44,34 @@ export function paidRewards(payouts: PayoutTier[]): TierRewardKey[] {
 }
 
 export const HOLDINGS = [
-  { key: "gems", label: "Gems", one: "gem", whole: false },
-  { key: "gold", label: "Gold", one: "gold", whole: false },
-  { key: "packs", label: "Packs", one: "pack", whole: true, rateKey: "packValueGems" },
+  { key: "gems", label: "Gems", whole: false },
+  { key: "gold", label: "Gold", whole: false },
+  { key: "packs", label: "Packs", whole: true, rateKey: "packValueGems" },
   {
     key: "playInPoints",
     label: "Play-in points",
-    one: "play-in point",
     whole: true,
     rateKey: "playInPointValueGems",
   },
-  {
-    key: "playBoxes",
-    label: "Play boxes",
-    one: "Play Booster box",
-    whole: true,
-    rateKey: "playBoxValueGems",
-  },
+  { key: "playBoxes", label: "Play boxes", whole: true, rateKey: "playBoxValueGems" },
   {
     key: "collectorBoxes",
     label: "Collector boxes",
-    one: "Collector Booster box",
     whole: true,
     rateKey: "collectorBoxValueGems",
   },
   {
+    // "Draft packs", matching the input that sets them, rather than "drafted
+    // cards": the field counts packs' worth, and one name for one thing.
     key: "draftPacks",
-    label: "Drafted cards",
-    one: "pack of drafted cards",
+    label: "Draft packs",
     whole: true,
     rateKey: "draftPackValueGems",
   },
 ] as const satisfies readonly {
   key: string;
-  /** Plural, for headings. */
+  /** What to call them on screen. */
   label: string;
-  /** Singular, for prose. Not derivable — "boxes" is not "boxe". */
-  one: string;
   /** Whether amounts are whole things, which decides how they bin and print. */
   whole: boolean;
   /** The config field holding what one is worth in gems, where there is one. */

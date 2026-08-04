@@ -128,10 +128,10 @@ function HoldingCard({
           {bankrollKey === "gems" ? "" : ` · worth ${m.fmt(totals.mean * rate)}`}
         </div>
         {/*
-          Some holdings are the same in every run — drafted cards, once the
-          run length is fixed, and gold, which accrues and is spent on a
-          schedule nothing random touches. There is no shape to draw, and a
-          bar filling the card would claim a spread that is not there.
+          Some holdings are the same in every run — draft packs, once the run
+          length is fixed, and gold, which accrues and is spent on a schedule
+          nothing random touches. There is no shape to draw, and a bar filling
+          the card would claim a spread that is not there.
         */}
         {totals.min === totals.max ? (
           <div className="stat-hint mt-2">the same in every run</div>
