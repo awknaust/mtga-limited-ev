@@ -5,11 +5,19 @@ break-even sits.
 
 **<https://mtga-limited-ev.awknaust.me>**
 
+![The app: win rate, balances and the event's payout schedule on the left; on
+the right a bankroll run, with summary figures, a histogram of events played
+before running out, the distribution of ending value, and one sampled run
+broken out match by match.](docs/screenshot.png)
+
 Give it a win rate and it works out what an MTG Arena limited event returns:
 the entry cost against gems, packs, gold, play-in points and physical boxes.
-Every figure is simulated and then checked against a closed form computed
-beside it, so the two can be read against each other. It also runs a bankroll
-forward — how many events a starting balance buys before it runs dry.
+
+It also runs a bankroll forward: from a starting balance it replays the event,
+each payout funding the next entry, until you cannot afford one. That is the
+gambler's ruin problem, and ten thousand runs give its shape rather than its
+average — how many events the balance buys, where you tend to end up, and the
+risk of ruin, the share of runs that go broke inside your event limit.
 
 ```bash
 npm install && npm run dev    # http://localhost:5173
