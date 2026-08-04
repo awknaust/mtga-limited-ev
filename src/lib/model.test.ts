@@ -336,8 +336,10 @@ describe("holdings", () => {
     expect(heldKeys(direct)).toEqual(["gems", "gold", "packs", "playBoxes"]);
 
     // No gold earned and none charged: nothing to report, unless a starting
-    // balance the event cannot spend is sitting there.
-    const noGold = { ...direct, goldPerDay: 0 };
+    // balance the event cannot spend is sitting there. Zero events a day is
+    // what stops the accrual now that daily-win gold comes off the ladder —
+    // an event that is never played wins nothing to climb it with.
+    const noGold = { ...direct, eventsPerDay: 0 };
     expect(heldKeys(noGold)).toEqual(["gems", "packs", "playBoxes"]);
     expect(heldKeys(noGold, true)).toContain("gold");
   });
