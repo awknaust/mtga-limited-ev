@@ -15,7 +15,6 @@ import {
   PRESETS,
   breakEvenWinRate,
   configFromPreset,
-  defaultConfig,
   expectedNetAt,
   gameWinRateForFormat,
   goldPerEvent,
@@ -31,6 +30,7 @@ import {
   type EventStructure,
   type PayoutTier,
 } from "./lib";
+import { decodeShareState, encodeShareState, type Tab } from "./share";
 
 const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
@@ -254,23 +254,104 @@ function InfoTip({ label, content }: { label: string; content: string }) {
 }
 
 export default function App() {
-  const [config, setConfig] = useState<EventConfig>(defaultConfig);
-  const [trials, setTrials] = useState(100_000);
-  const [seed, setSeed] = useState(1);
-  const [presetName, setPresetName] = useState(PRESETS[0].name);
-  const [startingGems, setStartingGems] = useState(3400);
-  const [startingGold, setStartingGold] = useState(0);
+  /*
+   * The query string is the only place state persists. It is read once here
+   * and written back on every change, so the address bar always describes what
+   * is on screen and is shareable as it stands. Defaults live in share.ts
+   * rather than in these initialisers: a default that disagreed with the one
+   * the encoder measures against would be written into every link.
+   */
+  const [initial] = useState(() => decodeShareState(window.location.search));
+  const [config, setConfig] = useState<EventConfig>(initial.config);
+  const [trials, setTrials] = useState(initial.trials);
+  const [seed, setSeed] = useState(initial.seed);
+  const [presetName, setPresetName] = useState(initial.presetName);
+  const [startingGems, setStartingGems] = useState(initial.startingGems);
+  const [startingGold, setStartingGold] = useState(initial.startingGold);
   // Where the player stops, not a numerical guard — a run that never busts has
   // to end somewhere, and how long you intend to play is a real input.
-  const [maxEvents, setMaxEvents] = useState(20);
+  const [maxEvents, setMaxEvents] = useState(initial.maxEvents);
   // Off by default: none of these buys an entry in Arena.
-  const [spendWinnings, setSpendWinnings] = useState(false);
-  const [tab, setTab] = useState<"bankroll" | "event" | "about">("bankroll");
-  // Whether the ending total is shown as one figure or as what it is made of.
+  const [spendWinnings, setSpendWinnings] = useState(initial.spendWinnings);
+  const [tab, setTab] = useState<Tab>(initial.tab);
+  /*
+   * Whether the ending total is shown as one figure or as what it is made of.
+   * Deliberately not in the shared state beside `tab`: the link format is
+   * pinned by a snapshot so that breaking an old link takes a decision, and
+   * this is a glance at a section rather than part of the simulation being
+   * shared.
+   */
   const [view, setView] = useState<"value" | "breakdown">("value");
-  const [unit, setUnit] = useState<Unit>("gems");
+  const [unit, setUnit] = useState<Unit>(initial.unit);
   // 20,000 gems for $49.99 is the largest bundle, so the best rate on offer.
-  const [gemsPerUsd, setGemsPerUsd] = useState(400);
+  const [gemsPerUsd, setGemsPerUsd] = useState(initial.gemsPerUsd);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+
+  /*
+   * replaceState, not pushState: these are live-edited fields, and a history
+   * entry per keystroke would mean pressing Back a hundred times to leave the
+   * page. The cost is that Back does not undo an edit.
+   *
+   * There is no popstate listener to match, because with nothing pushed there
+   * is nothing to pop — typing a URL by hand is a full load, which the initial
+   * decode above already handles.
+   */
+  useEffect(() => {
+    const query = encodeShareState({
+      presetName,
+      config,
+      trials,
+      seed,
+      startingGems,
+      startingGold,
+      maxEvents,
+      spendWinnings,
+      tab,
+      unit,
+      gemsPerUsd,
+    });
+    const { pathname, hash } = window.location;
+    window.history.replaceState(
+      null,
+      "",
+      `${pathname}${query ? `?${query}` : ""}${hash}`,
+    );
+  }, [
+    presetName,
+    config,
+    trials,
+    seed,
+    startingGems,
+    startingGold,
+    maxEvents,
+    spendWinnings,
+    tab,
+    unit,
+    gemsPerUsd,
+  ]);
+
+  const copyTimer = useRef<number | null>(null);
+  useEffect(
+    () => () => {
+      if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
+    },
+    [],
+  );
+
+  /*
+   * The URL is already current, so this only saves a trip to the address bar.
+   * Writing to the clipboard can be refused — a denied permission, or a
+   * non-secure context — and silently doing nothing would read as a no-op
+   * button, so a refusal says so.
+   */
+  const copyLink = () => {
+    if (copyTimer.current !== null) window.clearTimeout(copyTimer.current);
+    navigator.clipboard.writeText(window.location.href).then(
+      () => setCopyState("copied"),
+      () => setCopyState("failed"),
+    );
+    copyTimer.current = window.setTimeout(() => setCopyState("idle"), 2000);
+  };
   const m = useMemo(() => money(unit, gemsPerUsd), [unit, gemsPerUsd]);
   // Shadowing the old helpers keeps every call site reading naturally while
   // the unit behind them changes.
@@ -456,12 +537,33 @@ export default function App() {
 
   return (
     <div className="container-xl py-4">
-      <header className="mb-4">
-        <h1 className="h3 mb-1">MTGA Limited EV</h1>
-        <p className="text-body-secondary mb-0">
-          What draft and sealed events really pay at your win rate — and where
-          the break-even sits.
-        </p>
+      <header className="mb-4 d-flex flex-wrap align-items-start justify-content-between gap-2">
+        <div>
+          <h1 className="h3 mb-1">MTGA Limited EV</h1>
+          <p className="text-body-secondary mb-0">
+            What draft and sealed events really pay at your win rate — and where
+            the break-even sits.
+          </p>
+        </div>
+        {/* Every input is already in the address bar; this is only the shortest
+            path from there to someone else. */}
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm flex-shrink-0"
+          onClick={copyLink}
+        >
+          <i
+            className={`bi ${copyState === "copied" ? "bi-check2" : "bi-link-45deg"} me-1`}
+            aria-hidden="true"
+          />
+          <span aria-live="polite">
+            {copyState === "copied"
+              ? "Copied"
+              : copyState === "failed"
+                ? "Copy failed"
+                : "Copy link"}
+          </span>
+        </button>
       </header>
 
       <div className="row g-3 align-items-start">
