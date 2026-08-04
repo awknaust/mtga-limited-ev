@@ -55,14 +55,14 @@ survive a reload. Event/preset state probably should not persist.
 
 ## 8. Gem value of having fun — done, and deliberately not wired
 
-The "Fun (gems / game)" input and its ∞ toggle exist in the global inputs. They
-are a joke and feed into nothing: the model has no term for them and should not
-grow one. Leave them inert.
+The "Fun (gems / game)" input exists in the global inputs. It is a joke and
+feeds into nothing: the model has no term for it and should not grow one. Leave
+it inert.
 
-If anyone is ever tempted, the reason not to is that "priceless" is genuinely
-load-bearing — an infinite value makes expected net +∞, ROI undefined and
-break-even 0%, and every figure in the results panel would need an answer for
-it instead of rendering `Infinity` and `NaN` through the formatters.
+If anyone is ever tempted by a "priceless" option, note that infinity is
+genuinely load-bearing — it makes expected net +∞, ROI undefined and break-even
+0%, and every figure in the results panel would need an answer for it instead
+of rendering `Infinity` and `NaN` through the formatters.
 
 ## 9. Deploy to AWS/S3
 

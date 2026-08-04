@@ -122,7 +122,6 @@ export default function App() {
   const [anchor, setAnchor] = useState<string | null>(PRESETS[0].name);
   // Deliberately inert: the model has no term for this, and shouldn't.
   const [funValue, setFunValue] = useState(0);
-  const [funPriceless, setFunPriceless] = useState(false);
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -290,65 +289,37 @@ export default function App() {
                 )}
               </div>
 
-              <div className="row g-2 align-items-end">
-                <div className="col-6">
-                  <label htmlFor={ids.packValue} className="form-label">
-                    Pack value (gems)
-                    <InfoTip
-                      label="About pack value"
-                      content="Packs are always counted, but they only enter the gem figures once you price them here. At 0 they contribute nothing to Net, so the results are gems-only."
-                    />
-                  </label>
-                  <NumberInput
-                    id={ids.packValue}
-                    min={0}
-                    value={config.packValueGems}
-                    onChange={(n) => set("packValueGems", n)}
+              <div className="mb-3">
+                <label htmlFor={ids.packValue} className="form-label">
+                  Pack value (gems)
+                  <InfoTip
+                    label="About pack value"
+                    content="Packs are always counted, but they only enter the gem figures once you price them here. At 0 they contribute nothing to Net, so the results are gems-only."
                   />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.funValue} className="form-label">
-                    Fun (gems / game)
-                    <InfoTip
-                      label="About the value of fun"
-                      content="Not wired to anything. The model prices gems and packs; it has no opinion on whether you enjoyed yourself."
-                    />
-                  </label>
-                  <div className="input-group">
-                    {funPriceless ? (
-                      <input
-                        id={ids.funValue}
-                        className="form-control text-end"
-                        value="∞"
-                        readOnly
-                      />
-                    ) : (
-                      <NumberInput
-                        id={ids.funValue}
-                        min={0}
-                        value={funValue}
-                        onChange={setFunValue}
-                      />
-                    )}
-                    <button
-                      type="button"
-                      className={`btn ${funPriceless ? "btn-primary" : "btn-outline-secondary"}`}
-                      onClick={() => setFunPriceless((p) => !p)}
-                      aria-pressed={funPriceless}
-                      title="Priceless"
-                    >
-                      ∞
-                    </button>
-                  </div>
-                </div>
+                </label>
+                <NumberInput
+                  id={ids.packValue}
+                  min={0}
+                  value={config.packValueGems}
+                  onChange={(n) => set("packValueGems", n)}
+                />
               </div>
 
-              {funPriceless && (
-                <div className="form-text mt-1">
-                  Priceless. The other numbers below are, on reflection, a rounding
-                  error.
-                </div>
-              )}
+              <div>
+                <label htmlFor={ids.funValue} className="form-label">
+                  Fun (gems / game)
+                  <InfoTip
+                    label="About the value of fun"
+                    content="Not wired to anything. The model prices gems and packs; it has no opinion on whether you enjoyed yourself."
+                  />
+                </label>
+                <NumberInput
+                  id={ids.funValue}
+                  min={0}
+                  value={funValue}
+                  onChange={setFunValue}
+                />
+              </div>
 
               <button
                 type="button"
