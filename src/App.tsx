@@ -841,13 +841,10 @@ export default function App() {
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
-                    Starting from {gems(startingGems)} and{" "}
-                    {Math.round(startingGold).toLocaleString()} gold, stopping after
-                    at most {maxEvents} events.
-                    <InfoTip
-                      label="About the bankroll simulation"
-                      content="Plays a sequence rather than one event: entries come out of real balances, gold first where the event takes it, and winnings go back in. A run ends when neither currency covers another entry."
-                    />
+                    Plays a sequence rather than one event in isolation: entries
+                    come out of your real balances, gold first where the event
+                    takes it, and winnings fund the next entry. A run ends when
+                    neither currency covers another.
                   </div>
               <div className="row g-2 mb-3">
                 <div className="col-6 col-xl-3">
