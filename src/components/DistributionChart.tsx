@@ -32,7 +32,7 @@ export function DistributionChart({ buckets }: { buckets: WinBucket[] }) {
       aria-label="Distribution of outcomes by win count"
     >
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
-        {x.ticks(5).map((t) => (
+        {x.ticks(8).map((t) => (
           <g key={t} transform={`translate(${x(t)},0)`}>
             <line
               y1={0}

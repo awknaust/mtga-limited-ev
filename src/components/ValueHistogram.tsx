@@ -44,7 +44,7 @@ export function ValueHistogram({
       aria-label="Distribution of ending value"
     >
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
-        {y.ticks(4).map((t) => (
+        {y.ticks(6).map((t) => (
           <g key={t} transform={`translate(0,${y(t)})`}>
             <line x1={0} x2={inner} className="chart-gridline" />
             <text x={-8} dy="0.32em" textAnchor="end" className="chart-tick">
@@ -52,10 +52,13 @@ export function ValueHistogram({
             </text>
           </g>
         ))}
-        {x.ticks(6).map((t) => (
-          <text key={t} x={x(t)} y={innerH + 18} textAnchor="middle" className="chart-tick">
-            {short(t)}
-          </text>
+        {x.ticks(10).map((t) => (
+          <g key={t} transform={`translate(${x(t)},0)`}>
+            <line y1={0} y2={innerH} className="chart-gridline" />
+            <text y={innerH + 18} textAnchor="middle" className="chart-tick">
+              {short(t)}
+            </text>
+          </g>
         ))}
 
         {bins.map((b) => (
