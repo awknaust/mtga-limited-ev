@@ -15,6 +15,7 @@ import {
   SEALED,
   TRADITIONAL_DRAFT,
   bo3WinRate,
+  gameWinRateForMatchRate,
   breakEvenWinRate,
   configFromPreset,
   defaultConfig,
@@ -101,6 +102,32 @@ describe("bo3WinRate", () => {
     const straight = p * p;
     const comeback = 2 * p * p * (1 - p);
     expect(bo3WinRate(p)).toBeCloseTo(straight + comeback, 12);
+  });
+
+  it("inverts back to the game rate", () => {
+    for (const p of [0, 0.12, 0.4, 0.5, 0.55, 0.83, 1]) {
+      expect(gameWinRateForMatchRate(bo3WinRate(p))).toBeCloseTo(p, 9);
+    }
+  });
+
+  it("inverting a match rate reproduces it", () => {
+    // The direction the match slider actually drives.
+    for (const m of [0.05, 0.3, 0.5, 0.6, 0.95]) {
+      expect(bo3WinRate(gameWinRateForMatchRate(m))).toBeCloseTo(m, 9);
+    }
+  });
+
+  it("keeps the endpoints exact", () => {
+    expect(gameWinRateForMatchRate(0)).toBe(0);
+    expect(gameWinRateForMatchRate(1)).toBe(1);
+    expect(gameWinRateForMatchRate(0.5)).toBeCloseTo(0.5, 9);
+  });
+
+  it("needs a lower game rate than the match rate it produces", () => {
+    // Above 50% the format amplifies, so reaching a 60% match rate takes less
+    // than 60% of games.
+    expect(gameWinRateForMatchRate(0.6)).toBeLessThan(0.6);
+    expect(gameWinRateForMatchRate(0.4)).toBeGreaterThan(0.4);
   });
 
   it("is applied only for bo3 configs", () => {

@@ -29,6 +29,34 @@ export function matchWinRate(config: EventConfig): number {
 }
 
 /**
+ * Inverse of `bo3WinRate`: the per-game rate that produces a given match rate.
+ *
+ * p²(3 − 2p) is a cubic, so this bisects rather than solving it. That is exact
+ * enough at 60 iterations and avoids the branch selection a closed form would
+ * need. Strictly increasing on [0, 1], so the bisection is well defined.
+ */
+export function gameWinRateForMatchRate(matchRate: number): number {
+  if (matchRate <= 0) return 0;
+  if (matchRate >= 1) return 1;
+  let lo = 0;
+  let hi = 1;
+  for (let i = 0; i < 60; i++) {
+    const mid = (lo + hi) / 2;
+    if (bo3WinRate(mid) < matchRate) lo = mid;
+    else hi = mid;
+  }
+  return (lo + hi) / 2;
+}
+
+/** Per-game rate implied by a match rate, honouring the config's format. */
+export function gameWinRateForFormat(
+  matchRate: number,
+  format: EventConfig["format"],
+): number {
+  return format === "bo3" ? gameWinRateForMatchRate(matchRate) : matchRate;
+}
+
+/**
  * Grow or shrink a payout table to cover 0..maxWins, preserving rows that
  * already exist so changing the structure doesn't discard entered values.
  */

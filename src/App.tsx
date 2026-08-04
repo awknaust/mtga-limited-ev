@@ -8,6 +8,7 @@ import {
   configFromPreset,
   defaultConfig,
   expectedNetAt,
+  gameWinRateForMatchRate,
   matchWinRate,
   maxPossibleWins,
   maxRounds,
@@ -139,6 +140,7 @@ export default function App() {
     maxLosses: `${uid}-max-losses`,
     rounds: `${uid}-rounds`,
     winRate: `${uid}-win-rate`,
+    matchWinRate: `${uid}-match-win-rate`,
     entry: `${uid}-entry`,
     packValue: `${uid}-pack-value`,
     funValue: `${uid}-fun-value`,
@@ -209,7 +211,8 @@ export default function App() {
   const showCollectorBoxes =
     isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
   const structure = config.structure;
-  const roundWord = config.format === "bo3" ? "matches" : "games";
+  const isBo3 = config.format === "bo3";
+  const roundWord = isBo3 ? "matches" : "games";
   // Restates the event being priced, for the Results heading — the numbers
   // below are meaningless without it.
   const structureSummary =
@@ -271,7 +274,7 @@ export default function App() {
 
               <div className="mb-3">
                 <label htmlFor={ids.winRate} className="form-label">
-                  Expected win rate (per game){" "}
+                  {isBo3 ? "Game win rate" : "Win rate"}{" "}
                   <span className="fw-semibold text-body">{pct(config.winRate)}</span>
                 </label>
                 <input
@@ -284,14 +287,40 @@ export default function App() {
                   value={config.winRate}
                   onChange={(e) => set("winRate", Number(e.target.value))}
                 />
-                {config.format === "bo3" && (
-                  <div className="form-text">
-                    BO3 →{" "}
-                    <span className="fw-semibold">{pct(matchWinRate(config), 2)}</span>{" "}
-                    per match.
-                  </div>
-                )}
               </div>
+
+              {/*
+                In best-of-three the match rate is what the model actually
+                runs on, and it is the number a player has intuition for, so
+                it gets its own slider. Dragging it inverts the conversion to
+                find the game rate that produces it. Best-of-one omits this:
+                the two rates are the same number.
+              */}
+              {isBo3 && (
+                <div className="mb-3">
+                  <label htmlFor={ids.matchWinRate} className="form-label">
+                    Match win rate{" "}
+                    <span className="fw-semibold text-body">
+                      {pct(matchWinRate(config))}
+                    </span>
+                  </label>
+                  <input
+                    id={ids.matchWinRate}
+                    type="range"
+                    className="form-range"
+                    min={0}
+                    max={1}
+                    step={0.005}
+                    value={matchWinRate(config)}
+                    onChange={(e) =>
+                      set(
+                        "winRate",
+                        gameWinRateForMatchRate(Number(e.target.value)),
+                      )
+                    }
+                  />
+                </div>
+              )}
 
               <button
                 type="button"
