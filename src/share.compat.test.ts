@@ -213,6 +213,7 @@ describe("the parameter names are the contract", () => {
       "traditional-cube-draft",
       "pick-two-draft",
       "sealed",
+      "traditional-sealed",
       "contender-draft",
       "arena-direct-cube",
       "arena-direct-play",
