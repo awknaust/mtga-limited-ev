@@ -256,7 +256,7 @@ export function matchesPreset(config: EventConfig, presetName: string): boolean 
 export function defaultConfig(): EventConfig {
   return configFromPreset(PREMIER_DRAFT, {
     winRate: 0.55,
-    packValueGems: 0,
+    packValueGems: 22,
   } as EventConfig);
 }
 

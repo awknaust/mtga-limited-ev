@@ -292,7 +292,7 @@ export default function App() {
                   Pack value (gems)
                   <InfoTip
                     label="About pack value"
-                    content="Packs are always counted, but they only enter the gem figures once you price them here. At 0 they contribute nothing to Net, so the results are gems-only."
+                    content="How much are packs worth to you (in gems)? Default is based on duplicate protection for a complete set."
                   />
                 </label>
                 <NumberInput
@@ -308,7 +308,7 @@ export default function App() {
                   Fun (gems / game)
                   <InfoTip
                     label="About the value of fun"
-                    content="Priceless, and not up for discussion. The model prices gems and packs; this figure feeds into nothing."
+                    content="Priceless."
                   />
                 </label>
                 <input

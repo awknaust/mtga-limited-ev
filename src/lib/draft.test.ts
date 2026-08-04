@@ -216,6 +216,12 @@ describe("presets", () => {
     expect(defaultConfig().payouts).toEqual(PREMIER_DRAFT.payouts);
   });
 
+  it("defaults packs to 22 gems each", () => {
+    // Packs carry real value by default, so the headline figures are no longer
+    // gems-only. Several EV expectations move with this number.
+    expect(defaultConfig().packValueGems).toBe(22);
+  });
+
   it("gives Cube the Premier structure", () => {
     expect(CUBE_DRAFT.payouts).toEqual(PREMIER_DRAFT.payouts);
     expect(CUBE_DRAFT.entryCostGems).toBe(PREMIER_DRAFT.entryCostGems);
@@ -269,7 +275,16 @@ describe("presets", () => {
   it("prices Pick Two Draft at the hand-computed EV", () => {
     const config = configFromPreset(PICK_TWO_DRAFT, defaultConfig());
     const d = exactDistribution(0.55, PICK_TWO_DRAFT.structure);
-    const gross = d.reduce((acc, pr, k) => acc + pr * PICK_TWO_DRAFT.payouts[k].gems, 0);
+    // Packs are priced at config.packValueGems rather than assumed free, so
+    // this stays honest if the default pack value moves again.
+    const gross = d.reduce(
+      (acc, pr, k) =>
+        acc +
+        pr *
+          (PICK_TWO_DRAFT.payouts[k].gems +
+            PICK_TWO_DRAFT.payouts[k].packs * config.packValueGems),
+      0,
+    );
     expect(expectedNetAt(config, 0.55)).toBeCloseTo(gross - 900, 6);
   });
 
