@@ -120,8 +120,6 @@ export default function App() {
   // edit can fall back to "Custom" and return to the preset when undone —
   // Premier and Cube are identical, so the right name can't be inferred.
   const [anchor, setAnchor] = useState<string | null>(PRESETS[0].name);
-  // Deliberately inert: the model has no term for this, and shouldn't.
-  const [funValue, setFunValue] = useState(0);
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -310,14 +308,15 @@ export default function App() {
                   Fun (gems / game)
                   <InfoTip
                     label="About the value of fun"
-                    content="Not wired to anything. The model prices gems and packs; it has no opinion on whether you enjoyed yourself."
+                    content="Priceless, and not up for discussion. The model prices gems and packs; this figure feeds into nothing."
                   />
                 </label>
-                <NumberInput
+                <input
                   id={ids.funValue}
-                  min={0}
-                  value={funValue}
-                  onChange={setFunValue}
+                  className="form-control"
+                  value="∞"
+                  disabled
+                  readOnly
                 />
               </div>
 
