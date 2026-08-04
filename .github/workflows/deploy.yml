@@ -1,0 +1,74 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# A newer push to the same branch makes an in-flight run redundant. Let main
+# finish, though: cancelling it would leave whatever it was deploying half done.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm test
+
+      # `npm run build` is `tsc -b && vite build`, so this typechecks as well as
+      # bundling. The deploy job ships this exact dist rather than rebuilding.
+      - run: npm run build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist
+          retention-days: 7
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    # Deploys need the Cloudflare secrets, which GitHub withholds from pull
+    # requests opened from forks. Those still get the test job.
+    if: >-
+      github.event_name == 'push' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    # No `environment:` here on purpose. It would give the deploy a tracked URL
+    # in the GitHub UI, but environments on a private repo need Pro, and this
+    # repo is private on Free. The step summary below carries the URL instead.
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      # --branch is what Cloudflare uses to tell production from preview: it
+      # matches the project's production branch on main, and everything else
+      # lands on a preview URL that stays up on its own.
+      - uses: cloudflare/wrangler-action@v4
+        id: deploy
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: >-
+            pages deploy dist
+            --project-name=mtga-limited-ev
+            --branch=${{ github.head_ref || github.ref_name }}
+
+      - run: echo "Deployed to ${{ steps.deploy.outputs.deployment-url }}" >> "$GITHUB_STEP_SUMMARY"
