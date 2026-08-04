@@ -115,6 +115,18 @@ function AddonInput({
   );
 }
 
+/**
+ * A rate quoted in gems. Always marked as gems, whatever the display unit —
+ * these define the conversions rather than being subject to them.
+ */
+function GemInput(props: {
+  id?: string;
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  return <AddonInput addon={<i className="bi bi-gem" aria-hidden="true" />} {...props} />;
+}
+
 /** Gold is Arena's own currency and never follows the display unit. */
 function GoldInput(props: {
   id?: string;
@@ -1230,9 +1242,8 @@ export default function App() {
                         content="What leftover gold is counted as worth. Every event that prices both ways charges 10,000 gold or 1,500 gems, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
                       />
                     </label>
-                    <NumberInput
+                    <GemInput
                       id={ids.goldRate}
-                      min={0}
                       value={
                         Number.isFinite(config.goldPerGem)
                           ? Math.round(10000 / config.goldPerGem)
@@ -1257,9 +1268,8 @@ export default function App() {
                         content="Used only for showing figures in USD; the simulation always runs in gems. 400 comes from the largest bundle, 20,000 gems for $49.99, which is the best rate on offer."
                       />
                     </label>
-                    <NumberInput
+                    <GemInput
                       id={ids.gemsPerUsd}
-                      min={1}
                       value={gemsPerUsd}
                       onChange={(n) => setGemsPerUsd(Math.max(1, n))}
                     />
