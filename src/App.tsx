@@ -4,6 +4,7 @@ import Popover from "bootstrap/js/dist/popover";
 
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
+import { EventsHistogram } from "./components/EventsHistogram";
 import {
   CUSTOM_PRESET,
   PRESETS,
@@ -18,6 +19,7 @@ import {
   maxRounds,
   resizePayouts,
   simulate,
+  simulateBankrolls,
   type EventConfig,
   type EventFormat,
   type EventStructure,
@@ -123,6 +125,8 @@ export default function App() {
   const [trials, setTrials] = useState(100_000);
   const [seed, setSeed] = useState(1);
   const [presetName, setPresetName] = useState(PRESETS[0].name);
+  const [startingGems, setStartingGems] = useState(10_000);
+  const [startingGold, setStartingGold] = useState(20_000);
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -154,12 +158,28 @@ export default function App() {
     collectorBoxValue: `${uid}-collector-box-value`,
     trials: `${uid}-trials`,
     seed: `${uid}-seed`,
+    startGems: `${uid}-start-gems`,
+    startGold: `${uid}-start-gold`,
   };
 
   const isBo3 = config.format === "bo3";
 
   const result = useMemo(() => simulate(config, trials, seed), [config, trials, seed]);
   const breakEven = useMemo(() => breakEvenWinRate(config), [config]);
+  /*
+   * Fewer trials than the per-event run, since each one plays a whole sequence
+   * rather than a single event. A few thousand is plenty for the shape.
+   */
+  const bankroll = useMemo(
+    () =>
+      simulateBankrolls(
+        config,
+        { startingGems, startingGold, maxEvents: 500 },
+        3000,
+        seed,
+      ),
+    [config, startingGems, startingGold, seed],
+  );
   // When there is no break-even point, say which side of zero the event sits on.
   const breakEvenHint = useMemo(() => {
     if (breakEven !== null) return isBo3 ? "per match" : "per game";
@@ -644,6 +664,62 @@ export default function App() {
                 Per {isBo3 ? "match" : "game"} win rate, against expected net gems.
               </div>
 
+              <h3 className="section-title mt-4 d-flex flex-wrap align-items-baseline gap-2">
+                Bankroll
+                <span className="section-note">
+                  from {gems(startingGems)} gems and {gems(startingGold)} gold
+                </span>
+                <InfoTip
+                  label="About the bankroll simulation"
+                  content="Plays a sequence rather than one event: entries come out of real balances, winnings go back in, and the run ends when neither currency covers another entry. Capped at 500 events."
+                />
+              </h3>
+              <div className="row g-2 mb-3">
+                <div className="col-6 col-xl-3">
+                  <div className="stat h-100">
+                    <div className="stat-label">Events played</div>
+                    <div className="stat-value">{bankroll.meanEvents.toFixed(1)}</div>
+                    <div className="stat-hint">
+                      median {bankroll.eventPercentiles.p50} · p5–p95{" "}
+                      {bankroll.eventPercentiles.p5}–{bankroll.eventPercentiles.p95}
+                    </div>
+                  </div>
+                </div>
+                <div className="col-6 col-xl-3">
+                  <div className="stat h-100">
+                    <div className="stat-label">Ending value</div>
+                    <div className={`stat-value ${signClass(bankroll.meanFinalValue - startingGems)}`}>
+                      {gems(bankroll.meanFinalValue)}
+                    </div>
+                    <div className="stat-hint">
+                      median {gems(bankroll.medianFinalValue)} · from{" "}
+                      {gems(startingGems)}
+                    </div>
+                  </div>
+                </div>
+                <div className="col-6 col-xl-3">
+                  <div className="stat h-100">
+                    <div className="stat-label">Packs won</div>
+                    <div className="stat-value">{bankroll.meanPacks.toFixed(1)}</div>
+                    <div className="stat-hint">over the whole run</div>
+                  </div>
+                </div>
+                <div className="col-6 col-xl-3">
+                  <div className="stat h-100">
+                    <div className="stat-label">Never ran dry</div>
+                    <div className="stat-value">{pct(bankroll.survivedFraction)}</div>
+                    <div className="stat-hint">of runs hit the 500 cap</div>
+                  </div>
+                </div>
+              </div>
+              <EventsHistogram
+                histogram={bankroll.histogram}
+                mean={bankroll.meanEvents}
+              />
+              <div className="form-text">
+                Events played before running out. The dashed line is the mean.
+              </div>
+
               <h3 className="section-title mt-4">Outcome table</h3>
               <div className="table-responsive">
                 <table className="table table-sm align-middle mb-0">
@@ -806,6 +882,28 @@ export default function App() {
                     value="∞"
                     disabled
                     readOnly
+                  />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.startGems} className="form-label">
+                    Starting gems
+                  </label>
+                  <NumberInput
+                    id={ids.startGems}
+                    min={0}
+                    value={startingGems}
+                    onChange={setStartingGems}
+                  />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.startGold} className="form-label">
+                    Starting gold
+                  </label>
+                  <NumberInput
+                    id={ids.startGold}
+                    min={0}
+                    value={startingGold}
+                    onChange={setStartingGold}
                   />
                 </div>
                 <div className="col-12">

@@ -31,6 +31,9 @@ import {
   playInPointsFor,
   resizePayouts,
   simulate,
+  simulateBankroll,
+  simulateBankrolls,
+  seededRandom,
   type EventStructure,
 } from "./index";
 
@@ -247,6 +250,76 @@ describe("breakEvenWinRate", () => {
 
   it("returns null when the event is profitable at any win rate", () => {
     expect(breakEvenWinRate({ ...defaultConfig(), entryCostGems: 0 })).toBeNull();
+  });
+});
+
+describe("bankroll", () => {
+  const roll = { startingGems: 10_000, startingGold: 0, maxEvents: 500 };
+
+  it("stops when neither currency covers another entry", () => {
+    // No gold income and a hopeless win rate: entries come only from the
+    // starting gems, so the run length is exactly what they buy.
+    const config = { ...defaultConfig(), winRate: 0, goldPerEvent: 0 };
+    const run = simulateBankroll(config, roll, seededRandom(1));
+    // Fully determined: 1,500 out and 50 back each time, so 10,000 buys six
+    // entries and leaves 1,300 — short of a seventh.
+    expect(run.events).toBe(6);
+    expect(run.finalGems).toBe(10_000 - 6 * 1500 + 6 * 50);
+    expect(run.finalGems).toBeLessThan(config.entryCostGems);
+    expect(run.survived).toBe(false);
+  });
+
+  it("plays longer when winnings feed back in", () => {
+    const poor = { ...defaultConfig(), winRate: 0.2, goldPerEvent: 0 };
+    const good = { ...defaultConfig(), winRate: 0.7, goldPerEvent: 0 };
+    const a = simulateBankrolls(poor, roll, 300, 3);
+    const b = simulateBankrolls(good, roll, 300, 3);
+    expect(b.meanEvents).toBeGreaterThan(a.meanEvents);
+  });
+
+  it("spends gold before gems where the event takes it", () => {
+    // Gold alone covers every entry, so the gems are never touched.
+    const config = { ...defaultConfig(), goldPerEvent: 0 };
+    const golden = { startingGems: 10_000, startingGold: 100_000, maxEvents: 10 };
+    const run = simulateBankroll(config, golden, seededRandom(2));
+    expect(run.events).toBe(10);
+    expect(run.finalGems).toBeGreaterThanOrEqual(10_000);
+  });
+
+  it("runs to the cap when the event cannot lose money", () => {
+    const config = { ...defaultConfig(), winRate: 1 };
+    const res = simulateBankrolls(config, { ...roll, maxEvents: 40 }, 50, 4);
+    expect(res.meanEvents).toBe(40);
+    expect(res.survivedFraction).toBe(1);
+  });
+
+  it("is deterministic for a seed", () => {
+    const config = defaultConfig();
+    expect(simulateBankrolls(config, roll, 200, 7).meanEvents).toBe(
+      simulateBankrolls(config, roll, 200, 7).meanEvents,
+    );
+  });
+
+  it("counts winnings that are not currency toward final value", () => {
+    const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
+    const res = simulateBankrolls(config, roll, 200, 11);
+    // Packs and play-in points are won but cannot pay an entry, so they show
+    // up in value rather than in the gem balance.
+    expect(res.meanPacks).toBeGreaterThan(0);
+    expect(res.meanFinalValue).toBeGreaterThan(res.meanFinalGems);
+  });
+
+  it("reports a median beside the mean, since a rare prize skews it", () => {
+    const config = configFromPreset(ARENA_DIRECT, defaultConfig());
+    const res = simulateBankrolls(config, { ...roll, startingGems: 10_000 }, 400, 17);
+    // Most runs buy one entry and lose it; a few win a box worth more than
+    // sixty thousand gems, so the mean sits far above the middle.
+    expect(res.meanFinalValue).toBeGreaterThan(res.medianFinalValue);
+  });
+
+  it("histogram accounts for every run", () => {
+    const res = simulateBankrolls(defaultConfig(), roll, 200, 13);
+    expect(res.histogram.reduce((a, h) => a + h.count, 0)).toBe(200);
   });
 });
 
