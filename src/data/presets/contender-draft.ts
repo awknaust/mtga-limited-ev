@@ -18,6 +18,7 @@ import type { EventPreset } from "../../lib/types";
 export const CONTENDER_DRAFT = {
   name: "Contender Draft",
   entryCostGems: 3000,
+  entryCostGold: 20000,
   format: "bo1",
   structure: { kind: "elimination", maxWins: 7, maxLosses: 3 },
   payouts: [

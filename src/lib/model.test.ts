@@ -3,6 +3,7 @@ import {
   ARENA_DIRECT,
   CONTENDER_DRAFT,
   CUBE_DRAFT,
+  DEFAULT_GOLD_PER_EVENT,
   DEFAULT_PACK_VALUE_GEMS,
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
@@ -21,6 +22,8 @@ import {
   defaultConfig,
   exactDistribution,
   expectedNetAt,
+  effectiveEntryGems,
+  goldFundedFraction,
   grossValue,
   matchWinRate,
   maxPossibleWins,
@@ -247,6 +250,53 @@ describe("breakEvenWinRate", () => {
   });
 });
 
+describe("gold entries", () => {
+  it("funds the share of entries the accrual rate covers", () => {
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    expect(config.entryCostGold).toBe(10000);
+    expect(config.goldPerEvent).toBe(DEFAULT_GOLD_PER_EVENT);
+    expect(goldFundedFraction(config)).toBeCloseTo(1350 / 10000, 12);
+    expect(effectiveEntryGems(config)).toBeCloseTo(1500 * (1 - 0.135), 9);
+  });
+
+  it("charges the full gem price when the event takes no gold", () => {
+    const config = configFromPreset(SEALED, defaultConfig());
+    expect(config.entryCostGold).toBe(0);
+    expect(goldFundedFraction(config)).toBe(0);
+    expect(effectiveEntryGems(config)).toBe(2000);
+  });
+
+  it("caps at every entry once accrual outpaces the gold price", () => {
+    const config = { ...defaultConfig(), goldPerEvent: 50_000 };
+    expect(goldFundedFraction(config)).toBe(1);
+    expect(effectiveEntryGems(config)).toBe(0);
+  });
+
+  it("makes the simulated bankroll converge to the closed-form share", () => {
+    // The bankroll runs a path — gold piles up and is spent when it suffices —
+    // while the closed form is its long-run limit. They have to agree.
+    for (const goldPerEvent of [0, 500, 1350, 4000]) {
+      const config = { ...defaultConfig(), goldPerEvent };
+      const res = simulate(config, 100_000, 5);
+      expect(res.goldEntryFraction).toBeCloseTo(goldFundedFraction(config), 3);
+      expect(res.meanEntryGems).toBeCloseTo(effectiveEntryGems(config), 1);
+    }
+  });
+
+  it("improves expected value without touching the outcome distribution", () => {
+    const without = { ...defaultConfig(), goldPerEvent: 0 };
+    const with_ = { ...defaultConfig(), goldPerEvent: 1350 };
+    const a = simulate(without, 50_000, 9);
+    const b = simulate(with_, 50_000, 9);
+    expect(b.meanNet).toBeGreaterThan(a.meanNet);
+    // Gold pays the entry; it does not help you win.
+    expect(b.buckets.map((x) => x.exactProbability)).toEqual(
+      a.buckets.map((x) => x.exactProbability),
+    );
+    expect(b.meanNet - a.meanNet).toBeCloseTo(1500 * 0.135, 0);
+  });
+});
+
 describe("presets", () => {
   it("defaults to Premier Draft at a 1,500 gem entry", () => {
     expect(defaultConfig().entryCostGems).toBe(1500);
@@ -458,7 +508,12 @@ describe("presets", () => {
             PICK_TWO_DRAFT.payouts[k].packs * config.packValueGems),
       0,
     );
-    expect(expectedNetAt(config, 0.55)).toBeCloseTo(gross - 900, 6);
+    // Priced against the effective entry: Pick Two takes gold, so part of the
+    // 900 gem price is covered by the accrued balance.
+    expect(expectedNetAt(config, 0.55)).toBeCloseTo(
+      gross - effectiveEntryGems(config),
+      6,
+    );
   });
 
   it("has a payout row for every reachable win count", () => {

@@ -39,18 +39,24 @@ the rate editable in advanced settings.
 Traditional Draft is the only event awarding them: 2 points for a 3-0.
 Traditional Sealed also awards them but is not currently modelled — see item 1.
 
-## 4. Gold entry fees, and prefer gold when available
+## 4. Gold entry fees — done
 
-Bigger than it looks. Today `entryCostGems` is a single number. Events cost
-*either* gems or gold (Premier: 1,500 gems / 10,000 gold; Quick: 750 / 5,000;
-Pick Two: 900 / 6,000), and the two are not interchangeable at a fixed rate.
+Presets carry both prices, and the simulation runs a gold balance across the
+sequence: it accrues `goldPerEvent` each time and pays an entry outright once
+enough has built up. Gems cover the rest.
 
-Wants:
-- presets carry both prices
-- the model accrues gold (from dailies/weeklies?) and spends it in preference to
-  gems, so a run of events draws down whichever currency it should
-- this makes EV path-dependent rather than per-event independent, which is a
-  real change to what `simulate()` returns
+Because the accrual does not depend on how an event goes, the long-run share of
+free entries is just `goldPerEvent / entryCostGold`, which the closed form uses
+and a test holds the simulation to.
+
+Still rough:
+- the 1,350 default assumes one event a day. Daily win gold caps at fifteen
+  wins and quests do not repeat, so playing more events a day earns less per
+  event — the model has no notion of events per day.
+- the quest half of that figure (~600) is not on Wizards' drop-rates page.
+- gold accrued on gem-only events is simply wasted rather than banked toward
+  something else.
+- the balance starts at zero, which slightly overstates early entries' cost.
 
 ## 5. Charts (d3) — done
 

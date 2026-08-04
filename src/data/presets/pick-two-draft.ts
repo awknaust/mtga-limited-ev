@@ -9,6 +9,7 @@ import type { EventPreset } from "../../lib/types";
 export const PICK_TWO_DRAFT = {
   name: "Pick Two Draft",
   entryCostGems: 900,
+  entryCostGold: 6000,
   format: "bo1",
   structure: { kind: "elimination", maxWins: 4, maxLosses: 2 },
   payouts: [

@@ -46,11 +46,30 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
   const counts = new Array<number>(topWins + 1).fill(0);
   let totalRounds = 0;
 
+  /*
+   * Gold is a running balance, not a per-event discount: it accrues whether or
+   * not it is spent, and an entry is free only once enough has piled up. That
+   * makes the sequence path-dependent, so the events are played in order and
+   * the balance carries between them. Starting from nothing understates the
+   * first few entries, which washes out over any realistic trial count.
+   */
+  let gold = 0;
+  let goldEntries = 0;
+  const takesGold = config.entryCostGold > 0;
+
   for (let i = 0; i < trials; i++) {
+    gold += config.goldPerEvent;
+    if (takesGold && gold >= config.entryCostGold) {
+      gold -= config.entryCostGold;
+      goldEntries++;
+    }
     const { wins, rounds } = simulateEvent(config.structure, pMatch, rand);
     counts[wins]++;
     totalRounds += rounds;
   }
+
+  const goldEntryFraction = trials > 0 ? goldEntries / trials : 0;
+  const meanEntryGems = config.entryCostGems * (1 - goldEntryFraction);
 
   const exact = exactDistribution(pMatch, config.structure);
 
@@ -108,8 +127,10 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
     stdDevNet,
     stdErrNet: trials > 0 ? stdDevNet / Math.sqrt(trials) : 0,
     probProfit,
-    roi: config.entryCostGems > 0 ? meanNet / config.entryCostGems : 0,
+    roi: meanEntryGems > 0 ? meanNet / meanEntryGems : 0,
     totalNet: sumNet,
+    goldEntryFraction,
+    meanEntryGems,
     percentiles: netPercentiles(buckets),
   };
 }

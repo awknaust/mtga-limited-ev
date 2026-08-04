@@ -145,6 +145,8 @@ export default function App() {
     rounds: `${uid}-rounds`,
     winRate: `${uid}-win-rate`,
     entry: `${uid}-entry`,
+    entryGold: `${uid}-entry-gold`,
+    goldPerEvent: `${uid}-gold-per-event`,
     packValue: `${uid}-pack-value`,
     funValue: `${uid}-fun-value`,
     playInValue: `${uid}-play-in-value`,
@@ -246,7 +248,10 @@ export default function App() {
     {
       label: "ROI",
       value: pct(result.roi),
-      hint: `of ${gems(config.entryCostGems)} gem entry`,
+      hint:
+        result.goldEntryFraction > 0
+          ? `of ${gems(result.meanEntryGems)} gems paid · ${pct(result.goldEntryFraction)} entries free`
+          : `of ${gems(config.entryCostGems)} gem entry`,
       tone: signClass(result.roi),
     },
     {
@@ -482,6 +487,22 @@ export default function App() {
                     min={0}
                     value={config.entryCostGems}
                     onChange={(n) => set("entryCostGems", n)}
+                  />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.entryGold} className="form-label">
+                    Entry cost (gold)
+                    <InfoTip
+                      label="About the gold entry"
+                      content="Most events take gold instead of gems. Set 0 for events that do not. Gold accrues as you play and pays the entry whenever enough has built up."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.entryGold}
+                    disabled={locked}
+                    min={0}
+                    value={config.entryCostGold}
+                    onChange={(n) => set("entryCostGold", n)}
                   />
                 </div>
               </div>
@@ -785,6 +806,21 @@ export default function App() {
                     value="∞"
                     disabled
                     readOnly
+                  />
+                </div>
+                <div className="col-12">
+                  <label htmlFor={ids.goldPerEvent} className="form-label">
+                    Gold earned per event
+                    <InfoTip
+                      label="About gold earned per event"
+                      content="A full day of daily wins pays 750 gold and a quest adds roughly 600. This default credits both to one event, which fits drafting about once a day."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.goldPerEvent}
+                    min={0}
+                    value={config.goldPerEvent}
+                    onChange={(n) => set("goldPerEvent", n)}
                   />
                 </div>
                 <div className="col-12">

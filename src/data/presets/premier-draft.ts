@@ -4,6 +4,7 @@ import type { EventPreset } from "../../lib/types";
 export const PREMIER_DRAFT = {
   name: "Premier Draft",
   entryCostGems: 1500,
+  entryCostGold: 10000,
   format: "bo1",
   structure: { kind: "elimination", maxWins: 7, maxLosses: 3 },
   payouts: [

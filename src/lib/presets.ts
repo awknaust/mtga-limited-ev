@@ -98,6 +98,22 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 export const GEMS_PER_USD = 400;
 
 /**
+ * Default gold earned in the time it takes to play one event.
+ *
+ * A full day of daily wins pays exactly 750 gold — 250 for the first, 100 for
+ * each of the next three, 50 at the sixth, eighth and tenth, 25 at the twelfth
+ * and fourteenth — and a daily quest adds roughly 600 more. This credits all of
+ * it to a single event, which fits drafting about once a day.
+ *
+ * Play more events in a day and the real figure per event is lower, since the
+ * win rewards cap at fifteen and the quest does not repeat. The quest figure is
+ * not on Wizards' drop-rates page and is the softer half of this number.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DEFAULT_GOLD_PER_EVENT = 1350;
+
+/**
  * Street prices in USD from MTGGoldfish's sealed product list, averaged over
  * three released, Standard-legal sets:
  *
@@ -148,6 +164,7 @@ export function configFromPreset(preset: EventPreset, base: EventConfig): EventC
   return {
     ...base,
     entryCostGems: preset.entryCostGems,
+    entryCostGold: preset.entryCostGold ?? 0,
     format: preset.format,
     structure: { ...preset.structure },
     payouts: preset.payouts.map((t) => ({ ...t })),
@@ -159,6 +176,7 @@ export function defaultConfig(): EventConfig {
     winRate: 0.55,
     packValueGems: DEFAULT_PACK_VALUE_GEMS,
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
+    goldPerEvent: DEFAULT_GOLD_PER_EVENT,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   } as EventConfig);

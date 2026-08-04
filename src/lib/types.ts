@@ -47,6 +47,8 @@ export type EventStructure = EliminationStructure | RoundsStructure;
 export type EventPreset = {
   name: string;
   entryCostGems: number;
+  /** Gold price, where the event takes gold. Absent means gems only. */
+  entryCostGold?: number;
   format: EventFormat;
   structure: EventStructure;
   payouts: PayoutTier[];
@@ -59,6 +61,10 @@ export type EventConfig = {
   structure: EventStructure;
   /** Entry cost in gems. */
   entryCostGems: number;
+  /** Gold price, or 0 where the event takes gems only. */
+  entryCostGold: number;
+  /** Gold earned in the time it takes to play one event. */
+  goldPerEvent: number;
   /** Gem value assigned to one booster pack (0 = packs counted but valued at nothing). */
   packValueGems: number;
   /** Gem value assigned to one play-in point. */
@@ -107,5 +113,9 @@ export type SimResult = {
   roi: number;
   /** Total net gems across all simulated events. */
   totalNet: number;
+  /** Share of entries the simulated gold balance covered. */
+  goldEntryFraction: number;
+  /** Mean gems actually paid to enter, after gold-funded entries. */
+  meanEntryGems: number;
   percentiles: { p5: number; p25: number; p50: number; p75: number; p95: number };
 };

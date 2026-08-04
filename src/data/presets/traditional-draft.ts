@@ -9,6 +9,7 @@ import type { EventPreset } from "../../lib/types";
 export const TRADITIONAL_DRAFT = {
   name: "Traditional Draft",
   entryCostGems: 1500,
+  entryCostGold: 10000,
   format: "bo3",
   structure: { kind: "rounds", rounds: 3 },
   payouts: [
