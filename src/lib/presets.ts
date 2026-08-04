@@ -20,6 +20,7 @@ import { QUICK_DRAFT } from "../data/presets/quick-draft";
 import { SEALED } from "../data/presets/sealed";
 import { TRADITIONAL_CUBE_DRAFT } from "../data/presets/traditional-cube-draft";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
+import { TRADITIONAL_SEALED } from "../data/presets/traditional-sealed";
 import type { EventConfig, EventPreset } from "./types";
 
 export {
@@ -34,6 +35,7 @@ export {
   SEALED,
   TRADITIONAL_CUBE_DRAFT,
   TRADITIONAL_DRAFT,
+  TRADITIONAL_SEALED,
 };
 
 export const PRESETS: EventPreset[] = [
@@ -44,6 +46,7 @@ export const PRESETS: EventPreset[] = [
   TRADITIONAL_CUBE_DRAFT,
   PICK_TWO_DRAFT,
   SEALED,
+  TRADITIONAL_SEALED,
   CONTENDER_DRAFT,
   // The Arena Directs sit together at the end: same entry and same structure,
   // differing only in pool and prize. The cube is the phantom one, so it is
