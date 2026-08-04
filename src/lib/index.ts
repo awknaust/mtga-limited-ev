@@ -9,6 +9,7 @@
  *   distribution.ts  closed-form outcome distributions
  *   rng.ts           seeded PRNG
  *   simulate.ts      Monte Carlo run, expected value, break-even
+ *   uncertainty.ts   the win rate as a posterior, not a point
  *   bankroll.ts      how far a starting balance goes
  *   presets.ts       named events, loaded from src/data/presets
  */
@@ -20,5 +21,6 @@ export * from "./holdings";
 export * from "./distribution";
 export * from "./rng";
 export * from "./simulate";
+export * from "./uncertainty";
 export * from "./bankroll";
 export * from "./presets";

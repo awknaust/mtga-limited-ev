@@ -15,6 +15,7 @@ import { HOLDING_KEYS, holding, type HoldingKey } from "./holdings";
 import { goldPerEvent, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
+import { drawWinRate, winRatePosterior } from "./uncertainty";
 import { simulateEvent } from "./simulate";
 import type { EventConfig } from "./types";
 
@@ -212,10 +213,21 @@ export function simulateBankroll(
   bankroll: BankrollConfig,
   rand: () => number,
   record = false,
+  /**
+   * The win rate this run is played at, where the caller is varying it across
+   * runs. Defaults to the configured rate, which is the right reading for a
+   * single run asked for on its own.
+   */
+  pMatch = matchWinRate(config),
 ): BankrollRun {
-  const pMatch = matchWinRate(config);
   const takesGold = config.entryCostGold > 0;
-  const goldEarned = goldPerEvent(config);
+  /*
+   * Gold follows the drawn rate rather than the configured one, since the
+   * daily-win ladder is climbed by this run's wins. A run dealt a poor rate
+   * earns less gold as well as fewer gems, which is the correlation that makes
+   * the bad tail as bad as it should be.
+   */
+  const goldEarned = goldPerEvent({ ...config, winRate: pMatch });
 
   let gems = bankroll.startingGems;
   let gold = bankroll.startingGold;
@@ -301,7 +313,7 @@ export function simulateBankroll(
  * same feature with a ceiling on it.
  */
 const RECORDED_RUNS = 100;
-const RECORDED_EVENTS = 250;
+export const RECORDED_EVENTS = 250;
 
 /** A run kept in full, so the summaries have something underneath them. */
 export type SampleRun = {
@@ -385,9 +397,19 @@ export function simulateBankrolls(
    * same runs every time for a seed.
    */
   const stride = Math.max(1, Math.ceil(trials / RECORDED_RUNS));
+  /*
+   * Drawn once per run, not once per event. A player has one true win rate they
+   * do not know, so it is fixed for the whole of a possible future and varies
+   * between futures — which is what puts the uncertainty about the rate into
+   * the spread of where a bankroll ends up, alongside the luck within it.
+   *
+   * Null when the rate is called certain, and every run is then played at it.
+   */
+  const posterior = winRatePosterior(config);
   const runs: BankrollRun[] = [];
   for (let i = 0; i < trials; i++) {
-    runs.push(simulateBankroll(config, bankroll, rand, i % stride === 0));
+    const pMatch = drawWinRate(config, posterior, rand());
+    runs.push(simulateBankroll(config, bankroll, rand, i % stride === 0, pMatch));
   }
 
   const mean = (pick: (r: BankrollRun) => number): number =>

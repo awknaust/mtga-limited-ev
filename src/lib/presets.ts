@@ -57,6 +57,19 @@ export const PRESETS: EventPreset[] = [
   ARENA_DIRECT_COLLECTOR,
 ];
 
+/**
+ * Matches the default win rate is taken to rest on.
+ *
+ * A hundred, which is a season of fairly regular play and enough that the prior
+ * has stopped doing much of the work. It still leaves a range wide enough to
+ * straddle break-even on Premier Draft, which is the honest answer — a hundred
+ * matches pins a win rate to within a few points, not to the decimal the slider
+ * displays.
+ *
+ * Set the field to 0 to treat the rate as exact and report point estimates.
+ */
+export const DEFAULT_WIN_RATE_MATCHES = 100;
+
 /** Selector value for a hand-edited schedule that matches no preset. */
 export const CUSTOM_PRESET = "Custom";
 
@@ -267,6 +280,7 @@ export function configFromPreset(preset: EventPreset, base: EventConfig): EventC
 export function defaultConfig(): EventConfig {
   return configFromPreset(PREMIER_DRAFT, {
     winRate: 0.55,
+    winRateMatches: DEFAULT_WIN_RATE_MATCHES,
     packValueGems: DEFAULT_PACK_VALUE_GEMS,
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
     otherGoldPerDay: DEFAULT_OTHER_GOLD_PER_DAY,

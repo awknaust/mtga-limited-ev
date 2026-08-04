@@ -19,6 +19,11 @@ import {
   expectedNetAt,
   goldPerEvent,
   matchWinRate,
+  netInterval,
+  CREDIBLE_LEVEL,
+  probProfitable,
+  winRateInterval,
+  winRatePosterior,
   maxPossibleWins,
   maxRounds,
   resizePayouts,
@@ -43,6 +48,21 @@ type TopUp = {
   goldPrice: number;
   suggested: number;
 };
+
+/**
+ * What the confidence selector offers, shortest record first.
+ *
+ * Twenty is a few drafts, a hundred is a season's worth, five hundred is enough
+ * that the prior stops mattering at all. Infinity is stored as 0 and reads as
+ * the limit of the same idea: a record long enough to leave nothing in doubt,
+ * so the ranges collapse to the single figures they are drawn around.
+ */
+const CONFIDENCE_CHOICES = [
+  { matches: 20, label: "20" },
+  { matches: 100, label: "100" },
+  { matches: 500, label: "500" },
+  { matches: 0, label: "∞" },
+];
 
 const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
@@ -443,6 +463,7 @@ export default function App() {
     maxEvents: `${uid}-max-events`,
     spendWinnings: `${uid}-spend-winnings`,
     gemsPerUsd: `${uid}-gems-per-usd`,
+    confMatches: `${uid}-conf-matches`,
     resultTabs: `${uid}-results`,
     viewTabs: `${uid}-view`,
     topUpTitle: `${uid}-top-up-title`,
@@ -460,6 +481,18 @@ export default function App() {
       ),
     [config, startingGems, startingGold, maxEvents, spendWinnings, bankrollRuns, seed],
   );
+  /*
+   * The win rate is a guess, so these carry how much of one. Null throughout
+   * when the player has called it certain.
+   */
+  const posterior = useMemo(() => winRatePosterior(config), [config]);
+  const netBand = useMemo(() => netInterval(config), [config]);
+  const pProfitable = useMemo(() => probProfitable(config), [config]);
+  const rateBand = useMemo(
+    () => (posterior ? winRateInterval(posterior) : null),
+    [posterior],
+  );
+
   // When there is no break-even point, say which side of zero the event sits on.
   const breakEvenHint = useMemo(() => {
     if (breakEven !== null) return "per match";
@@ -559,7 +592,12 @@ export default function App() {
     {
       label: "Expected net / event",
       value: gems2(result.meanNet),
-      hint: `${m.label} · ±${gems2(1.96 * result.stdErrNet)} (95% CI)`,
+      // The band the record supports. Falls back to the sampling error of the
+      // simulated mean when the rate is called certain, since there is then
+      // nothing else for a ± to describe.
+      hint: netBand
+        ? `${m.label} · ${gems2(netBand[0])} to ${gems2(netBand[1])} (${pct(CREDIBLE_LEVEL, 0)})`
+        : `${m.label} · ±${gems2(1.96 * result.stdErrNet)} (95% CI)`,
       tone: signClass(result.meanNet),
     },
     {
@@ -579,7 +617,10 @@ export default function App() {
     {
       label: "Break-even win rate",
       value: breakEvenShown === null ? "—" : pct(breakEvenShown, 2),
-      hint: breakEvenHint,
+      hint:
+        pProfitable !== null && breakEvenShown !== null
+          ? `${pct(pProfitable)} chance you are above it`
+          : breakEvenHint,
     },
     {
       label: "P(profit)",
@@ -1196,7 +1237,7 @@ export default function App() {
                   content="Closed-form expectation, not the simulation. The dot is where you are, the dashed line is break-even."
                 />
               </h3>
-              <EvCurveChart config={config} breakEven={breakEven} m={m} />
+              <EvCurveChart config={config} breakEven={breakEven} m={m} rateBand={rateBand} />
               <div className="form-text">
                 Per match win rate, against expected net gems.
               </div>
@@ -1349,6 +1390,57 @@ export default function App() {
                       content="Gems and gold are liquid; packs, cards, points and boxes are not — none of them buys an entry in Arena, so by default they only count toward your ending total. Turning this on treats them as liquid at the rates below."
                     />
                   </label>
+                </div>
+              </div>
+
+              <div className="adv-group mb-3">
+                <h3 className="section-title">Win rate confidence</h3>
+                <div className="row g-2">
+                  <div className="col-12">
+                    <label htmlFor={ids.confMatches} className="form-label">
+                      Matches played
+                      <InfoTip
+                        label="About matches played"
+                        content="How many matches you estimated your win rate from. Fewer matches means less certain outcomes. Infinity means you know it exactly, and every range collapses to a single figure."
+                      />
+                    </label>
+                    {/*
+                      A pill per choice rather than a menu: there are four, they
+                      are ordered, and the whole range being visible is what
+                      makes it obvious the setting is a spectrum from a guess to
+                      a certainty. `id` sits on the group's first control so the
+                      label above still targets something focusable.
+                    */}
+                    <div
+                      className="btn-group w-100"
+                      role="group"
+                      aria-label="Matches played"
+                    >
+                      {CONFIDENCE_CHOICES.map((choice, i) => (
+                        <button
+                          key={choice.matches}
+                          id={i === 0 ? ids.confMatches : undefined}
+                          type="button"
+                          className={`btn ${
+                            config.winRateMatches === choice.matches
+                              ? "btn-primary"
+                              : "btn-outline-secondary"
+                          }`}
+                          aria-pressed={config.winRateMatches === choice.matches}
+                          onClick={() => set("winRateMatches", choice.matches)}
+                        >
+                          {choice.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="col-12">
+                    <div className="form-text mt-0">
+                      {rateBand
+                        ? `Your true win rate is in ${pct(rateBand[0])} to ${pct(rateBand[1])}, with ${pct(CREDIBLE_LEVEL, 0)} probability.`
+                        : "An exactly known win rate, so every figure below is a single number."}
+                    </div>
+                  </div>
                 </div>
               </div>
 

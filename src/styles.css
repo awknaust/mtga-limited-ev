@@ -385,3 +385,13 @@ body {
   font-size: 0.8125rem;
   color: var(--bs-secondary-color);
 }
+
+/*
+ * The win rates a record supports, behind the EV curve. Deliberately faint: it
+ * is context for the line rather than a mark of its own, and it spans most of
+ * the axis on a short record.
+ */
+.chart-band {
+  fill: var(--bs-primary);
+  opacity: 0.1;
+}
