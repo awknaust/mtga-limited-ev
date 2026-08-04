@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   CUBE_DRAFT,
   DEFAULT_PACK_VALUE_GEMS,
+  DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
@@ -15,10 +16,12 @@ import {
   defaultConfig,
   exactDistribution,
   expectedNetAt,
+  grossValue,
   matchWinRate,
   matchesPreset,
   maxPossibleWins,
   maxRounds,
+  playInPointsFor,
   resizePayouts,
   simulate,
   type EventStructure,
@@ -168,7 +171,8 @@ describe("resizePayouts", () => {
   it("keeps overlapping rows and pads new ones with zeros", () => {
     const grown = resizePayouts(TRADITIONAL_DRAFT.payouts, 7);
     expect(grown).toHaveLength(8);
-    expect(grown[3]).toEqual({ wins: 3, gems: 3000, packs: 6 });
+    // Play-in points survive the resize along with the rest of the row.
+    expect(grown[3]).toEqual({ wins: 3, gems: 3000, packs: 6, playInPoints: 2 });
     expect(grown[7]).toEqual({ wins: 7, gems: 0, packs: 0 });
   });
 
@@ -217,6 +221,42 @@ describe("presets", () => {
   it("defaults to Premier Draft at a 1,500 gem entry", () => {
     expect(defaultConfig().entryCostGems).toBe(1500);
     expect(defaultConfig().payouts).toEqual(PREMIER_DRAFT.payouts);
+  });
+
+  it("defaults a play-in point to 200 gems", () => {
+    // 20 points buy a 4,000 gem Arena Open play-in.
+    expect(DEFAULT_PLAY_IN_POINT_VALUE_GEMS).toBe(200);
+    expect(DEFAULT_PLAY_IN_POINT_VALUE_GEMS * 20).toBe(4000);
+    expect(defaultConfig().playInPointValueGems).toBe(
+      DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
+    );
+  });
+
+  it("awards play-in points only on the traditional events", () => {
+    const awarding = PRESETS.filter((p) =>
+      p.payouts.some((t) => (t.playInPoints ?? 0) > 0),
+    ).map((p) => p.name);
+    expect(awarding).toEqual(["Traditional Draft", "Traditional Sealed"]);
+  });
+
+  it("prices play-in points into the gross", () => {
+    const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
+    const tier = TRADITIONAL_DRAFT.payouts[3];
+    expect(tier.playInPoints).toBe(2);
+    expect(playInPointsFor(config, 3)).toBe(2);
+    expect(grossValue(config, 3)).toBe(
+      tier.gems + tier.packs * config.packValueGems + 2 * config.playInPointValueGems,
+    );
+    // Valuing them at nothing takes the whole term back out.
+    expect(grossValue({ ...config, playInPointValueGems: 0 }, 3)).toBe(
+      tier.gems + tier.packs * config.packValueGems,
+    );
+  });
+
+  it("leaves events without points untouched by their value", () => {
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const at = (v: number) => expectedNetAt({ ...config, playInPointValueGems: v }, 0.55);
+    expect(at(0)).toBeCloseTo(at(5000), 9);
   });
 
   it("defaults packs to 22 gems each", () => {

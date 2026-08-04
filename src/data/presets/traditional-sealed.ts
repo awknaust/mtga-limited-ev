@@ -9,6 +9,10 @@ import type { EventPreset } from "../../lib/types";
  *
  * Nearly all the gem value sits on the 4-win run: the ladder is flat at 200
  * until then. Packs scale with wins, so a losing run still returns something.
+ *
+ * Three wins awards 2 play-in points toward an Arena Open, and four clears the
+ * same bar. Whether the top tier pays more than two is unconfirmed — see the
+ * TODO.
  */
 export const TRADITIONAL_SEALED = {
   name: "Traditional Sealed",
@@ -19,7 +23,7 @@ export const TRADITIONAL_SEALED = {
     { wins: 0, gems: 200, packs: 1 },
     { wins: 1, gems: 200, packs: 2 },
     { wins: 2, gems: 200, packs: 3 },
-    { wins: 3, gems: 200, packs: 4 },
-    { wins: 4, gems: 2200, packs: 5 },
+    { wins: 3, gems: 200, packs: 4, playInPoints: 2 },
+    { wins: 4, gems: 2200, packs: 5, playInPoints: 2 },
   ],
 } satisfies EventPreset;

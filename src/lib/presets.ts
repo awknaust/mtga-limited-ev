@@ -69,6 +69,19 @@ export const CUSTOM_PRESET = "Custom";
  */
 export const DEFAULT_PACK_VALUE_GEMS = 22;
 
+/**
+ * Default gem value of one play-in point.
+ *
+ * Priced off what the points are for: 20 of them buy an Arena Open play-in,
+ * which otherwise costs 4,000 gems — so 4000 / 20 = 200 gems a point.
+ *
+ * That is a replacement-cost figure, not a market one. It holds only if you
+ * would have entered the Open anyway; points you never spend are worth
+ * nothing, and points beyond a multiple of 20 are stranded until you collect
+ * enough to redeem. Set the field to 0 to ignore them.
+ */
+export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
+
 /** Config built from a preset, leaving win rate and pack value untouched. */
 export function configFromPreset(preset: EventPreset, base: EventConfig): EventConfig {
   return {
@@ -106,7 +119,13 @@ export function matchesPreset(config: EventConfig, presetName: string): boolean 
     p.payouts.length === config.payouts.length &&
     p.payouts.every((t, i) => {
       const c = config.payouts[i];
-      return c && c.wins === t.wins && c.gems === t.gems && c.packs === t.packs;
+      return (
+        c &&
+        c.wins === t.wins &&
+        c.gems === t.gems &&
+        c.packs === t.packs &&
+        (c.playInPoints ?? 0) === (t.playInPoints ?? 0)
+      );
     })
   );
 }
@@ -115,5 +134,6 @@ export function defaultConfig(): EventConfig {
   return configFromPreset(PREMIER_DRAFT, {
     winRate: 0.55,
     packValueGems: DEFAULT_PACK_VALUE_GEMS,
+    playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
   } as EventConfig);
 }

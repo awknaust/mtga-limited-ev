@@ -85,9 +85,10 @@ format rewards the better deck. 0, 0.5 and 1 are fixed points.
 | Expected win rate | Per-game, applied independently to every game |
 | Entry cost | Gems; set by the preset, editable |
 | Pack value | Gems per booster; **defaults to 22** (see below). Set to 0 to price events in gems alone |
-| Payout schedule | Editable gems + packs per win count; resizes with the structure |
+| Payout schedule | Editable gems + packs per win count; resizes with the structure. A Points column appears on events that award play-in points |
 | N | Number of simulated events |
 | Seed | Same seed ⇒ same run |
+| Play-in point value | Gems per play-in point; **defaults to 200** (see below). Advanced settings |
 
 ### Presets
 
@@ -99,10 +100,10 @@ pack value, N and seed are left alone when switching.
 | Premier Draft | 1,500 | BO1, to 7 wins / 3 losses | 50 / 100 / 250 / 1000 / 1400 / 1600 / 1800 / 2200 gems, 1–6 packs |
 | Quick Draft | 750 | BO1, to 7 wins / 3 losses | 50 / 100 / 200 / 300 / 450 / 650 / 850 / 950 gems, 1–2 packs |
 | Cube Draft | 1,500 | BO1, to 7 wins / 3 losses | Same as Premier |
-| Traditional Draft | 1,500 | BO3, 3 fixed rounds | 0 / 0 / 1000 / 3000 gems, 1 / 1 / 4 / 6 packs |
+| Traditional Draft | 1,500 | BO3, 3 fixed rounds | 0 / 0 / 1000 / 3000 gems, 1 / 1 / 4 / 6 packs, 2 play-in points at 3-0 |
 | Pick Two Draft | 900 | BO1, to 4 wins / 2 losses | 50 / 150 / 800 / 1000 / 1300 gems, 1 / 1 / 1 / 2 / 3 packs |
 | Sealed | 2,000 | BO1, to 7 wins / 3 losses | 200 / 200 / 600 / 1200 / 1200 / 1200 / 2200 / 2200 gems, 3 packs flat |
-| Traditional Sealed | 2,000 | BO3, to 4 wins / 2 losses | 200 / 200 / 200 / 200 / 2200 gems, 1–5 packs |
+| Traditional Sealed | 2,000 | BO3, to 4 wins / 2 losses | 200 / 200 / 200 / 200 / 2200 gems, 1–5 packs, 2 play-in points from 3 wins |
 | Custom | — | Keeps whatever is on screen | |
 
 Editing any structural or payout field moves the selector to **Custom**, and
@@ -146,6 +147,22 @@ would push it higher. The full derivation is on `DEFAULT_PACK_VALUE_GEMS` in
 It is the most subjective input here. A ±10 gem error moves expected net by
 roughly 30 gems an event; break-even win rates barely move. Set it to 0 to price
 events in gems alone.
+
+## A note on play-in points
+
+Only the traditional events award them, and they default to **200 gems** each:
+20 points buy an Arena Open play-in that otherwise costs 4,000 gems.
+
+That is a replacement cost, and it only holds if you would have entered the Open
+anyway. Points you never spend are worth nothing, and any beyond a multiple of
+20 are stranded until you collect enough to redeem — so this is the most
+optimistic of the three value inputs. Set it to 0 in advanced settings to price
+events without them.
+
+They matter more than their size suggests. At a 55% win rate they are worth
+about 76 gems an event on Traditional Draft and 173 on Traditional Sealed, which
+moves Traditional Draft's break-even from 62.70% to 60.76% — the best of any
+event in the app.
 
 ## Tests
 

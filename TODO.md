@@ -21,11 +21,16 @@ Events paying a fixed box of packs rather than a win-scaled ladder. Needs a
 think about whether this is just a payout table with flat rows, or a genuinely
 different reward shape that the `PayoutTier` type does not cover.
 
-## 3. Value for play-in points
+## 3. Value for play-in points — done, one number to confirm
 
-Arena Open / Qualifier play-in points are a reward currency the model currently
-ignores. Likely a third column alongside gems and packs, with a user-set gem
-value — same treatment `packValueGems` already gets.
+Play-in points are a third reward column alongside gems and packs, valued at
+200 gems each by default (20 points buy a 4,000 gem Arena Open play-in), with
+the rate editable in advanced settings.
+
+Only the traditional events award them: 2 points for a 3-0 in Traditional
+Draft, and 2 from 3 wins in Traditional Sealed. **Whether Traditional Sealed's
+4-win tier pays more than two is unconfirmed** — the 4-win row currently
+repeats the same 2. Worth a look at the in-game track.
 
 ## 4. Gold entry fees, and prefer gold when available
 

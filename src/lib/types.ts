@@ -14,6 +14,11 @@ export type PayoutTier = {
   wins: number;
   gems: number;
   packs: number;
+  /**
+   * Play-in points toward an Arena Open. Only the traditional events award
+   * them, so this is optional and absent means none.
+   */
+  playInPoints?: number;
 };
 
 /** Whether one round is a single game or a best-of-three match. */
@@ -52,6 +57,8 @@ export type EventConfig = {
   entryCostGems: number;
   /** Gem value assigned to one booster pack (0 = packs counted but valued at nothing). */
   packValueGems: number;
+  /** Gem value assigned to one play-in point. */
+  playInPointValueGems: number;
   /** Payout table, one entry per possible win count (0..maxPossibleWins). */
   payouts: PayoutTier[];
 };
@@ -66,6 +73,7 @@ export type WinBucket = {
   grossGems: number;
   netGems: number;
   packs: number;
+  playInPoints: number;
 };
 
 export type SimResult = {

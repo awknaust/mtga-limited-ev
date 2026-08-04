@@ -7,10 +7,22 @@ export function payoutFor(config: EventConfig, wins: number): PayoutTier {
   return tier ?? { wins, gems: 0, packs: 0 };
 }
 
-/** Gross payout in gems for a given win count (packs converted at packValueGems). */
+/** Play-in points awarded at a win count; absent means none. */
+export function playInPointsFor(config: EventConfig, wins: number): number {
+  return payoutFor(config, wins).playInPoints ?? 0;
+}
+
+/**
+ * Gross payout in gems for a given win count, with packs and play-in points
+ * converted at the rates the config carries.
+ */
 export function grossValue(config: EventConfig, wins: number): number {
   const tier = payoutFor(config, wins);
-  return tier.gems + tier.packs * config.packValueGems;
+  return (
+    tier.gems +
+    tier.packs * config.packValueGems +
+    (tier.playInPoints ?? 0) * config.playInPointValueGems
+  );
 }
 
 /** Net result in gems for a given win count, after the entry fee. */

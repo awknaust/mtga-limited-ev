@@ -64,6 +64,7 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
       grossGems: grossValue(config, wins),
       netGems: netValue(config, wins),
       packs: tier.packs,
+      playInPoints: tier.playInPoints ?? 0,
     };
   });
 

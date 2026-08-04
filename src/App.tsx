@@ -144,6 +144,7 @@ export default function App() {
     entry: `${uid}-entry`,
     packValue: `${uid}-pack-value`,
     funValue: `${uid}-fun-value`,
+    playInValue: `${uid}-play-in-value`,
     trials: `${uid}-trials`,
     seed: `${uid}-seed`,
   };
@@ -202,6 +203,9 @@ export default function App() {
   };
 
   const maxProb = Math.max(...result.buckets.map((b) => b.probability), 0.0001);
+  // Only the traditional events award play-in points, so the column and the
+  // stat hint stay out of the way everywhere else.
+  const awardsPlayInPoints = config.payouts.some((t) => (t.playInPoints ?? 0) > 0);
   const structure = config.structure;
   const roundWord = config.format === "bo3" ? "matches" : "games";
   // Restates the event being priced, for the Results heading — the numbers
@@ -473,6 +477,11 @@ export default function App() {
                     <th scope="col" className="text-end">
                       Packs
                     </th>
+                    {awardsPlayInPoints && (
+                      <th scope="col" className="text-end">
+                        Points
+                      </th>
+                    )}
                   </tr>
                 </thead>
                 <tbody>
@@ -495,6 +504,16 @@ export default function App() {
                           onChange={(n) => setTier(t.wins, { packs: n })}
                         />
                       </td>
+                      {awardsPlayInPoints && (
+                        <td>
+                          <NumberInput
+                            className="form-control form-control-sm text-end"
+                            min={0}
+                            value={t.playInPoints ?? 0}
+                            onChange={(n) => setTier(t.wins, { playInPoints: n })}
+                          />
+                        </td>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -693,6 +712,21 @@ export default function App() {
                     />
                   </label>
                   <NumberInput id={ids.seed} value={seed} onChange={setSeed} />
+                </div>
+                <div className="col-12">
+                  <label htmlFor={ids.playInValue} className="form-label">
+                    Play-in point value (gems)
+                    <InfoTip
+                      label="About play-in point value"
+                      content="Priced off what the points buy: 20 of them cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point. That only holds if you would have entered the Open anyway — unspent points are worth nothing, and any beyond a multiple of 20 are stranded until you collect enough to redeem. Only the traditional events award them."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.playInValue}
+                    min={0}
+                    value={config.playInPointValueGems}
+                    onChange={(n) => set("playInPointValueGems", n)}
+                  />
                 </div>
               </div>
             </div>
