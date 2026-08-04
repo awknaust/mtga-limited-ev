@@ -87,8 +87,8 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
       <p className="form-text">
         The defaults are derived rather than guessed — packs and drafted cards from
         Arena's published duplicate-protection values, boxes from street prices,
-        gold from the fact that every event pricing both ways charges 10,000 gold or
-        1,500 gems.
+        gold from the fact that every event priced in both currencies charges the
+        same ratio of gold to gems.
       </p>
 
       <h3 className="section-title mt-4">Terms</h3>
@@ -130,9 +130,10 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
           player would move to whatever is best value at the time.
         </li>
         <li>
-          Playing more than about one event a day. Gold from daily wins caps at
-          fifteen wins and quests do not repeat, so the gold rate is optimistic if
-          you play more.
+          Gold as anything but an average. The daily-win ladder is modelled,
+          including where it caps, but an event is credited the gold its{" "}
+          <em>expected</em> wins earn rather than the gold the run in front of
+          you actually won.
         </li>
         <li>Tax withholding on cash prizes, which Arena Direct's terms mention.</li>
       </ul>

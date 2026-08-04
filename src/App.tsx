@@ -582,7 +582,7 @@ export default function App() {
               <div className="mb-3">
                 <label htmlFor={ids.winRate} className="form-label">
                   {isBo3 ? "Match win rate" : "Game win rate"}{" "}
-                  <span className="fw-semibold text-body">{pct(roundWinRate)}</span>
+                  <span className="win-rate-value text-body">{pct(roundWinRate)}</span>
                   <InfoTip
                     label="About the win rate"
                     content="Best-of-one events are decided per game, best-of-three per match, so the slider reads in whichever the event uses. A 55% game win rate is a 57.5% match win rate."
@@ -591,11 +591,14 @@ export default function App() {
                 <input
                   id={ids.winRate}
                   type="range"
-                  className="form-range"
+                  className="form-range win-rate-slider"
                   min={0}
                   max={1}
                   step={0.005}
                   value={roundWinRate}
+                  // The value is a fraction and the label reads a percentage;
+                  // without this a screen reader announces "0.55".
+                  aria-valuetext={pct(roundWinRate)}
                   onChange={(e) =>
                     set(
                       "winRate",
@@ -818,7 +821,7 @@ export default function App() {
                     Entry cost (gold)
                     <InfoTip
                       label="About the gold entry"
-                      content="Most events take gold instead of gems. Set 0 for events that do not. Gold accrues as you play and pays the entry whenever enough has built up."
+                      content="Most events price the entry in gold as well as gems. Set 0 for events that do not. Gold accrues as you play and pays the entry whenever enough has built up."
                     />
                   </label>
                   <GoldInput
@@ -1363,16 +1366,16 @@ export default function App() {
                 <div className="row g-2">
                   <div className="col-6">
                     <label htmlFor={ids.goldPerDay} className="form-label">
-                      Gold earned per day
+                      Other gold per day
                       <InfoTip
-                        label="About gold earned per day"
-                        content="A full day of daily wins pays 750 gold, and a quest adds roughly 600 more."
+                        label="About other gold per day"
+                        content="Gold from quests and games outside this event, which you earn whether or not you enter it. The gold the event's own wins pay is counted separately, off the daily-win ladder. Zero by default."
                       />
                     </label>
                     <GoldInput
                       id={ids.goldPerDay}
-                      value={config.goldPerDay}
-                      onChange={(n) => set("goldPerDay", n)}
+                      value={config.otherGoldPerDay}
+                      onChange={(n) => set("otherGoldPerDay", n)}
                     />
                   </div>
                   <div className="col-6">
@@ -1380,7 +1383,7 @@ export default function App() {
                       Events per day
                       <InfoTip
                         label="About events per day"
-                        content="Divides the daily gold to give what one event earns. Playing more earns less each, which is what happens — daily win gold stops at fifteen wins and the quest does not come back."
+                        content="How far a day's wins climb the daily-win ladder before it stops paying at fifteen. Playing more earns more gold in total but less per event. Set 0 to price the event in gems alone."
                       />
                     </label>
                     <NumberInput
@@ -1401,7 +1404,7 @@ export default function App() {
                       Gems per 10,000 gold
                       <InfoTip
                         label="About the gold exchange rate"
-                        content="What leftover gold is counted as worth. Every event that prices both ways charges 10,000 gold or 1,500 gems, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
+                        content="What leftover gold is counted as worth. Every event priced in both charges the same ratio of gold to gems, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
                       />
                     </label>
                     <GemInput

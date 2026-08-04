@@ -54,15 +54,30 @@ export type ShareState = {
  * this rather than repeating the literals, because a default that disagrees
  * with this module would be silently written into every link.
  */
+/**
+ * Starting gems, counted in entries to the event the app opens on.
+ *
+ * Two rather than a round number of gems, because what decides whether the
+ * Bankroll tab says anything is how many times you can play, not the balance
+ * itself. One entry busts at the first bad event and the histogram collapses
+ * to a single bar; two is the smallest balance that can survive one.
+ *
+ * The coupling runs the other way too, and is the cost of deriving it:
+ * repricing the opening preset now moves this figure, and with it every saved
+ * link that did not spell out `startGems`. `share.compat.test.ts` is what makes
+ * that audible.
+ */
+export const STARTING_ENTRIES = 2;
+
 export function defaultShareState(): ShareState {
+  // The event the app opens on, which the starting balance is priced against.
+  const opening = PRESETS[0];
   return {
-    presetName: PRESETS[0].name,
+    presetName: opening.name,
     config: defaultConfig(),
     trials: 100_000,
     seed: 1,
-    // The Mastery Pass price, which is the balance most players are deciding
-    // how to spend.
-    startingGems: 3400,
+    startingGems: STARTING_ENTRIES * opening.entryCostGems,
     startingGold: 0,
     maxEvents: 20,
     spendWinnings: false,
@@ -118,7 +133,11 @@ const CONFIG_NUMBERS = [
   ["playInValue", "playInPointValueGems"],
   ["playBoxValue", "playBoxValueGems"],
   ["collectorBoxValue", "collectorBoxValueGems"],
-  ["goldPerDay", "goldPerDay"],
+  // The field became `otherGoldPerDay` when daily-win gold started coming off
+  // the ladder instead. The parameter keeps its old spelling deliberately —
+  // renaming it would strand every link already written, and the mapping is
+  // here precisely so a field can be renamed without one.
+  ["goldPerDay", "otherGoldPerDay"],
   ["eventsPerDay", "eventsPerDay"],
 ] as const satisfies readonly (readonly [string, keyof EventConfig])[];
 

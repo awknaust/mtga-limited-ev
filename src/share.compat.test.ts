@@ -32,7 +32,7 @@ import {
   presetSlug,
   type ShareState,
 } from "./share";
-import { PRESETS, maxPossibleWins } from "./lib";
+import { PRESETS, effectiveEntryGems, goldPerEvent, maxPossibleWins } from "./lib";
 
 /**
  * Everything a link resolves to, rendered compactly.
@@ -50,7 +50,15 @@ function fingerprint(state: ShareState): string {
     `entry      ${c.entryCostGems} gems / ${c.entryCostGold} gold`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
     `values     pack=${c.packValueGems} playIn=${c.playInPointValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
-    `gold       ${c.goldPerDay}/day over ${c.eventsPerDay} events, goldPerGem=${goldRate}`,
+    `gold       other=${c.otherGoldPerDay}/day over ${c.eventsPerDay} events, goldPerGem=${goldRate}`,
+    /*
+     * Derived rather than stored, and that is the point. A link pins inputs,
+     * but what a reader cares about is the answer, and the two can come apart:
+     * moving daily-win gold onto the ladder changed what `goldPerDay=0` means
+     * without touching any field recorded above. Pinning the entry the model
+     * actually charges closes that gap.
+     */
+    `charges    ${effectiveEntryGems(c).toFixed(1)} gems (${goldPerEvent(c).toFixed(1)} gold/event)`,
     `payouts    ${encodePayouts(c.payouts)}`,
     `bankroll   gems=${state.startingGems} gold=${state.startingGold} maxEvents=${state.maxEvents} spend=${state.spendWinnings}`,
     `sim        trials=${state.trials} seed=${state.seed}`,
@@ -109,7 +117,7 @@ describe("the parameter names are the contract", () => {
         structure: { kind: "rounds", rounds: 4 },
         entryCostGems: 1,
         entryCostGold: 2,
-        goldPerDay: 3,
+        otherGoldPerDay: 3,
         eventsPerDay: 4,
         goldPerGem: 5,
         draftPacks: 6,
@@ -222,9 +230,10 @@ describe("the defaults are the contract", () => {
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23
       values     pack=22 playIn=200 playBox=61867 collBox=252133
-      gold       1350/day over 1 events, goldPerGem=6.6667
+      gold       other=0/day over 1 events, goldPerGem=6.6667
+      charges    1426.7 gems (488.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-      bankroll   gems=3400 gold=0 maxEvents=20 spend=false
+      bankroll   gems=3000 gold=0 maxEvents=20 spend=false
       sim        trials=100000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=400"
     `);

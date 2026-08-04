@@ -73,7 +73,11 @@ describe("encoding only what was touched", () => {
   });
 
   it("keeps a bankroll setting out until it moves", () => {
-    expect(encodeShareState(withState({ startingGems: 3400 }))).toBe("");
+    // Read off the defaults rather than written out: this asserts that an
+    // untouched field stays out of the URL, which is a different claim from
+    // what the default happens to be. share.compat.test.ts pins the value.
+    const { startingGems } = defaultShareState();
+    expect(encodeShareState(withState({ startingGems }))).toBe("");
     expect(encodeShareState(withState({ startingGems: 10000 }))).toBe("startGems=10000");
   });
 
@@ -110,7 +114,7 @@ describe("round trips", () => {
         structure: { kind: "rounds", rounds: 4 },
         entryCostGems: 1234,
         entryCostGold: 9000,
-        goldPerDay: 900,
+        otherGoldPerDay: 900,
         eventsPerDay: 2,
         goldPerGem: 5,
         draftPacks: 4,
