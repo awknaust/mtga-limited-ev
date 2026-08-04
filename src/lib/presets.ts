@@ -13,10 +13,20 @@ import { CUBE_DRAFT } from "../data/presets/cube-draft";
 import { PICK_TWO_DRAFT } from "../data/presets/pick-two-draft";
 import { PREMIER_DRAFT } from "../data/presets/premier-draft";
 import { QUICK_DRAFT } from "../data/presets/quick-draft";
+import { SEALED } from "../data/presets/sealed";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
+import { TRADITIONAL_SEALED } from "../data/presets/traditional-sealed";
 import type { EventConfig, EventPreset, EventStructure } from "./types";
 
-export { CUBE_DRAFT, PICK_TWO_DRAFT, PREMIER_DRAFT, QUICK_DRAFT, TRADITIONAL_DRAFT };
+export {
+  CUBE_DRAFT,
+  PICK_TWO_DRAFT,
+  PREMIER_DRAFT,
+  QUICK_DRAFT,
+  SEALED,
+  TRADITIONAL_DRAFT,
+  TRADITIONAL_SEALED,
+};
 
 export const PRESETS: EventPreset[] = [
   PREMIER_DRAFT,
@@ -24,6 +34,8 @@ export const PRESETS: EventPreset[] = [
   CUBE_DRAFT,
   TRADITIONAL_DRAFT,
   PICK_TWO_DRAFT,
+  SEALED,
+  TRADITIONAL_SEALED,
 ];
 
 /** Selector value for a hand-edited schedule that matches no preset. */

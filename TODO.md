@@ -2,12 +2,18 @@
 
 Rough backlog, unordered. Notes are pointers, not designs.
 
-## 1. Sealed events
+## 1. Sealed events — done, but check the payout numbers
 
-Add Sealed and Traditional Sealed presets. Both should fall out of the existing
-structure union with no model change — Sealed is elimination, Traditional Sealed
-is fixed rounds — so this is a `PRESETS` addition in `src/lib/draft.ts` plus
-verified entry costs and payout tables.
+Sealed and Traditional Sealed are in. Both fell out of the existing structure
+union with no model change, as expected — though note Traditional Sealed is
+BO3 *elimination* (4 wins / 2 losses), not fixed rounds like Traditional Draft.
+
+Structures and entry costs (2,000 gems, gems only) are corroborated across
+sources and can be trusted. **The payout tables are less certain.** They came
+from a page whose table extracted badly — duplicated rows, a pack column that
+came through as a range — and only the 7-win Sealed row (2,200 gems, 3 packs)
+was independently confirmed. Worth checking both ladders against the in-game
+event screen; they are two data files and take a minute to correct.
 
 ## 2. Box events (including value)
 

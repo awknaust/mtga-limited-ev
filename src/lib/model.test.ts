@@ -6,7 +6,9 @@ import {
   PREMIER_DRAFT,
   PRESETS,
   QUICK_DRAFT,
+  SEALED,
   TRADITIONAL_DRAFT,
+  TRADITIONAL_SEALED,
   bo3WinRate,
   breakEvenWinRate,
   configFromPreset,
@@ -238,14 +240,56 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
-  it("exposes all five presets", () => {
+  it("exposes all seven presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
       "Cube Draft",
       "Traditional Draft",
       "Pick Two Draft",
+      "Sealed",
+      "Traditional Sealed",
     ]);
+  });
+
+  it("models Sealed as BO1 to 7 wins or 3 losses", () => {
+    expect(SEALED.format).toBe("bo1");
+    expect(SEALED.structure).toEqual({
+      kind: "elimination",
+      maxWins: 7,
+      maxLosses: 3,
+    });
+    expect(SEALED.entryCostGems).toBe(2000);
+    // Packs are flat, so only the gem ladder varies with the record.
+    expect(new Set(SEALED.payouts.map((t) => t.packs))).toEqual(new Set([3]));
+  });
+
+  it("models Traditional Sealed as BO3 elimination", () => {
+    // The only preset that is both best-of-three and elimination — Traditional
+    // Draft is best-of-three but plays a fixed three rounds.
+    expect(TRADITIONAL_SEALED.format).toBe("bo3");
+    expect(TRADITIONAL_SEALED.structure).toEqual({
+      kind: "elimination",
+      maxWins: 4,
+      maxLosses: 2,
+    });
+    expect(TRADITIONAL_SEALED.entryCostGems).toBe(2000);
+    expect(maxRounds(TRADITIONAL_SEALED.structure)).toBe(5);
+  });
+
+  it("converts the win rate for BO3 elimination, not just BO3 rounds", () => {
+    // Guards the combination: elimination reads the structure, bo3 reads the
+    // format, and both have to apply at once.
+    const config = configFromPreset(TRADITIONAL_SEALED, defaultConfig());
+    const pMatch = matchWinRate({ ...config, winRate: 0.55 });
+    expect(pMatch).toBeCloseTo(bo3WinRate(0.55), 12);
+    const d = exactDistribution(pMatch, TRADITIONAL_SEALED.structure);
+    expect(d).toHaveLength(5);
+    expect(d.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 12);
+    // 4 wins or 2 losses: below the ceiling this is the negative binomial.
+    for (let k = 0; k < 4; k++) {
+      expect(d[k]).toBeCloseTo((k + 1) * Math.pow(pMatch, k) * (1 - pMatch) ** 2, 12);
+    }
   });
 
   it("models Pick Two Draft as 4 wins or 2 losses", () => {
