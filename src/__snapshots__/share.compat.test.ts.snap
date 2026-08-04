@@ -195,12 +195,42 @@ sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
 `;
 
+exports[`the preset definitions are the contract > pins what ?preset=arena-direct-collector resolves to 1`] = `
+"preset     Arena Direct (Collector)
+winRate    0.55 (bo1)
+structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
+entry      8000 gems / 0 gold
+draft      6 packs @ 23
+values     pack=22 playIn=200 playBox=61867 collBox=252133
+gold       other=600/day over 1 events, goldPerGem=6.6667
+charges    8000.0 gems (984.9 gold/event)
+payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_14400-32_0-0-0-0-1
+bankroll   gems=3000 gold=0 maxEvents=20 spend=false
+sim        trials=100000 runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=400"
+`;
+
 exports[`the preset definitions are the contract > pins what ?preset=arena-direct-cube resolves to 1`] = `
 "preset     Arena Direct (Cube)
 winRate    0.55 (bo1)
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / 0 gold
 draft      0 packs @ 23
+values     pack=22 playIn=200 playBox=61867 collBox=252133
+gold       other=600/day over 1 events, goldPerGem=6.6667
+charges    8000.0 gems (984.9 gold/event)
+payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-0-1_0-0-0-2
+bankroll   gems=3000 gold=0 maxEvents=20 spend=false
+sim        trials=100000 runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=400"
+`;
+
+exports[`the preset definitions are the contract > pins what ?preset=arena-direct-sealed resolves to 1`] = `
+"preset     Arena Direct (Sealed)
+winRate    0.55 (bo1)
+structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
+entry      8000 gems / 0 gold
+draft      6 packs @ 23
 values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       other=600/day over 1 events, goldPerGem=6.6667
 charges    8000.0 gems (984.9 gold/event)

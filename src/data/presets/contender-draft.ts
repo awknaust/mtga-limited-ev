@@ -11,9 +11,21 @@ import type { EventPreset } from "../../lib/types";
  * 22. That understates those tiers, since a mythic pack is worth more than a
  * regular one, and the model has no way to say so yet.
  *
- * Payouts from the set event schedule on magic.wizards.com. The best-of-one
- * format is inferred from the 7 wins / 3 losses structure it shares with
- * Premier Draft — the schedule gives the structure but not the match format.
+ * Seven wins also pays a "Draft Contender" player title, which is cosmetic and
+ * so has no row here.
+ *
+ * Payouts from the set event schedule on magic.wizards.com, and confirmed
+ * against a second run of the event — Marvel Super Heroes, 7–13 July 2026 — in
+ * the announcements post of 6 July 2026. Entry, structure and all five paying
+ * tiers agree between the two, including the regular/mythic split the folding
+ * above collapses.
+ *
+ * The best-of-one format is still inferred rather than sourced, from the 7 wins
+ * / 3 losses structure it shares with Premier Draft. Neither the schedule nor
+ * the announcement states a match format, so this is the one field here that a
+ * second source has not settled.
+ *
+ * @see https://magic.wizards.com/en/news/mtg-arena/announcements-july-6-2026
  */
 export const CONTENDER_DRAFT = {
   name: "Contender Draft",
