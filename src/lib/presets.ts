@@ -9,6 +9,7 @@
  * contiguous from 0) are covered by tests.
  */
 
+import { CONTENDER_DRAFT } from "../data/presets/contender-draft";
 import { CUBE_DRAFT } from "../data/presets/cube-draft";
 import { PICK_TWO_DRAFT } from "../data/presets/pick-two-draft";
 import { PREMIER_DRAFT } from "../data/presets/premier-draft";
@@ -18,6 +19,7 @@ import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
 import type { EventConfig, EventPreset, EventStructure } from "./types";
 
 export {
+  CONTENDER_DRAFT,
   CUBE_DRAFT,
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
@@ -33,6 +35,7 @@ export const PRESETS: EventPreset[] = [
   TRADITIONAL_DRAFT,
   PICK_TWO_DRAFT,
   SEALED,
+  CONTENDER_DRAFT,
 ];
 
 /** Selector value for a hand-edited schedule that matches no preset. */

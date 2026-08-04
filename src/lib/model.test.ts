@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  CONTENDER_DRAFT,
   CUBE_DRAFT,
   DEFAULT_PACK_VALUE_GEMS,
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
@@ -279,7 +280,7 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
-  it("exposes all six presets", () => {
+  it("exposes all seven presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
@@ -287,7 +288,35 @@ describe("presets", () => {
       "Traditional Draft",
       "Pick Two Draft",
       "Sealed",
+      "Contender Draft",
     ]);
+  });
+
+  it("models Contender Draft as paying nothing below three wins", () => {
+    expect(CONTENDER_DRAFT.entryCostGems).toBe(3000);
+    expect(CONTENDER_DRAFT.structure).toEqual({
+      kind: "elimination",
+      maxWins: 7,
+      maxLosses: 3,
+    });
+    for (const t of CONTENDER_DRAFT.payouts.slice(0, 3)) {
+      expect(t.gems).toBe(0);
+      expect(t.packs).toBe(0);
+    }
+    // Mythic packs are folded into the pack count at the top two tiers:
+    // 10 + 4 at six wins, 12 + 10 at seven.
+    expect(CONTENDER_DRAFT.payouts[6].packs).toBe(14);
+    expect(CONTENDER_DRAFT.payouts[7].packs).toBe(22);
+  });
+
+  it("pays nothing at all for a Contender run under three wins", () => {
+    const config = configFromPreset(CONTENDER_DRAFT, defaultConfig());
+    for (const wins of [0, 1, 2]) {
+      expect(grossValue(config, wins)).toBe(0);
+      // The entry is a pure loss on those runs.
+      expect(grossValue(config, wins) - config.entryCostGems).toBe(-3000);
+    }
+    expect(grossValue(config, 7)).toBe(7200 + 22 * config.packValueGems);
   });
 
   it("models Sealed as BO1 to 7 wins or 3 losses", () => {

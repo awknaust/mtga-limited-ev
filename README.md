@@ -103,6 +103,7 @@ pack value, N and seed are left alone when switching.
 | Traditional Draft | 1,500 | BO3, 3 fixed rounds | 0 / 0 / 1000 / 3000 gems, 1 / 1 / 4 / 6 packs, 2 play-in points at 3-0 |
 | Pick Two Draft | 900 | BO1, to 4 wins / 2 losses | 50 / 150 / 800 / 1000 / 1300 gems, 1 / 1 / 1 / 2 / 3 packs |
 | Sealed | 2,000 | BO1, to 7 wins / 3 losses | 200 / 200 / 600 / 1200 / 1200 / 1200 / 2200 / 2200 gems, 3 packs flat |
+| Contender Draft | 3,000 | BO1, to 7 wins / 3 losses | nothing below 3 wins, then 1400 / 2800 / 3200 / 4200 / 7200 gems and 3 / 6 / 8 / 14 / 22 packs |
 | Custom | — | Keeps whatever is on screen | |
 
 Editing any structural or payout field moves the selector to **Custom**, and
@@ -123,10 +124,10 @@ single event.
 
 ## A note on entry costs
 
-The preset entry costs are Arena's **gem** prices: 2,000 for Sealed,
-1,500 for Premier, Traditional and Cube, 900 for Pick Two, 750 for Quick. The
+The preset entry costs are Arena's **gem** prices: 3,000 for Contender,
+2,000 for Sealed, 1,500 for Premier, Traditional and Cube, 900 for Pick Two, 750 for Quick. The
 draft events can be entered with gold instead — 10,000, 6,000 and 5,000
-respectively — so enter that if it's how you buy in, keeping in mind that gold
+and 20,000 for Contender — so enter that if it's how you buy in, keeping in mind that gold
 and gems aren't interchangeable at a fixed rate. Sealed takes gems only.
 
 The model values only gems and whatever you assign to packs — never the drafted
@@ -145,6 +146,18 @@ would push it higher. The full derivation is on `DEFAULT_PACK_VALUE_GEMS` in
 It is the most subjective input here. A ±10 gem error moves expected net by
 roughly 30 gems an event; break-even win rates barely move. Set it to 0 to price
 events in gems alone.
+
+## A note on Contender Draft
+
+Its top two tiers pay mythic packs alongside regular ones — 4 extra at six wins,
+10 at seven. The model has one pack field, so they are folded in: 10 + 4 = 14
+and 12 + 10 = 22. A mythic pack is worth more than a regular one, so those two
+tiers are **understated**.
+
+Payouts come from the set event schedule on magic.wizards.com, which is one of
+the few official pages that publishes a ladder. The best-of-one format is
+inferred from the 7 wins / 3 losses structure it shares with Premier Draft; the
+schedule gives the structure but not the match format.
 
 ## A note on play-in points
 
