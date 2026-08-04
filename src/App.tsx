@@ -653,6 +653,13 @@ export default function App() {
    * because 0.2 boxes is not something anyone receives. Packs give up their
    * slot in that case rather than their place — they are still a real part of
    * the payout, one arrow to the right.
+   *
+   * Five is the most this ever runs to. The closed-form chance for a single
+   * entry was a sixth for a while and has been taken out again: it answers a
+   * question nobody asked of a page about bankrolls, and sitting in the same
+   * row as the run-level chance it mostly invited the two to be confused. It
+   * still exists as `boxChancePerEvent`, where it does its real work of
+   * holding the simulation to account in the tests.
    */
   const bankrollTiles: StatTile[] = box
     ? [
@@ -680,12 +687,6 @@ export default function App() {
         },
         ...runTiles,
         packsTile,
-        {
-          key: "box-per-event",
-          label: "Box chance / event",
-          value: pct(box.perEvent),
-          hint: `closed form · ${box.mean.toFixed(2)} boxes per run`,
-        },
       ]
     : [runTiles[0], runTiles[1], packsTile, runTiles[2]];
 

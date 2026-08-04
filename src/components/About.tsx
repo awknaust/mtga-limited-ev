@@ -140,9 +140,7 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
           The range beside it is the win rate's, carried through: the chance if
           your true rate sits at each end of what your record supports. It is
           not a margin of error on the simulation, and more runs will not narrow
-          it — only more matches played will. The tile behind the arrow gives
-          the chance for one entry instead, worked out exactly rather than
-          simulated.
+          it — only more matches played will.
         </dd>
       </dl>
 

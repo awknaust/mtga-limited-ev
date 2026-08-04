@@ -788,13 +788,14 @@ describe("the chance of a box", () => {
     };
     const res = simulateBankrolls(config, several, 500, 17);
     const box = res.boxChance!;
-    expect(box.mean).toBeCloseTo(
-      res.holdings.playBoxes.mean + res.holdings.collectorBoxes.mean,
-      12,
+    // Winning either counts, so the chance of one covers each kind's own, and
+    // strictly beats them where both kinds actually turn up.
+    expect(box.probAny).toBeGreaterThan(res.holdings.playBoxes.probAny);
+    expect(box.probAny).toBeGreaterThan(res.holdings.collectorBoxes.probAny);
+    // And no run holds a box the per-kind counts have not also recorded.
+    expect(box.probAny).toBeLessThanOrEqual(
+      res.holdings.playBoxes.probAny + res.holdings.collectorBoxes.probAny,
     );
-    // Winning either counts, so the chance of one covers each kind's own.
-    expect(box.probAny).toBeGreaterThanOrEqual(res.holdings.playBoxes.probAny);
-    expect(box.probAny).toBeGreaterThanOrEqual(res.holdings.collectorBoxes.probAny);
   });
 
   it("improves with a bankroll that buys more entries", () => {
@@ -807,8 +808,10 @@ describe("the chance of a box", () => {
       3,
     ).boxChance!;
     expect(many.probAny).toBeGreaterThan(one.probAny);
-    // The per-event figure is a property of the ladder, so it does not move.
-    expect(many.perEvent).toBe(one.perEvent);
+    // Neither can beat the entry, and the closed form is what says so: one
+    // event's chance is a property of the ladder, and a bankroll only ever
+    // buys more attempts at it.
+    expect(one.probAny).toBeGreaterThan(boxChancePerEvent(config));
   });
 
   it("widens the interval when the record behind the rate is short", () => {

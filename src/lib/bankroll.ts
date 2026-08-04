@@ -107,8 +107,6 @@ export type BankrollResult = {
 export type BoxChance = {
   /** Share of runs ending with at least one box, of either kind. */
   probAny: number;
-  /** Mean boxes per run, both kinds together. */
-  mean: number;
   /**
    * The same chance at each end of the win rate's credible interval, or null
    * when the rate is called certain and there is no range left to report.
@@ -121,14 +119,6 @@ export type BoxChance = {
   interval: [lo: number, hi: number] | null;
   /** What `interval` covers, so a caller labelling it need not assume. */
   level: number;
-  /**
-   * Closed-form chance that a single event pays a box, at the configured rate.
-   *
-   * The checkable figure beneath the simulated one, and the answer to a
-   * different question worth asking: `probAny` is what a whole bankroll comes
-   * to, and this is what one entry is worth walking in with.
-   */
-  perEvent: number;
 };
 
 export type Percentiles = { p5: number; p25: number; p50: number; p75: number; p95: number };
@@ -537,10 +527,8 @@ function boxChanceOf(
 
   return {
     probAny: runs.length ? boxes.filter((n) => n > 0).length / runs.length : 0,
-    mean: runs.length ? boxes.reduce((a, b) => a + b, 0) / runs.length : 0,
     interval,
     level: CREDIBLE_LEVEL,
-    perEvent: boxChancePerEvent(config),
   };
 }
 
