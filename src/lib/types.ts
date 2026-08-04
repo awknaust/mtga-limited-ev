@@ -68,13 +68,25 @@ export type EventConfig = {
   entryCostGems: number;
   /** Gold price, or 0 where the event takes gems only. */
   entryCostGold: number;
-  /** Gold earned in a day of play, from daily wins and quests. */
-  goldPerDay: number;
   /**
-   * Events played per day. Divides the daily gold to give what one event
-   * earns, so playing more of them earns less each — which is what actually
-   * happens, since daily win gold caps at fifteen wins and quests do not
-   * repeat.
+   * Gold earned in a day from everything *except* this event's own wins —
+   * quests, and games played outside it.
+   *
+   * A daily quest by default, so this is the day's *budget* toward entries
+   * rather than what the entry itself earned back. Set it to 0 for the
+   * stricter reading, where an event is credited only the gold its own wins
+   * generate.
+   *
+   * Divided across `eventsPerDay`, since it does not repeat per event.
+   */
+  otherGoldPerDay: number;
+  /**
+   * Events played per day.
+   *
+   * Sets how far the day's wins get through the daily-win ladder before it
+   * caps at fifteen, so playing more earns more in total but less per event.
+   * Zero credits no gold at all, which is how you price an event in gems
+   * alone.
    */
   eventsPerDay: number;
   /** Gold worth one gem, for valuing a leftover balance. */

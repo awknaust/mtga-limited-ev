@@ -3,7 +3,7 @@
 import { exactDistribution } from "./distribution";
 import { goldPerEvent, grossValue, netValue, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
-import { bo3WinRate, matchWinRate, maxPossibleWins } from "./structure";
+import { matchWinRate, maxPossibleWins } from "./structure";
 import type {
   EventConfig,
   EventStructure,
@@ -153,17 +153,33 @@ function netPercentiles(buckets: WinBucket[]): SimResult["percentiles"] {
   return { p5: at(0.05), p25: at(0.25), p50: at(0.5), p75: at(0.75), p95: at(0.95) };
 }
 
-/** Expected net gems per event at a given per-game win rate, closed form. */
-export function expectedNetAt(config: EventConfig, winRate: number): number {
-  const pMatch = config.format === "bo3" ? bo3WinRate(winRate) : winRate;
-  const dist = exactDistribution(pMatch, config.structure);
+/** Expected net gems per event at the config's own win rate, closed form. */
+export function expectedNet(config: EventConfig): number {
+  const dist = exactDistribution(matchWinRate(config), config.structure);
   return dist.reduce((acc, p, wins) => acc + p * netValue(config, wins), 0);
+}
+
+/**
+ * Expected net gems per event at a given per-game win rate.
+ *
+ * Substitutes the rate into the config rather than only into the outcome
+ * distribution. Gold comes off the daily-win ladder now, so it moves with the
+ * win rate too — sweeping the curve without carrying the rate through would
+ * price every point on it at the gold the *configured* rate happens to earn.
+ */
+export function expectedNetAt(config: EventConfig, winRate: number): number {
+  return expectedNet({ ...config, winRate });
 }
 
 /**
  * Per-game win rate at which the event breaks even, or null if it never does
  * within [0, 1]. Bisection — expected value is monotonic in win rate for any
  * sane (non-decreasing) payout table.
+ *
+ * Gold moving with the win rate does not threaten that: winning more climbs
+ * the daily ladder, which lowers the effective entry, which raises net. Both
+ * terms push the same way, so the function stays monotonic and the bisection
+ * stays well founded.
  */
 export function breakEvenWinRate(config: EventConfig): number | null {
   const lo0 = expectedNetAt(config, 0);

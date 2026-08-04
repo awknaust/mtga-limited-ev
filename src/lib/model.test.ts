@@ -3,7 +3,8 @@ import {
   ARENA_DIRECT,
   CONTENDER_DRAFT,
   PREMIER_CUBE_DRAFT,
-  DEFAULT_GOLD_PER_DAY,
+  DAILY_WIN_GOLD,
+  DEFAULT_OTHER_GOLD_PER_DAY,
   DEFAULT_EVENTS_PER_DAY,
   DEFAULT_DRAFT_PACK_VALUE_GEMS,
   DEFAULT_PACK_VALUE_GEMS,
@@ -25,10 +26,13 @@ import {
   configFromPreset,
   defaultConfig,
   exactDistribution,
+  expectedNet,
   expectedNetAt,
   effectiveEntryGems,
   goldFundedFraction,
+  dailyWinGold,
   goldPerEvent,
+  meanWinsPerEvent,
   grossValue,
   matchWinRate,
   maxPossibleWins,
@@ -332,8 +336,10 @@ describe("holdings", () => {
     expect(heldKeys(direct)).toEqual(["gems", "gold", "packs", "playBoxes"]);
 
     // No gold earned and none charged: nothing to report, unless a starting
-    // balance the event cannot spend is sitting there.
-    const noGold = { ...direct, goldPerDay: 0 };
+    // balance the event cannot spend is sitting there. Zero events a day is
+    // what stops the accrual now that daily-win gold comes off the ladder —
+    // an event that is never played wins nothing to climb it with.
+    const noGold = { ...direct, eventsPerDay: 0 };
     expect(heldKeys(noGold)).toEqual(["gems", "packs", "playBoxes"]);
     expect(heldKeys(noGold, true)).toContain("gold");
   });
@@ -365,7 +371,7 @@ describe("bankroll", () => {
   it("stops when neither currency covers another entry", () => {
     // No gold income and a hopeless win rate: entries come only from the
     // starting gems, so the run length is exactly what they buy.
-    const config = { ...defaultConfig(), winRate: 0, goldPerDay: 0 };
+    const config = { ...defaultConfig(), winRate: 0, eventsPerDay: 0 };
     const run = simulateBankroll(config, roll, seededRandom(1));
     // Fully determined: 1,500 out and 50 back each time, so 10,000 buys six
     // entries and leaves 1,300 — short of a seventh.
@@ -376,8 +382,8 @@ describe("bankroll", () => {
   });
 
   it("plays longer when winnings feed back in", () => {
-    const poor = { ...defaultConfig(), winRate: 0.2, goldPerDay: 0 };
-    const good = { ...defaultConfig(), winRate: 0.7, goldPerDay: 0 };
+    const poor = { ...defaultConfig(), winRate: 0.2, eventsPerDay: 0 };
+    const good = { ...defaultConfig(), winRate: 0.7, eventsPerDay: 0 };
     const a = simulateBankrolls(poor, roll, 300, 3);
     const b = simulateBankrolls(good, roll, 300, 3);
     expect(b.meanEvents).toBeGreaterThan(a.meanEvents);
@@ -385,7 +391,7 @@ describe("bankroll", () => {
 
   it("spends gold before gems where the event takes it", () => {
     // Gold alone covers every entry, so the gems are never touched.
-    const config = { ...defaultConfig(), goldPerDay: 0 };
+    const config = { ...defaultConfig(), eventsPerDay: 0 };
     const golden = {
       startingGems: 10_000,
       startingGold: 100_000,
@@ -639,14 +645,63 @@ describe("bankroll", () => {
   });
 });
 
+describe("the daily-win ladder", () => {
+  it("pays the published amounts, and stops", () => {
+    // 250 for the first, 100 for each of the next three, 50 at the sixth,
+    // eighth and tenth, 25 at the twelfth and fourteenth.
+    expect(dailyWinGold(0)).toBe(0);
+    expect(dailyWinGold(1)).toBe(250);
+    expect(dailyWinGold(4)).toBe(550);
+    expect(dailyWinGold(15)).toBe(750);
+    expect(DAILY_WIN_GOLD.reduce((a, b) => a + b, 0)).toBe(750);
+    // A sixteenth win pays nothing, and so does the hundredth.
+    expect(dailyWinGold(16)).toBe(750);
+    expect(dailyWinGold(100)).toBe(750);
+  });
+
+  it("front-loads, which is why one event is not a fifth of five", () => {
+    // The first win alone is a third of a full day's gold.
+    expect(dailyWinGold(1) / dailyWinGold(15)).toBeCloseTo(1 / 3, 2);
+  });
+
+  it("interpolates a fractional win count", () => {
+    // Mean wins is an expectation, not a whole number of games. Rounding it
+    // would put a stair-step in the EV curve where the model has none.
+    expect(dailyWinGold(1.5)).toBe(300);
+    expect(dailyWinGold(4.5)).toBe(550);
+  });
+
+  it("never runs backwards", () => {
+    for (let w = 0; w < 20; w += 0.25) {
+      expect(dailyWinGold(w + 0.25)).toBeGreaterThanOrEqual(dailyWinGold(w));
+    }
+  });
+});
+
 describe("gold entries", () => {
-  it("funds the share of entries the accrual rate covers", () => {
-    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+  it("credits an event the gold its own wins generate", () => {
+    // Isolated from the daily quest, which is a budget rather than something
+    // the event earns — see the default below.
+    const config = { ...configFromPreset(PREMIER_DRAFT, defaultConfig()), otherGoldPerDay: 0 };
     expect(config.entryCostGold).toBe(10000);
-    expect(config.goldPerDay).toBe(DEFAULT_GOLD_PER_DAY);
     expect(config.eventsPerDay).toBe(DEFAULT_EVENTS_PER_DAY);
-    expect(goldFundedFraction(config)).toBeCloseTo(1350 / 10000, 12);
-    expect(effectiveEntryGems(config)).toBeCloseTo(1500 * (1 - 0.135), 9);
+    // A 55% win rate averages 3.39 wins, which is 489 gold off the ladder —
+    // not the 750 a full day pays, and not the 1,350 the model used to credit.
+    expect(meanWinsPerEvent(config)).toBeCloseTo(3.39, 2);
+    expect(goldPerEvent(config)).toBeCloseTo(489, 0);
+    expect(goldFundedFraction(config)).toBeCloseTo(489 / 10000, 2);
+  });
+
+  it("adds a daily quest on top by default", () => {
+    // The default treats the day's quest as budget toward entries. It is the
+    // softer of the two figures — not on the drop-rates page, and it varies
+    // with the quest drawn — so it is pinned on its own rather than buried in
+    // a total.
+    expect(DEFAULT_OTHER_GOLD_PER_DAY).toBe(600);
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    expect(config.otherGoldPerDay).toBe(600);
+    expect(goldPerEvent(config)).toBeCloseTo(489 + 600, 0);
+    expect(goldPerEvent({ ...config, otherGoldPerDay: 0 })).toBeCloseTo(489, 0);
   });
 
   it("charges the full gem price when the event takes no gold", () => {
@@ -656,28 +711,75 @@ describe("gold entries", () => {
     expect(effectiveEntryGems(config)).toBe(2000);
   });
 
-  it("divides the daily gold by how many events you play", () => {
-    const base = { ...defaultConfig(), goldPerDay: 1200 };
-    expect(goldPerEvent({ ...base, eventsPerDay: 1 })).toBe(1200);
-    expect(goldPerEvent({ ...base, eventsPerDay: 2 })).toBe(600);
-    expect(goldPerEvent({ ...base, eventsPerDay: 0.5 })).toBe(2400);
-    // Playing more events funds a smaller share of each entry.
-    expect(goldFundedFraction({ ...base, eventsPerDay: 4 })).toBeLessThan(
-      goldFundedFraction({ ...base, eventsPerDay: 1 }),
+  it("earns more gold in total from more events, and less from each", () => {
+    const base = defaultConfig();
+    const total = (n: number) => goldPerEvent({ ...base, eventsPerDay: n }) * n;
+    // More events means more of the day's ladder is climbed...
+    expect(total(2)).toBeGreaterThan(total(1));
+    expect(total(5)).toBeGreaterThan(total(2));
+    // ...but each one earns less than the first did, because the ladder
+    // front-loads and then stops.
+    expect(goldPerEvent({ ...base, eventsPerDay: 2 })).toBeLessThan(
+      goldPerEvent({ ...base, eventsPerDay: 1 }),
+    );
+    expect(goldPerEvent({ ...base, eventsPerDay: 5 })).toBeLessThan(
+      goldPerEvent({ ...base, eventsPerDay: 2 }),
+    );
+  });
+
+  it("saturates at the cap however many events are played", () => {
+    const base = { ...defaultConfig(), otherGoldPerDay: 0 };
+    // Five events at 3.39 wins each already reach fifteen, so the day's total
+    // is pinned at 750 from there on. The quest is held out: it is a flat
+    // daily figure and would mask the ladder's own ceiling.
+    for (const n of [5, 10, 50]) {
+      expect(goldPerEvent({ ...base, eventsPerDay: n }) * n).toBeCloseTo(750, 6);
+    }
+  });
+
+  it("credits nothing at all when no events are played", () => {
+    // The switch for pricing an event in gems alone.
+    const config = { ...defaultConfig(), eventsPerDay: 0, otherGoldPerDay: 5000 };
+    expect(goldPerEvent(config)).toBe(0);
+    expect(goldFundedFraction(config)).toBe(0);
+    expect(effectiveEntryGems(config)).toBe(1500);
+  });
+
+  it("adds gold earned outside the event on top, divided across the day", () => {
+    const base = { ...defaultConfig(), otherGoldPerDay: 0 };
+    const wins = goldPerEvent(base);
+    expect(goldPerEvent({ ...base, otherGoldPerDay: 600 })).toBeCloseTo(wins + 600, 6);
+    // Divided across the day, because a quest does not come back per event.
+    expect(goldPerEvent({ ...base, otherGoldPerDay: 600, eventsPerDay: 2 })).toBeCloseTo(
+      goldPerEvent({ ...base, eventsPerDay: 2 }) + 300,
+      6,
     );
   });
 
   it("caps at every entry once accrual outpaces the gold price", () => {
-    const config = { ...defaultConfig(), goldPerDay: 50_000 };
+    const config = { ...defaultConfig(), otherGoldPerDay: 50_000 };
     expect(goldFundedFraction(config)).toBe(1);
     expect(effectiveEntryGems(config)).toBe(0);
+  });
+
+  it("rises with the win rate, since winning climbs the ladder", () => {
+    const base = { ...defaultConfig(), otherGoldPerDay: 0 };
+    const at = (winRate: number) => goldPerEvent({ ...base, winRate });
+    expect(at(0)).toBe(0);
+    expect(at(0.4)).toBeLessThan(at(0.55));
+    expect(at(0.55)).toBeLessThan(at(0.7));
+    // The quest is flat, so it shifts the curve without tilting it.
+    const withQuest = (winRate: number) =>
+      goldPerEvent({ ...base, otherGoldPerDay: 600, winRate });
+    expect(withQuest(0)).toBe(600);
+    expect(withQuest(0.7) - withQuest(0.4)).toBeCloseTo(at(0.7) - at(0.4), 9);
   });
 
   it("makes the simulated bankroll converge to the closed-form share", () => {
     // The bankroll runs a path — gold piles up and is spent when it suffices —
     // while the closed form is its long-run limit. They have to agree.
-    for (const goldPerDay of [0, 500, 1350, 4000]) {
-      const config = { ...defaultConfig(), goldPerDay };
+    for (const otherGoldPerDay of [0, 500, 1350, 4000]) {
+      const config = { ...defaultConfig(), otherGoldPerDay };
       const res = simulate(config, 100_000, 5);
       expect(res.goldEntryFraction).toBeCloseTo(goldFundedFraction(config), 3);
       expect(res.meanEntryGems).toBeCloseTo(effectiveEntryGems(config), 1);
@@ -685,8 +787,8 @@ describe("gold entries", () => {
   });
 
   it("improves expected value without touching the outcome distribution", () => {
-    const without = { ...defaultConfig(), goldPerDay: 0 };
-    const with_ = { ...defaultConfig(), goldPerDay: 1350 };
+    const without = { ...defaultConfig(), eventsPerDay: 0 };
+    const with_ = defaultConfig();
     const a = simulate(without, 50_000, 9);
     const b = simulate(with_, 50_000, 9);
     expect(b.meanNet).toBeGreaterThan(a.meanNet);
@@ -694,7 +796,24 @@ describe("gold entries", () => {
     expect(b.buckets.map((x) => x.exactProbability)).toEqual(
       a.buckets.map((x) => x.exactProbability),
     );
-    expect(b.meanNet - a.meanNet).toBeCloseTo(1500 * 0.135, 0);
+    // The gap is exactly the entry the gold covers, derived rather than
+    // restated so that retuning the quest default cannot silently pass here.
+    expect(b.meanNet - a.meanNet).toBeCloseTo(
+      1500 * goldFundedFraction(with_),
+      6,
+    );
+  });
+
+  it("prices the EV curve at each point's own gold, not the config's", () => {
+    // The curve sweeps win rate. Gold moves with it, so a point on the curve
+    // has to be the same number as configuring that rate outright.
+    const base = defaultConfig();
+    for (const winRate of [0.3, 0.5, 0.75]) {
+      expect(expectedNetAt(base, winRate)).toBeCloseTo(
+        expectedNet({ ...base, winRate }),
+        9,
+      );
+    }
   });
 });
 

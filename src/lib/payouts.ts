@@ -1,5 +1,8 @@
 /** Turning a win count into gems, via the config's payout table. */
 
+import { exactDistribution } from "./distribution";
+import { DAILY_WIN_CAP, DAILY_WIN_GOLD } from "./presets";
+import { matchWinRate } from "./structure";
 import type { EventConfig, PayoutTier } from "./types";
 
 export function payoutFor(config: EventConfig, wins: number): PayoutTier {
@@ -31,18 +34,65 @@ export function grossValue(config: EventConfig, wins: number): number {
   );
 }
 
-/** Gold credited to one event, from the daily rate and how many you play. */
+/**
+ * Gold from the daily-win ladder for a number of wins in a day.
+ *
+ * Fractional wins are interpolated within the step they fall in. A win count is
+ * an expectation rather than a whole number of games, and rounding it would put
+ * a visible stair-step in the EV curve where the model has no real
+ * discontinuity.
+ */
+export function dailyWinGold(wins: number): number {
+  const capped = Math.min(Math.max(wins, 0), DAILY_WIN_CAP);
+  const whole = Math.floor(capped);
+  let total = 0;
+  for (let i = 0; i < whole; i++) total += DAILY_WIN_GOLD[i];
+  if (whole < DAILY_WIN_CAP) total += (capped - whole) * DAILY_WIN_GOLD[whole];
+  return total;
+}
+
+/** Expected match wins from one run of the event, at its configured win rate. */
+export function meanWinsPerEvent(config: EventConfig): number {
+  return exactDistribution(matchWinRate(config), config.structure).reduce(
+    (acc, p, wins) => acc + p * wins,
+    0,
+  );
+}
+
+/**
+ * Gold credited to one event.
+ *
+ * Two sources, and they behave differently enough that lumping them into a
+ * flat daily figure was the whole problem. Daily-win gold is *caused by* the
+ * event — it comes from the event's own wins, and it saturates once the day's
+ * wins reach the ladder's cap. Everything else arrives whether or not you
+ * entered, so it is divided across the day's events rather than earned by any
+ * of them.
+ *
+ * A day's wins are `eventsPerDay × meanWins`, which is what climbs the ladder;
+ * dividing the result back out gives one event's share. So playing more earns
+ * more in total and less each, and the second effect only bites near the cap
+ * rather than immediately — which a flat figure divided by `eventsPerDay` got
+ * backwards.
+ */
 export function goldPerEvent(config: EventConfig): number {
-  return config.eventsPerDay > 0 ? config.goldPerDay / config.eventsPerDay : 0;
+  if (config.eventsPerDay <= 0) return 0;
+  const dailyWins = config.eventsPerDay * meanWinsPerEvent(config);
+  return (dailyWinGold(dailyWins) + config.otherGoldPerDay) / config.eventsPerDay;
 }
 
 /**
  * Long-run share of entries that gold covers.
  *
- * Gold accrues at a fixed rate whatever happens in the event, so over many
- * entries it funds `goldPerEvent / entryCostGold` of them and gems cover the
- * rest. This is the limit the bankroll simulation converges to, and the two
- * are checked against each other.
+ * Gold accrues at its long-run average rate, so over many entries it funds
+ * `goldPerEvent / entryCostGold` of them and gems cover the rest. This is the
+ * limit the bankroll simulation converges to, and the two are checked against
+ * each other.
+ *
+ * That rate now moves with the win rate, since a better player wins more of
+ * the daily ladder. It is still an average over runs rather than a function of
+ * any one run's result, which is what keeps `netValue` a function of the win
+ * count alone.
  */
 export function goldFundedFraction(config: EventConfig): number {
   const perEvent = goldPerEvent(config);
