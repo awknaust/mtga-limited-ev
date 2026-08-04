@@ -82,6 +82,49 @@ function NumberInput({
   );
 }
 
+/** A number input with a currency marker in front of it. */
+function AddonInput({
+  addon,
+  id,
+  disabled,
+  fractional,
+  value,
+  onChange,
+}: {
+  addon: React.ReactNode;
+  id?: string;
+  disabled?: boolean;
+  fractional?: boolean;
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  return (
+    // The marker names the currency at the point of entry, so a field cannot
+    // be misread as the other one while the toggle is out of view.
+    <div className="input-group">
+      <span className="input-group-text">{addon}</span>
+      <NumberInput
+        id={id}
+        disabled={disabled}
+        min={0}
+        fractional={fractional}
+        value={value}
+        onChange={onChange}
+      />
+    </div>
+  );
+}
+
+/** Gold is Arena's own currency and never follows the display unit. */
+function GoldInput(props: {
+  id?: string;
+  disabled?: boolean;
+  value: number;
+  onChange: (n: number) => void;
+}) {
+  return <AddonInput addon={<i className="bi bi-coin" aria-hidden="true" />} {...props} />;
+}
+
 /** A gem-valued input, displayed and edited in the active unit. */
 function MoneyInput({
   gemValue,
@@ -97,10 +140,10 @@ function MoneyInput({
   disabled?: boolean;
 }) {
   return (
-    <NumberInput
+    <AddonInput
+      addon={m.unit === "usd" ? "$" : <i className="bi bi-gem" aria-hidden="true" />}
       id={id}
       disabled={disabled}
-      min={0}
       fractional={m.fractional}
       value={m.toInput(gemValue)}
       onChange={(n) => onChange(m.fromInput(n))}
@@ -304,21 +347,21 @@ export default function App() {
     {
       label: "Expected net / event",
       value: gems2(result.meanNet),
-      hint: `gems · ±${gems2(1.96 * result.stdErrNet)} (95% CI)`,
+      hint: `${m.label} · ±${gems2(1.96 * result.stdErrNet)} (95% CI)`,
       tone: signClass(result.meanNet),
     },
     {
       label: "Expected gross",
       value: gems2(result.meanGross),
-      hint: `gems + ${result.meanPacks.toFixed(2)} packs / event`,
+      hint: `${m.label} + ${result.meanPacks.toFixed(2)} packs / event`,
     },
     {
       label: "ROI",
       value: pct(result.roi),
       hint:
         result.goldEntryFraction > 0
-          ? `of ${gems(result.meanEntryGems)} gems paid · ${pct(result.goldEntryFraction)} entries free`
-          : `of ${gems(config.entryCostGems)} gem entry`,
+          ? `of ${gems(result.meanEntryGems)} paid · ${pct(result.goldEntryFraction)} entries free`
+          : `of ${gems(config.entryCostGems)} entry`,
       tone: signClass(result.roi),
     },
     {
@@ -334,7 +377,7 @@ export default function App() {
     {
       label: `${roundWord} / event`,
       value: result.meanRounds.toFixed(2),
-      hint: `max ${maxRounds(structure)} · σ of net: ${gems2(result.stdDevNet)} gems`,
+      hint: `max ${maxRounds(structure)} · σ of net: ${gems2(result.stdDevNet)}`,
     },
   ];
 
@@ -423,9 +466,8 @@ export default function App() {
                   <label htmlFor={ids.startGold} className="form-label">
                     Starting gold
                   </label>
-                  <NumberInput
+                  <GoldInput
                     id={ids.startGold}
-                    min={0}
                     value={startingGold}
                     onChange={setStartingGold}
                   />
@@ -624,10 +666,9 @@ export default function App() {
                       content="Most events take gold instead of gems. Set 0 for events that do not. Gold accrues as you play and pays the entry whenever enough has built up."
                     />
                   </label>
-                  <NumberInput
+                  <GoldInput
                     id={ids.entryGold}
                     disabled={locked}
-                    min={0}
                     value={config.entryCostGold}
                     onChange={(n) => set("entryCostGold", n)}
                   />
@@ -1154,9 +1195,8 @@ export default function App() {
                         content="A full day of daily wins pays 750 gold, and a quest adds roughly 600 more."
                       />
                     </label>
-                    <NumberInput
+                    <GoldInput
                       id={ids.goldPerDay}
-                      min={0}
                       value={config.goldPerDay}
                       onChange={(n) => set("goldPerDay", n)}
                     />
@@ -1179,7 +1219,7 @@ export default function App() {
                   </div>
                   <div className="col-12">
                     <div className="form-text mt-0">
-                      {gems(goldPerEvent(config))} gold per event.
+                      {Math.round(goldPerEvent(config)).toLocaleString()} gold per event.
                     </div>
                   </div>
                   <div className="col-6">
