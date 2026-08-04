@@ -50,6 +50,14 @@ export function About({ config }: { config: EventConfig }) {
               </td>
             </tr>
             <tr>
+              <td>Drafted cards</td>
+              <td>No</td>
+              <td>
+                {gems(config.draftPackValueGems)} gems per pack ×{" "}
+                {config.draftPacks} kept
+              </td>
+            </tr>
+            <tr>
               <td>Packs</td>
               <td>No</td>
               <td>{gems(config.packValueGems)} gems each</td>
@@ -109,8 +117,9 @@ export function About({ config }: { config: EventConfig }) {
       <h3 className="section-title mt-4">What it does not model</h3>
       <ul className="mb-0">
         <li>
-          The cards you draft. For most events that is the largest part of the
-          return, and none of it is counted here.
+          Cards beyond their duplicate-protection value. The pool is counted at
+          what a complete collection converts it to, which says nothing about a
+          card being good, or about filling a collection you have not finished.
         </li>
         <li>
           Switching events. A run plays one event type until it stops, where a real

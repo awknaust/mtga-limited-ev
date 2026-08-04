@@ -4,6 +4,7 @@ import {
   CONTENDER_DRAFT,
   CUBE_DRAFT,
   DEFAULT_GOLD_PER_EVENT,
+  DEFAULT_DRAFT_PACK_VALUE_GEMS,
   DEFAULT_PACK_VALUE_GEMS,
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
@@ -255,6 +256,53 @@ describe("breakEvenWinRate", () => {
   });
 });
 
+describe("drafted cards", () => {
+  it("values a pack of drafted cards off the rare slot", () => {
+    // (6/7 x 20) + (1/7 x 40) = 160/7. Above the booster figure, which loses
+    // some of its rare slots to wildcards.
+    expect(DEFAULT_DRAFT_PACK_VALUE_GEMS).toBe(Math.round(160 / 7));
+    expect(DEFAULT_DRAFT_PACK_VALUE_GEMS).toBeGreaterThan(DEFAULT_PACK_VALUE_GEMS);
+  });
+
+  it("keeps cards from drafts and sealed, none from phantom events", () => {
+    expect(PREMIER_DRAFT.draftPacks).toBe(3);
+    expect(SEALED.draftPacks).toBe(6);
+    // Cube is phantom: you play with the cards, you do not keep them.
+    expect(CUBE_DRAFT.draftPacks).toBe(0);
+    expect(ARENA_DIRECT.draftPacks).toBe(0);
+  });
+
+  it("adds the same card value at every win count", () => {
+    // The pool is yours for entering, not for winning.
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const bare = { ...config, draftPacks: 0 };
+    for (const wins of [0, 3, 7]) {
+      expect(grossValue(config, wins) - grossValue(bare, wins)).toBeCloseTo(
+        3 * config.draftPackValueGems,
+        9,
+      );
+    }
+  });
+
+  it("leaves phantom events untouched by the card rate", () => {
+    const cube = configFromPreset(CUBE_DRAFT, defaultConfig());
+    expect(expectedNetAt(cube, 0.55)).toBeCloseTo(
+      expectedNetAt({ ...cube, draftPackValueGems: 9999 }, 0.55),
+      9,
+    );
+  });
+
+  it("accumulates cards across a bankroll run", () => {
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const run = simulateBankroll(config, {
+      startingGems: 10_000,
+      startingGold: 0,
+      maxEvents: 5,
+    }, seededRandom(21));
+    expect(run.draftPacks).toBe(run.events * 3);
+  });
+});
+
 describe("bankroll", () => {
   const roll = { startingGems: 10_000, startingGold: 0, maxEvents: 500 };
 
@@ -328,6 +376,7 @@ describe("bankroll", () => {
       finalGems: 1000,
       finalGold: 10_000,
       packs: 0,
+      draftPacks: 0,
       playInPoints: 0,
       playBoxes: 0,
       collectorBoxes: 0,
@@ -418,12 +467,16 @@ describe("presets", () => {
     const tier = TRADITIONAL_DRAFT.payouts[3];
     expect(tier.playInPoints).toBe(2);
     expect(playInPointsFor(config, 3)).toBe(2);
+    const cards = config.draftPacks * config.draftPackValueGems;
     expect(grossValue(config, 3)).toBe(
-      tier.gems + tier.packs * config.packValueGems + 2 * config.playInPointValueGems,
+      cards +
+        tier.gems +
+        tier.packs * config.packValueGems +
+        2 * config.playInPointValueGems,
     );
     // Valuing them at nothing takes the whole term back out.
     expect(grossValue({ ...config, playInPointValueGems: 0 }, 3)).toBe(
-      tier.gems + tier.packs * config.packValueGems,
+      cards + tier.gems + tier.packs * config.packValueGems,
     );
   });
 
@@ -523,14 +576,15 @@ describe("presets", () => {
     expect(CONTENDER_DRAFT.payouts[7].packs).toBe(22);
   });
 
-  it("pays nothing at all for a Contender run under three wins", () => {
+  it("pays only the drafted cards for a Contender run under three wins", () => {
     const config = configFromPreset(CONTENDER_DRAFT, defaultConfig());
+    const cards = config.draftPacks * config.draftPackValueGems;
+    expect(cards).toBeGreaterThan(0);
     for (const wins of [0, 1, 2]) {
-      expect(grossValue(config, wins)).toBe(0);
-      // The entry is a pure loss on those runs.
-      expect(grossValue(config, wins) - config.entryCostGems).toBe(-3000);
+      // The reward table pays nothing, but the pool is still yours.
+      expect(grossValue(config, wins)).toBe(cards);
     }
-    expect(grossValue(config, 7)).toBe(7200 + 22 * config.packValueGems);
+    expect(grossValue(config, 7)).toBe(cards + 7200 + 22 * config.packValueGems);
   });
 
   it("models Sealed as BO1 to 7 wins or 3 losses", () => {
@@ -601,7 +655,7 @@ describe("presets", () => {
           (PICK_TWO_DRAFT.payouts[k].gems +
             PICK_TWO_DRAFT.payouts[k].packs * config.packValueGems),
       0,
-    );
+    ) + config.draftPacks * config.draftPackValueGems;
     // Priced against the effective entry: Pick Two takes gold, so part of the
     // 900 gem price is covered by the accrued balance.
     expect(expectedNetAt(config, 0.55)).toBeCloseTo(

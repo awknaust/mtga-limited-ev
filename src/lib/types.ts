@@ -49,6 +49,11 @@ export type EventPreset = {
   entryCostGems: number;
   /** Gold price, where the event takes gold. Absent means gems only. */
   entryCostGold?: number;
+  /**
+   * Packs' worth of cards you keep from the pool you played with. Zero for
+   * phantom events, where the cards are borrowed for the event only.
+   */
+  draftPacks?: number;
   format: EventFormat;
   structure: EventStructure;
   payouts: PayoutTier[];
@@ -67,6 +72,10 @@ export type EventConfig = {
   goldPerEvent: number;
   /** Gold worth one gem, for valuing a leftover balance. */
   goldPerGem: number;
+  /** Packs' worth of cards kept per entry; 0 for phantom events. */
+  draftPacks: number;
+  /** Gem value of one pack's worth of drafted cards. */
+  draftPackValueGems: number;
   /** Gem value assigned to one booster pack (0 = packs counted but valued at nothing). */
   packValueGems: number;
   /** Gem value assigned to one play-in point. */

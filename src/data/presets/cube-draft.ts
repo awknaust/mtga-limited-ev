@@ -11,6 +11,7 @@ export const CUBE_DRAFT = {
   name: "Cube Draft",
   entryCostGems: 1500,
   entryCostGold: 10000,
+  draftPacks: 0,
   format: "bo1",
   structure: { kind: "elimination", maxWins: 7, maxLosses: 3 },
   payouts: [

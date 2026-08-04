@@ -29,7 +29,8 @@ What that page publishes:
 | Vault contents | 1 mythic, 2 rare, 3 uncommon wildcards |
 | Daily win rewards | Gold and uncommon ICRs to 15 wins, upgrading rare 1:10, mythic 1:8 |
 
-Those figures are what `DEFAULT_PACK_VALUE_GEMS` (22) is built on — the
+Those figures are what `DEFAULT_PACK_VALUE_GEMS` (22) and
+`DEFAULT_DRAFT_PACK_VALUE_GEMS` (23) are built on — the
 derivation is in the doc comment on that constant, and it should be re-checked
 against this page rather than rewritten from memory.
 

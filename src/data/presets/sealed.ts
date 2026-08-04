@@ -11,6 +11,7 @@ import type { EventPreset } from "../../lib/types";
 export const SEALED = {
   name: "Sealed",
   entryCostGems: 2000,
+  draftPacks: 6,
   format: "bo1",
   structure: { kind: "elimination", maxWins: 7, maxLosses: 3 },
   payouts: [

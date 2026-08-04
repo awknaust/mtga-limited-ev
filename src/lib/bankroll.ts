@@ -88,6 +88,7 @@ export type BankrollRun = {
   finalGems: number;
   finalGold: number;
   packs: number;
+  draftPacks: number;
   playInPoints: number;
   playBoxes: number;
   collectorBoxes: number;
@@ -108,6 +109,7 @@ export function simulateBankroll(
   let gold = bankroll.startingGold;
   let events = 0;
   let packs = 0;
+  let draftPacks = 0;
   let playInPoints = 0;
   let playBoxes = 0;
   let collectorBoxes = 0;
@@ -122,6 +124,7 @@ export function simulateBankroll(
     const tier = payoutFor(config, wins);
     gems += tier.gems;
     packs += tier.packs;
+    draftPacks += config.draftPacks;
     playInPoints += tier.playInPoints ?? 0;
     playBoxes += tier.playBoxes ?? 0;
     collectorBoxes += tier.collectorBoxes ?? 0;
@@ -134,6 +137,7 @@ export function simulateBankroll(
     finalGems: gems,
     finalGold: gold,
     packs,
+    draftPacks,
     playInPoints,
     playBoxes,
     collectorBoxes,
@@ -153,6 +157,7 @@ export function runValue(config: EventConfig, run: BankrollRun): number {
     run.finalGems +
     run.finalGold / config.goldPerGem +
     run.packs * config.packValueGems +
+    run.draftPacks * config.draftPackValueGems +
     run.playInPoints * config.playInPointValueGems +
     run.playBoxes * config.playBoxValueGems +
     run.collectorBoxes * config.collectorBoxValueGems

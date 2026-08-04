@@ -112,6 +112,30 @@ export const GEMS_PER_USD = 400;
 export const GOLD_PER_GEM = 20 / 3;
 
 /**
+ * Default gem value of one pack's worth of drafted cards.
+ *
+ * The cards you keep are the largest reward most of these events pay, and
+ * until now none of it was counted.
+ *
+ * Valued the same way as a booster's rare slot, since that is where nearly all
+ * of it sits. Assuming a complete collection, a rare converts to 20 gems and a
+ * mythic to 40, and the mythic upgrade runs about 1:7 on recent sets:
+ *
+ *     (6/7 × 20) + (1/7 × 40) = 160/7 ≈ 22.9 gems per pack
+ *
+ * Slightly *above* DEFAULT_PACK_VALUE_GEMS rather than equal to it: a booster
+ * sometimes pays a wildcard in place of the rare, which costs it the gems,
+ * whereas drafted cards have no such slot.
+ *
+ * Excludes the commons and uncommons, which only feed vault progress, and
+ * assumes a complete set — without one you keep cards rather than gems, and
+ * what they are worth to you is a different question this does not answer.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DEFAULT_DRAFT_PACK_VALUE_GEMS = Math.round(160 / 7);
+
+/**
  * Default gold earned in the time it takes to play one event.
  *
  * A full day of daily wins pays exactly 750 gold — 250 for the first, 100 for
@@ -179,6 +203,7 @@ export function configFromPreset(preset: EventPreset, base: EventConfig): EventC
     ...base,
     entryCostGems: preset.entryCostGems,
     entryCostGold: preset.entryCostGold ?? 0,
+    draftPacks: preset.draftPacks ?? 0,
     format: preset.format,
     structure: { ...preset.structure },
     payouts: preset.payouts.map((t) => ({ ...t })),
@@ -192,6 +217,7 @@ export function defaultConfig(): EventConfig {
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
     goldPerEvent: DEFAULT_GOLD_PER_EVENT,
     goldPerGem: GOLD_PER_GEM,
+    draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   } as EventConfig);

@@ -156,6 +156,8 @@ export default function App() {
     winRate: `${uid}-win-rate`,
     entry: `${uid}-entry`,
     entryGold: `${uid}-entry-gold`,
+    draftPacks: `${uid}-draft-packs`,
+    draftPackValue: `${uid}-draft-pack-value`,
     goldPerEvent: `${uid}-gold-per-event`,
     goldRate: `${uid}-gold-rate`,
     packValue: `${uid}-pack-value`,
@@ -573,6 +575,22 @@ export default function App() {
                     onChange={(n) => set("entryCostGold", n)}
                   />
                 </div>
+                <div className="col-6">
+                  <label htmlFor={ids.draftPacks} className="form-label">
+                    Cards kept (packs)
+                    <InfoTip
+                      label="About cards kept"
+                      content="Packs' worth of cards you keep from the pool you played with — three for a draft, six for sealed. Zero for phantom events like cube, where the cards are borrowed."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.draftPacks}
+                    disabled={locked}
+                    min={0}
+                    value={config.draftPacks}
+                    onChange={(n) => set("draftPacks", n)}
+                  />
+                </div>
               </div>
 
               <h3 className="section-title mt-4">
@@ -971,6 +989,21 @@ export default function App() {
                     />
                   </label>
                   <NumberInput id={ids.seed} value={seed} onChange={setSeed} />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.draftPackValue} className="form-label">
+                    Drafted card value (gems / pack)
+                    <InfoTip
+                      label="About drafted card value"
+                      content="What one pack's worth of cards you keep is worth, assuming a complete set: a rare converts to 20 gems and a mythic to 40, upgrading about 1:7, so roughly 23 a pack."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.draftPackValue}
+                    min={0}
+                    value={config.draftPackValueGems}
+                    onChange={(n) => set("draftPackValueGems", n)}
+                  />
                 </div>
                 <div className="col-6">
                   <label htmlFor={ids.packValue} className="form-label">

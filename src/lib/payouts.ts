@@ -13,12 +13,16 @@ export function playInPointsFor(config: EventConfig, wins: number): number {
 }
 
 /**
- * Gross payout in gems for a given win count, with packs and play-in points
- * converted at the rates the config carries.
+ * Gross value in gems for a given win count.
+ *
+ * Includes the cards kept from the pool, which are not a payout tier reward —
+ * you get them for entering, however the event goes — so they are flat across
+ * every win count.
  */
 export function grossValue(config: EventConfig, wins: number): number {
   const tier = payoutFor(config, wins);
   return (
+    config.draftPacks * config.draftPackValueGems +
     tier.gems +
     tier.packs * config.packValueGems +
     (tier.playInPoints ?? 0) * config.playInPointValueGems +
