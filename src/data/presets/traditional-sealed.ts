@@ -24,11 +24,18 @@ import type { EventPreset } from "../../lib/types";
  * structure, the 200-to-2,200 gem range and the one-to-five pack range: the MTG
  * Wiki's events page and MTG Arena Zone's queue guide.
  *
- * The two interior gem values — 500 at one win and 1,800 at three — rest on the
- * wiki alone. That is thinner than the rest of this file and is recorded here
- * rather than glossed. The wiki earned some trust in the process: it matched
- * Premier Draft and Quick Draft exactly, and it was right about Sealed where
- * this repo was wrong.
+ * The three interior gem values — 500, 1,200 and 1,800 at one, two and three
+ * wins — rest on the wiki alone, and are the weakest numbers in this directory.
+ * Only the ends are corroborated: 200 and 2,200 are pinned by the gem range
+ * both sources give, and the pack column is pinned by its one-to-five range
+ * across exactly five rows.
+ *
+ * Do not read more into the wiki than it has earned. It matched Premier Draft
+ * and Quick Draft exactly and was right about Sealed where this repo was wrong
+ * — but it is also wrong about Pick Two Draft's two-win pack count, checked
+ * against the client. So it is a good transcription that is not a reliable one,
+ * and these three values should be confirmed in game before anything is
+ * concluded from them.
  *
  * One figure seen elsewhere disagrees and is not used. A search result put the
  * February 2021 Kaldheim queue at 3,000 gems or 15,000 gold, against 2,000 in

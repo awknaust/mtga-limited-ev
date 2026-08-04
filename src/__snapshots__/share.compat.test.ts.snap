@@ -84,7 +84,7 @@ draft      3 packs @ 0
 values     pack=0 playIn=0 playBox=0 collBox=0
 gold       other=0/day over 1 events, goldPerGem=6.6667
 charges    676.7 gems (488.8 gold/event)
-payouts    50-1_100-1_200-1_300-1_450-1_650-1_850-1_950-2
+payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3000 gold=0 maxEvents=20 spend=false
 sim        trials=100000 runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=400"
@@ -159,7 +159,7 @@ draft      3 packs @ 23
 values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       other=600/day over 1 events, goldPerGem=6.6667
 charges    586.7 gems (1088.8 gold/event)
-payouts    50-1_100-1_200-1_300-1_450-1_650-1_850-1_950-2
+payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3000 gold=0 maxEvents=20 spend=false
 sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
@@ -309,7 +309,7 @@ draft      3 packs @ 23
 values     pack=22 playIn=200 playBox=61867 collBox=252133
 gold       other=600/day over 1 events, goldPerGem=6.6667
 charges    586.7 gems (1088.8 gold/event)
-payouts    50-1_100-1_200-1_300-1_450-1_650-1_850-1_950-2
+payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3000 gold=0 maxEvents=20 spend=false
 sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=400"
