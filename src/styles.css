@@ -148,6 +148,13 @@ body {
   font-size: 11px;
 }
 
+.chart-axis-label {
+  fill: var(--bs-secondary-color);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
 .chart-value {
   fill: var(--bs-body-color);
   font-size: 11px;

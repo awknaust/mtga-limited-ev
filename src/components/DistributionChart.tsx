@@ -4,7 +4,7 @@ import type { WinBucket } from "../lib";
 
 const WIDTH = 560;
 const ROW = 26;
-const MARGIN = { top: 8, right: 56, bottom: 26, left: 34 };
+const MARGIN = { top: 8, right: 56, bottom: 46, left: 48 };
 
 /**
  * Outcome distribution as horizontal bars, one per win count, with a tick
@@ -87,6 +87,23 @@ export function DistributionChart({ buckets }: { buckets: WinBucket[] }) {
             </g>
           );
         })}
+        <text
+          x={inner / 2}
+          y={buckets.length * ROW + 38}
+          textAnchor="middle"
+          className="chart-axis-label"
+        >
+          Share of events
+        </text>
+        <text
+          transform="rotate(-90)"
+          x={-(buckets.length * ROW) / 2}
+          y={-MARGIN.left + 14}
+          textAnchor="middle"
+          className="chart-axis-label"
+        >
+          Wins
+        </text>
       </g>
     </svg>
   );

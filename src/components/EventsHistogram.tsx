@@ -1,8 +1,8 @@
 import { scaleLinear } from "d3";
 
 const WIDTH = 560;
-const HEIGHT = 170;
-const MARGIN = { top: 10, right: 12, bottom: 28, left: 44 };
+const HEIGHT = 192;
+const MARGIN = { top: 10, right: 12, bottom: 48, left: 58 };
 
 /**
  * How many events a starting balance bought, across runs.
@@ -87,6 +87,23 @@ export function EventsHistogram({
         >
           <title>{`mean: ${mean.toFixed(1)} events`}</title>
         </line>
+        <text
+          x={inner / 2}
+          y={innerH + 40}
+          textAnchor="middle"
+          className="chart-axis-label"
+        >
+          Events played
+        </text>
+        <text
+          transform="rotate(-90)"
+          x={-innerH / 2}
+          y={-MARGIN.left + 14}
+          textAnchor="middle"
+          className="chart-axis-label"
+        >
+          Runs
+        </text>
       </g>
     </svg>
   );

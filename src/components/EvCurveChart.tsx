@@ -3,8 +3,8 @@ import { line, scaleLinear } from "d3";
 import { bo3WinRate, expectedNetAt, type EventConfig } from "../lib";
 
 const WIDTH = 560;
-const HEIGHT = 240;
-const MARGIN = { top: 12, right: 16, bottom: 30, left: 62 };
+const HEIGHT = 262;
+const MARGIN = { top: 12, right: 16, bottom: 50, left: 74 };
 
 /** Per-game rates to sample. Wide enough to contain every preset's break-even. */
 const FROM = 0.3;
@@ -114,6 +114,23 @@ export function EvCurveChart({
             </text>
           </g>
         )}
+        <text
+          x={inner / 2}
+          y={innerH + 40}
+          textAnchor="middle"
+          className="chart-axis-label"
+        >
+          {isBo3 ? "Match win rate" : "Game win rate"}
+        </text>
+        <text
+          transform="rotate(-90)"
+          x={-innerH / 2}
+          y={-MARGIN.left + 14}
+          textAnchor="middle"
+          className="chart-axis-label"
+        >
+          Expected net (gems)
+        </text>
       </g>
     </svg>
   );

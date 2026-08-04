@@ -1,8 +1,8 @@
 import { scaleLinear } from "d3";
 
 const WIDTH = 560;
-const HEIGHT = 170;
-const MARGIN = { top: 10, right: 12, bottom: 28, left: 52 };
+const HEIGHT = 192;
+const MARGIN = { top: 10, right: 12, bottom: 48, left: 64 };
 
 const short = (n: number): string => {
   const a = Math.abs(n);
@@ -78,6 +78,23 @@ export function ValueHistogram({
               <title>{m.label}</title>
             </line>
           ))}
+        <text
+          x={inner / 2}
+          y={innerH + 40}
+          textAnchor="middle"
+          className="chart-axis-label"
+        >
+          Ending value (gems)
+        </text>
+        <text
+          transform="rotate(-90)"
+          x={-innerH / 2}
+          y={-MARGIN.left + 14}
+          textAnchor="middle"
+          className="chart-axis-label"
+        >
+          Runs
+        </text>
       </g>
     </svg>
   );
