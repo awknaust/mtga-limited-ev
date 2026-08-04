@@ -4,6 +4,11 @@ const WIDTH = 560;
 const HEIGHT = 192;
 const MARGIN = { top: 10, right: 12, bottom: 48, left: 58 };
 
+/** Ticks are fractions of all runs; keep a decimal only when one is needed. */
+const asPct = (f: number): string =>
+  `${f > 0 && f < 0.01 ? (f * 100).toFixed(1) : Math.round(f * 100)}%`;
+
+
 /**
  * How many events a starting balance bought, across runs.
  *
@@ -33,9 +38,12 @@ export function EventsHistogram({
     .map(([events, count]) => ({ events, count }))
     .sort((a, b) => a.events - b.events);
 
+  // Plotted as a share of all runs, so the shape reads the same whatever the
+  // trial count.
+  const total = histogram.reduce((acc, h) => acc + h.count, 0) || 1;
   const x = scaleLinear().domain([0, maxEvents + size]).range([0, inner]);
   const y = scaleLinear()
-    .domain([0, Math.max(...bars.map((b) => b.count), 1)])
+    .domain([0, Math.max(...bars.map((b) => b.count / total), 0.01)])
     .nice()
     .range([innerH, 0]);
 
@@ -51,7 +59,7 @@ export function EventsHistogram({
           <g key={t} transform={`translate(0,${y(t)})`}>
             <line x1={0} x2={inner} className="chart-gridline" />
             <text x={-8} dy="0.32em" textAnchor="end" className="chart-tick">
-              {t}
+              {asPct(t)}
             </text>
           </g>
         ))}
@@ -71,9 +79,9 @@ export function EventsHistogram({
           <rect
             key={b.events}
             x={x(b.events)}
-            y={y(b.count)}
+            y={y(b.count / total)}
             width={Math.max(1, x(size) - x(0) - 1)}
-            height={innerH - y(b.count)}
+            height={innerH - y(b.count / total)}
             className="chart-bar"
           />
         ))}
@@ -102,7 +110,7 @@ export function EventsHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          Runs
+          % of runs
         </text>
       </g>
     </svg>

@@ -4,6 +4,10 @@ const WIDTH = 560;
 const HEIGHT = 192;
 const MARGIN = { top: 10, right: 12, bottom: 48, left: 64 };
 
+/** Ticks are fractions of all runs; keep a decimal only when one is needed. */
+const asPct = (f: number): string =>
+  `${f > 0 && f < 0.01 ? (f * 100).toFixed(1) : Math.round(f * 100)}%`;
+
 const short = (n: number): string => {
   const a = Math.abs(n);
   const sign = n < 0 ? "−" : "";
@@ -25,9 +29,10 @@ export function ValueHistogram({
 
   const lo = bins[0].from;
   const hi = bins[bins.length - 1].to;
+  const total = bins.reduce((acc, b) => acc + b.count, 0) || 1;
   const x = scaleLinear().domain([lo, hi]).range([0, inner]);
   const y = scaleLinear()
-    .domain([0, Math.max(...bins.map((b) => b.count), 1)])
+    .domain([0, Math.max(...bins.map((b) => b.count / total), 0.01)])
     .nice()
     .range([innerH, 0]);
 
@@ -43,7 +48,7 @@ export function ValueHistogram({
           <g key={t} transform={`translate(0,${y(t)})`}>
             <line x1={0} x2={inner} className="chart-gridline" />
             <text x={-8} dy="0.32em" textAnchor="end" className="chart-tick">
-              {t}
+              {asPct(t)}
             </text>
           </g>
         ))}
@@ -57,9 +62,9 @@ export function ValueHistogram({
           <rect
             key={b.from}
             x={x(b.from)}
-            y={y(b.count)}
+            y={y(b.count / total)}
             width={Math.max(1, x(b.to) - x(b.from) - 1)}
-            height={innerH - y(b.count)}
+            height={innerH - y(b.count / total)}
             className="chart-bar"
           />
         ))}
@@ -93,7 +98,7 @@ export function ValueHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          Runs
+          % of runs
         </text>
       </g>
     </svg>
