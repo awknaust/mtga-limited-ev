@@ -139,25 +139,57 @@ export const GOLD_PER_GEM = 20 / 3;
 export const DEFAULT_DRAFT_PACK_VALUE_GEMS = Math.round(160 / 7);
 
 /**
- * Default gold earned in a day of play.
+ * Gold paid at each daily win, first through fifteenth.
  *
- * A full day of daily wins pays exactly 750 gold — 250 for the first, 100 for
- * each of the next three, 50 at the sixth, eighth and tenth, 25 at the twelfth
- * and fourteenth — and a daily quest adds roughly 600 more.
+ * 250 for the first, 100 for each of the next three, 50 at the sixth, eighth
+ * and tenth, 25 at the twelfth and fourteenth. It sums to 750, and it stops:
+ * a sixteenth win pays nothing.
  *
- * The quest figure is not on Wizards' drop-rates page and is the softer half of
- * this number.
+ * This ladder is why gold is not a flat daily figure. It front-loads hard —
+ * the first win alone is a third of the day's total — so the gold a single
+ * event generates is far closer to its own few wins than to the 750 a full day
+ * of grinding pays.
  *
  * @see https://magic.wizards.com/en/mtgarena/drop-rates
  */
-export const DEFAULT_GOLD_PER_DAY = 1350;
+export const DAILY_WIN_GOLD: readonly number[] = [
+  250, 100, 100, 100, 0, 50, 0, 50, 0, 50, 0, 25, 0, 25, 0,
+];
+
+/** Wins after which the daily ladder pays nothing more. */
+export const DAILY_WIN_CAP = DAILY_WIN_GOLD.length;
 
 /**
- * Events played per day, which divides the daily gold.
+ * Default gold earned per day from everything other than the event's wins.
  *
- * One a day is the case the gold figure above is honest for. Raise it and each
- * event earns proportionally less, which is the right direction — the win
- * rewards run out and the quest does not come back.
+ * A daily quest, which pays roughly 600 gold and is not hard to clear.
+ *
+ * This makes the field a *budget* rather than an attribution: what a day of
+ * playing puts toward entries, whoever earned it. The stricter reading — only
+ * gold the entry itself caused — would put this at 0, because a quest can be
+ * cleared in a free format and pays whether or not you draft. That reading
+ * answers "what did this entry return"; this one answers "how far does a day
+ * of playing get me", which is the question someone deciding what to queue is
+ * actually asking.
+ *
+ * Worth knowing what it costs, because it is not neutral between events. At
+ * 10,000 gold for Premier against 5,000 for Quick, a flat daily credit covers
+ * twice as much of the cheaper event, so raising it moves Quick's break-even
+ * further than Premier's and shifts where the two cross. Set it to 0 for the
+ * attribution reading.
+ *
+ * The quest figure is not on Wizards' drop-rates page, unlike DAILY_WIN_GOLD,
+ * and it varies with which quest you draw — it is the softer number of the two.
+ */
+export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
+
+/**
+ * Events played per day.
+ *
+ * Decides how far a day's wins climb DAILY_WIN_GOLD before it caps. One event
+ * a day at a 55% win rate is about 3.4 wins and 489 gold; five events reach
+ * the fifteen-win cap and split 750 between them, so each earns less than the
+ * first did. Set 0 to price an event in gems alone.
  */
 export const DEFAULT_EVENTS_PER_DAY = 1;
 
@@ -225,7 +257,7 @@ export function defaultConfig(): EventConfig {
     winRate: 0.55,
     packValueGems: DEFAULT_PACK_VALUE_GEMS,
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
-    goldPerDay: DEFAULT_GOLD_PER_DAY,
+    otherGoldPerDay: DEFAULT_OTHER_GOLD_PER_DAY,
     eventsPerDay: DEFAULT_EVENTS_PER_DAY,
     goldPerGem: GOLD_PER_GEM,
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,

@@ -99,6 +99,49 @@ body {
 }
 
 /*
+ * The win rate is the input every figure on the page turns on, so its track and
+ * thumb run to roughly double Bootstrap's.
+ *
+ * Geometry only. Colours and the focus ring are left to .form-range, so this
+ * restates the size and nothing else. Two things to hold to: the thumb's
+ * negative margin is what centres it on the track, and has to stay half the
+ * difference between the two heights; and the vendor pseudo-elements cannot be
+ * merged into one selector list, because a browser that fails to parse one of
+ * them drops the whole rule.
+ */
+.win-rate-slider {
+  height: 2.25rem;
+}
+
+.win-rate-slider::-webkit-slider-runnable-track {
+  height: 0.875rem;
+}
+
+.win-rate-slider::-webkit-slider-thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+  margin-top: -0.4375rem;
+}
+
+.win-rate-slider::-moz-range-track {
+  height: 0.875rem;
+}
+
+.win-rate-slider::-moz-range-thumb {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+/* Reads at stat size — it is the number the rest of the page answers. */
+.win-rate-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  /* Fixed-width digits, so dragging does not jog the tooltip beside it. */
+  font-variant-numeric: tabular-nums;
+}
+
+/*
  * Stat tile. Bootstrap's .card is too heavy to nest inside another card, so
  * these are a light raised block instead.
  */
