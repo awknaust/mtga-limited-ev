@@ -577,10 +577,10 @@ export default function App() {
                 </div>
                 <div className="col-6">
                   <label htmlFor={ids.draftPacks} className="form-label">
-                    Cards kept (packs)
+                    Draft packs kept
                     <InfoTip
-                      label="About cards kept"
-                      content="Packs' worth of cards you keep from the pool you played with — three for a draft, six for sealed. Zero for phantom events like cube, where the cards are borrowed."
+                      label="About draft packs kept"
+                      content="How many packs' worth of cards you keep from the pool you played with — three for a draft, six for sealed. Zero for phantom events like cube, where the cards are borrowed."
                     />
                   </label>
                   <NumberInput
@@ -992,10 +992,10 @@ export default function App() {
                 </div>
                 <div className="col-6">
                   <label htmlFor={ids.draftPackValue} className="form-label">
-                    Drafted card value (gems / pack)
+                    Draft pack value (gems)
                     <InfoTip
-                      label="About drafted card value"
-                      content="What one pack's worth of cards you keep is worth, assuming a complete set: a rare converts to 20 gems and a mythic to 40, upgrading about 1:7, so roughly 23 a pack."
+                      label="About draft pack value"
+                      content="What one draft pack of kept cards is worth, assuming a complete set: a rare converts to 20 gems and a mythic to 40, upgrading about 1:7, so roughly 23 a pack."
                     />
                   </label>
                   <NumberInput

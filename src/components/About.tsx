@@ -50,11 +50,10 @@ export function About({ config }: { config: EventConfig }) {
               </td>
             </tr>
             <tr>
-              <td>Drafted cards</td>
+              <td>Draft packs kept</td>
               <td>No</td>
               <td>
-                {gems(config.draftPackValueGems)} gems per pack ×{" "}
-                {config.draftPacks} kept
+                {gems(config.draftPackValueGems)} gems each × {config.draftPacks}
               </td>
             </tr>
             <tr>
