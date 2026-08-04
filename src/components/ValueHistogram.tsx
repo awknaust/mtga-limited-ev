@@ -1,6 +1,6 @@
 import { scaleLinear } from "d3";
 
-import type { Money } from "../format";
+import { gemTick, type Money } from "../format";
 
 const WIDTH = 560;
 const HEIGHT = 220;
@@ -9,15 +9,6 @@ const MARGIN = { top: 38, right: 12, bottom: 48, left: 64 };
 /** Ticks are fractions of all outcomes; keep a decimal only when one is needed. */
 const asPct = (f: number): string =>
   `${f > 0 && f < 0.01 ? (f * 100).toFixed(1) : Math.round(f * 100)}%`;
-
-/** Gem amounts abbreviate well; dollar amounts are small enough to print. */
-const tickLabel = (m: Money, gemValue: number): string => {
-  if (m.unit !== "gems") return m.fmt(gemValue);
-  const a = Math.abs(gemValue);
-  const sign = gemValue < 0 ? "−" : "";
-  const body = a >= 1000 ? `${Math.round(a / 1000)}k` : `${Math.round(a)}`;
-  return `${sign}${m.symbol}${body}`;
-};
 
 /** Where possible outcomes ended up, binned. */
 export function ValueHistogram({
@@ -62,7 +53,7 @@ export function ValueHistogram({
           <g key={t} transform={`translate(${x(t)},0)`}>
             <line y1={0} y2={innerH} className="chart-gridline" />
             <text y={innerH + 18} textAnchor="middle" className="chart-tick">
-              {tickLabel(m, t)}
+              {gemTick(m, t)}
             </text>
           </g>
         ))}

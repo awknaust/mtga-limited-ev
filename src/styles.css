@@ -517,9 +517,37 @@ body {
   stroke-width: 2.5;
 }
 
+/*
+ * Tick lettering, sized in the viewBox's units rather than the reader's pixels.
+ *
+ * That distinction is the whole of this rule. A chart is drawn 560 units wide
+ * and stretched to whatever the column gives it, so the type stretches with it
+ * and one number cannot serve both ends. Measured, 11 units come out at 6px in
+ * a phone's 320px card and at 18px in the 918px one a stacked layout hands it
+ * just under 992px — where it is half again the body text beside it, which is
+ * backwards for a figure meant to be referred to rather than read.
+ *
+ * So there are two numbers, and the break is at `sm` because that is where the
+ * stretching starts: below it the chart is drawn at or under its own scale and
+ * the lettering needs every unit it has, above it the chart is always stretched
+ * and can give two back. 9 units then land between about 8px and 15px. That is
+ * still a wide spread, and it is the layout's rather than this rule's — the
+ * results column stacks full width under 992px and narrows again above it, so
+ * the chart is at its widest on a tablet and not on a desktop.
+ *
+ * The fix that would hold everywhere is MiniHistogram's: letter the axis in
+ * HTML, where a pixel is a pixel. That is a good deal more surgery than an axis
+ * which is merely a little too loud has earned.
+ */
 .chart-tick {
   fill: var(--bs-secondary-color);
   font-size: 11px;
+}
+
+@media (min-width: 576px) {
+  .chart-tick {
+    font-size: 9px;
+  }
 }
 
 .chart-axis-label {

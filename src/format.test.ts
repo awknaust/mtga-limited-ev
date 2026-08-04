@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GEM_SIGN, money } from "./format";
+import { GEM_SIGN, gemTick, money, tickAmount } from "./format";
 
 // The default rate: 20,000 gems for $49.99, the largest bundle.
 const RATE = 400;
@@ -99,5 +99,38 @@ describe("money", () => {
       expect(text).toBe("6303.33");
       expect(Number.isNaN(Number(text))).toBe(false);
     });
+  });
+});
+
+describe("axis ticks", () => {
+  it("abbreviates thousands, and only thousands", () => {
+    // The point of the abbreviation: three characters where six were, which is
+    // what stops a stretched axis running its labels together.
+    expect(tickAmount(20_000)).toBe("20k");
+    expect(tickAmount(1000)).toBe("1k");
+    // Below a thousand there is nothing to abbreviate, and rounding to the
+    // nearest one would flatten the low end of every axis to zero.
+    expect(tickAmount(999)).toBe("999");
+    expect(tickAmount(0)).toBe("0");
+  });
+
+  it("signs a negative with a real minus, ahead of the marker", () => {
+    // Not "💎 −10k": the sign belongs to the figure, and the marker names the
+    // currency it is a figure of.
+    expect(tickAmount(-10_000, GEM_SIGN)).toBe(`−${GEM_SIGN}10k`);
+  });
+
+  it("marks gems and leaves gold bare", () => {
+    // Gold has no sign of its own, so the two axes cannot be read as each
+    // other's where the breakdown sits them side by side.
+    expect(gemTick(money("gems", RATE), 20_000)).toContain(GEM_SIGN);
+    expect(tickAmount(20_000)).not.toContain(GEM_SIGN);
+  });
+
+  it("prints dollars whole instead of abbreviating them", () => {
+    // 20,000 gems is $50 — three orders of magnitude smaller, so it fits as it
+    // is, and rounding it to the nearest thousand would read as "0k".
+    expect(gemTick(money("usd", RATE), 20_000)).toBe("$50.00");
+    expect(gemTick(money("usd", RATE), 250_000)).toBe("$625.00");
   });
 });
