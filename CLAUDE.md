@@ -29,6 +29,24 @@ Those figures are what `DEFAULT_PACK_VALUE_GEMS` (22) is built on — the
 derivation is in the doc comment on that constant, and it should be re-checked
 against this page rather than rewritten from memory.
 
+### Where payout ladders live
+
+Wizards publishes ladders for **premium and limited-time events only**. The
+evergreen events are documented in game and nowhere else — the set event
+schedules list them by name and format but say nothing about rewards. That is
+why the Premier, Quick, Cube, Pick Two and Sealed tables here come from
+community sites, and it is the standing weak point in this repo's data.
+
+| Source | Covers | Detail |
+| --- | --- | --- |
+| [Arena Open terms and conditions](https://magic.wizards.com/en/news/mtg-arena/arena-open-terms-and-conditions) | Arena Open, both days | Complete, quoted tables; also archives past events, which have been running the same structures |
+| Set event schedules, e.g. [Secrets of Strixhaven](https://magic.wizards.com/en/news/mtg-arena/secrets-of-strixhaven-event-schedule) | Contender Draft and other timed events | Full entry cost and ladder; evergreen events listed but rewards "not detailed" |
+| [Arena Direct](https://magic.wizards.com/en/news/mtg-arena/arena-direct) | Arena Direct | Partial — gems and packs at 3–5 wins, physical boxes at 6+ |
+| Announcement posts under `/news/mtg-arena/` | Changes to entries and rewards | Worth checking when a number looks stale |
+
+Search this domain first when a payout is needed:
+`WebSearch` with `allowed_domains: ["magic.wizards.com"]`.
+
 ## Data provenance discipline
 
 Payout ladders are not published by Wizards, so they come from community sites
