@@ -293,42 +293,9 @@ export default function App() {
                 )}
               </div>
 
-              <div className="mb-3">
-                <label htmlFor={ids.packValue} className="form-label">
-                  Pack value (gems)
-                  <InfoTip
-                    label="About pack value"
-                    content="How much are packs worth to you (in gems)? Default is based on duplicate protection for a complete set."
-                  />
-                </label>
-                <NumberInput
-                  id={ids.packValue}
-                  min={0}
-                  value={config.packValueGems}
-                  onChange={(n) => set("packValueGems", n)}
-                />
-              </div>
-
-              <div>
-                <label htmlFor={ids.funValue} className="form-label">
-                  Fun (gems / game)
-                  <InfoTip
-                    label="About the value of fun"
-                    content="Priceless."
-                  />
-                </label>
-                <input
-                  id={ids.funValue}
-                  className="form-control"
-                  value="∞"
-                  disabled
-                  readOnly
-                />
-              </div>
-
               <button
                 type="button"
-                className="btn btn-outline-secondary w-100 mt-3"
+                className="btn btn-outline-secondary w-100"
                 onClick={() => modal.current?.show()}
               >
                 <i className="bi bi-gear me-1" aria-hidden="true" />
@@ -784,6 +751,34 @@ export default function App() {
                     />
                   </label>
                   <NumberInput id={ids.seed} value={seed} onChange={setSeed} />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.packValue} className="form-label">
+                    Pack value (gems)
+                    <InfoTip
+                      label="About pack value"
+                      content="How much are packs worth to you (in gems)? Default is based on duplicate protection for a complete set."
+                    />
+                  </label>
+                  <NumberInput
+                    id={ids.packValue}
+                    min={0}
+                    value={config.packValueGems}
+                    onChange={(n) => set("packValueGems", n)}
+                  />
+                </div>
+                <div className="col-6">
+                  <label htmlFor={ids.funValue} className="form-label">
+                    Fun (gems / game)
+                    <InfoTip label="About the value of fun" content="Priceless." />
+                  </label>
+                  <input
+                    id={ids.funValue}
+                    className="form-control"
+                    value="∞"
+                    disabled
+                    readOnly
+                  />
                 </div>
                 <div className="col-12">
                   <label htmlFor={ids.playInValue} className="form-label">
