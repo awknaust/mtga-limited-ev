@@ -96,13 +96,20 @@ and have burned us. Three things to hold to:
 Assume you are not alone. Several sessions run against this repository
 concurrently, and the failures that causes are quiet ones — files changing
 between two of your own commands, a commit absorbing work you did not write, a
-dev server dying because someone else claimed its port. All four rules below
-come from that happening.
+dev server dying because someone else claimed its port. Every rule below comes
+from that happening.
 
 - **Never work in the main checkout.** Start with `EnterWorktree`, or take an
   `isolation: "worktree"` agent. `/Users/awknaust/mtga-limited-ev` is shared
   ground: switching branches there rewrites files under every other session and
   under the running dev server. Main is somewhere to merge into, not to work in.
+- **Fetch, and branch from `origin/main`.** Not from local `main`, and not from
+  whatever the shared tree happens to have checked out — that has been seventeen
+  commits behind, and a branch cut from it is born needing a rebase.
+  `EnterWorktree` already branches from `origin/<default>`, so mostly this means
+  not overriding it. Take the same care rebasing: a branch here once read as
+  nine commits behind its own remote, and replaying it onto main as it stood
+  would have dropped all nine.
 - **Never `git add -A`, and never `git commit -a`.** Stage paths you name. In an
   isolated tree those commands are harmless; in a shared one they have picked up
   another session's worktree as a gitlink, and unrelated edits to
