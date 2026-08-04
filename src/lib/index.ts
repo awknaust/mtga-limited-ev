@@ -5,6 +5,7 @@
  *   types.ts         domain types
  *   structure.ts     event shape helpers, BO3 conversion, payout resizing
  *   payouts.ts       win count → gems
+ *   holdings.ts      what a run ends up holding, and what it is worth
  *   distribution.ts  closed-form outcome distributions
  *   rng.ts           seeded PRNG
  *   simulate.ts      Monte Carlo run, expected value, break-even
@@ -15,6 +16,7 @@
 export * from "./types";
 export * from "./structure";
 export * from "./payouts";
+export * from "./holdings";
 export * from "./distribution";
 export * from "./rng";
 export * from "./simulate";

@@ -2,11 +2,13 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import Popover from "bootstrap/js/dist/popover";
 
-import { money, type Unit } from "./format";
+import { money, pct, type Unit } from "./format";
 import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
+import { PayoutBreakdown } from "./components/PayoutBreakdown";
+import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
 import {
   CUSTOM_PRESET,
@@ -30,7 +32,11 @@ import {
 } from "./lib";
 import { decodeShareState, encodeShareState, type Tab } from "./share";
 
-const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
+const RESULT_TABS = [
+  { key: "bankroll" as const, label: "Bankroll" },
+  { key: "event" as const, label: "Per event" },
+  { key: "about" as const, label: "About" },
+];
 
 const clampInt = (n: number, lo: number, hi: number): number =>
   Math.max(lo, Math.min(hi, Math.round(n) || lo));
@@ -268,6 +274,14 @@ export default function App() {
   // Off by default: none of these buys an entry in Arena.
   const [spendWinnings, setSpendWinnings] = useState(initial.spendWinnings);
   const [tab, setTab] = useState<Tab>(initial.tab);
+  /*
+   * Whether the ending total is shown as one figure or as what it is made of.
+   * Deliberately not in the shared state beside `tab`: the link format is
+   * pinned by a snapshot so that breaking an old link takes a decision, and
+   * this is a glance at a section rather than part of the simulation being
+   * shared.
+   */
+  const [view, setView] = useState<"value" | "breakdown">("value");
   const [unit, setUnit] = useState<Unit>(initial.unit);
   // 20,000 gems for $49.99 is the largest bundle, so the best rate on offer.
   const [gemsPerUsd, setGemsPerUsd] = useState(initial.gemsPerUsd);
@@ -384,6 +398,8 @@ export default function App() {
     maxEvents: `${uid}-max-events`,
     spendWinnings: `${uid}-spend-winnings`,
     gemsPerUsd: `${uid}-gems-per-usd`,
+    resultTabs: `${uid}-results`,
+    viewTabs: `${uid}-view`,
   };
 
   const isBo3 = config.format === "bo3";
@@ -460,6 +476,10 @@ export default function App() {
     isCustom || config.payouts.some((t) => (t.playBoxes ?? 0) > 0);
   const showCollectorBoxes =
     isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
+  const viewItems = [
+    { key: "value" as const, label: eqLabel },
+    { key: "breakdown" as const, label: "Payout breakdown" },
+  ];
   const structure = config.structure;
   const roundWord = isBo3 ? "matches" : "games";
   /*
@@ -955,27 +975,20 @@ export default function App() {
         <div className="col-lg-8">
           <div className="card">
             <div className="card-body">
-              <ul className="nav nav-tabs mb-3" role="tablist">
-                {(["bankroll", "event", "about"] as const).map((t) => (
-                  <li className="nav-item" key={t}>
-                    <button
-                      type="button"
-                      role="tab"
-                      aria-selected={tab === t}
-                      className={`nav-link ${tab === t ? "active" : ""}`}
-                      onClick={() => setTab(t)}
-                    >
-                      {t === "bankroll" ? "Bankroll" : t === "event" ? "Per event" : "About"}
-                    </button>
-                  </li>
-                ))}
-                <li className="ms-auto d-flex align-items-center">
+              <Tabs
+                group={ids.resultTabs}
+                items={RESULT_TABS}
+                active={tab}
+                onSelect={setTab}
+                label="Results"
+                trailing={
                   <span className="section-note">
                     {presetName} · {structureSummary}
                   </span>
-                </li>
-              </ul>
+                }
+              />
 
+              <TabPanel group={ids.resultTabs} active={tab}>
               {tab === "about" ? (
                 <About config={config} m={m} />
               ) : tab === "bankroll" ? (
@@ -1012,8 +1025,14 @@ export default function App() {
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
                     <div className="stat-label">Packs won</div>
-                    <div className="stat-value">{bankroll.meanPacks.toFixed(1)}</div>
-                    <div className="stat-hint">over the whole run</div>
+                    <div className="stat-value">
+                      {bankroll.holdings.packs.mean.toFixed(1)}
+                    </div>
+                    <div className="stat-hint">
+                      {spendWinnings
+                        ? "over the run, then converted to gems"
+                        : "over the whole run"}
+                    </div>
                   </div>
                 </div>
                 <div className="col-6 col-xl-3">
@@ -1033,39 +1052,72 @@ export default function App() {
               </div>
 
                   <h3 className="section-title mt-4">Where you end up</h3>
-                  <div className="stat mb-3">
-                    <div className="stat-label">Final {eqLabel}</div>
-                    <div className="d-flex flex-wrap gap-3 mt-1">
-                      {(
-                        [
-                          ["p5", bankroll.valuePercentiles.p5],
-                          ["p25", bankroll.valuePercentiles.p25],
-                          ["median", bankroll.valuePercentiles.p50],
-                          ["p75", bankroll.valuePercentiles.p75],
-                          ["p95", bankroll.valuePercentiles.p95],
-                        ] as const
-                      ).map(([k, v]) => (
-                        <span key={k} className="small">
-                          <span className="text-body-secondary">{k} </span>
-                          <span className={`fw-semibold ${signClass(v - startingGems)}`}>
-                            {gems(v)}
-                          </span>
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                  <ValueHistogram
-                    bins={bankroll.valueHistogram}
-                    m={m}
-                    markers={[
-                      { at: startingGems, label: "started with", tone: "start" },
-                      { at: bankroll.medianFinalValue, label: "median", tone: "median" },
-                    ]}
+                  {/*
+                    Pills rather than tabs, so the strip reads as the
+                    subdivision it is: the tabs above choose the question, and
+                    these choose whether its answer comes as one figure or as
+                    what that figure is made of.
+                  */}
+                  <Tabs
+                    group={ids.viewTabs}
+                    items={viewItems}
+                    active={view}
+                    onSelect={setView}
+                    label="Ending total shown as"
+                    variant="pills"
                   />
-                  <div className="form-text">
-                    Gem-equivalent value across samples: gems, leftover gold, and
-                    everything won.
-                  </div>
+                  <TabPanel group={ids.viewTabs} active={view}>
+                    {view === "value" ? (
+                      <>
+                        <div className="stat mb-3">
+                          <div className="stat-label">Final {eqLabel}</div>
+                          <div className="d-flex flex-wrap gap-3 mt-1">
+                            {(
+                              [
+                                ["p5", bankroll.valuePercentiles.p5],
+                                ["p25", bankroll.valuePercentiles.p25],
+                                ["median", bankroll.valuePercentiles.p50],
+                                ["p75", bankroll.valuePercentiles.p75],
+                                ["p95", bankroll.valuePercentiles.p95],
+                              ] as const
+                            ).map(([k, v]) => (
+                              <span key={k} className="small">
+                                <span className="text-body-secondary">{k} </span>
+                                <span
+                                  className={`fw-semibold ${signClass(v - startingGems)}`}
+                                >
+                                  {gems(v)}
+                                </span>
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                        <ValueHistogram
+                          bins={bankroll.valueHistogram}
+                          m={m}
+                          markers={[
+                            { at: startingGems, label: "started with", tone: "start" },
+                            {
+                              at: bankroll.medianFinalValue,
+                              label: "median",
+                              tone: "median",
+                            },
+                          ]}
+                        />
+                        <div className="form-text">
+                          Gem-equivalent value across samples: gems, leftover gold,
+                          and everything won.
+                        </div>
+                      </>
+                    ) : (
+                      <PayoutBreakdown
+                        bankroll={bankroll}
+                        config={config}
+                        m={m}
+                        liquidating={spendWinnings}
+                      />
+                    )}
+                  </TabPanel>
                 </>
               ) : (
                 <>
@@ -1193,6 +1245,7 @@ export default function App() {
               </div>
                 </>
               )}
+              </TabPanel>
             </div>
           </div>
         </div>
