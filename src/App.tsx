@@ -130,7 +130,7 @@ export default function App() {
   const [startingGold, setStartingGold] = useState(0);
   // Where the player stops, not a numerical guard — a run that never busts has
   // to end somewhere, and how long you intend to play is a real input.
-  const [maxEvents, setMaxEvents] = useState(100);
+  const [maxEvents, setMaxEvents] = useState(20);
   const [tab, setTab] = useState<"bankroll" | "event">("bankroll");
 
   const modalEl = useRef<HTMLDivElement>(null);
