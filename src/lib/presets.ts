@@ -98,6 +98,20 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 export const GEMS_PER_USD = 400;
 
 /**
+ * Gold per gem, for valuing a leftover gold balance.
+ *
+ * Every event that prices both ways uses the same ratio — Premier 10,000 gold
+ * against 1,500 gems, Quick 5,000 against 750, Pick Two 6,000 against 900,
+ * Contender 20,000 against 3,000 — all exactly 20/3. Arena sets the rate by
+ * what it charges, so this is read off rather than invented.
+ *
+ * It only holds while you have something to spend gold on. Gold you never use
+ * is worth nothing, and it cannot be bought or sold, so this overstates a
+ * balance you are sitting on.
+ */
+export const GOLD_PER_GEM = 20 / 3;
+
+/**
  * Default gold earned in the time it takes to play one event.
  *
  * A full day of daily wins pays exactly 750 gold — 250 for the first, 100 for

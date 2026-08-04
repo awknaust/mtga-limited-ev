@@ -1,10 +1,10 @@
 import { scaleLinear } from "d3";
 
 const WIDTH = 560;
-const HEIGHT = 192;
-const MARGIN = { top: 10, right: 12, bottom: 48, left: 58 };
+const HEIGHT = 208;
+const MARGIN = { top: 26, right: 12, bottom: 48, left: 58 };
 
-/** Ticks are fractions of all runs; keep a decimal only when one is needed. */
+/** Ticks are fractions of all samples; keep a decimal only when one is needed. */
 const asPct = (f: number): string =>
   `${f > 0 && f < 0.01 ? (f * 100).toFixed(1) : Math.round(f * 100)}%`;
 
@@ -38,8 +38,8 @@ export function EventsHistogram({
     .map(([events, count]) => ({ events, count }))
     .sort((a, b) => a.events - b.events);
 
-  // Plotted as a share of all runs, so the shape reads the same whatever the
-  // trial count.
+  // Plotted as a share of all samples, so the shape reads the same whatever
+  // the trial count.
   const total = histogram.reduce((acc, h) => acc + h.count, 0) || 1;
   const x = scaleLinear().domain([0, maxEvents + size]).range([0, inner]);
   const y = scaleLinear()
@@ -86,15 +86,16 @@ export function EventsHistogram({
           />
         ))}
 
-        <line
-          x1={x(mean)}
-          x2={x(mean)}
-          y1={0}
-          y2={innerH}
-          className="chart-breakeven"
-        >
-          <title>{`mean: ${mean.toFixed(1)} events`}</title>
-        </line>
+        <g transform={`translate(${x(mean)},0)`}>
+          <line y1={0} y2={innerH} className="chart-marker-median" />
+          <text
+            y={-8}
+            textAnchor={x(mean) > inner * 0.75 ? "end" : "middle"}
+            className="chart-marker-label-median"
+          >
+            {`mean ${mean.toFixed(1)}`}
+          </text>
+        </g>
         <text
           x={inner / 2}
           y={innerH + 40}
@@ -110,7 +111,7 @@ export function EventsHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          % of runs
+          % of samples
         </text>
       </g>
     </svg>

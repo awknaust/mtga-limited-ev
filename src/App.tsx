@@ -126,8 +126,8 @@ export default function App() {
   const [trials, setTrials] = useState(100_000);
   const [seed, setSeed] = useState(1);
   const [presetName, setPresetName] = useState(PRESETS[0].name);
-  const [startingGems, setStartingGems] = useState(10_000);
-  const [startingGold, setStartingGold] = useState(20_000);
+  const [startingGems, setStartingGems] = useState(3400);
+  const [startingGold, setStartingGold] = useState(0);
   // Where the player stops, not a numerical guard — a run that never busts has
   // to end somewhere, and how long you intend to play is a real input.
   const [maxEvents, setMaxEvents] = useState(100);
@@ -717,7 +717,7 @@ export default function App() {
                 </div>
                 <div className="col-6 col-xl-3">
                   <div className="stat h-100">
-                    <div className="stat-label">Ending value</div>
+                    <div className="stat-label">Ending value (gem eq.)</div>
                     <div className={`stat-value ${signClass(bankroll.meanFinalValue - startingGems)}`}>
                       {gems(bankroll.meanFinalValue)}
                     </div>
@@ -738,7 +738,7 @@ export default function App() {
                   <div className="stat h-100">
                     <div className="stat-label">Never ran dry</div>
                     <div className="stat-value">{pct(bankroll.survivedFraction)}</div>
-                    <div className="stat-hint">of runs reached the limit</div>
+                    <div className="stat-hint">of samples reached the limit</div>
                   </div>
                 </div>
               </div>
@@ -747,10 +747,21 @@ export default function App() {
                 mean={bankroll.meanEvents}
               />
               <div className="form-text">
-                Events played before running out. The dashed line is the mean.
+                Events played before running out.
               </div>
 
-                  <h3 className="section-title mt-4">Where runs end up</h3>
+                  <h3 className="section-title mt-4">Where you end up</h3>
+                  {bankroll.meanEvents === 0 && (
+                    <div className="alert alert-warning py-2 px-3 small" role="alert">
+                      Not enough to enter once. This event costs{" "}
+                      {gems(config.entryCostGems)} gems
+                      {config.entryCostGold > 0
+                        ? ` or ${gems(config.entryCostGold)} gold`
+                        : " and takes no gold"}
+                      .
+                    </div>
+                  )}
+
                   <div className="row g-2 mb-3">
                     {(
                       [
@@ -784,13 +795,13 @@ export default function App() {
                   <ValueHistogram
                     bins={bankroll.valueHistogram}
                     markers={[
-                      { at: startingGems, label: "starting gems" },
-                      { at: bankroll.medianFinalValue, label: "median" },
+                      { at: startingGems, label: "started with", tone: "start" },
+                      { at: bankroll.medianFinalValue, label: "median", tone: "median" },
                     ]}
                   />
                   <div className="form-text">
-                    Ending value across runs — gems plus everything won. Dashed lines
-                    mark where you started and the median outcome.
+                    Gem-equivalent value across samples: gems, leftover gold, and
+                    everything won.
                   </div>
                 </>
               ) : (

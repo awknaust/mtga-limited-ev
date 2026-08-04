@@ -125,6 +125,34 @@ body {
   stroke-width: 1;
 }
 
+/* Where you began, against how it turned out. */
+.chart-marker-start {
+  stroke: #94a3b8;
+  stroke-width: 1.5;
+  stroke-dasharray: 2 3;
+}
+
+.chart-marker-median {
+  stroke: #fbbf24;
+  stroke-width: 1.5;
+  stroke-dasharray: 6 3;
+}
+
+.chart-marker-label-start,
+.chart-marker-label-median {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chart-marker-label-start {
+  fill: #94a3b8;
+}
+
+.chart-marker-label-median {
+  fill: #fbbf24;
+}
+
 .chart-breakeven {
   stroke: #fbbf24;
   stroke-width: 1.5;

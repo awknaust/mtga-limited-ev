@@ -1,10 +1,10 @@
 import { scaleLinear } from "d3";
 
 const WIDTH = 560;
-const HEIGHT = 192;
-const MARGIN = { top: 10, right: 12, bottom: 48, left: 64 };
+const HEIGHT = 220;
+const MARGIN = { top: 38, right: 12, bottom: 48, left: 64 };
 
-/** Ticks are fractions of all runs; keep a decimal only when one is needed. */
+/** Ticks are fractions of all samples; keep a decimal only when one is needed. */
 const asPct = (f: number): string =>
   `${f > 0 && f < 0.01 ? (f * 100).toFixed(1) : Math.round(f * 100)}%`;
 
@@ -21,7 +21,7 @@ export function ValueHistogram({
   markers = [],
 }: {
   bins: { from: number; to: number; count: number }[];
-  markers?: { at: number; label: string }[];
+  markers?: { at: number; label: string; tone: "start" | "median" }[];
 }) {
   const inner = WIDTH - MARGIN.left - MARGIN.right;
   const innerH = HEIGHT - MARGIN.top - MARGIN.bottom;
@@ -69,19 +69,23 @@ export function ValueHistogram({
           />
         ))}
 
+        {/* Labelled in place rather than in a legend — two lines do not need
+            a key, and a label beside the line cannot be mismatched to it. */}
         {markers
           .filter((m) => m.at >= lo && m.at <= hi)
-          .map((m) => (
-            <line
-              key={m.label}
-              x1={x(m.at)}
-              x2={x(m.at)}
-              y1={0}
-              y2={innerH}
-              className="chart-breakeven"
-            >
-              <title>{m.label}</title>
-            </line>
+          .map((m, i) => (
+            <g key={m.label} transform={`translate(${x(m.at)},0)`}>
+              <line y1={0} y2={innerH} className={`chart-marker-${m.tone}`} />
+              {/* Staggered: the median often lands close to the starting
+                  balance, and two labels on one line run together. */}
+              <text
+                y={i % 2 === 0 ? -20 : -8}
+                textAnchor={x(m.at) > inner * 0.75 ? "end" : "middle"}
+                className={`chart-marker-label-${m.tone}`}
+              >
+                {m.label}
+              </text>
+            </g>
           ))}
         <text
           x={inner / 2}
@@ -98,7 +102,7 @@ export function ValueHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          % of runs
+          % of samples
         </text>
       </g>
     </svg>
