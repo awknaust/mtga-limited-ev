@@ -52,11 +52,20 @@ Wants:
 - this makes EV path-dependent rather than per-event independent, which is a
   real change to what `simulate()` returns
 
-## 5. Charts (d3)
+## 5. Charts (d3) — done
 
-Pie chart of outcome distribution, and better charts generally. The bar chart is
-currently Bootstrap `.progress` elements in `src/App.tsx`. d3 would also make an
-EV-vs-win-rate curve easy, which is probably more useful than a pie.
+Both charts are D3 in `src/components`: the outcome distribution, and expected
+net against win rate with the break-even crossing and your current position
+marked. D3 computes scales and ticks, React renders the SVG, so neither library
+fights the other for the DOM.
+
+No pie chart. A pie of the outcome distribution says less than the bars, which
+already carry the closed-form check alongside.
+
+Worth considering next: overlaying every preset on the EV curve to compare
+events at a glance. The obstacle is scale — Arena Direct's curve runs to six
+figures while the others sit in the low thousands, so one axis cannot show
+both readably.
 
 ## 6. Model confidence in the win rate
 

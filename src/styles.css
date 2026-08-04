@@ -97,35 +97,61 @@ body {
   color: var(--bs-secondary-color);
 }
 
-/* Distribution chart, built on Bootstrap's .progress. */
-.progress {
-  height: 20px;
-  background-color: var(--app-raised);
+/* D3 charts. Scales come from the library; these are the marks. */
+.chart-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
 }
 
-.progress-bar {
-  background: linear-gradient(90deg, #3b82f6, #6ea8fe);
-  transition: width 0.15s ease-out;
+.chart-bar {
+  fill: var(--bs-primary);
 }
 
-/* Marker showing where the closed-form probability falls. */
-.exact-tick {
-  position: absolute;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  background: #fbbf24;
-  transform: translateX(-1px);
+/* Where the closed-form probability falls, against the simulated bar. */
+.chart-exact-tick {
+  stroke: #fbbf24;
+  stroke-width: 2;
 }
 
-.bar-label {
-  width: 2.25rem;
-  flex: 0 0 auto;
+.chart-gridline {
+  stroke: var(--bs-border-color);
+  stroke-width: 1;
 }
 
-.bar-value {
-  width: 3.75rem;
-  flex: 0 0 auto;
+.chart-zero {
+  stroke: var(--bs-secondary-color);
+  stroke-width: 1;
+}
+
+.chart-breakeven {
+  stroke: #fbbf24;
+  stroke-width: 1.5;
+  stroke-dasharray: 4 3;
+}
+
+.chart-line {
+  fill: none;
+  stroke: var(--bs-primary);
+  stroke-width: 2;
+}
+
+.chart-marker {
+  fill: var(--bs-body-bg);
+  stroke: var(--bs-primary);
+  stroke-width: 2.5;
+}
+
+.chart-tick {
+  fill: var(--bs-secondary-color);
+  font-size: 11px;
+}
+
+.chart-value {
+  fill: var(--bs-body-color);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* Small round "i" that opens a popover. */

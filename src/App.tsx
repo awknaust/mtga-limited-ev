@@ -1,6 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 import Popover from "bootstrap/js/dist/popover";
+
+import { DistributionChart } from "./components/DistributionChart";
+import { EvCurveChart } from "./components/EvCurveChart";
 import {
   CUSTOM_PRESET,
   PRESETS,
@@ -193,7 +196,6 @@ export default function App() {
     if (preset) setConfig(configFromPreset(preset, config));
   };
 
-  const maxProb = Math.max(...result.buckets.map((b) => b.probability), 0.0001);
   /*
    * A preset describes a real event, so its definition is read-only; "Copy to
    * Custom" takes the values and unlocks them. Only editing an event you own
@@ -604,36 +606,21 @@ export default function App() {
               </div>
 
               <h3 className="section-title mt-4">Distribution of outcomes by wins</h3>
-              <div className="vstack gap-1">
-                {result.buckets.map((b) => (
-                  <div key={b.wins} className="d-flex align-items-center gap-2">
-                    <span className="bar-label text-body-secondary small">
-                      {b.wins}W
-                    </span>
-                    <div className="progress flex-grow-1 position-relative">
-                      <div
-                        className="progress-bar"
-                        role="progressbar"
-                        style={{ width: `${(b.probability / maxProb) * 100}%` }}
-                        aria-valuenow={Math.round(b.probability * 100)}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-label={`${b.wins} wins`}
-                      />
-                      <span
-                        className="exact-tick"
-                        style={{ left: `${(b.exactProbability / maxProb) * 100}%` }}
-                        title={`exact: ${pct(b.exactProbability, 2)}`}
-                      />
-                    </div>
-                    <span className="bar-value text-body-secondary small text-end">
-                      {pct(b.probability, 2)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <DistributionChart buckets={result.buckets} />
               <div className="form-text">
                 Bars are the simulation; the tick mark is the closed-form probability.
+              </div>
+
+              <h3 className="section-title mt-4">
+                Expected net by win rate
+                <InfoTip
+                  label="About the expected net curve"
+                  content="Closed-form expectation, not the simulation. The dot is where you are, the dashed line is break-even."
+                />
+              </h3>
+              <EvCurveChart config={config} breakEven={breakEven} />
+              <div className="form-text">
+                Per {isBo3 ? "match" : "game"} win rate, against expected net gems.
               </div>
 
               <h3 className="section-title mt-4">Outcome table</h3>
