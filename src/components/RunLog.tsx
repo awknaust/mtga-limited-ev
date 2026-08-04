@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import type { Money } from "../format";
 import type { EventConfig, EventLog, SampleRun } from "../lib";
+import { SectionHeading } from "./SectionHeading";
 
 /**
  * One run of the bankroll simulation, event by event.
@@ -38,13 +39,10 @@ export function RunLog({
   samples,
   config,
   m,
-  runs,
 }: {
   samples: SampleRun[];
   config: EventConfig;
   m: Money;
-  /** How many runs were simulated, of which these are the ones kept. */
-  runs: number;
 }) {
   /*
    * The landmark to open on. Held by label rather than by index so it survives
@@ -78,13 +76,11 @@ export function RunLog({
 
   return (
     <>
-      <h3 className="section-title mt-4">
-        A run in full
-        <span className="section-note ms-2">
-          {samples.length} of {runs.toLocaleString()} runs kept, ordered by what
-          they came to
-        </span>
-      </h3>
+      <SectionHeading
+        className="mt-4"
+        title="Example runs"
+        subtitle="Explore a few of the runs the simulation summarised."
+      />
 
       <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
         <span className="btn-group btn-group-sm" role="group" aria-label="Jump to">
@@ -126,8 +122,12 @@ export function RunLog({
       </div>
 
       <div className="stat mb-3">
+        {/* An arrow rather than the middot it was: the two halves are a
+            sequence, not a pair of facts — this many events, and then this is
+            how it ended. */}
         <div className="stat-label">
-          {run.events} {run.events === 1 ? "event" : "events"} ·{" "}
+          Run {index + 1}: Played {run.events}{" "}
+          {run.events === 1 ? "event" : "events"} →{" "}
           {run.survived ? "stopped at the cap" : "ran out of currency"}
         </div>
         <div className="stat-hint mt-1">

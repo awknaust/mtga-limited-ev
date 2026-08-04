@@ -9,6 +9,7 @@ import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
 import { RunLog } from "./components/RunLog";
+import { SectionHeading } from "./components/SectionHeading";
 import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
 import {
@@ -661,8 +662,7 @@ export default function App() {
         <div>
           <h1 className="h3 mb-1">MTGA Limited EV</h1>
           <p className="text-body-secondary mb-0">
-            What draft and sealed events really pay at your win rate — and where
-            the break-even sits.
+            How far you can go drafting — the quest for infinite.
           </p>
         </div>
         {/* Every input is already in the address bar; this is only the shortest
@@ -1159,15 +1159,21 @@ export default function App() {
                   </div>
                 </div>
               </div>
+                  <SectionHeading
+                    className="mt-4"
+                    title="How many events you can play"
+                    subtitle="Before the balance runs out."
+                  />
                   <EventsHistogram
                     histogram={bankroll.histogram}
                     median={bankroll.eventPercentiles.p50}
                   />
-              <div className="form-text">
-                Events played before running out.
-              </div>
 
-                  <h3 className="section-title mt-4">Where you end up</h3>
+                  <SectionHeading
+                    className="mt-4"
+                    title="Winnings"
+                    subtitle="Everything a run is holding when it stops: gems, leftover gold, and everything won."
+                  />
                   {/*
                     Pills rather than tabs, so the strip reads as the
                     subdivision it is: the tabs above choose the question, and
@@ -1212,18 +1218,22 @@ export default function App() {
                           bins={bankroll.valueHistogram}
                           m={m}
                           markers={[
-                            { at: startingGems, label: "started with", tone: "start" },
+                            {
+                              at: startingGems,
+                              // Carrying the figure, as the events histogram's
+                              // median does: the axis under a landmark is
+                              // lettered in thousands, so the line alone says
+                              // roughly where you began and never what it was.
+                              label: `starting ${gems(startingGems)}`,
+                              tone: "start",
+                            },
                             {
                               at: bankroll.medianFinalValue,
-                              label: "median",
+                              label: `median ${gems(bankroll.medianFinalValue)}`,
                               tone: "median",
                             },
                           ]}
                         />
-                        <div className="form-text">
-                          {valueLabel} across possible outcomes: gems, leftover gold,
-                          and everything won.
-                        </div>
                       </>
                     ) : (
                       <PayoutBreakdown
@@ -1235,12 +1245,7 @@ export default function App() {
                     )}
                   </TabPanel>
 
-                  <RunLog
-                    samples={bankroll.samples}
-                    config={config}
-                    m={m}
-                    runs={bankroll.trials}
-                  />
+                  <RunLog samples={bankroll.samples} config={config} m={m} />
                 </>
               ) : (
                 <>
@@ -1256,25 +1261,30 @@ export default function App() {
                 ))}
               </div>
 
-              <h3 className="section-title mt-4">Distribution of outcomes by wins</h3>
+              <SectionHeading
+                className="mt-4"
+                title="Distribution of outcomes by wins"
+                subtitle="Bars are the simulation; the tick mark is the closed-form probability."
+              />
               <DistributionChart buckets={result.buckets} />
-              <div className="form-text">
-                Bars are the simulation; the tick mark is the closed-form probability.
-              </div>
 
-              <h3 className="section-title mt-4">
-                Expected net by win rate
+              <SectionHeading
+                className="mt-4"
+                title="Expected net by win rate"
+                subtitle="Per match win rate, against expected net gems."
+              >
                 <InfoTip
                   label="About the expected net curve"
                   content="Closed-form expectation, not the simulation. The dot is where you are, the dashed line is break-even."
                 />
-              </h3>
+              </SectionHeading>
               <EvCurveChart config={config} breakEven={breakEven} m={m} rateBand={rateBand} />
-              <div className="form-text">
-                Per match win rate, against expected net gems.
-              </div>
 
-              <h3 className="section-title mt-4">Outcome table</h3>
+              <SectionHeading
+                className="mt-4"
+                title="Outcome table"
+                subtitle="One row per finish: how often it happens, and what it pays."
+              />
               <div className="table-responsive">
                 <table className="table table-sm align-middle mb-0">
                   <thead>
@@ -1338,7 +1348,11 @@ export default function App() {
                 </table>
               </div>
 
-              <h3 className="section-title mt-4">Spread of a single event (net gems)</h3>
+              <SectionHeading
+                className="mt-4"
+                title="Spread of a single event"
+                subtitle="Net gems from one entry, at each percentile of luck."
+              />
               <div className="row g-2">
                 {(
                   [
@@ -1363,8 +1377,8 @@ export default function App() {
                 Over {result.trials.toLocaleString()} events, total net ={" "}
                 <span className={`fw-semibold ${signClass(result.totalNet)}`}>
                   {gems(result.totalNet)}
-                </span>{" "}
-                gems.
+                </span>
+                .
               </div>
                 </>
               )}

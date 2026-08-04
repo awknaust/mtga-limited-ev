@@ -12,10 +12,39 @@
 
 export type Unit = "gems" | "usd";
 
+/**
+ * Gems have no currency sign of their own, so this stands in for one.
+ *
+ * U+1F48E GEM STONE. Being an emoji it carries its own colour rather than
+ * inheriting the text's, so a figure in the red of a loss or the green of a
+ * gain has a blue stone in front of it either way — the sign says which
+ * currency, the digits say how it went. Bootstrap Icons' `bi-gem` still marks
+ * the input fields, where an icon can be sized to the control; this is for
+ * running text and for figures, where an icon cannot.
+ */
+export const GEM_SIGN = "💎";
+
+/**
+ * What separates it from the figure it leads.
+ *
+ * U+202F NARROW NO-BREAK SPACE. A dollar sign is a narrow upright that sets
+ * tight against a digit; the stone is full-width and rounded, and a 1 set
+ * against it touches. No-break rather than a plain thin space because this is
+ * one word — a figure that wrapped between its sign and its digits would put a
+ * lone gem at the end of a line.
+ */
+const GEM_GAP = "\u202F";
+
 export type Money = {
   unit: Unit;
   /** For labels: "gems" or "USD". */
   label: string;
+  /**
+   * What leads a figure: "$", or the gem sign and the gap it needs. Ready to
+   * concatenate, so a caller building its own abbreviated label — a chart tick
+   * that says "2k" where `fmt` would say "2,000" — spaces it as `fmt` does.
+   */
+  symbol: string;
   /** A gem amount, rendered in the active unit. */
   fmt: (gems: number) => string;
   /** Same, but keeping a decimal on gem amounts that have one. */
@@ -80,13 +109,17 @@ const usd = (value: number): string => {
   return withSign(value, usdFormat(digits).format(a));
 };
 
+/** The stone and its gap, which is what leads every gem figure. */
+const GEM_PREFIX = GEM_SIGN + GEM_GAP;
+
 const gemsWhole = (value: number): string =>
-  withSign(value, Math.abs(Math.round(value)).toLocaleString());
+  withSign(value, GEM_PREFIX + Math.abs(Math.round(value)).toLocaleString());
 
 const gemsLoose = (value: number): string =>
   withSign(
     value,
-    Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 1 }),
+    GEM_PREFIX +
+      Math.abs(value).toLocaleString(undefined, { maximumFractionDigits: 1 }),
   );
 
 export function money(unit: Unit, gemsPerUsd: number): Money {
@@ -95,6 +128,7 @@ export function money(unit: Unit, gemsPerUsd: number): Money {
     return {
       unit,
       label: "gems",
+      symbol: GEM_PREFIX,
       fmt: gemsWhole,
       fmt1: gemsLoose,
       toInput: (g) => g,
@@ -113,6 +147,7 @@ export function money(unit: Unit, gemsPerUsd: number): Money {
   return {
     unit,
     label: "USD",
+    symbol: "$",
     fmt: (g) => usd(g / rate),
     fmt1: (g) => usd(g / rate),
     toInput: cents,

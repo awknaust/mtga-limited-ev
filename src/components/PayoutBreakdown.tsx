@@ -51,7 +51,10 @@ const tickText = (key: HoldingKey, n: number, m: Money): string => {
   if (key === "gems" && m.unit === "usd") return m.fmt(n);
   const a = Math.abs(n);
   if (key === "gems" || key === "gold") {
-    return a >= 1000 ? `${Math.round(n / 1000)}k` : String(Math.round(n));
+    // Gold has no sign of its own; gems take theirs, so the two axes cannot be
+    // confused with each other where the cards sit side by side.
+    const sign = (n < 0 ? "−" : "") + (key === "gems" ? m.symbol : "");
+    return a >= 1000 ? `${sign}${Math.round(a / 1000)}k` : `${sign}${Math.round(a)}`;
   }
   return n.toLocaleString();
 };

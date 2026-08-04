@@ -15,7 +15,8 @@ const tickLabel = (m: Money, gemValue: number): string => {
   if (m.unit !== "gems") return m.fmt(gemValue);
   const a = Math.abs(gemValue);
   const sign = gemValue < 0 ? "−" : "";
-  return a >= 1000 ? `${sign}${Math.round(a / 1000)}k` : `${sign}${Math.round(a)}`;
+  const body = a >= 1000 ? `${Math.round(a / 1000)}k` : `${Math.round(a)}`;
+  return `${sign}${m.symbol}${body}`;
 };
 
 /** Where possible outcomes ended up, binned. */
@@ -86,9 +87,19 @@ export function ValueHistogram({
               <line y1={0} y2={innerH} className={`chart-marker-${m.tone}`} />
               {/* Staggered: the median often lands close to the starting
                   balance, and two labels on one line run together. */}
+              {/* Anchored away from whichever edge it is near. A label
+                  carrying its figure is wide enough to run off either end,
+                  and the median lands at the left of a chart whose tail is
+                  long — which is most of them. */}
               <text
                 y={i % 2 === 0 ? -20 : -8}
-                textAnchor={x(m.at) > inner * 0.75 ? "end" : "middle"}
+                textAnchor={
+                  x(m.at) < inner * 0.25
+                    ? "start"
+                    : x(m.at) > inner * 0.75
+                      ? "end"
+                      : "middle"
+                }
                 className={`chart-marker-label-${m.tone}`}
               >
                 {m.label}

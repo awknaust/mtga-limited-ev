@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { money } from "./format";
+import { GEM_SIGN, money } from "./format";
 
 // The default rate: 20,000 gems for $49.99, the largest bundle.
 const RATE = 400;
@@ -47,7 +47,24 @@ describe("money", () => {
   it("keeps fields and labels separate", () => {
     // inputText is for form fields; fmt is for read-only figures.
     expect(money("usd", RATE).fmt(3400)).toBe("$8.50");
-    expect(money("gems", RATE).fmt(3400)).toBe("3,400");
+    // Against the constant, not the glyph: which character stands in for a
+    // gem is a design choice, while the sign leading a grouped figure is not.
+    expect(money("gems", RATE).fmt(3400)).toBe(`${GEM_SIGN}\u202F3,400`);
+  });
+
+  describe("gem display", () => {
+    const m = money("gems", RATE);
+
+    it("signs a gem figure the way it signs a dollar one", () => {
+      // Minus outside the currency sign, matching −$8.50.
+      expect(m.fmt(-3400)).toBe(`−${GEM_SIGN}\u202F3,400`);
+      expect(m.fmt1(-3400.5)).toBe(`−${GEM_SIGN}\u202F3,400.5`);
+    });
+
+    it("keeps the sign out of the value a field shows", () => {
+      // A number input rejects it, so inputText stays a bare number.
+      expect(m.inputText(3400)).toBe("3400");
+    });
   });
 
   describe("usd display", () => {

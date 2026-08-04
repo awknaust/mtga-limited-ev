@@ -1,5 +1,6 @@
 import type { EventConfig } from "../lib";
 import type { Money } from "../format";
+import { SectionHeading } from "./SectionHeading";
 
 const show = (m: Money, n: number): string => (Number.isFinite(n) ? m.fmt(n) : "—");
 
@@ -8,26 +9,19 @@ const show = (m: Money, n: number): string => (Number.isFinite(n) ? m.fmt(n) : "
  *
  * Reads the live config rather than hard-coding the defaults, so it cannot
  * drift from what the model is actually using.
+ *
+ * Deliberately short. How the simulation works is said on the Bankroll tab,
+ * above the figures it produces, which is where someone reads it; repeating it
+ * here only made this page long enough that the parts said nowhere else — the
+ * rates, and the list of what is not modelled — were buried behind it.
  */
 export function About({ config, m }: { config: EventConfig; m: Money }) {
   return (
     <div className="about">
-      <h3 className="section-title">How the bankroll simulation works</h3>
-      <p>
-        It starts from your balance and enters the same event again and again.
-        Each time round it pays an entry — gold where the event has a gold price,
-        gems otherwise — plays the event out game by game, and puts the winnings
-        back in the pot to pay for the next one. A run ends when neither currency
-        covers another entry, or when it reaches the event limit you set.
-      </p>
-      <p>
-        That is repeated a few thousand times, giving a few thousand different
-        possible outcomes. Every figure on the Bankroll tab summarises those, so a
-        median of four events would mean half the possible outcomes managed four
-        or fewer.
-      </p>
-
-      <h3 className="section-title mt-4">What each reward counts as</h3>
+      <SectionHeading
+        title="What each reward counts as"
+        subtitle="Everything is converted to gems at these rates, all of them editable in Advanced settings."
+      />
       <div className="table-responsive">
         <table className="table table-sm align-middle mb-0">
           <thead>
@@ -81,106 +75,75 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
         </table>
       </div>
       <p className="form-text">
-        "Can it pay an entry?" answers Arena's rules, which is the default: gems and
-        gold are liquid, the rest is not. Advanced settings has a switch to treat
-        the non-liquid rewards as spendable too, which asks how long you could keep
-        playing if they were. Every rate above is editable there.      </p>
+        "Can it pay an entry?" is Arena's rule, and the default. Advanced
+        settings can treat the rest as spendable too, which asks how long you
+        could keep playing if it were.
+      </p>
       <p className="form-text">
-        The defaults are derived rather than guessed — packs and drafted cards from
+        The defaults are derived, not guessed: packs and drafted cards from
         Arena's published duplicate-protection values, boxes from street prices,
-        gold from the fact that every event priced in both currencies charges the
-        same ratio of gold to gems.
+        gold from the ratio every dual-priced event charges.
       </p>
 
-      <h3 className="section-title mt-4">Terms</h3>
+      <SectionHeading className="mt-4" title="Terms" />
       <dl className="row mb-0">
         <dt className="col-sm-4">Gem value</dt>
         <dd className="col-sm-8">
-          Everything you hold at the end, converted to gems at the rates above:
-          the gem balance, leftover gold, and every pack, point and box won along
-          the way. Gem-equivalent is the same figure under its longer name. It is
-          the only one that compares two possible outcomes fairly, since events
-          pay in different currencies.
+          Everything you hold at the end, converted to gems at the rates above.
+          The only figure that compares two outcomes fairly, since events pay in
+          different currencies.
         </dd>
 
         <dt className="col-sm-4">Possible outcome</dt>
         <dd className="col-sm-8">
-          One simulated run, from the starting balance to the end. It is one way
-          things could go, not a prediction — the figures on the Bankroll tab are
-          what a few thousand of them look like together.
+          One simulated run, start to finish. One way things could go, not a
+          prediction.
         </dd>
 
         <dt className="col-sm-4">Break-even win rate</dt>
         <dd className="col-sm-8">
-          The match win rate at which one event returns exactly its entry cost,
-          in the same unit as the slider. A round is a match in every event here,
-          whether that match is a single game or up to three.
+          The match win rate at which one event returns exactly its entry cost.
         </dd>
 
         <dt className="col-sm-4">Expected net</dt>
         <dd className="col-sm-8">
-          Average gems gained or lost on a single event, after entry. The Per event
-          tab prices one entry; the Bankroll tab compounds it.
+          Average gems gained or lost on a single event, after entry. Per event
+          prices one entry; Bankroll compounds it.
         </dd>
 
         <dt className="col-sm-4">Win rate confidence</dt>
         <dd className="col-sm-8">
           How many matches your win rate is estimated from, set in Advanced
-          settings. Every other number here is exact once the win rate is fixed,
-          so what you do not know about the rate is the largest uncertainty in
-          the model by a long way — on a short record it is worth hundreds of
-          gems. Each range covers 90% of the rates your record supports, and it
-          means what it sounds like: your true rate is inside it nine times in
-          ten. A short record is pulled toward an even one, because Arena pairs
-          you by rank and a handful of matches is weak evidence of anything
-          else.
-
-          It reaches the Bankroll tab too, where each possible outcome is played
-          at its own win rate drawn from that range — one rate for the whole of
-          a run, since your true rate does not change between events. That makes
-          the ending values spread wider than luck alone would explain, and it
-          lowers the risk of ruin, because the runs dealt a rate above your
-          estimate are the ones that go on paying for themselves.
+          settings. Every other number is exact once the rate is fixed, so this
+          is the largest uncertainty in the model — on a short record it is worth
+          hundreds of gems. Each range covers 90% of the rates your record
+          supports, and every run is played at its own rate drawn from that
+          range.
         </dd>
 
         <dt className="col-sm-4">Risk of ruin</dt>
         <dd className="col-sm-8">
-          The share of possible outcomes in which you could not afford another
-          entry before reaching your event limit. The term is borrowed from
-          bankroll management, where
-          ruin means being unable to pay the minimum stake rather than holding
-          nothing at all — a busted run here may still be sitting on packs and
-          points. It depends on how long you play, so it moves with the event
-          limit as well as with your win rate.
+          The share of outcomes that could not afford another entry before the
+          event limit. Ruin is being unable to pay the stake, not holding
+          nothing — a busted run may still be sitting on packs and points.
         </dd>
       </dl>
 
-      <h3 className="section-title mt-4">What it does not model</h3>
+      <SectionHeading className="mt-4" title="What it does not model" />
       <ul className="mb-0">
         <li>
-          Cards beyond their duplicate-protection value. The pool is counted at
-          what a complete collection converts it to, which says nothing about a
-          card being good, or about filling a collection you have not finished.
+          Whether a card is any good. A pool counts at what duplicate protection
+          converts it to and nothing more.
+        </li>
+        <li>Switching events. A run plays one event type until it stops.</li>
+        <li>
+          Gold as anything but an average. Every event is credited the gold an
+          average number of wins would earn, however that run actually went.
         </li>
         <li>
-          Switching events. A run plays one event type until it stops, where a real
-          player would move to whatever is best value at the time.
-        </li>
-        <li>
-          Gold as anything but an average. The daily-win ladder is modelled,
-          including where it stops paying, but each event is credited the gold
-          an average number of wins would earn. A run that went badly is still
-          credited the same gold as one that went well.
-        </li>
-        <li>
-          Any difference between one pack and another. There is a single pack
-          value, and every pack in every ladder is counted at it. Arena is not
-          so tidy: Contender Draft's top rows pay mythic packs, which are all
-          rares and mythics and worth several times an ordinary one, and cube
-          events pay packs from sets that are no longer Standard. The mythic
-          packs are folded into the pack column at face count — fourteen at six
-          wins, twenty-two at seven — so those two rows are understated rather
-          than approximated.
+          Any difference between one pack and another, including Contender
+          Draft's mythic packs — counted at face count, so those rows are
+          understated.
         </li>
         <li>Tax withholding on cash prizes, which Arena Direct's terms mention.</li>
       </ul>
