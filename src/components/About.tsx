@@ -151,6 +151,16 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
           an average number of wins would earn. A run that went badly is still
           credited the same gold as one that went well.
         </li>
+        <li>
+          Any difference between one pack and another. There is a single pack
+          value, and every pack in every ladder is counted at it. Arena is not
+          so tidy: Contender Draft's top rows pay mythic packs, which are all
+          rares and mythics and worth several times an ordinary one, and cube
+          events pay packs from sets that are no longer Standard. The mythic
+          packs are folded into the pack column at face count — fourteen at six
+          wins, twenty-two at seven — so those two rows are understated rather
+          than approximated.
+        </li>
         <li>Tax withholding on cash prizes, which Arena Direct's terms mention.</li>
       </ul>
 
