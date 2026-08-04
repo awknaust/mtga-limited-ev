@@ -190,6 +190,24 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* Advanced settings: one switch that changes behaviour, then grouped values. */
+.adv-highlight {
+  background: var(--app-raised);
+  border: 1px solid var(--bs-primary);
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.875rem;
+}
+
+.adv-group {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.5rem;
+  padding: 0.75rem 0.875rem;
+}
+
+.adv-group .section-title {
+  margin-bottom: 0.5rem;
+}
+
 .about p,
 .about li,
 .about dd {

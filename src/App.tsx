@@ -967,173 +967,209 @@ export default function App() {
               />
             </div>
             <div className="modal-body">
-              <div className="row g-2">
-                <div className="col-6">
-                  <label htmlFor={ids.trials} className="form-label">
-                    Simulated events (N)
-                    <InfoTip
-                      label="About simulated events"
-                      content="More events narrow the confidence interval on the simulated mean. The exact column is computed in closed form, not sampled."
-                    />
-                  </label>
-                  <NumberInput
-                    id={ids.trials}
-                    min={1}
-                    value={trials}
-                    onChange={(n) => setTrials(clampInt(n, 1, 5_000_000))}
+              {/* The one switch that changes what the simulation does, rather
+                  than what a reward is worth. */}
+              <div className="adv-highlight mb-3">
+                <div className="form-check mb-0">
+                  <input
+                    id={ids.spendWinnings}
+                    type="checkbox"
+                    className="form-check-input"
+                    checked={spendWinnings}
+                    onChange={(e) => setSpendWinnings(e.target.checked)}
                   />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.seed} className="form-label">
-                    Seed
+                  <label htmlFor={ids.spendWinnings} className="form-check-label fw-semibold">
+                    Spend winnings on further entries
                     <InfoTip
-                      label="About the seed"
-                      content="Changes which sample you get, not the distribution it is drawn from. The same seed always reproduces the same run."
+                      label="About spending winnings"
+                      content="Off by default, because none of packs, cards, points or boxes buys an entry in Arena — they only count toward your ending total. Turning it on treats them as liquid at the rates below, which answers how long you could keep playing if they were."
                     />
                   </label>
-                  <NumberInput id={ids.seed} value={seed} onChange={setSeed} />
                 </div>
-                <div className="col-12">
-                  <div className="form-check">
-                    <input
-                      id={ids.spendWinnings}
-                      type="checkbox"
-                      className="form-check-input"
-                      checked={spendWinnings}
-                      onChange={(e) => setSpendWinnings(e.target.checked)}
-                    />
-                    <label htmlFor={ids.spendWinnings} className="form-check-label">
-                      Spend winnings on further entries
+              </div>
+
+              <div className="adv-group mb-3">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <h3 className="section-title mb-0">Reward values</h3>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() =>
+                      update({
+                        ...config,
+                        draftPackValueGems: 0,
+                        packValueGems: 0,
+                        playInPointValueGems: 0,
+                        playBoxValueGems: 0,
+                        collectorBoxValueGems: 0,
+                      })
+                    }
+                  >
+                    Zero these out
+                  </button>
+                </div>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label htmlFor={ids.draftPackValue} className="form-label">
+                      Draft pack value (gems)
                       <InfoTip
-                        label="About spending winnings"
-                        content="Off by default, because none of packs, cards, points or boxes buys an entry in Arena — they only count toward your ending total. Turning it on treats them as liquid at the rates below, which answers how long you could keep playing if they were."
+                        label="About draft pack value"
+                        content="What one draft pack of kept cards is worth, assuming a complete set: a rare converts to 20 gems and a mythic to 40, upgrading about 1:7, so roughly 23 a pack."
                       />
                     </label>
+                    <NumberInput
+                      id={ids.draftPackValue}
+                      min={0}
+                      value={config.draftPackValueGems}
+                      onChange={(n) => set("draftPackValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.packValue} className="form-label">
+                      Pack value (gems)
+                      <InfoTip
+                        label="About pack value"
+                        content="How much are packs worth to you (in gems)? Default is based on duplicate protection for a complete set."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.packValue}
+                      min={0}
+                      value={config.packValueGems}
+                      onChange={(n) => set("packValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.playInValue} className="form-label">
+                      Play-in point value (gems)
+                      <InfoTip
+                        label="About play-in point value"
+                        content="Priced off what the points buy: 20 of them cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.playInValue}
+                      min={0}
+                      value={config.playInPointValueGems}
+                      onChange={(n) => set("playInPointValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.funValue} className="form-label">
+                      Fun (gems / game)
+                      <InfoTip label="About the value of fun" content="Priceless." />
+                    </label>
+                    <input
+                      id={ids.funValue}
+                      className="form-control"
+                      value="priceless"
+                      disabled
+                      readOnly
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.playBoxValue} className="form-label">
+                      Play box value (gems)
+                      <InfoTip
+                        label="About play box value"
+                        content="Average street price across three recent Standard sets, at 400 gems to the dollar. Wizards' published cash substitution is $209.70 a box, before withholding."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.playBoxValue}
+                      min={0}
+                      value={config.playBoxValueGems}
+                      onChange={(n) => set("playBoxValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.collectorBoxValue} className="form-label">
+                      Collector box value (gems)
+                      <InfoTip
+                        label="About collector box value"
+                        content="Average street price across three recent Standard sets, at 400 gems to the dollar. These trade well above the $479.88 MSRP of a 12-pack display."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.collectorBoxValue}
+                      min={0}
+                      value={config.collectorBoxValueGems}
+                      onChange={(n) => set("collectorBoxValueGems", n)}
+                    />
                   </div>
                 </div>
-                <div className="col-6">
-                  <label htmlFor={ids.draftPackValue} className="form-label">
-                    Draft pack value (gems)
-                    <InfoTip
-                      label="About draft pack value"
-                      content="What one draft pack of kept cards is worth, assuming a complete set: a rare converts to 20 gems and a mythic to 40, upgrading about 1:7, so roughly 23 a pack."
+              </div>
+
+              <div className="adv-group mb-3">
+                <h3 className="section-title">Gold</h3>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label htmlFor={ids.goldPerEvent} className="form-label">
+                      Gold earned per event
+                      <InfoTip
+                        label="About gold earned per event"
+                        content="A full day of daily wins pays 750 gold and a quest adds roughly 600. This default credits both to one event, which fits drafting about once a day."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.goldPerEvent}
+                      min={0}
+                      value={config.goldPerEvent}
+                      onChange={(n) => set("goldPerEvent", n)}
                     />
-                  </label>
-                  <NumberInput
-                    id={ids.draftPackValue}
-                    min={0}
-                    value={config.draftPackValueGems}
-                    onChange={(n) => set("draftPackValueGems", n)}
-                  />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.packValue} className="form-label">
-                    Pack value (gems)
-                    <InfoTip
-                      label="About pack value"
-                      content="How much are packs worth to you (in gems)? Default is based on duplicate protection for a complete set."
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.goldRate} className="form-label">
+                      Gems per 10,000 gold
+                      <InfoTip
+                        label="About the gold exchange rate"
+                        content="What leftover gold is counted as worth. Every event that prices both ways charges 10,000 gold or 1,500 gems, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.goldRate}
+                      min={0}
+                      value={
+                        Number.isFinite(config.goldPerGem)
+                          ? Math.round(10000 / config.goldPerGem)
+                          : 0
+                      }
+                      onChange={(n) =>
+                        set("goldPerGem", n > 0 ? 10000 / n : Number.POSITIVE_INFINITY)
+                      }
                     />
-                  </label>
-                  <NumberInput
-                    id={ids.packValue}
-                    min={0}
-                    value={config.packValueGems}
-                    onChange={(n) => set("packValueGems", n)}
-                  />
+                  </div>
                 </div>
-                <div className="col-6">
-                  <label htmlFor={ids.funValue} className="form-label">
-                    Fun (gems / game)
-                    <InfoTip label="About the value of fun" content="Priceless." />
-                  </label>
-                  <input
-                    id={ids.funValue}
-                    className="form-control"
-                    value="∞"
-                    disabled
-                    readOnly
-                  />
-                </div>
-                <div className="col-12">
-                  <label htmlFor={ids.goldPerEvent} className="form-label">
-                    Gold earned per event
-                    <InfoTip
-                      label="About gold earned per event"
-                      content="A full day of daily wins pays 750 gold and a quest adds roughly 600. This default credits both to one event, which fits drafting about once a day."
+              </div>
+
+              <div className="adv-group">
+                <h3 className="section-title">Simulation</h3>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label htmlFor={ids.trials} className="form-label">
+                      Simulated events (N)
+                      <InfoTip
+                        label="About simulated events"
+                        content="More events narrow the confidence interval on the simulated mean. The exact column is computed in closed form, not sampled."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.trials}
+                      min={1}
+                      value={trials}
+                      onChange={(n) => setTrials(clampInt(n, 1, 5_000_000))}
                     />
-                  </label>
-                  <NumberInput
-                    id={ids.goldPerEvent}
-                    min={0}
-                    value={config.goldPerEvent}
-                    onChange={(n) => set("goldPerEvent", n)}
-                  />
-                </div>
-                <div className="col-12">
-                  <label htmlFor={ids.goldRate} className="form-label">
-                    Gems per 10,000 gold
-                    <InfoTip
-                      label="About the gold exchange rate"
-                      content="What leftover gold is counted as worth. Every event that prices both ways charges 10,000 gold or 1,500 gems, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
-                    />
-                  </label>
-                  <NumberInput
-                    id={ids.goldRate}
-                    min={0}
-                    value={
-                      Number.isFinite(config.goldPerGem)
-                        ? Math.round(10000 / config.goldPerGem)
-                        : 0
-                    }
-                    onChange={(n) =>
-                      set("goldPerGem", n > 0 ? 10000 / n : Number.POSITIVE_INFINITY)
-                    }
-                  />
-                </div>
-                <div className="col-12">
-                  <label htmlFor={ids.playInValue} className="form-label">
-                    Play-in point value (gems)
-                    <InfoTip
-                      label="About play-in point value"
-                      content="Priced off what the points buy: 20 of them cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point."
-                    />
-                  </label>
-                  <NumberInput
-                    id={ids.playInValue}
-                    min={0}
-                    value={config.playInPointValueGems}
-                    onChange={(n) => set("playInPointValueGems", n)}
-                  />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.playBoxValue} className="form-label">
-                    Play box value (gems)
-                    <InfoTip
-                      label="About play box value"
-                      content="Average street price across three recent Standard sets, at 400 gems to the dollar. Wizards' published cash substitution is $209.70 a box, before withholding."
-                    />
-                  </label>
-                  <NumberInput
-                    id={ids.playBoxValue}
-                    min={0}
-                    value={config.playBoxValueGems}
-                    onChange={(n) => set("playBoxValueGems", n)}
-                  />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.collectorBoxValue} className="form-label">
-                    Collector box value (gems)
-                    <InfoTip
-                      label="About collector box value"
-                      content="Average street price across three recent Standard sets, at 400 gems to the dollar. These trade well above the $479.88 MSRP of a 12-pack display."
-                    />
-                  </label>
-                  <NumberInput
-                    id={ids.collectorBoxValue}
-                    min={0}
-                    value={config.collectorBoxValueGems}
-                    onChange={(n) => set("collectorBoxValueGems", n)}
-                  />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.seed} className="form-label">
+                      Seed
+                      <InfoTip
+                        label="About the seed"
+                        content="Changes which sample you get, not the distribution it is drawn from. The same seed always reproduces the same run."
+                      />
+                    </label>
+                    <NumberInput id={ids.seed} value={seed} onChange={setSeed} />
+                  </div>
                 </div>
               </div>
             </div>
