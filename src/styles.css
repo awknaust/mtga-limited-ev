@@ -377,13 +377,9 @@ body {
   box-shadow: 0 1px 5px rgb(0 0 0 / 0.3);
 }
 
-.stat-strip-arrow:hover:not(:disabled) {
+.stat-strip-arrow:hover {
   background: var(--app-raised);
   color: var(--bs-body-color);
-}
-
-.stat-strip-arrow:disabled {
-  opacity: 0.3;
 }
 
 .stat-strip-arrow.start {

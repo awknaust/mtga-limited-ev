@@ -104,10 +104,6 @@ export function StatStrip({ tiles, label }: { tiles: StatTile[]; label: string }
     });
   };
 
-  // Nothing to scroll means no arrows and no fade — a strip of four tiles
-  // should look exactly like the grid it replaced.
-  const overflows = more.prev || more.next;
-
   return (
     <div
       className={`stat-strip${more.prev ? " has-prev" : ""}${more.next ? " has-next" : ""}`}
@@ -134,33 +130,33 @@ export function StatStrip({ tiles, label }: { tiles: StatTile[]; label: string }
           </div>
         ))}
       </div>
-      {overflows && (
-        <>
-          {/*
-            Both arrows are rendered as soon as the strip overflows, and the
-            unusable one is disabled rather than dropped. They sit outside the
-            flow, so removing one costs nothing in layout, but a control that
-            vanishes at the end of a scroll is a control you have to find again.
-          */}
-          <button
-            type="button"
-            className="btn stat-strip-arrow start"
-            disabled={!more.prev}
-            onClick={() => page(-1)}
-            aria-label={`Scroll ${label} left`}
-          >
-            <i className="bi bi-chevron-left" aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            className="btn stat-strip-arrow end"
-            disabled={!more.next}
-            onClick={() => page(1)}
-            aria-label={`Scroll ${label} right`}
-          >
-            <i className="bi bi-chevron-right" aria-hidden="true" />
-          </button>
-        </>
+      {/*
+        An arrow appears only where it has somewhere to go, so a strip that
+        fits shows neither and one scrolled to its end shows only the way back.
+        They are positioned outside the flow, so arriving and leaving costs
+        nothing in layout — and an arrow that stays put while doing nothing is
+        a worse offer than no arrow at all, since the fade beside it is already
+        saying whether there is more.
+      */}
+      {more.prev && (
+        <button
+          type="button"
+          className="btn stat-strip-arrow start"
+          onClick={() => page(-1)}
+          aria-label={`Scroll ${label} left`}
+        >
+          <i className="bi bi-chevron-left" aria-hidden="true" />
+        </button>
+      )}
+      {more.next && (
+        <button
+          type="button"
+          className="btn stat-strip-arrow end"
+          onClick={() => page(1)}
+          aria-label={`Scroll ${label} right`}
+        >
+          <i className="bi bi-chevron-right" aria-hidden="true" />
+        </button>
       )}
     </div>
   );
