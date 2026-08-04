@@ -4,7 +4,7 @@ const WIDTH = 560;
 const HEIGHT = 208;
 const MARGIN = { top: 26, right: 12, bottom: 48, left: 58 };
 
-/** Ticks are fractions of all samples; keep a decimal only when one is needed. */
+/** Ticks are fractions of all outcomes; keep a decimal only when one is needed. */
 const asPct = (f: number): string =>
   `${f > 0 && f < 0.01 ? (f * 100).toFixed(1) : Math.round(f * 100)}%`;
 
@@ -38,7 +38,7 @@ export function EventsHistogram({
     .map(([events, count]) => ({ events, count }))
     .sort((a, b) => a.events - b.events);
 
-  // Plotted as a share of all samples, so the shape reads the same whatever
+  // Plotted as a share of all outcomes, so the shape reads the same whatever
   // the trial count.
   const total = histogram.reduce((acc, h) => acc + h.count, 0) || 1;
   const x = scaleLinear().domain([0, maxEvents + size]).range([0, inner]);
@@ -108,7 +108,7 @@ export function EventsHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          % of samples
+          % of outcomes
         </text>
       </g>
     </svg>

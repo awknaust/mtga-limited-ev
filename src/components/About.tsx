@@ -14,16 +14,17 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
     <div className="about">
       <h3 className="section-title">How the bankroll simulation works</h3>
       <p>
-        It plays a sequence of events from your starting balance, not one event in
-        isolation. Each time round it pays an entry — gold first wherever the event
-        takes gold, gems otherwise — plays the event out game by game, and puts the
-        winnings back in the pot to fund the next one. A run ends when neither
-        currency covers another entry, or when it reaches the event limit you set.
+        It starts from your balance and enters the same event again and again.
+        Each time round it pays an entry — gold where the event has a gold price,
+        gems otherwise — plays the event out game by game, and puts the winnings
+        back in the pot to pay for the next one. A run ends when neither currency
+        covers another entry, or when it reaches the event limit you set.
       </p>
       <p>
-        That is repeated a few thousand times. Every figure on the Bankroll tab is a
-        summary of those samples, so "median 4 events" means half the sampled runs
-        managed four or fewer.
+        That is repeated a few thousand times, giving a few thousand different
+        possible outcomes. Every figure on the Bankroll tab summarises those, so a
+        median of four events would mean half the possible outcomes managed four
+        or fewer.
       </p>
 
       <h3 className="section-title mt-4">What each reward counts as</h3>
@@ -95,14 +96,18 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
       <dl className="row mb-0">
         <dt className="col-sm-4">Gem-equivalent</dt>
         <dd className="col-sm-8">
-          Everything a run holds, converted to gems at the rates above: the gem
-          balance, leftover gold, and every pack, point and box won along the way.
-          It is the only figure that compares two runs fairly, since events pay in
-          different currencies.
+          Everything you hold at the end, converted to gems at the rates above:
+          the gem balance, leftover gold, and every pack, point and box won along
+          the way. It is the only figure that compares two possible outcomes
+          fairly, since events pay in different currencies.
         </dd>
 
-        <dt className="col-sm-4">Sample</dt>
-        <dd className="col-sm-8">One simulated run, from the starting balance to the end.</dd>
+        <dt className="col-sm-4">Possible outcome</dt>
+        <dd className="col-sm-8">
+          One simulated run, from the starting balance to the end. It is one way
+          things could go, not a prediction — the figures on the Bankroll tab are
+          what a few thousand of them look like together.
+        </dd>
 
         <dt className="col-sm-4">Break-even win rate</dt>
         <dd className="col-sm-8">
@@ -115,6 +120,17 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
         <dd className="col-sm-8">
           Average gems gained or lost on a single event, after entry. The Per event
           tab prices one entry; the Bankroll tab compounds it.
+        </dd>
+
+        <dt className="col-sm-4">Risk of ruin</dt>
+        <dd className="col-sm-8">
+          The share of possible outcomes in which you could not afford another
+          entry before reaching your event limit. The term is borrowed from
+          bankroll management, where
+          ruin means being unable to pay the minimum stake rather than holding
+          nothing at all — a busted run here may still be sitting on packs and
+          points. It depends on how long you play, so it moves with the event
+          limit as well as with your win rate.
         </dd>
       </dl>
 
@@ -131,9 +147,9 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
         </li>
         <li>
           Gold as anything but an average. The daily-win ladder is modelled,
-          including where it caps, but an event is credited the gold its{" "}
-          <em>expected</em> wins earn rather than the gold the run in front of
-          you actually won.
+          including where it stops paying, but each event is credited the gold
+          an average number of wins would earn. A run that went badly is still
+          credited the same gold as one that went well.
         </li>
         <li>Tax withholding on cash prizes, which Arena Direct's terms mention.</li>
       </ul>

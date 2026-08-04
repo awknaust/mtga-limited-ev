@@ -150,7 +150,7 @@ function MiniHistogram({
           height={CHART.height - y(b.count / total)}
           className="chart-bar"
         >
-          <title>{`${Math.round((b.count / total) * 100)}% of runs`}</title>
+          <title>{`${Math.round((b.count / total) * 100)}% of outcomes`}</title>
         </rect>
       ))}
       <line
@@ -218,7 +218,7 @@ function HoldingCard({
             bins={totals.histogram}
             median={totals.median}
             whole={whole}
-            label={`Spread of ${label.toLowerCase()} across runs`}
+            label={`Spread of ${label.toLowerCase()} across possible outcomes`}
             tickText={(n) => tickText(bankrollKey, n, m)}
             /*
              * Dollar amounts are the long labels — "$112.50" against "45k" —
@@ -276,7 +276,8 @@ export function PayoutBreakdown({
           <>
             What the ending total is made of, at the rates set on the left.
             Valued and added up, these are the gem-equivalent figure beside
-            them. Bars are the spread across runs, the dashed line the median.
+            them. Bars are the spread across possible outcomes, the dashed line
+            the median.
           </>
         )}
       </div>

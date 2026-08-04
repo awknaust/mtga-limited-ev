@@ -6,7 +6,7 @@ const WIDTH = 560;
 const HEIGHT = 220;
 const MARGIN = { top: 38, right: 12, bottom: 48, left: 64 };
 
-/** Ticks are fractions of all samples; keep a decimal only when one is needed. */
+/** Ticks are fractions of all outcomes; keep a decimal only when one is needed. */
 const asPct = (f: number): string =>
   `${f > 0 && f < 0.01 ? (f * 100).toFixed(1) : Math.round(f * 100)}%`;
 
@@ -18,7 +18,7 @@ const tickLabel = (m: Money, gemValue: number): string => {
   return a >= 1000 ? `${sign}${Math.round(a / 1000)}k` : `${sign}${Math.round(a)}`;
 };
 
-/** Where runs ended up, binned. */
+/** Where possible outcomes ended up, binned. */
 export function ValueHistogram({
   bins,
   m,
@@ -110,7 +110,7 @@ export function ValueHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          % of samples
+          % of outcomes
         </text>
       </g>
     </svg>
