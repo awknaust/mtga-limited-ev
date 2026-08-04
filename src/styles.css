@@ -41,11 +41,26 @@ body {
   background-color: var(--app-raised);
 }
 
-/* Table cells have no room for the full-width marker. */
+/*
+ * Table cells have no room for the full-width marker. Bootstrap input groups
+ * wrap by default, which stacks the marker above its field and hides the
+ * value rather than overflowing — so these must not wrap, and the table
+ * scrolls instead.
+ */
+.input-group-compact {
+  flex-wrap: nowrap;
+}
+
 .input-group-compact .input-group-text {
   min-width: 0;
-  padding-inline: 0.35rem;
-  font-size: 0.7rem;
+  padding-inline: 0.3rem;
+  font-size: 0.65rem;
+}
+
+.input-group-compact .form-control {
+  /* Wide enough for a four-digit gem payout such as 2,200. */
+  min-width: 3.9rem;
+  padding-inline: 0.3rem;
 }
 
 /* Currency addon: a marker, not a control — keep it quieter than the field. */

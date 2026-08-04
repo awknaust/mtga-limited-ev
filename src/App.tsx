@@ -716,7 +716,8 @@ export default function App() {
                   content="Rows follow the structure. Lowering the win ceiling drops the rows above it; re-select a preset to refill the table."
                 />
               </h3>
-              <table className="table table-sm align-middle mb-0">
+              <div className="table-responsive">
+                <table className="table table-sm align-middle mb-0">
                 <thead>
                   <tr>
                     <th scope="col">Wins</th>
@@ -761,20 +762,20 @@ export default function App() {
                         />
                       </td>
                       <td>
-                        <NumberInput
-                          className="form-control form-control-sm text-end"
+                        <AddonInput
+                          compact
+                          addon={<i className="bi bi-stack" aria-hidden="true" />}
                           disabled={locked}
-                          min={0}
                           value={t.packs}
                           onChange={(n) => setTier(t.wins, { packs: n })}
                         />
                       </td>
                       {showPlayInPoints && (
                         <td>
-                          <NumberInput
-                            className="form-control form-control-sm text-end"
+                          <AddonInput
+                            compact
+                            addon={<i className="bi bi-ticket-perforated" aria-hidden="true" />}
                             disabled={locked}
-                            min={0}
                             value={t.playInPoints ?? 0}
                             onChange={(n) => setTier(t.wins, { playInPoints: n })}
                           />
@@ -782,10 +783,10 @@ export default function App() {
                       )}
                       {showPlayBoxes && (
                         <td>
-                          <NumberInput
-                            className="form-control form-control-sm text-end"
+                          <AddonInput
+                            compact
+                            addon={<i className="bi bi-box-seam" aria-hidden="true" />}
                             disabled={locked}
-                            min={0}
                             value={t.playBoxes ?? 0}
                             onChange={(n) => setTier(t.wins, { playBoxes: n })}
                           />
@@ -793,10 +794,10 @@ export default function App() {
                       )}
                       {showCollectorBoxes && (
                         <td>
-                          <NumberInput
-                            className="form-control form-control-sm text-end"
+                          <AddonInput
+                            compact
+                            addon={<i className="bi bi-boxes" aria-hidden="true" />}
                             disabled={locked}
-                            min={0}
                             value={t.collectorBoxes ?? 0}
                             onChange={(n) => setTier(t.wins, { collectorBoxes: n })}
                           />
@@ -805,7 +806,8 @@ export default function App() {
                     </tr>
                   ))}
                 </tbody>
-              </table>
+                </table>
+              </div>
             </div>
           </div>
         </div>
