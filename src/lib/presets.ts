@@ -98,33 +98,40 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 export const GEMS_PER_USD = 400;
 
 /**
- * Default gem value of a physical Play Booster box.
+ * Street prices of the three most recent sets, in USD, from MTGGoldfish's
+ * sealed product list: Star Trek, Reality Fracture and The Hobbit.
  *
- * $209.70, which is not a market price but Wizards' own figure: the Arena
- * Direct terms say they "may replace this with a $209.70 cash prize per Play
- * Booster box" if supplies run out. That makes it the declared cash equivalent
- * of exactly this prize, which beats any retail average — and it is what you
- * would actually receive in the substitution case.
- *
- * Street prices run well below it. Secrets of Strixhaven play boxes were
- * around $126 against a $159.99 MSRP, so if you would sell the box rather than
- * keep it, something nearer 50,000 gems is the honest figure. Note also that
- * cash prizes are taxed — the terms mention 30% withholding in most cases.
+ * @see https://www.mtggoldfish.com/prices/paper/boosters
  */
-export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(209.7 * GEMS_PER_USD);
+const RECENT_PLAY_BOX_USD = [155, 131, 192];
+const RECENT_COLLECTOR_BOX_USD = [702, 475, 900];
+
+const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 /**
- * Default gem value of a physical Collector Booster box.
+ * Default gem value of a physical Play Booster box: the average of the three
+ * most recent sets, converted at GEMS_PER_USD.
  *
- * No event here awards one yet, so there is no Wizards substitution figure to
- * lean on. Priced at MSRP instead: collector boosters are $39.99 each for 2026
- * sets and a display is 12 of them, so $479.88.
- *
- * This is the softest number in the model. Collector box street prices swing
- * hard with set popularity — well under MSRP for weak sets, far over it for
- * scarce ones.
+ * Street price rather than sticker. Wizards' own figure is higher — the Arena
+ * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
+ * supplies run out — but that cash is taxed (the terms mention 30% withholding
+ * in most cases), and what a box is worth to you is what you could get for it.
  */
-export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(479.88 * GEMS_PER_USD);
+export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(
+  mean(RECENT_PLAY_BOX_USD) * GEMS_PER_USD,
+);
+
+/**
+ * Default gem value of a physical Collector Booster box, same basis.
+ *
+ * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88,
+ * while the last three sets averaged near $692 — because the price tracks the
+ * singles inside. It is also the most volatile number in the model: the same
+ * three sets span $475 to $900.
+ */
+export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
+  mean(RECENT_COLLECTOR_BOX_USD) * GEMS_PER_USD,
+);
 
 /** Config built from a preset, leaving win rate and pack value untouched. */
 export function configFromPreset(preset: EventPreset, base: EventConfig): EventConfig {

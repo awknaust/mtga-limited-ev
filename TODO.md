@@ -25,9 +25,10 @@ alongside regular packs and they are folded into `packs` at face count, which
 understates those tiers. A `mythicPacks` field with its own rate would fix it —
 the same shape the play-in and box changes took.
 
-Also unmodelled: the 30% tax withholding the Arena Direct terms mention on cash
-substitutions, and that a box is only worth its sticker price if you want the
-cards. Both make Arena Direct look better than it is.
+Boxes are priced at the street average of the last three sets from MTGGoldfish.
+Two things that still flatter Arena Direct: a box is only worth its street
+price if you would sell it, and collector box prices are wildly volatile —
+$475 to $900 across those same three sets.
 
 ## 3. Value for play-in points — done, one number to confirm
 
