@@ -447,12 +447,11 @@ export default function App() {
   const gems2 = m.fmt1;
   /*
    * Two forms because the label sits in two grammatical slots: `valueLabel`
-   * stands alone ("Final Gem Value"), `unitLabel` only ever qualifies a figure
+   * stands alone ("Final gem value"), `unitLabel` only ever qualifies a figure
    * already named ("Mean ending value (gems)"), where repeating "value" reads
-   * as a stutter. Title case, because everywhere it stands alone is a control
-   * or heading.
+   * as a stutter. Sentence case, like every other label in the app.
    */
-  const valueLabel = unit === "gems" ? "Gem Value" : "Dollar Value";
+  const valueLabel = unit === "gems" ? "Gem value" : "Dollar value";
   const unitLabel = unit === "gems" ? "gems" : "USD";
 
   const modalEl = useRef<HTMLDivElement>(null);
@@ -633,7 +632,7 @@ export default function App() {
     isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
   const viewItems = [
     { key: "value" as const, label: valueLabel },
-    { key: "breakdown" as const, label: "Payout Breakdown" },
+    { key: "breakdown" as const, label: "Payout breakdown" },
   ];
   const structure = config.structure;
   /*
