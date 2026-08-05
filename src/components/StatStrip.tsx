@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { InfoTip } from "./InfoTip";
+import { Stat, type StatTile } from "./Stat";
 
 /**
  * A row of stat tiles that scrolls sideways when there are more than fit.
@@ -18,23 +18,6 @@ import { InfoTip } from "./InfoTip";
  * without this component knowing about any of them. The arrows are a discovery
  * aid on top, since a hidden scrollbar leaves nothing to say more is there.
  */
-
-export type StatTile = {
-  /** Stable identity, so a tile keeps its DOM as the set around it changes. */
-  key: string;
-  /** Node rather than string, so a tile can carry an icon for what it counts. */
-  label: React.ReactNode;
-  value: string;
-  hint?: React.ReactNode;
-  /**
-   * A popover spelling out what the figure means, for a reader who does not
-   * live in the statistics. The label names the button for a screen reader;
-   * the content is the explanation.
-   */
-  help?: { label: string; content: string };
-  /** Bootstrap text colour for the value, where the figure has a sign. */
-  tone?: string;
-};
 
 export function StatStrip({ tiles, label }: { tiles: StatTile[]; label: string }) {
   const track = useRef<HTMLDivElement>(null);
@@ -129,18 +112,9 @@ export function StatStrip({ tiles, label }: { tiles: StatTile[]; label: string }
         role="group"
         aria-label={label}
       >
-        {tiles.map((tile) => (
-          <div key={tile.key} className="stat-strip-item">
-            <div className="stat h-100">
-              <div className="stat-label">
-                {tile.label}
-                {tile.help && (
-                  <InfoTip label={tile.help.label} content={tile.help.content} />
-                )}
-              </div>
-              <div className={`stat-value ${tile.tone ?? ""}`}>{tile.value}</div>
-              {tile.hint !== undefined && <div className="stat-hint">{tile.hint}</div>}
-            </div>
+        {tiles.map(({ key, ...tile }) => (
+          <div key={key} className="stat-strip-item">
+            <Stat {...tile} />
           </div>
         ))}
       </div>

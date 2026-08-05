@@ -10,7 +10,8 @@ import { InfoTip } from "./components/InfoTip";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
 import { RunLog } from "./components/RunLog";
 import { SectionHeading } from "./components/SectionHeading";
-import { StatStrip, type StatTile } from "./components/StatStrip";
+import { Stat, type StatTile } from "./components/Stat";
+import { StatStrip } from "./components/StatStrip";
 import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
 import {
@@ -726,14 +727,9 @@ export default function App() {
    * statistic in plain terms — what was averaged, over what, and how to read
    * it — for a reader the bare label would leave behind.
    */
-  const stats: {
-    label: string;
-    value: string;
-    hint: string;
-    tone?: string;
-    help: { label: string; content: string };
-  }[] = [
+  const stats: StatTile[] = [
     {
+      key: "net",
       label: "Expected net / event",
       value: gems2(result.meanNet),
       // The band the record supports. Falls back to the sampling error of the
@@ -750,6 +746,7 @@ export default function App() {
       },
     },
     {
+      key: "gross",
       label: "Expected gross",
       value: gems2(result.meanGross),
       hint: `${m.label} + ${result.meanPacks.toFixed(2)} packs / event`,
@@ -760,6 +757,7 @@ export default function App() {
       },
     },
     {
+      key: "roi",
       label: "ROI",
       value: pct(result.roi),
       hint:
@@ -774,6 +772,7 @@ export default function App() {
       },
     },
     {
+      key: "break-even",
       label: "Break-even win rate",
       value: breakEvenShown === null ? "—" : pct(breakEvenShown, 2),
       hint:
@@ -787,6 +786,7 @@ export default function App() {
       },
     },
     {
+      key: "p-profit",
       label: "P(profit)",
       value: pct(result.probProfit),
       hint: "of events end net positive",
@@ -797,6 +797,7 @@ export default function App() {
       },
     },
     {
+      key: "matches",
       label: "matches / event",
       value: result.meanRounds.toFixed(2),
       hint: `max ${maxRounds(structure)} · σ of net: ${gems2(result.stdDevNet)}`,
@@ -1299,14 +1300,15 @@ export default function App() {
                   <TabPanel group={ids.viewTabs} active={view}>
                     {view === "value" ? (
                       <>
-                        <div className="stat mb-3">
-                          <div className="stat-label">
-                            Final {valueLabel}
-                            <InfoTip
-                              label="What the final value percentiles mean"
-                              content="Every simulated run, sorted from worst ending value to best. Half the runs ended with at least the median; p5 marks a run that only 5% did worse than, and p95 one that only 5% did better than."
-                            />
-                          </div>
+                        <Stat
+                          className="mb-3"
+                          label={`Final ${valueLabel}`}
+                          help={{
+                            label: "What the final value percentiles mean",
+                            content:
+                              "Every simulated run, sorted from worst ending value to best. Half the runs ended with at least the median; p5 marks a run that only 5% did worse than, and p95 one that only 5% did better than.",
+                          }}
+                        >
                           <div className="d-flex flex-wrap gap-3 mt-1">
                             {(
                               [
@@ -1327,7 +1329,7 @@ export default function App() {
                               </span>
                             ))}
                           </div>
-                        </div>
+                        </Stat>
                         <ValueHistogram
                           bins={bankroll.valueHistogram}
                           m={m}
@@ -1364,16 +1366,9 @@ export default function App() {
               ) : (
                 <>
               <div className="row g-2">
-                {stats.map((s) => (
-                  <div key={s.label} className="col-6 col-xl-4">
-                    <div className="stat h-100">
-                      <div className="stat-label">
-                        {s.label}
-                        <InfoTip label={s.help.label} content={s.help.content} />
-                      </div>
-                      <div className={`stat-value ${s.tone ?? ""}`}>{s.value}</div>
-                      <div className="stat-hint">{s.hint}</div>
-                    </div>
+                {stats.map(({ key, ...s }) => (
+                  <div key={key} className="col-6 col-xl-4">
+                    <Stat {...s} />
                   </div>
                 ))}
               </div>
@@ -1486,12 +1481,7 @@ export default function App() {
                   ] as const
                 ).map(([label, value]) => (
                   <div key={label} className="col">
-                    <div className="stat h-100">
-                      <div className="stat-label">{label}</div>
-                      <div className={`fw-semibold ${signClass(value)}`}>
-                        {gems(value)}
-                      </div>
-                    </div>
+                    <Stat compact label={label} value={gems(value)} tone={signClass(value)} />
                   </div>
                 ))}
               </div>
