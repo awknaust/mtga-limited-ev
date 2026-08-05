@@ -182,6 +182,54 @@ body {
 }
 
 /*
+ * The frame around a segmented switch and everything it toggles. Bootstrap
+ * borders nothing around tab panes on its own — its one attached form is
+ * card-header-tabs, a strip in a bordered card's header — and this is that
+ * idea at group scale: the switch sits inside the frame with its content,
+ * which is what marks the sections below as outside its reach.
+ */
+.switch-panel {
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.625rem;
+  padding: 0.75rem 0.875rem;
+}
+
+/*
+ * Segmented switch — the secondary Tabs variant, for a strip inside a panel.
+ * Bootstrap's nav-pills paints only the active choice, which leaves the
+ * inactive one reading as a hyperlink; drawing the track makes every option
+ * look like the button it is. Inline-flex so the track hugs its segments
+ * rather than running the card's width like the tab strip above it.
+ */
+.nav-segmented {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--app-raised);
+  border: 1px solid var(--bs-border-color);
+  border-radius: 100rem;
+}
+
+.nav-segmented .nav-link {
+  border-radius: 100rem;
+  padding: 0.25rem 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+}
+
+.nav-segmented .nav-link:hover {
+  color: var(--bs-body-color);
+}
+
+/* Dark text on the primary blue, as the info button's hover state does —
+ * white on #6ea8fe is well short of contrast. */
+.nav-segmented .nav-link.active {
+  background-color: var(--bs-primary);
+  color: #0b1220;
+}
+
+/*
  * The win rate is the input every figure on the page turns on, so its track and
  * thumb run to roughly double Bootstrap's.
  *

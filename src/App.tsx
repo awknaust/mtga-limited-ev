@@ -449,7 +449,7 @@ export default function App() {
    * Two forms because the label sits in two grammatical slots: `valueLabel`
    * stands alone ("Final gem value"), `unitLabel` only ever qualifies a figure
    * already named ("Mean ending value (gems)"), where repeating "value" reads
-   * as a stutter.
+   * as a stutter. Sentence case, like every other label in the app.
    */
   const valueLabel = unit === "gems" ? "Gem value" : "Dollar value";
   const unitLabel = unit === "gems" ? "gems" : "USD";
@@ -1249,18 +1249,21 @@ export default function App() {
                     subtitle="Everything a run is holding when it stops: gems, leftover gold, and everything won."
                   />
                   {/*
-                    Pills rather than tabs, so the strip reads as the
-                    subdivision it is: the tabs above choose the question, and
-                    these choose whether its answer comes as one figure or as
-                    what that figure is made of.
+                    A segmented switch rather than tabs, so the strip reads as
+                    the subdivision it is: the tabs above choose the question,
+                    and these choose whether its answer comes as one figure or
+                    as what that figure is made of. Framed together with what
+                    it toggles, so the switch's reach is visible — the example
+                    runs below sit outside it and are not part of the choice.
                   */}
+                  <div className="switch-panel">
                   <Tabs
                     group={ids.viewTabs}
                     items={viewItems}
                     active={view}
                     onSelect={setView}
                     label="Ending total shown as"
-                    variant="pills"
+                    variant="segmented"
                   />
                   <TabPanel group={ids.viewTabs} active={view}>
                     {view === "value" ? (
@@ -1318,6 +1321,7 @@ export default function App() {
                       />
                     )}
                   </TabPanel>
+                  </div>
 
                   <RunLog samples={bankroll.samples} config={config} m={m} />
                 </>

@@ -34,8 +34,12 @@ export function Tabs<K extends string>({
   onSelect: (key: K) => void;
   /** Names the strip itself, since the tabs only name themselves. */
   label: string;
-  /** Pills read as secondary, which is what a strip inside a panel is. */
-  variant?: "tabs" | "pills";
+  /**
+   * Segmented is the secondary form, for a strip inside a panel: a pill
+   * track that shows every option as the button it is, where Bootstrap's
+   * pills leave the inactive ones looking like hyperlinks.
+   */
+  variant?: "tabs" | "segmented";
   /** Anything to sit at the far end of the strip, such as a caption. */
   trailing?: React.ReactNode;
 }) {
