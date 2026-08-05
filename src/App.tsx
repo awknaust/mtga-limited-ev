@@ -1253,8 +1253,11 @@ export default function App() {
                     A segmented switch rather than tabs, so the strip reads as
                     the subdivision it is: the tabs above choose the question,
                     and these choose whether its answer comes as one figure or
-                    as what that figure is made of.
+                    as what that figure is made of. Framed together with what
+                    it toggles, so the switch's reach is visible — the example
+                    runs below sit outside it and are not part of the choice.
                   */}
+                  <div className="switch-panel">
                   <Tabs
                     group={ids.viewTabs}
                     items={viewItems}
@@ -1319,6 +1322,7 @@ export default function App() {
                       />
                     )}
                   </TabPanel>
+                  </div>
 
                   <RunLog samples={bankroll.samples} config={config} m={m} />
                 </>
