@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { InfoTip } from "./InfoTip";
+
 /**
  * A row of stat tiles that scrolls sideways when there are more than fit.
  *
@@ -24,6 +26,12 @@ export type StatTile = {
   label: React.ReactNode;
   value: string;
   hint?: React.ReactNode;
+  /**
+   * A popover spelling out what the figure means, for a reader who does not
+   * live in the statistics. The label names the button for a screen reader;
+   * the content is the explanation.
+   */
+  help?: { label: string; content: string };
   /** Bootstrap text colour for the value, where the figure has a sign. */
   tone?: string;
 };
@@ -113,8 +121,9 @@ export function StatStrip({ tiles, label }: { tiles: StatTile[]; label: string }
         className="stat-strip-track"
         /*
          * Focusable because it scrolls: a region that can only be reached with
-         * a pointer strands anyone driving the page from the keyboard, and the
-         * tiles inside hold no focusable content of their own to get there by.
+         * a pointer strands anyone driving the page from the keyboard. The
+         * info buttons inside are tab stops too, but tabbing through them
+         * only reaches tiles already scrolled into view — this is what pans.
          */
         tabIndex={0}
         role="group"
@@ -123,7 +132,12 @@ export function StatStrip({ tiles, label }: { tiles: StatTile[]; label: string }
         {tiles.map((tile) => (
           <div key={tile.key} className="stat-strip-item">
             <div className="stat h-100">
-              <div className="stat-label">{tile.label}</div>
+              <div className="stat-label">
+                {tile.label}
+                {tile.help && (
+                  <InfoTip label={tile.help.label} content={tile.help.content} />
+                )}
+              </div>
               <div className={`stat-value ${tile.tone ?? ""}`}>{tile.value}</div>
               {tile.hint !== undefined && <div className="stat-hint">{tile.hint}</div>}
             </div>

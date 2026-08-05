@@ -1,12 +1,12 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
-import Popover from "bootstrap/js/dist/popover";
 
 import { money, pct, type Unit } from "./format";
 import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
+import { InfoTip } from "./components/InfoTip";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
 import { RunLog } from "./components/RunLog";
 import { SectionHeading } from "./components/SectionHeading";
@@ -285,43 +285,6 @@ function UsdInput({
       onChange={onChange}
       disabled={disabled}
     />
-  );
-}
-
-/**
- * Bootstrap popover on a small "i" button.
- *
- * Uses the `focus` trigger so the next click anywhere dismisses it. Buttons
- * are not focused by clicking in Safari, hence the explicit tabIndex.
- */
-function InfoTip({ label, content }: { label: string; content: string }) {
-  const ref = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const popover = new Popover(el, {
-      content,
-      trigger: "focus",
-      // The inputs sit in a narrow column, so a popover above or below would
-      // cover the neighbouring controls — and the click that dismisses it
-      // would be swallowed by the bubble.
-      placement: "right",
-      container: "body",
-    });
-    return () => popover.dispose();
-  }, [content]);
-
-  return (
-    <button
-      ref={ref}
-      type="button"
-      tabIndex={0}
-      className="btn btn-sm info-btn ms-1"
-      aria-label={label}
-    >
-      i
-    </button>
   );
 }
 
@@ -651,11 +614,21 @@ export default function App() {
 
   /** Null unless the ladder pays boxes, which is what makes the strip move. */
   const box = bankroll.boxChance;
+  /*
+   * The tiles' help popovers explain the statistics to someone who does not
+   * live in them: what was averaged or counted, over which simulated runs,
+   * and how to read the figure as odds where that is the natural reading.
+   */
   const packsTile: StatTile = {
     key: "packs",
     label: "Mean packs won",
     value: bankroll.holdings.packs.mean.toFixed(1),
     hint: spendWinnings ? "over the run, then converted to gems" : "over the whole run",
+    help: {
+      label: "What mean packs won means",
+      content:
+        "How many packs a run had collected by the time it stopped, averaged across every simulated run.",
+    },
   };
   const runTiles: StatTile[] = [
     {
@@ -663,6 +636,11 @@ export default function App() {
       label: "Mean events played",
       value: bankroll.meanEvents.toFixed(1),
       hint: `median ${bankroll.eventPercentiles.p50}`,
+      help: {
+        label: "What mean events played means",
+        content:
+          "How many events a run got to enter before it stopped, averaged across every simulated run. The median is the middle run: half of the runs played at least that many.",
+      },
     },
     {
       key: "value",
@@ -671,6 +649,11 @@ export default function App() {
       tone: signClass(bankroll.meanFinalValue - startingGems),
       // No hint: the median is in the percentile strip below and the starting
       // balance is an input a few inches away.
+      help: {
+        label: "What mean ending value means",
+        content:
+          "Everything a run holds when it stops — gems, leftover gold and winnings — averaged across every simulated run. Green means the average run ends ahead of your starting balance; red, behind it.",
+      },
     },
     {
       key: "ruin",
@@ -679,6 +662,11 @@ export default function App() {
       label: "Risk of ruin",
       value: pct(1 - bankroll.survivedFraction),
       hint: `went broke inside ${maxEvents} events`,
+      help: {
+        label: "What risk of ruin means",
+        content:
+          "The share of simulated runs that went broke — could no longer afford an entry — before reaching your stop limit. At 25%, one player in four who tries this goes bust along the way.",
+      },
     },
   ];
   /**
@@ -722,13 +710,29 @@ export default function App() {
           hint: box.interval
             ? `${pct(box.interval[0])} to ${pct(box.interval[1])} (${pct(box.level, 0)})`
             : `±${pct(1.96 * Math.sqrt((box.probAny * (1 - box.probAny)) / bankroll.trials))} (95% CI)`,
+          help: {
+            label: "What chance of a box means",
+            content:
+              "The share of simulated runs that won at least one box — at 10%, one player in ten who plays this way walks away with one. The range underneath is how far the true chance could plausibly sit from the figure, given how much of a guess your win rate is.",
+          },
         },
         ...runTiles,
         packsTile,
       ]
     : [runTiles[0], runTiles[1], packsTile, runTiles[2]];
 
-  const stats: { label: string; value: string; hint: string; tone?: string }[] = [
+  /*
+   * As on the bankroll strip, each tile carries a popover explaining the
+   * statistic in plain terms — what was averaged, over what, and how to read
+   * it — for a reader the bare label would leave behind.
+   */
+  const stats: {
+    label: string;
+    value: string;
+    hint: string;
+    tone?: string;
+    help: { label: string; content: string };
+  }[] = [
     {
       label: "Expected net / event",
       value: gems2(result.meanNet),
@@ -739,11 +743,21 @@ export default function App() {
         ? `${m.label} · ${gems2(netBand[0])} to ${gems2(netBand[1])} (${pct(CREDIBLE_LEVEL, 0)})`
         : `${m.label} · ±${gems2(1.96 * result.stdErrNet)} (95% CI)`,
       tone: signClass(result.meanNet),
+      help: {
+        label: "What expected net means",
+        content:
+          "What one entry wins or loses on average, after paying the entry. Any single event swings well above or below this; play many and your average result heads toward it. The range underneath is how far off the figure could be, since your win rate is itself an estimate.",
+      },
     },
     {
       label: "Expected gross",
       value: gems2(result.meanGross),
       hint: `${m.label} + ${result.meanPacks.toFixed(2)} packs / event`,
+      help: {
+        label: "What expected gross means",
+        content:
+          "What one event pays back on average, before subtracting what it cost to enter. The packs beside it are counted separately rather than folded into the figure.",
+      },
     },
     {
       label: "ROI",
@@ -753,6 +767,11 @@ export default function App() {
           ? `of ${gems(result.meanEntryGems)} paid · ${pct(result.goldEntryFraction)} entries free`
           : `of ${gems(config.entryCostGems)} entry`,
       tone: signClass(result.roi),
+      help: {
+        label: "What ROI means",
+        content:
+          "Return on investment: the expected net as a share of what an entry costs. At −10%, an average entry gives back 90 for every 100 paid in; positive means the average entry more than pays for itself.",
+      },
     },
     {
       label: "Break-even win rate",
@@ -761,16 +780,31 @@ export default function App() {
         pProfitable !== null && breakEvenShown !== null
           ? `${pct(pProfitable)} chance you are above it`
           : breakEvenHint,
+      help: {
+        label: "What break-even win rate means",
+        content:
+          "The match win rate at which the average event exactly pays back its entry. Win more often than this and the event makes you money on average; less often, and it loses.",
+      },
     },
     {
       label: "P(profit)",
       value: pct(result.probProfit),
       hint: "of events end net positive",
+      help: {
+        label: "What P(profit) means",
+        content:
+          "The share of simulated events that ended worth more than they cost to enter. It can sit below 50% even when the event is profitable on average, because rare big finishes carry the average.",
+      },
     },
     {
       label: "matches / event",
       value: result.meanRounds.toFixed(2),
       hint: `max ${maxRounds(structure)} · σ of net: ${gems2(result.stdDevNet)}`,
+      help: {
+        label: "What matches per event means",
+        content:
+          "How many matches one event lasts on average before it reaches a finish. The σ underneath is the spread of single-event results: how far a typical event lands from the average net.",
+      },
     },
   ];
 
@@ -1266,7 +1300,13 @@ export default function App() {
                     {view === "value" ? (
                       <>
                         <div className="stat mb-3">
-                          <div className="stat-label">Final {valueLabel}</div>
+                          <div className="stat-label">
+                            Final {valueLabel}
+                            <InfoTip
+                              label="What the final value percentiles mean"
+                              content="Every simulated run, sorted from worst ending value to best. Half the runs ended with at least the median; p5 marks a run that only 5% did worse than, and p95 one that only 5% did better than."
+                            />
+                          </div>
                           <div className="d-flex flex-wrap gap-3 mt-1">
                             {(
                               [
@@ -1327,7 +1367,10 @@ export default function App() {
                 {stats.map((s) => (
                   <div key={s.label} className="col-6 col-xl-4">
                     <div className="stat h-100">
-                      <div className="stat-label">{s.label}</div>
+                      <div className="stat-label">
+                        {s.label}
+                        <InfoTip label={s.help.label} content={s.help.content} />
+                      </div>
                       <div className={`stat-value ${s.tone ?? ""}`}>{s.value}</div>
                       <div className="stat-hint">{s.hint}</div>
                     </div>
@@ -1426,7 +1469,12 @@ export default function App() {
                 className="mt-4"
                 title="Spread of a single event"
                 subtitle="Net gems from one entry, at each percentile of luck."
-              />
+              >
+                <InfoTip
+                  label="What the spread percentiles mean"
+                  content="Every simulated event, sorted from worst net result to best. Half the events paid at least the median; p5 is an unlucky one-in-twenty result, p95 a lucky one-in-twenty."
+                />
+              </SectionHeading>
               <div className="row g-2">
                 {(
                   [
