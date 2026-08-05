@@ -144,6 +144,47 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
         </dd>
       </dl>
 
+      <SectionHeading
+        className="mt-4"
+        title="How the figures are worded"
+        subtitle="The tiles speak plain words; each one is a precise statistic underneath."
+      />
+      <dl className="row mb-0">
+        <dt className="col-sm-4">Average</dt>
+        <dd className="col-sm-8">
+          The mean of every simulated outcome. A few lucky runs can pull it
+          well above what most people see, which is why "typically" sits
+          beside it.
+        </dd>
+
+        <dt className="col-sm-4">Typically</dt>
+        <dd className="col-sm-8">
+          The median: half the outcomes end at or above this figure. The best
+          one-number answer to what will probably happen to you.
+        </dd>
+
+        <dt className="col-sm-4">Plausibly X to Y</dt>
+        <dd className="col-sm-8">
+          The middle 90% of what your win-rate record supports. It is
+          uncertainty about you, not about the simulation — more matches
+          played narrow it; more simulated runs do not.
+        </dd>
+
+        <dt className="col-sm-4">Give or take</dt>
+        <dd className="col-sm-8">
+          Shown when the win rate is set to exactly known: the simulation's
+          own sampling wobble, a 95% confidence interval, which more simulated
+          events do narrow.
+        </dd>
+
+        <dt className="col-sm-4">One in twenty</dt>
+        <dd className="col-sm-8">
+          The 5th and 95th percentiles — sort the outcomes from worst to best,
+          and only one in twenty falls outside these marks on each side. The
+          full set is under "All percentiles" wherever a spread is summarised.
+        </dd>
+      </dl>
+
       <SectionHeading className="mt-4" title="What it does not model" />
       <ul className="mb-0">
         <li>

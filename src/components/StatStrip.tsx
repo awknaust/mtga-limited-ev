@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { Stat, type StatTile } from "./Stat";
+
 /**
  * A row of stat tiles that scrolls sideways when there are more than fit.
  *
@@ -16,17 +18,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
  * without this component knowing about any of them. The arrows are a discovery
  * aid on top, since a hidden scrollbar leaves nothing to say more is there.
  */
-
-export type StatTile = {
-  /** Stable identity, so a tile keeps its DOM as the set around it changes. */
-  key: string;
-  /** Node rather than string, so a tile can carry an icon for what it counts. */
-  label: React.ReactNode;
-  value: string;
-  hint?: React.ReactNode;
-  /** Bootstrap text colour for the value, where the figure has a sign. */
-  tone?: string;
-};
 
 export function StatStrip({ tiles, label }: { tiles: StatTile[]; label: string }) {
   const track = useRef<HTMLDivElement>(null);
@@ -113,20 +104,17 @@ export function StatStrip({ tiles, label }: { tiles: StatTile[]; label: string }
         className="stat-strip-track"
         /*
          * Focusable because it scrolls: a region that can only be reached with
-         * a pointer strands anyone driving the page from the keyboard, and the
-         * tiles inside hold no focusable content of their own to get there by.
+         * a pointer strands anyone driving the page from the keyboard. The
+         * info buttons inside are tab stops too, but tabbing through them
+         * only reaches tiles already scrolled into view — this is what pans.
          */
         tabIndex={0}
         role="group"
         aria-label={label}
       >
-        {tiles.map((tile) => (
-          <div key={tile.key} className="stat-strip-item">
-            <div className="stat h-100">
-              <div className="stat-label">{tile.label}</div>
-              <div className={`stat-value ${tile.tone ?? ""}`}>{tile.value}</div>
-              {tile.hint !== undefined && <div className="stat-hint">{tile.hint}</div>}
-            </div>
+        {tiles.map(({ key, ...tile }) => (
+          <div key={key} className="stat-strip-item">
+            <Stat {...tile} />
           </div>
         ))}
       </div>

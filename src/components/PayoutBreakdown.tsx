@@ -1,6 +1,7 @@
 import { scaleLinear } from "d3";
 
 import { gemTick, tickAmount, type Money } from "../format";
+import { Stat } from "./Stat";
 import {
   heldKeys,
   holding,
@@ -197,15 +198,18 @@ function HoldingCard({
 
   return (
     <div className="col-sm-6 col-xl-4">
-      <div className="stat h-100">
-        <div className="stat-label">{label}</div>
-        {/* An average lands between two boxes; a constant does not. */}
-        <div className="stat-value">{text(totals.mean, totals.min === totals.max)}</div>
-        <div className="stat-hint">
-          {`median ${text(totals.median, true)}`}
-          {/* Gems are the unit, so restating their own value says nothing. */}
-          {bankrollKey === "gems" ? "" : ` · worth ${m.fmt(totals.mean * rate)}`}
-        </div>
+      <Stat
+        label={label}
+        // An average lands between two boxes; a constant does not.
+        value={text(totals.mean, totals.min === totals.max)}
+        hint={
+          <>
+            {`typically ${text(totals.median, true)}`}
+            {/* Gems are the unit, so restating their own value says nothing. */}
+            {bankrollKey === "gems" ? "" : ` · worth ${m.fmt(totals.mean * rate)}`}
+          </>
+        }
+      >
         {/*
           Some holdings are the same in every run — draft packs, once the run
           length is fixed, and gold, which accrues and is spent on a schedule
@@ -231,7 +235,7 @@ function HoldingCard({
             mostTicks={bankrollKey === "gems" && m.unit === "usd" ? 4 : 5}
           />
         )}
-      </div>
+      </Stat>
     </div>
   );
 }
@@ -277,7 +281,8 @@ export function PayoutBreakdown({
           <>
             What the ending total is made of, at the rates set on the left.
             Valued and added up, these are the gem value beside them. Bars are
-            the spread across possible outcomes, the dashed line the median.
+            the spread across possible outcomes, the dashed line the typical
+            (median) run.
           </>
         )}
       </div>

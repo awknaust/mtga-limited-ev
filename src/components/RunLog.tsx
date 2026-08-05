@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { Money } from "../format";
 import type { EventConfig, EventLog, SampleRun } from "../lib";
 import { SectionHeading } from "./SectionHeading";
+import { Stat } from "./Stat";
 
 /**
  * One run of the bankroll simulation, event by event.
@@ -121,21 +122,25 @@ export function RunLog({
         </span>
       </div>
 
-      <div className="stat mb-3">
-        {/* An arrow rather than the middot it was: the two halves are a
-            sequence, not a pair of facts — this many events, and then this is
-            how it ended. */}
-        <div className="stat-label">
-          Run {index + 1}: Played {run.events}{" "}
-          {run.events === 1 ? "event" : "events"} →{" "}
-          {run.survived ? "stopped at the cap" : "ran out of currency"}
-        </div>
+      <Stat
+        className="mb-3"
+        // An arrow rather than the middot it was: the two halves are a
+        // sequence, not a pair of facts — this many events, and then this is
+        // how it ended.
+        label={
+          <>
+            Run {index + 1}: Played {run.events}{" "}
+            {run.events === 1 ? "event" : "events"} →{" "}
+            {run.survived ? "stopped at the cap" : "ran out of currency"}
+          </>
+        }
+      >
         <div className="stat-hint mt-1">
           Ended holding {m.fmt(run.finalGems)} and{" "}
           {Math.round(run.finalGold).toLocaleString()} gold, worth{" "}
           <span className="fw-semibold">{m.fmt(sample.value)}</span> all told.
         </div>
-      </div>
+      </Stat>
 
       {/* A balance too small for one entry plays nothing, which is a real
           outcome and not an empty table with headings over it. */}

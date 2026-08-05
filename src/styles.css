@@ -304,6 +304,57 @@ body {
 }
 
 /*
+ * The full percentile row, folded under its one-sentence summary. The pattern
+ * is .event-details at hint scale: the same cleared marker and turning
+ * triangle, without the uppercase heading treatment — this opens a footnote,
+ * not a section.
+ */
+.percentile-details-summary {
+  font-size: 0.6875rem;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+/* Safari draws its own triangle unless the webkit pseudo-element is cleared. */
+.percentile-details-summary::-webkit-details-marker {
+  display: none;
+}
+
+.percentile-details-summary::before {
+  content: "";
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 0.25rem solid currentColor;
+  border-top: 0.25rem solid transparent;
+  border-bottom: 0.25rem solid transparent;
+  transition: transform 0.15s ease-in-out;
+}
+
+.percentile-details[open] > .percentile-details-summary::before {
+  transform: rotate(90deg);
+}
+
+.percentile-details-summary:hover {
+  color: var(--bs-body-color);
+}
+
+.percentile-details-summary:focus-visible {
+  outline: 2px solid var(--bs-focus-ring-color);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .percentile-details-summary::before {
+    transition: none;
+  }
+}
+
+/*
  * A row of stat tiles wider than the room for it. See StatStrip for why the
  * tiles scroll rather than wrap.
  *

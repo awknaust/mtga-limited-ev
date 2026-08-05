@@ -90,7 +90,9 @@ export function EventsHistogram({
             textAnchor={x(median) > inner * 0.75 ? "end" : "middle"}
             className="chart-marker-label-median"
           >
-            {`median ${median}`}
+            {/* "Typically", as the tiles say — the tile popovers teach that
+                the word means the median. */}
+            {`typically ${median}`}
           </text>
         </g>
         <text
