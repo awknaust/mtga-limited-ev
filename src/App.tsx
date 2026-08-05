@@ -447,11 +447,12 @@ export default function App() {
   const gems2 = m.fmt1;
   /*
    * Two forms because the label sits in two grammatical slots: `valueLabel`
-   * stands alone ("Final gem value"), `unitLabel` only ever qualifies a figure
+   * stands alone ("Final Gem Value"), `unitLabel` only ever qualifies a figure
    * already named ("Mean ending value (gems)"), where repeating "value" reads
-   * as a stutter.
+   * as a stutter. Title case, because everywhere it stands alone is a control
+   * or heading.
    */
-  const valueLabel = unit === "gems" ? "Gem value" : "Dollar value";
+  const valueLabel = unit === "gems" ? "Gem Value" : "Dollar Value";
   const unitLabel = unit === "gems" ? "gems" : "USD";
 
   const modalEl = useRef<HTMLDivElement>(null);
@@ -632,7 +633,7 @@ export default function App() {
     isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
   const viewItems = [
     { key: "value" as const, label: valueLabel },
-    { key: "breakdown" as const, label: "Payout breakdown" },
+    { key: "breakdown" as const, label: "Payout Breakdown" },
   ];
   const structure = config.structure;
   /*
@@ -1249,10 +1250,10 @@ export default function App() {
                     subtitle="Everything a run is holding when it stops: gems, leftover gold, and everything won."
                   />
                   {/*
-                    Pills rather than tabs, so the strip reads as the
-                    subdivision it is: the tabs above choose the question, and
-                    these choose whether its answer comes as one figure or as
-                    what that figure is made of.
+                    A segmented switch rather than tabs, so the strip reads as
+                    the subdivision it is: the tabs above choose the question,
+                    and these choose whether its answer comes as one figure or
+                    as what that figure is made of.
                   */}
                   <Tabs
                     group={ids.viewTabs}
@@ -1260,7 +1261,7 @@ export default function App() {
                     active={view}
                     onSelect={setView}
                     label="Ending total shown as"
-                    variant="pills"
+                    variant="segmented"
                   />
                   <TabPanel group={ids.viewTabs} active={view}>
                     {view === "value" ? (
