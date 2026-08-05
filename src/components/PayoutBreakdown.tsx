@@ -204,7 +204,7 @@ function HoldingCard({
         value={text(totals.mean, totals.min === totals.max)}
         hint={
           <>
-            {`median ${text(totals.median, true)}`}
+            {`typically ${text(totals.median, true)}`}
             {/* Gems are the unit, so restating their own value says nothing. */}
             {bankrollKey === "gems" ? "" : ` · worth ${m.fmt(totals.mean * rate)}`}
           </>
@@ -281,7 +281,8 @@ export function PayoutBreakdown({
           <>
             What the ending total is made of, at the rates set on the left.
             Valued and added up, these are the gem value beside them. Bars are
-            the spread across possible outcomes, the dashed line the median.
+            the spread across possible outcomes, the dashed line the typical
+            (median) run.
           </>
         )}
       </div>

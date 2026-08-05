@@ -22,8 +22,6 @@ export type StatProps = {
   value?: string;
   /** Bootstrap text colour for the value, where the figure has a sign. */
   tone?: string;
-  /** Smaller value styling, for dense rows of many tiles. */
-  compact?: boolean;
   hint?: ReactNode;
   /** Sizing and spacing; tiles in a grid fill their cell with `h-100`. */
   className?: string;
@@ -41,7 +39,6 @@ export function Stat({
   help,
   value,
   tone,
-  compact,
   hint,
   className = "h-100",
   children,
@@ -53,9 +50,7 @@ export function Stat({
         {help && <InfoTip label={help.label} content={help.content} />}
       </div>
       {value !== undefined && (
-        <div className={`${compact ? "fw-semibold" : "stat-value"} ${tone ?? ""}`.trimEnd()}>
-          {value}
-        </div>
+        <div className={`stat-value ${tone ?? ""}`.trimEnd()}>{value}</div>
       )}
       {hint !== undefined && <div className="stat-hint">{hint}</div>}
       {children}
