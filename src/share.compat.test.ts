@@ -60,7 +60,7 @@ function fingerprint(state: ShareState): string {
      */
     `charges    ${effectiveEntryGems(c).toFixed(1)} gems (${goldPerEvent(c).toFixed(1)} gold/event)`,
     `payouts    ${encodePayouts(c.payouts)}`,
-    `bankroll   gems=${state.startingGems} gold=${state.startingGold} maxEvents=${state.maxEvents} spend=${state.spendWinnings}`,
+    `bankroll   gems=${state.startingGems} gold=${state.startingGold} maxEvents=${state.maxEvents}`,
     `sim        trials=${state.trials} runs=${state.bankrollRuns} seed=${state.seed}`,
     `display    tab=${state.tab} unit=${state.unit} gemsPerUsd=${state.gemsPerUsd}`,
   ].join("\n");
@@ -140,7 +140,6 @@ describe("the parameter names are the contract", () => {
       startingGems: 14,
       startingGold: 15,
       maxEvents: 16,
-      spendWinnings: true,
       tab: "about",
       unit: "usd",
       gemsPerUsd: 17,
@@ -178,7 +177,6 @@ describe("the parameter names are the contract", () => {
       "rounds",
       "runs",
       "seed",
-      "spendWinnings",
       "startGems",
       "startGold",
       "tab",
@@ -186,6 +184,18 @@ describe("the parameter names are the contract", () => {
       "unit",
       "wr",
     ]);
+  });
+
+  it("drops the retired spendWinnings without disturbing the rest", () => {
+    /*
+     * The one parameter that has been withdrawn rather than renamed. Two links
+     * in the corpus below carry it, and what they now mean is a run that holds
+     * its winnings — the only behaviour the model has left. The name is not
+     * emitted and must never be reused for something else.
+     */
+    const state = decodeShareState("?spendWinnings=1&startGems=20000");
+    expect(state.startingGems).toBe(20_000);
+    expect(encodeShareState(state)).toBe("startGems=20000");
   });
 
   it("ignores a name it does not know, which is why the list above is frozen", () => {
@@ -238,7 +248,7 @@ describe("the defaults are the contract", () => {
       gold       other=600/day over 1 events, goldPerGem=6.6667
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-      bankroll   gems=3000 gold=0 maxEvents=20 spend=false
+      bankroll   gems=3000 gold=0 maxEvents=20
       sim        trials=100000 runs=10000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=200"
     `);

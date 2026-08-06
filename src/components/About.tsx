@@ -82,9 +82,9 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
         </table>
       </div>
       <p className="form-text">
-        "Can it pay an entry?" is Arena's rule, and the default. Advanced
-        settings can treat the rest as spendable too, which asks how long you
-        could keep playing if it were.
+        "Can it pay an entry?" is Arena's rule, and the model's. A reward that
+        cannot buy an entry counts toward what a run comes to and never toward
+        how long it lasts.
       </p>
       <p className="form-text">
         The defaults are derived, not guessed: packs and drafted cards from

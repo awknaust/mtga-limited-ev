@@ -848,14 +848,6 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
-/* Advanced settings: one switch that changes behaviour, then grouped values. */
-.adv-highlight {
-  background: var(--app-raised);
-  border: 1px solid var(--bs-primary);
-  border-radius: 0.5rem;
-  padding: 0.75rem 0.875rem;
-}
-
 /* A titled box of related inputs — the Advanced groups, and the bankroll
  * fields in the main column. */
 .adv-group {

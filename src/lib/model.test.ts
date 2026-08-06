@@ -524,7 +524,7 @@ describe("drafted cards", () => {
     const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
     const run = simulateBankroll(
       config,
-      { startingGems: 10_000, startingGold: 0, maxEvents: 5, spendWinnings: false },
+      { startingGems: 10_000, startingGold: 0, maxEvents: 5 },
       seededRandom(21),
     );
     expect(run.draftPacks).toBe(run.events * 3);
@@ -627,7 +627,6 @@ describe("bankroll", () => {
     startingGems: 10_000,
     startingGold: 0,
     maxEvents: 500,
-    spendWinnings: false,
   };
 
   it("stops when neither currency covers another entry", () => {
@@ -658,7 +657,6 @@ describe("bankroll", () => {
       startingGems: 10_000,
       startingGold: 100_000,
       maxEvents: 10,
-      spendWinnings: false,
     };
     const run = simulateBankroll(config, golden, seededRandom(2));
     expect(run.events).toBe(10);
@@ -672,21 +670,21 @@ describe("bankroll", () => {
     expect(res.survivedFraction).toBe(1);
   });
 
-  it("cannot fund entries from packs unless told to", () => {
-    // Packs and cards are not currency in Arena, so by default they pile up
-    // without extending the run.
-    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
-    const held = simulateBankrolls(config, roll, 400, 31);
-    const spent = simulateBankrolls(config, { ...roll, spendWinnings: true }, 400, 31);
-    expect(spent.meanEvents).toBeGreaterThan(held.meanEvents);
-    expect(held.holdings.packs.mean).toBeGreaterThan(0);
+  it("cannot fund entries from packs, however they are priced", () => {
     /*
-     * And the extra entries win extra packs, which is half of why the
-     * breakdown refuses to itemise a liquidated run: the count is not what
-     * this event pays, it is that plus what the entries it funded paid. The
-     * other half is that their value already sits in the gem balance.
+     * Packs and cards are not currency in Arena, so they pile up without
+     * extending the run. Pricing one at a hundred entries is the sharpest way
+     * to say it: what a reward is worth moves the ending value and must leave
+     * the run length alone, since only the two balances buy an entry.
      */
-    expect(spent.holdings.packs.mean).toBeGreaterThan(held.holdings.packs.mean);
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const dear = { ...config, packValueGems: 150_000 };
+    const held = simulateBankrolls(config, roll, 400, 31);
+    const priced = simulateBankrolls(dear, roll, 400, 31);
+    expect(held.holdings.packs.mean).toBeGreaterThan(0);
+    expect(priced.meanEvents).toBe(held.meanEvents);
+    expect(priced.holdings.packs.mean).toBe(held.holdings.packs.mean);
+    expect(priced.meanFinalValue).toBeGreaterThan(held.meanFinalValue);
   });
 
   it("breaks the ending total into what it is made of", () => {
@@ -851,23 +849,6 @@ describe("bankroll", () => {
     expect(boxes.probAny).toBeLessThan(0.5);
   });
 
-  it("does not count banked winnings twice", () => {
-    // With spending on, a pack's value is already in the gem balance, so the
-    // ending total must not add it again.
-    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
-    const run = simulateBankroll(
-      config,
-      { startingGems: 10_000, startingGold: 0, maxEvents: 3, spendWinnings: true },
-      seededRandom(41),
-    );
-    expect(run.packs).toBeGreaterThan(0);
-    expect(run.winningsBanked).toBe(true);
-    expect(runValue(config, run)).toBeCloseTo(
-      run.finalGems + run.finalGold / config.goldPerGem,
-      9,
-    );
-  });
-
   it("is deterministic for a seed", () => {
     const config = defaultConfig();
     expect(simulateBankrolls(config, roll, 200, 7).meanEvents).toBe(
@@ -908,7 +889,6 @@ describe("bankroll", () => {
       playBoxes: 0,
       collectorBoxes: 0,
       survived: false,
-      winningsBanked: false,
     };
     expect(runValue(config, run)).toBeCloseTo(1000 + 1500, 6);
     // Valuing gold at nothing drops the term entirely.
@@ -937,7 +917,6 @@ describe("the chance of a box", () => {
     startingGems: 8_000,
     startingGold: 0,
     maxEvents: 1,
-    spendWinnings: false,
   };
   /** Room to keep entering, which is what makes the run-level chance differ. */
   const several = { ...oneEvent, startingGems: 40_000, maxEvents: 20 };

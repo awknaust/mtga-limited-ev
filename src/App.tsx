@@ -365,8 +365,6 @@ export default function App() {
   // Where the player stops, not a numerical guard — a run that never busts has
   // to end somewhere, and how long you intend to play is a real input.
   const [maxEvents, setMaxEvents] = useState(initial.maxEvents);
-  // Off by default: none of these buys an entry in Arena.
-  const [spendWinnings, setSpendWinnings] = useState(initial.spendWinnings);
   const [tab, setTab] = useState<Tab>(initial.tab);
   /*
    * Whether the ending total is shown as one figure or as what it is made of.
@@ -403,7 +401,6 @@ export default function App() {
       startingGems,
       startingGold,
       maxEvents,
-      spendWinnings,
       tab,
       unit,
       gemsPerUsd,
@@ -423,7 +420,6 @@ export default function App() {
     startingGems,
     startingGold,
     maxEvents,
-    spendWinnings,
     tab,
     unit,
     gemsPerUsd,
@@ -553,7 +549,6 @@ export default function App() {
     startGems: `${uid}-start-gems`,
     startGold: `${uid}-start-gold`,
     maxEvents: `${uid}-max-events`,
-    spendWinnings: `${uid}-spend-winnings`,
     gemsPerUsd: `${uid}-gems-per-usd`,
     confMatches: `${uid}-conf-matches`,
     resultTabs: `${uid}-results`,
@@ -567,11 +562,11 @@ export default function App() {
     () =>
       simulateBankrolls(
         config,
-        { startingGems, startingGold, maxEvents, spendWinnings },
+        { startingGems, startingGold, maxEvents },
         bankrollRuns,
         seed,
       ),
-    [config, startingGems, startingGold, maxEvents, spendWinnings, bankrollRuns, seed],
+    [config, startingGems, startingGold, maxEvents, bankrollRuns, seed],
   );
   /*
    * The gem-equivalent baseline ending values are judged against — gems plus
@@ -717,7 +712,7 @@ export default function App() {
     key: "packs",
     label: "Avg packs won",
     value: bankroll.holdings.packs.mean.toFixed(1),
-    hint: spendWinnings ? "over the run, then converted to gems" : "over the whole run",
+    hint: "over the whole run",
     help: {
       label: "What average packs won means",
       content:
@@ -746,7 +741,7 @@ export default function App() {
       // What that average is made of, as a rule under the figure it decomposes.
       children: (
         <ValueSplitBar
-          slices={holdingSlices(bankroll, config, spendWinnings)}
+          slices={holdingSlices(bankroll, config)}
           m={m}
         />
       ),
@@ -1551,12 +1546,7 @@ export default function App() {
                         />
                       </>
                     ) : (
-                      <PayoutBreakdown
-                        bankroll={bankroll}
-                        config={config}
-                        m={m}
-                        liquidating={spendWinnings}
-                      />
+                      <PayoutBreakdown bankroll={bankroll} config={config} m={m} />
                     )}
                   </TabPanel>
                   </div>
@@ -1734,27 +1724,6 @@ export default function App() {
               />
             </div>
             <div className="modal-body">
-              {/* The one switch that changes what the simulation does, rather
-                  than what a reward is worth. */}
-              <div className="adv-highlight mb-3">
-                <div className="form-check mb-0">
-                  <input
-                    id={ids.spendWinnings}
-                    type="checkbox"
-                    className="form-check-input"
-                    checked={spendWinnings}
-                    onChange={(e) => setSpendWinnings(e.target.checked)}
-                  />
-                  <label htmlFor={ids.spendWinnings} className="form-check-label fw-semibold">
-                    Spend non-liquid winnings on entries
-                    <InfoTip
-                      label="About spending non-liquid winnings"
-                      content="Gems and gold are liquid; packs, cards, points and boxes are not — none of them buys an entry in Arena, so by default they only count toward your ending total. Turning this on treats them as liquid at the rates below."
-                    />
-                  </label>
-                </div>
-              </div>
-
               <div className="adv-group mb-3">
                 <h3 className="section-title">Win rate confidence</h3>
                 <div className="row g-2">

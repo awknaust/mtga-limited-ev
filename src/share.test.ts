@@ -81,8 +81,7 @@ describe("encoding only what was touched", () => {
     expect(encodeShareState(withState({ startingGems: 10000 }))).toBe("startGems=10000");
   });
 
-  it("spells the flags only when they are on", () => {
-    expect(encodeShareState(withState({ spendWinnings: true }))).toBe("spendWinnings=1");
+  it("spells the flags only when they are off their default", () => {
     expect(encodeShareState(withState({ tab: "event", unit: "usd" }))).toBe(
       "tab=event&unit=usd",
     );
@@ -135,7 +134,6 @@ describe("round trips", () => {
       startingGems: 12_000,
       startingGold: 5_000,
       maxEvents: 50,
-      spendWinnings: true,
       tab: "event",
       unit: "usd",
       gemsPerUsd: 350,

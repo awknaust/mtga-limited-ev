@@ -65,9 +65,7 @@ const proseJoin = (parts: string[]): string =>
 
 /**
  * Everything the run ends holding, named: the two balances, then every reward
- * it won. Rewards spent on entries as they came in are not held at the end —
- * their value already sits in the gem balance — so a banked run lists only
- * the currencies.
+ * it won.
  *
  * Every item here is a real amount rather than a valuation, gems included, so
  * none of them follow the display unit. The valuation is the "worth ≈ …" that
@@ -77,11 +75,9 @@ const heldText = (run: BankrollRun): string =>
   proseJoin([
     REAL_GEMS.fmt(run.finalGems),
     `${Math.round(run.finalGold).toLocaleString()} gold`,
-    ...(run.winningsBanked
-      ? []
-      : RUN_REWARDS.filter((r) => run[r.key] > 0).map((r) =>
-          counted(run[r.key], r.one, r.many),
-        )),
+    ...RUN_REWARDS.filter((r) => run[r.key] > 0).map((r) =>
+      counted(run[r.key], r.one, r.many),
+    ),
   ]);
 
 export function RunLog({

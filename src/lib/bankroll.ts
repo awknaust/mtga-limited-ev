@@ -33,16 +33,6 @@ export type BankrollConfig = {
    * without a ceiling those runs would not terminate.
    */
   maxEvents: number;
-  /**
-   * Whether packs, cards, points and boxes are converted to gems as they are
-   * won and can fund further entries.
-   *
-   * They cannot in Arena — none of them buys an entry — so this is off by
-   * default and winnings only count toward the ending total. Turning it on
-   * asks a different question: how long could you keep playing if everything
-   * you won were liquid at the rates you have set.
-   */
-  spendWinnings: boolean;
 };
 
 export type BankrollResult = {
@@ -58,10 +48,7 @@ export type BankrollResult = {
    *
    * Valued at the config's rates these add back up to `meanFinalValue`
    * exactly, which is the point: the breakdown decomposes the total rather
-   * than sitting beside it. That holds with `spendWinnings` off. With it on,
-   * every reward is converted to gems as it is won, so their value is already
-   * inside the gem balance and adding it again would count it twice — the
-   * counts stay reportable, but only as a record of what passed through.
+   * than sitting beside it.
    */
   holdings: Record<HoldingKey, HoldingTotals>;
   /**
@@ -239,11 +226,6 @@ export type BankrollRun = {
   collectorBoxes: number;
   /** True if the run was cut short by the cap rather than by going broke. */
   survived: boolean;
-  /**
-   * True when winnings were converted to gems as they were won, so their value
-   * already sits in `finalGems` and must not be counted again.
-   */
-  winningsBanked: boolean;
   /** Present only when the run was asked to record itself. */
   log?: EventLog[];
 };
@@ -299,21 +281,13 @@ export function simulateBankroll(
     totalRounds += rounds;
     const tier = payoutFor(config, wins);
     gems += tier.gems;
-    // Tallied either way, so the counts stay reportable; whether their value
-    // also lands in the gem balance is what the option decides.
+    // Tallied but never spent: none of these buys an entry in Arena, so they
+    // count toward the ending value without extending the run.
     packs += tier.packs;
     draftPacks += config.draftPacks;
     playInPoints += tier.playInPoints ?? 0;
     playBoxes += tier.playBoxes ?? 0;
     collectorBoxes += tier.collectorBoxes ?? 0;
-    if (bankroll.spendWinnings) {
-      gems +=
-        tier.packs * config.packValueGems +
-        config.draftPacks * config.draftPackValueGems +
-        (tier.playInPoints ?? 0) * config.playInPointValueGems +
-        (tier.playBoxes ?? 0) * config.playBoxValueGems +
-        (tier.collectorBoxes ?? 0) * config.collectorBoxValueGems;
-    }
     gold += goldEarned;
     events++;
     // After the gold accrual, so a row's balances are what you would hold
@@ -349,7 +323,6 @@ export function simulateBankroll(
     playBoxes,
     collectorBoxes,
     survived: events >= bankroll.maxEvents,
-    winningsBanked: bankroll.spendWinnings,
     log: record ? log : undefined,
   };
 }
@@ -422,8 +395,6 @@ function heldBy(run: BankrollRun, key: HoldingKey): number {
  */
 export function runValue(config: EventConfig, run: BankrollRun): number {
   const currency = run.finalGems + run.finalGold / config.goldPerGem;
-  // Already folded into the gem balance as they were won.
-  if (run.winningsBanked) return currency;
   return (
     currency +
     run.packs * config.packValueGems +

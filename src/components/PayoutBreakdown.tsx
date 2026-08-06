@@ -318,25 +318,19 @@ export function PayoutBreakdown({
   bankroll,
   config,
   m,
-  liquidating,
 }: {
   bankroll: BankrollResult;
   config: EventConfig;
   m: Money;
-  /** Whether winnings are being converted to gems and spent as they are won. */
-  liquidating: boolean;
 }) {
   const keys = heldKeys(config, bankroll.holdings.gold.mean > 0);
-  // With winnings liquidated the rewards are already inside the gem balance,
-  // so a card each would double-count what the gems card already carries.
-  const shown = liquidating ? keys.filter((k) => k === "gems" || k === "gold") : keys;
 
   return (
     <>
       <div className="row g-2">
         {/* First, so the total is read before the parts that make it up. */}
         <ValueCard bankroll={bankroll} m={m} />
-        {shown.map((key) => (
+        {keys.map((key) => (
           <HoldingCard
             key={key}
             bankrollKey={key}
@@ -347,18 +341,8 @@ export function PayoutBreakdown({
         ))}
       </div>
       <div className="form-text">
-        {liquidating ? (
-          <>
-            Everything else was converted to gems as it was won and is already
-            inside that balance — the rest of the breakdown would count it
-            twice. Turn off "fund entries with winnings" to itemise it.
-          </>
-        ) : (
-          <>
-            Bars are the spread across possible outcomes, the dashed line the
-            typical (median) run.
-          </>
-        )}
+        Bars are the spread across possible outcomes, the dashed line the
+        typical (median) run.
       </div>
     </>
   );

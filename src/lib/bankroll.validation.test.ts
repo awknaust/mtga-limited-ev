@@ -213,7 +213,6 @@ const NO_GOLD: BankrollConfig = {
   startingGems: 0,
   startingGold: 0,
   maxEvents: 0,
-  spendWinnings: false,
 };
 
 /** Total variation distance between two distributions on the same support. */
@@ -397,8 +396,8 @@ describe("gambler's ruin", () => {
  *
  * The balance is what decides whether a run continues, and the accumulated
  * value is what it comes to, so between them they are the whole state — with no
- * gold in play and winnings not being spent, nothing else the future depends on
- * carries between events. So the joint distribution over the two can be
+ * gold in play, nothing else the future depends on carries between events.
+ * So the joint distribution over the two can be
  * advanced by a step, with the mass that can no longer pay an entry read off as
  * it falls out. Everything still standing after `maxEvents` stopped at the cap.
  *
@@ -412,8 +411,8 @@ describe("gambler's ruin", () => {
  * the cap the simulation itself applies. The cost is the reachable state count,
  * which grows with the horizon, so the events checked with it are small.
  *
- * Only valid where the entry is gems, no gold is earned, and winnings are not
- * liquidated; anything else would put a third dimension in the state.
+ * Only valid where the entry is gems and no gold is earned; anything else would
+ * put a third dimension in the state.
  */
 function exactRun(
   config: EventConfig,
@@ -826,10 +825,10 @@ describe("Wald's identity", () => {
     expect(Math.abs(res.meanFinalValue - predicted)).toBeLessThan(4 * se);
   });
 
-  it("holds when winnings are liquidated back into the balance", () => {
-    // `spendWinnings` changes what a run can afford, so it changes the number
-    // of terms — but not the identity, which never assumed anything about how
-    // the stopping time arises.
+  it("holds when the cap rather than the balance ends most runs", () => {
+    // A ceiling low enough that few runs reach the end of their money changes
+    // what the stopping time is — but not the identity, which never assumed
+    // anything about how it arises.
     const config = {
       ...configFromPreset(PREMIER_DRAFT, defaultConfig()),
       entryCostGold: 0,
@@ -841,11 +840,12 @@ describe("Wald's identity", () => {
     const roll: BankrollConfig = {
       ...NO_GOLD,
       startingGems: 20_000,
-      maxEvents: 500,
-      spendWinnings: true,
+      maxEvents: 5,
     };
     const trials = 40_000;
     const res = simulateBankrolls(config, roll, trials, 29);
+    // The premise of the case: the cap is what stops most of them.
+    expect(res.survivedFraction).toBeGreaterThan(0.5);
 
     const dist = outcomeDistribution(config.structure, config.winRate);
     const value = (wins: number) => valueAt(config, wins);
@@ -907,7 +907,6 @@ describe("gold-funded entries", () => {
     startingGems: 10_000,
     startingGold: 0,
     maxEvents: 500,
-    spendWinnings: false,
   };
 
   /** Gold-funded entries among the first n. */
