@@ -1,7 +1,7 @@
 import { useState } from "react";
 
-import type { Money } from "../format";
-import type { EventConfig, EventLog, SampleRun } from "../lib";
+import { pct, type Money } from "../format";
+import type { BankrollRun, EventConfig, EventLog, SampleRun } from "../lib";
 import { SectionHeading } from "./SectionHeading";
 import { Stat } from "./Stat";
 
@@ -18,6 +18,10 @@ import { Stat } from "./Stat";
 /** Rows shown at once. A run at the cap would otherwise bury the tab. */
 const VISIBLE = 30;
 
+/** A count and its noun: "14 packs", "1 collector box". */
+const counted = (n: number, one: string, many: string): string =>
+  `${n.toLocaleString()} ${n === 1 ? one : many}`;
+
 /**
  * Reward names for a cramped cell, which is not what the breakdown cards call
  * them: a card heading is always plural and has room to be a proper noun,
@@ -33,8 +37,48 @@ const REWARDS: { key: keyof EventLog; one: string; many: string }[] = [
 /** What a tier paid, beyond the gems. */
 const rewardText = (row: EventLog): string =>
   REWARDS.filter((r) => (row[r.key] as number) > 0)
-    .map((r) => `${row[r.key]} ${row[r.key] === 1 ? r.one : r.many}`)
+    .map((r) => counted(row[r.key] as number, r.one, r.many))
     .join(" · ");
+
+/**
+ * The same rewards for the run summary, where a sentence has room for the
+ * full names, plus the draft packs that come with each entry rather than
+ * with a win count. A payout type added to the model belongs in both lists.
+ */
+const RUN_REWARDS: {
+  key: "packs" | "draftPacks" | "playInPoints" | "playBoxes" | "collectorBoxes";
+  one: string;
+  many: string;
+}[] = [
+  { key: "packs", one: "pack", many: "packs" },
+  { key: "draftPacks", one: "draft pack", many: "draft packs" },
+  { key: "playInPoints", one: "play-in point", many: "play-in points" },
+  { key: "playBoxes", one: "Play Booster box", many: "Play Booster boxes" },
+  { key: "collectorBoxes", one: "Collector Booster box", many: "Collector Booster boxes" },
+];
+
+/** A list as a sentence would say it: "a, b and c". */
+const proseJoin = (parts: string[]): string =>
+  parts.length <= 1
+    ? parts.join("")
+    : `${parts.slice(0, -1).join(", ")} and ${parts[parts.length - 1]}`;
+
+/**
+ * Everything the run ends holding, named: the two balances, then every reward
+ * it won. Rewards spent on entries as they came in are not held at the end —
+ * their value already sits in the gem balance — so a banked run lists only
+ * the currencies.
+ */
+const heldText = (run: BankrollRun, m: Money): string =>
+  proseJoin([
+    m.fmt(run.finalGems),
+    `${Math.round(run.finalGold).toLocaleString()} gold`,
+    ...(run.winningsBanked
+      ? []
+      : RUN_REWARDS.filter((r) => run[r.key] > 0).map((r) =>
+          counted(run[r.key], r.one, r.many),
+        )),
+  ]);
 
 export function RunLog({
   samples,
@@ -135,9 +179,17 @@ export function RunLog({
           </>
         }
       >
+        {/* The realised rate rather than the slider's: with uncertainty on, a
+            run is dealt a rate of its own, and its record is where that shows. */}
+        {run.rounds > 0 ? (
+          <div className="stat-hint mt-1">
+            Won {run.wins.toLocaleString()} of {run.rounds.toLocaleString()}{" "}
+            {run.rounds === 1 ? "match" : "matches"} — a {pct(run.wins / run.rounds)}{" "}
+            average match win rate.
+          </div>
+        ) : null}
         <div className="stat-hint mt-1">
-          Ended holding {m.fmt(run.finalGems)} and{" "}
-          {Math.round(run.finalGold).toLocaleString()} gold, worth{" "}
+          Ended holding {heldText(run, m)}, worth{" "}
           <span className="fw-semibold">{m.fmt(sample.value)}</span> all told.
         </div>
       </Stat>
