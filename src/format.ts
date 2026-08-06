@@ -123,6 +123,20 @@ export const tickAmount = (n: number, prefix = ""): string => {
 export const gemTick = (m: Money, gems: number): string =>
   m.unit === "gems" ? tickAmount(gems, m.symbol) : m.fmt(gems);
 
+/**
+ * What to call a gem-equivalent total, in whichever unit is showing.
+ *
+ * For the headings that name this quantity without a formatted figure under
+ * them to carry the unit — a tab, a section title, a card label. Where a
+ * figure *is* directly beneath, the label says nothing the figure has not
+ * already said, and should not name a unit at all.
+ *
+ * Shared because it now appears in three places, and a total called "Gem
+ * value" in one and "Gem total" in another reads as two different quantities.
+ */
+export const valueLabel = (unit: Unit): string =>
+  unit === "gems" ? "Gem value" : "Dollar value";
+
 const withSign = (n: number, body: string): string => (n < 0 ? `−${body}` : body);
 
 /**
@@ -227,3 +241,24 @@ export function money(unit: Unit, gemsPerUsd: number): Money {
     fractional: true,
   };
 }
+
+/**
+ * Real gem amounts, which never follow the display unit.
+ *
+ * The toggle prices *valuations* in dollars — what a run came to, what a pack
+ * is worth to you. It has nothing to say about a real gem figure, because
+ * there is no dollar answer to give: an entry costs 1,500 gems and no amount
+ * of cash will enter you, a ladder pays the gems it pays, and a gem balance is
+ * a number Arena shows you rather than an estimate of one. Rendering those in
+ * dollars invents a price nobody can pay, and reads as though the event were
+ * purchasable in cash.
+ *
+ * The About tab already draws this line for the reader — "a bare gem figure —
+ * an entry cost, a ladder's gem payout, the gem balance — is a real amount" —
+ * so this is what keeps that wording true rather than aspirational. The rule
+ * in one line: dollars go with ≈ and nowhere else.
+ *
+ * Built with a rate of 1 because the gem branch above never consults one, and
+ * shared as a constant so no caller has to build a second `money` to get it.
+ */
+export const REAL_GEMS: Money = money("gems", 1);

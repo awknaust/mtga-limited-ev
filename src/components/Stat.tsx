@@ -19,7 +19,11 @@ export type StatProps = {
    * the content is the explanation.
    */
   help?: { label: string; content: string };
-  value?: string;
+  /**
+   * The figure itself. A node rather than a string because some tiles qualify
+   * it in place — an "avg" before the number, sized so the number still leads.
+   */
+  value?: ReactNode;
   /** Bootstrap text colour for the value, where the figure has a sign. */
   tone?: string;
   hint?: ReactNode;

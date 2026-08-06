@@ -1,6 +1,14 @@
 import { scaleLinear } from "d3";
 
-import { approx, gemTick, tickAmount, type Money } from "../format";
+import {
+  REAL_GEMS,
+  approx,
+  gemTick,
+  tickAmount,
+  valueLabel,
+  type Money,
+} from "../format";
+import { amountText } from "./holdingText";
 import { Stat } from "./Stat";
 import {
   heldKeys,
@@ -27,29 +35,13 @@ import {
 const CHART = { width: 220, height: 44 };
 
 /**
- * Balances follow the display unit; counts print as counts.
- *
- * `whole` is for the figures that are whole by construction — a median, a
- * smallest, a largest — since only an average can land between two boxes. A
- * range reading 0.0 to 8.0 boxes implies a precision the thing does not have.
- */
-const amountText = (key: HoldingKey, n: number, m: Money, exact = false): string => {
-  if (key === "gems") return m.fmt(n);
-  // Gold is Arena-internal and has its own rate against gems, so it is never
-  // shown in dollars — the same reason format.ts refuses to convert it.
-  if (key === "gold") return Math.round(n).toLocaleString();
-  if (exact) return n.toLocaleString();
-  return n.toFixed(n > 0 && n < 1 ? 2 : 1);
-};
-
-/**
  * The same amount as an axis label, where the room runs out well before the
  * significant digits do. Thousands abbreviate, since a tick saying which
  * thousand it is says enough — the figures that need to be read exactly are
  * printed above the chart.
  */
-const tickText = (key: HoldingKey, n: number, m: Money): string => {
-  if (key === "gems") return gemTick(m, n);
+const tickText = (key: HoldingKey, n: number): string => {
+  if (key === "gems") return gemTick(REAL_GEMS, n);
   // Gold has no sign of its own; gems take theirs, so the two axes cannot be
   // confused with each other where the cards sit side by side.
   if (key === "gold") return tickAmount(n);
@@ -70,7 +62,6 @@ const tickText = (key: HoldingKey, n: number, m: Money): string => {
 const axisTicks = (
   x: ReturnType<typeof scaleLinear<number, number>>,
   whole: boolean,
-  most: number,
 ): number[] => {
   const at = (count: number): number[] => {
     const ticks = x.ticks(count);
@@ -78,9 +69,19 @@ const axisTicks = (
   };
   let ticks = at(4);
   if (ticks.length < 3) ticks = at(6);
-  while (ticks.length > most) ticks = ticks.filter((_, i) => i % 2 === 0);
+  while (ticks.length > MOST_TICKS) ticks = ticks.filter((_, i) => i % 2 === 0);
   return ticks;
 };
+
+/**
+ * How many labels a card has room for, which the widest ones decide.
+ *
+ * One number for every card now that the gems axis has stopped converting.
+ * Dollars were the long labels — "$112.50" against "45k" — and they could only
+ * ever appear there, since gold does not convert and counts are counts, so the
+ * cards used to need a lower cap on that one axis alone.
+ */
+const MOST_TICKS = 5;
 
 /**
  * The spread across runs, small enough to sit in a card.
@@ -97,7 +98,6 @@ function MiniHistogram({
   whole,
   label,
   tickText,
-  mostTicks,
 }: {
   bins: Bin[];
   median: number;
@@ -105,8 +105,6 @@ function MiniHistogram({
   whole: boolean;
   label: string;
   tickText: (value: number) => string;
-  /** How many labels the card has room for, which the widest ones decide. */
-  mostTicks: number;
 }) {
   if (!bins.length) return null;
   const lo = bins[0].from;
@@ -120,7 +118,7 @@ function MiniHistogram({
     .domain([lo, hi === lo ? lo + 1 : hi])
     .range([0, CHART.width]);
   const y = scaleLinear().domain([0, peak]).range([CHART.height, 0]);
-  const ticks = axisTicks(x, whole, mostTicks);
+  const ticks = axisTicks(x, whole);
   const at = (value: number): number => (x(value) / CHART.width) * 100;
 
   return (
@@ -181,6 +179,86 @@ function MiniHistogram({
   );
 }
 
+/**
+ * A headline figure, said to be the average it is, with what that average is
+ * worth kept beside it.
+ *
+ * Every card leads with a mean while the line under it reports a median, and
+ * on a skewed holding those are far apart — 14.5 packs above "typically 8".
+ * Unlabelled, the pair reads as a contradiction rather than as two statistics.
+ *
+ * The worth belongs up here rather than in that line because it values the
+ * mean, not the median: a "typically 900 · worth ≈ 989" read as one clause
+ * quietly changed statistic halfway through. Each figure now sits with the one
+ * it describes.
+ *
+ * After the number rather than before it. A tile exists to put a figure in
+ * front of someone, and a qualifier ahead of that figure makes them read a
+ * word before they can read the number.
+ *
+ * The worth is kept even where it restates the figure it follows — gems in
+ * gems, at a rate of 1. Dropping it there would make the one card whose value
+ * needs no conversion the one card missing the clause, and the clause is what
+ * says these worths are the things that add up to the total.
+ */
+const avg = (figure: string, worth?: string) => (
+  <>
+    {figure}
+    {/* A real space, not just the margin: the gap has to exist in the text as
+        well as in the layout, or a screen reader reads "989avg". */}
+    {" "}
+    <span className="stat-qualifier">
+      {worth === undefined ? "avg" : `avg · worth ${worth}`}
+    </span>
+  </>
+);
+
+/**
+ * The total the other cards decompose, shaped like one of them.
+ *
+ * Every card beside it is an amount in its own currency — packs as packs,
+ * gold as gold — and this is the one figure on the panel that is wholly a
+ * valuation, so it is the only card marked ≈ throughout and the only one that
+ * follows the display toggle. Its spread is the ending-value distribution,
+ * which is the same data the chart on the sibling tab draws, at the size the
+ * grid gives it.
+ *
+ * Read as a total rather than as a fifth holding: nothing is held in "gem
+ * value", and this card's figure is what the others add up to.
+ */
+function ValueCard({ bankroll, m }: { bankroll: BankrollResult; m: Money }) {
+  const bins = bankroll.valueHistogram;
+  // Flat when every run came to the same figure, which the bins say by
+  // spanning nothing — the same case the holdings read off min and max.
+  const flat = bins.length === 0 || bins[0].from === bins[bins.length - 1].to;
+
+  return (
+    <div className="col-sm-6 col-xl-4">
+      <Stat
+        label={valueLabel(m.unit)}
+        // No "worth" beside it: on every other card that clause converts an
+        // amount into a value, and here the figure it would follow already is
+        // one. This is the total those worths add up to.
+        value={avg(approx(m.fmt(bankroll.meanFinalValue)))}
+        hint={`typically ${approx(m.fmt(bankroll.medianFinalValue))}`}
+      >
+        {flat ? (
+          <div className="stat-hint mt-2">the same in every run</div>
+        ) : (
+          <MiniHistogram
+            bins={bins}
+            median={bankroll.medianFinalValue}
+            // A value lands anywhere; only counts of things are whole.
+            whole={false}
+            label="Spread of ending value across possible outcomes"
+            tickText={(n) => gemTick(m, n)}
+          />
+        )}
+      </Stat>
+    </div>
+  );
+}
+
 function HoldingCard({
   bankrollKey,
   totals,
@@ -194,23 +272,25 @@ function HoldingCard({
 }) {
   const { label, whole } = holding(bankrollKey);
   const rate = holdingRate(config, bankrollKey);
-  const text = (n: number, exact = false) => amountText(bankrollKey, n, m, exact);
+  const text = (n: number, exact = false) => amountText(bankrollKey, n, exact);
 
   return (
     <div className="col-sm-6 col-xl-4">
       <Stat
         label={label}
-        // An average lands between two boxes; a constant does not.
-        value={text(totals.mean, totals.min === totals.max)}
-        hint={
-          <>
-            {`typically ${text(totals.median, true)}`}
-            {/* Gems are the unit, so restating their own value says nothing.
-                The worth is a valuation at the config's rate, hence the ≈ —
-                the gems card's own figures are real balances and stay bare. */}
-            {bankrollKey === "gems" ? "" : ` · worth ${approx(m.fmt(totals.mean * rate))}`}
-          </>
-        }
+        /*
+          An average lands between two boxes; a constant does not.
+
+          The worth beside it is a valuation at the config's rate, hence the ≈,
+          and the only figure on the card that follows the display unit — the
+          amounts here and the ticks below are what a run is holding, so they
+          stay in their own currency.
+        */
+        value={avg(
+          text(totals.mean, totals.min === totals.max),
+          approx(m.fmt(totals.mean * rate)),
+        )}
+        hint={`typically ${text(totals.median, true)}`}
       >
         {/*
           Some holdings are the same in every run — draft packs, once the run
@@ -226,15 +306,7 @@ function HoldingCard({
             median={totals.median}
             whole={whole}
             label={`Spread of ${label.toLowerCase()} across possible outcomes`}
-            tickText={(n) => tickText(bankrollKey, n, m)}
-            /*
-             * Dollar amounts are the long labels — "$112.50" against "45k" —
-             * and they only turn up on the gems card, since gold is never
-             * converted and counts are counts. Four rather than three because
-             * thinning halves: a cap of three takes a four-tick axis down to
-             * two, which is the bare ends again.
-             */
-            mostTicks={bankrollKey === "gems" && m.unit === "usd" ? 4 : 5}
+            tickText={(n) => tickText(bankrollKey, n)}
           />
         )}
       </Stat>
@@ -262,6 +334,8 @@ export function PayoutBreakdown({
   return (
     <>
       <div className="row g-2">
+        {/* First, so the total is read before the parts that make it up. */}
+        <ValueCard bankroll={bankroll} m={m} />
         {shown.map((key) => (
           <HoldingCard
             key={key}
@@ -281,10 +355,8 @@ export function PayoutBreakdown({
           </>
         ) : (
           <>
-            What the ending total is made of, at the rates set on the left.
-            Valued and added up, these are the gem value beside them. Bars are
-            the spread across possible outcomes, the dashed line the typical
-            (median) run.
+            Bars are the spread across possible outcomes, the dashed line the
+            typical (median) run.
           </>
         )}
       </div>

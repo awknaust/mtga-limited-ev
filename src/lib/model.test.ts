@@ -34,6 +34,8 @@ import {
   dailyWinGold,
   goldPerEvent,
   meanWinsPerEvent,
+  grossCounts,
+  grossSplit,
   grossValue,
   matchWinRate,
   RECORDED_EVENTS,
@@ -526,6 +528,52 @@ describe("drafted cards", () => {
       seededRandom(21),
     );
     expect(run.draftPacks).toBe(run.events * 3);
+  });
+});
+
+describe("splitting a gross", () => {
+  // The bar under the Expected gross tile draws these segments beneath that
+  // figure, so a split that does not add back up to it puts a chart under a
+  // number it contradicts.
+  it("adds back up to the mean gross it decomposes", () => {
+    for (const preset of [PREMIER_DRAFT, SEALED, ARENA_DIRECT, CONTENDER_DRAFT]) {
+      const config = configFromPreset(preset, defaultConfig());
+      const res = simulate(config, 20_000, 7);
+      const parts = grossSplit(config, res.buckets);
+      const summed = Object.values(parts).reduce((acc, v) => acc + v, 0);
+      expect(summed).toBeCloseTo(res.meanGross, 6);
+    }
+  });
+
+  it("puts nothing in gold, which no ladder pays", () => {
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const res = simulate(config, 5_000, 3);
+    expect(grossSplit(config, res.buckets).gold).toBe(0);
+  });
+
+  it("moves value between segments rather than creating it", () => {
+    // Doubling what a pack is worth cannot change how many packs are won, so
+    // the packs segment doubles and every other segment holds still.
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const res = simulate(config, 20_000, 11);
+    const base = grossSplit(config, res.buckets);
+    const dearer = grossSplit(
+      { ...config, packValueGems: config.packValueGems * 2 },
+      res.buckets,
+    );
+    expect(dearer.packs).toBeCloseTo(base.packs * 2, 9);
+    expect(dearer.gems).toBeCloseTo(base.gems, 9);
+    expect(dearer.draftPacks).toBeCloseTo(base.draftPacks, 9);
+  });
+
+  it("counts the rewards the split values", () => {
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const res = simulate(config, 20_000, 5);
+    const counts = grossCounts(config, res.buckets);
+    const parts = grossSplit(config, res.buckets);
+    expect(counts.packs).toBeCloseTo(res.meanPacks, 9);
+    expect(counts.packs * config.packValueGems).toBeCloseTo(parts.packs, 9);
+    expect(counts.draftPacks).toBe(config.draftPacks);
   });
 });
 
