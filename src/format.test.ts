@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GEM_SIGN, gemTick, money, tickAmount } from "./format";
+import { GEM_SIGN, approx, gemTick, money, tickAmount } from "./format";
 
 // The default rate: 20,000 gems for $99.99, the largest bundle.
 const RATE = 200;
@@ -104,6 +104,22 @@ describe("money", () => {
       expect(text).toBe("3151.68");
       expect(Number.isNaN(Number(text))).toBe(false);
     });
+  });
+});
+
+describe("gem-equivalent marker", () => {
+  it("scopes over the whole signed figure", () => {
+    // ≈ −💎 3,400 and never −≈: the relation covers the signed quantity,
+    // while a minus ahead of it would read as negating the approximation.
+    expect(approx(money("gems", RATE).fmt(-3400))).toBe(
+      `≈\u202F−${GEM_SIGN}\u202F3,400`,
+    );
+  });
+
+  it("marks a dollar figure the same way", () => {
+    // Keyed to the quantity, not the display unit, so toggling gems/USD
+    // cannot move the mark between figures.
+    expect(approx(money("usd", RATE).fmt(3400))).toBe("≈\u202F$17.00");
   });
 });
 

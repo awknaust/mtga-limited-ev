@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { pct, type Money } from "../format";
+import { approx, pct, type Money } from "../format";
 import type { BankrollRun, EventConfig, EventLog, SampleRun } from "../lib";
 import { SectionHeading } from "./SectionHeading";
 import { Stat } from "./Stat";
@@ -189,8 +189,9 @@ export function RunLog({
           </div>
         ) : null}
         <div className="stat-hint mt-1">
+          {/* The holdings are real amounts; the "all told" is a valuation. */}
           Ended holding {heldText(run, m)}, worth{" "}
-          <span className="fw-semibold">{m.fmt(sample.value)}</span> all told.
+          <span className="fw-semibold">{approx(m.fmt(sample.value))}</span> all told.
         </div>
       </Stat>
 

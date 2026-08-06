@@ -35,6 +35,21 @@ export const GEM_SIGN = "💎";
  */
 const GEM_GAP = "\u202F";
 
+/**
+ * Marks a figure as a gem-equivalent valuation rather than a real balance.
+ *
+ * Real gem figures \u2014 entry costs, gem payouts, the gem balance \u2014 print bare.
+ * Figures that fold packs, boxes or points in at the configured rates lead
+ * with \u2248, the way a conversion UI marks a balance shown in another currency.
+ * The relation sign scopes over the whole signed figure, so it sits outside
+ * the minus: \u2248 \u2212\uD83D\uDC8E 120 is "approximately minus 120 gems", where \u2212\u2248 would
+ * read as negating the approximation.
+ *
+ * The gap is the gem sign's own narrow no-break space, so the marker cannot
+ * wrap away from the figure it qualifies.
+ */
+export const approx = (figure: string): string => `\u2248${GEM_GAP}${figure}`;
+
 export type Money = {
   unit: Unit;
   /** For labels: "gems" or "USD". */
@@ -137,8 +152,14 @@ const usd = (value: number): string => {
   return withSign(value, usdFormat(digits).format(a));
 };
 
-/** The stone and its gap, which is what leads every gem figure. */
-const GEM_PREFIX = GEM_SIGN + GEM_GAP;
+/**
+ * The stone and its gap, which is what leads every gem figure.
+ *
+ * Exported for the rare label that names a literal gem amount whatever the
+ * display unit — the About table's one-gem row, whose left side must stay a
+ * real gem while the right side converts.
+ */
+export const GEM_PREFIX = GEM_SIGN + GEM_GAP;
 
 const gemsWhole = (value: number): string =>
   withSign(value, GEM_PREFIX + Math.abs(Math.round(value)).toLocaleString());

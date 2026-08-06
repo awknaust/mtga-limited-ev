@@ -1,6 +1,6 @@
 import { scaleLinear } from "d3";
 
-import { gemTick, tickAmount, type Money } from "../format";
+import { approx, gemTick, tickAmount, type Money } from "../format";
 import { Stat } from "./Stat";
 import {
   heldKeys,
@@ -205,8 +205,10 @@ function HoldingCard({
         hint={
           <>
             {`typically ${text(totals.median, true)}`}
-            {/* Gems are the unit, so restating their own value says nothing. */}
-            {bankrollKey === "gems" ? "" : ` · worth ${m.fmt(totals.mean * rate)}`}
+            {/* Gems are the unit, so restating their own value says nothing.
+                The worth is a valuation at the config's rate, hence the ≈ —
+                the gems card's own figures are real balances and stay bare. */}
+            {bankrollKey === "gems" ? "" : ` · worth ${approx(m.fmt(totals.mean * rate))}`}
           </>
         }
       >

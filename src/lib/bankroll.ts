@@ -434,6 +434,23 @@ export function runValue(config: EventConfig, run: BankrollRun): number {
   );
 }
 
+/**
+ * Gem-equivalent value of what a run starts holding: the gem balance plus the
+ * starting gold at the config's exchange rate.
+ *
+ * The baseline `runValue` is judged against. Bare starting gems are the wrong
+ * one wherever gold is in play — the ending value counts leftover gold, so a
+ * run that began with gold would read as ahead the moment it converted. As in
+ * `runValue`, a rate of Infinity drops the gold term to zero.
+ */
+export function startingValue(
+  config: EventConfig,
+  startingGems: number,
+  startingGold: number,
+): number {
+  return startingGems + startingGold / config.goldPerGem;
+}
+
 /** Boxes a run came away with, both kinds together. */
 const boxesWon = (run: BankrollRun): number => run.playBoxes + run.collectorBoxes;
 
