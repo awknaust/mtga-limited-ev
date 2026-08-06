@@ -82,6 +82,14 @@ and have burned us. Three things to hold to:
   `pure-rand`), not hand-rolled maths.
 - Tooltips state what a field does and stop. Caveats and derivations belong in
   doc comments, where length is free.
+- React Compiler memoises the components, so nothing reaches for `React.memo`.
+  Existing `useMemo` and `useCallback` calls stay where they are — React's
+  guidance is to leave manual memoisation alone in code that already has it. Two
+  things to know before touching the toolchain: `@babel/core` is pinned to 7
+  because the compiler bails out on `{ className = "" }` under Babel 8
+  (react/react#36868), and a bailout is *silent* — the build succeeds and the
+  bundle simply carries less memoisation. `react-compiler.test.ts` is the alarm,
+  and `vite.config.ts` has the details.
 - Every number a user sees should be checkable: the closed-form column exists to
   keep the simulation honest, and hand-derived values are pinned by tests.
 - The build loads nothing off-origin, and the CSP in `public/_headers` enforces
