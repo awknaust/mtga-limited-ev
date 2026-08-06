@@ -608,6 +608,8 @@ describe("bankroll", () => {
       expect(sum((e) => e.packs)).toBe(run.packs);
       expect(sum((e) => e.playInPoints)).toBe(run.playInPoints);
       expect(sum((e) => e.playBoxes)).toBe(run.playBoxes);
+      expect(sum((e) => e.wins)).toBe(run.wins);
+      expect(sum((e) => e.rounds)).toBe(run.rounds);
     }
   });
 
@@ -629,6 +631,9 @@ describe("bankroll", () => {
     expect(run.log).toHaveLength(250);
     expect(run.packs).toBeGreaterThan(
       (run.log ?? []).reduce((a, e) => a + e.packs, 0),
+    );
+    expect(run.rounds).toBeGreaterThan(
+      (run.log ?? []).reduce((a, e) => a + e.rounds, 0),
     );
   });
 
@@ -700,6 +705,8 @@ describe("bankroll", () => {
     const config = { ...defaultConfig(), goldPerGem: GOLD_PER_GEM };
     const run = {
       events: 0,
+      wins: 0,
+      rounds: 0,
       finalGems: 1000,
       finalGold: 10_000,
       packs: 0,

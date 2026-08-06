@@ -226,6 +226,10 @@ export type EventLog = {
 
 export type BankrollRun = {
   events: number;
+  /** Match wins across the whole run, counting past where the log stops. */
+  wins: number;
+  /** Matches played across the whole run. */
+  rounds: number;
   finalGems: number;
   finalGold: number;
   packs: number;
@@ -275,6 +279,8 @@ export function simulateBankroll(
   let gems = bankroll.startingGems;
   let gold = bankroll.startingGold;
   let events = 0;
+  let totalWins = 0;
+  let totalRounds = 0;
   let packs = 0;
   let draftPacks = 0;
   let playInPoints = 0;
@@ -289,6 +295,8 @@ export function simulateBankroll(
     else break;
 
     const { wins, rounds } = simulateEvent(config.structure, pMatch, rand);
+    totalWins += wins;
+    totalRounds += rounds;
     const tier = payoutFor(config, wins);
     gems += tier.gems;
     // Tallied either way, so the counts stay reportable; whether their value
@@ -331,6 +339,8 @@ export function simulateBankroll(
 
   return {
     events,
+    wins: totalWins,
+    rounds: totalRounds,
     finalGems: gems,
     finalGold: gold,
     packs,
