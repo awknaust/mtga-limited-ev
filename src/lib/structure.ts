@@ -1,10 +1,44 @@
 /** Helpers for reasoning about an event's shape and win-rate conversion. */
 
-import type { EventConfig, EventStructure, PayoutTier } from "./types";
+import type {
+  EventConfig,
+  EventStructure,
+  OutcomeRecord,
+  PayoutTier,
+} from "./types";
 
 /** Highest win count reachable, i.e. the last row of the payout table. */
 export function maxPossibleWins(structure: EventStructure): number {
   return structure.kind === "rounds" ? structure.rounds : structure.maxWins;
+}
+
+/**
+ * Every record the structure can finish on, ordered by wins ascending and then
+ * by losses ascending.
+ *
+ * One place decides that order, because three others depend on it: the exact
+ * distribution and the simulation both return rows in it, and the chart draws
+ * them top to bottom in it.
+ *
+ * A `rounds` event has one record per win count. An elimination event has one
+ * per win count below the ceiling — reaching `k < maxWins` wins means being
+ * eliminated, so the losses are pinned at `maxLosses` — and then `maxLosses` of
+ * them at the ceiling itself, one for each number of losses a completed run can
+ * have picked up on the way.
+ */
+export function possibleRecords(structure: EventStructure): OutcomeRecord[] {
+  if (structure.kind === "rounds") {
+    return Array.from({ length: structure.rounds + 1 }, (_, wins) => ({
+      wins,
+      losses: structure.rounds - wins,
+    }));
+  }
+
+  const { maxWins, maxLosses } = structure;
+  return [
+    ...Array.from({ length: maxWins }, (_, wins) => ({ wins, losses: maxLosses })),
+    ...Array.from({ length: maxLosses }, (_, losses) => ({ wins: maxWins, losses })),
+  ];
 }
 
 /** Most rounds that can be played before the event necessarily ends. */

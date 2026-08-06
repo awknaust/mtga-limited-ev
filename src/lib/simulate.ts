@@ -1,12 +1,13 @@
 /** Monte Carlo simulation and the expected-value figures derived from it. */
 
-import { exactDistribution } from "./distribution";
+import { exactDistribution, exactRecordDistribution } from "./distribution";
 import { goldPerEvent, grossValue, netValue, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
-import { matchWinRate, maxPossibleWins } from "./structure";
+import { matchWinRate, maxPossibleWins, possibleRecords } from "./structure";
 import type {
   EventConfig,
   EventStructure,
+  RecordBucket,
   SimResult,
   WinBucket,
 } from "./types";
@@ -47,6 +48,19 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
   let totalRounds = 0;
 
   /*
+   * Records are counted alongside the win counts, through a wins-then-losses
+   * lookup built from the same enumeration the results are reported in. That
+   * keeps the ordering in `possibleRecords` and off the hot loop, which pays
+   * for itself at the trial counts this runs at.
+   */
+  const records = possibleRecords(config.structure);
+  const recordCounts = new Array<number>(records.length).fill(0);
+  const recordIndex: number[][] = [];
+  records.forEach((r, i) => {
+    (recordIndex[r.wins] ??= [])[r.losses] = i;
+  });
+
+  /*
    * Gold is a running balance, not a per-event discount: it accrues whether or
    * not it is spent, and an entry is free only once enough has piled up. That
    * makes the sequence path-dependent, so the events are played in order and
@@ -66,6 +80,7 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
     }
     const { wins, rounds } = simulateEvent(config.structure, pMatch, rand);
     counts[wins]++;
+    recordCounts[recordIndex[wins][rounds - wins]]++;
     totalRounds += rounds;
   }
 
@@ -73,6 +88,18 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
   const meanEntryGems = config.entryCostGems * (1 - goldEntryFraction);
 
   const exact = exactDistribution(pMatch, config.structure);
+
+  /* Both sides come from `possibleRecords`, so the rows line up by index. */
+  const recordBuckets: RecordBucket[] = exactRecordDistribution(
+    pMatch,
+    config.structure,
+  ).map(({ wins, losses, probability }, i) => ({
+    wins,
+    losses,
+    count: recordCounts[i],
+    probability: trials > 0 ? recordCounts[i] / trials : 0,
+    exactProbability: probability,
+  }));
 
   const buckets: WinBucket[] = counts.map((count, wins) => {
     const tier = payoutFor(config, wins);
@@ -124,6 +151,7 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
   return {
     trials,
     buckets,
+    records: recordBuckets,
     meanNet,
     exactMeanNet,
     meanGross,

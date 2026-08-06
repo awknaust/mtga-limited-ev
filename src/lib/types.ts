@@ -127,9 +127,48 @@ export type WinBucket = {
   collectorBoxes: number;
 };
 
+/**
+ * A finishing record — the wins and losses an event ended on.
+ *
+ * Win count alone does not name a finish in an elimination event. Anything
+ * short of the ceiling ended by being eliminated, so it carries exactly
+ * `maxLosses` losses and the record follows from the wins; but a run that
+ * reaches the ceiling stopped on its last *win*, with anything up to
+ * `maxLosses - 1` losses behind it. That is why 7-0, 7-1 and 7-2 are three
+ * records and one win count, and why only the top of the ladder splits.
+ *
+ * A `rounds` event never splits: every round is played, so losses are always
+ * `rounds - wins`.
+ */
+export type OutcomeRecord = {
+  wins: number;
+  losses: number;
+};
+
+/** A closed-form probability attached to the record it belongs to. */
+export type RecordProbability = OutcomeRecord & { probability: number };
+
+/** One finishing record, and how often the simulation landed on it. */
+export type RecordBucket = OutcomeRecord & {
+  count: number;
+  /** Empirical frequency from the simulation. */
+  probability: number;
+  /** Closed-form probability, for comparison. */
+  exactProbability: number;
+};
+
 export type SimResult = {
   trials: number;
   buckets: WinBucket[];
+  /**
+   * The same events split by record rather than by win count, ordered by wins
+   * ascending and then losses ascending.
+   *
+   * Payouts read off the win count alone, so this carries no money — it exists
+   * because "7 wins" hides how the run got there, and the chart says so. Group
+   * it by wins and it collapses back to `buckets`.
+   */
+  records: RecordBucket[];
   /** Mean net gems per event (simulated). */
   meanNet: number;
   /** Mean net gems per event (closed form). */
