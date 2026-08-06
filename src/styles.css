@@ -332,6 +332,28 @@ body {
 }
 
 /*
+ * "avg · worth ≈ …" after a figure, naming the statistic without becoming it.
+ *
+ * Hint-sized and hint-coloured against a 1.375rem number, so the figure keeps
+ * the eye and this reads as the aside it is. Lower case and unspaced, unlike
+ * the label above: it sits a line above "typically …" and wants that same
+ * plain voice, where small caps would read as a second heading.
+ *
+ * Allowed to wrap, since it now carries a figure of its own and is long enough
+ * to need the room in a narrow card. It wraps as a block rather than trailing
+ * off the number, which is what `inline-block` buys: a phrase that has moved
+ * under the figure reads as an aside to it, where a phrase broken across the
+ * two reads as neither.
+ */
+.stat-qualifier {
+  display: inline-block;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--bs-secondary-color);
+  margin-left: 0.15em;
+}
+
+/*
  * The full percentile row, folded under its one-sentence summary. The pattern
  * is .event-details at hint scale: the same cleared marker and turning
  * triangle, without the uppercase heading treatment — this opens a footnote,
@@ -546,6 +568,101 @@ body {
 }
 
 /*
+ * The ending value's composition, as a rule under the figure it decomposes.
+ *
+ * A few pixels rather than a chart's height, because it carries no vertical
+ * information — every segment is full height and only width means anything —
+ * and because it has to sit inside a stat tile without competing with the
+ * number above it. Read as a weighting, hovered for the parts.
+ */
+/*
+ * Laid out by flex rather than by width, so the gaps come out of the layout
+ * instead of out of the proportions — percentages plus a gap overflow, and
+ * percentages minus the gap stop summing to the total the bar decomposes.
+ */
+.value-split {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+  margin-top: 0.5rem;
+}
+
+/*
+ * Rounded at both ends of every segment, so the joins read as separate parts
+ * rather than one bar with a seam. `flex-grow` comes from the markup, since
+ * it is the data; everything else about a segment is the same for all of them.
+ *
+ * `min-width` keeps a very small share hoverable instead of collapsing to a
+ * line nobody can point at, and `flex-shrink: 0` stops the gaps from eating
+ * that minimum back when the tile is narrow.
+ */
+.value-split-seg {
+  flex-basis: 0;
+  flex-shrink: 0;
+  min-width: 6px;
+  border-radius: 3px;
+  background: var(--slice);
+  transition: opacity 0.12s ease-out;
+}
+
+/*
+ * The segments not being pointed at, dimmed rather than hidden. The one under
+ * the pointer keeps its colour and the rest recede, so the line beneath names
+ * a segment the eye has already found.
+ */
+.value-split-seg.is-muted {
+  opacity: 0.3;
+}
+
+/*
+ * Holds its line whether or not a segment is named, so that crossing the bar
+ * cannot reflow the tile — and every stat tile in the strip is sized to the
+ * tallest, so one growing pushes all of them.
+ */
+.value-split-detail {
+  min-height: 1.35em;
+}
+
+/*
+ * One hue per holding, keyed by name rather than by position, so that changing
+ * the event — which changes how many segments there are and in what order —
+ * cannot repaint gems as gold. Gems and gold take the colours they already
+ * have on screen; the rest are simply far apart.
+ *
+ * Held in a custom property because two elements need each colour: the SVG
+ * segment fills with it and the legend swatch takes it as a background. A
+ * strict CSP rules out doing that from the markup, and a hard-coded pair of
+ * rules per holding would be two places to change one colour.
+ */
+.slice-gems {
+  --slice: #60a5fa;
+}
+
+.slice-gold {
+  --slice: #fbbf24;
+}
+
+.slice-packs {
+  --slice: #34d399;
+}
+
+.slice-draftPacks {
+  --slice: #22d3ee;
+}
+
+.slice-playInPoints {
+  --slice: #a78bfa;
+}
+
+.slice-playBoxes {
+  --slice: #f472b6;
+}
+
+.slice-collectorBoxes {
+  --slice: #fb923c;
+}
+
+/*
  * Its axis labels. Positioned rather than spaced, because each one has to sit
  * where its value falls along a chart that is stretched to the card's width —
  * a flex row would space them evenly and put every one of them in the wrong
@@ -598,6 +715,7 @@ body {
   stroke-width: 1.5;
   stroke-dasharray: 6 3;
 }
+
 
 /*
  * Both landmark labels, sized and weighted to be read rather than glanced at.

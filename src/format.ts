@@ -123,6 +123,20 @@ export const tickAmount = (n: number, prefix = ""): string => {
 export const gemTick = (m: Money, gems: number): string =>
   m.unit === "gems" ? tickAmount(gems, m.symbol) : m.fmt(gems);
 
+/**
+ * What to call a gem-equivalent total, in whichever unit is showing.
+ *
+ * For the headings that name this quantity without a formatted figure under
+ * them to carry the unit — a tab, a section title, a card label. Where a
+ * figure *is* directly beneath, the label says nothing the figure has not
+ * already said, and should not name a unit at all.
+ *
+ * Shared because it now appears in three places, and a total called "Gem
+ * value" in one and "Gem total" in another reads as two different quantities.
+ */
+export const valueLabel = (unit: Unit): string =>
+  unit === "gems" ? "Gem value" : "Dollar value";
+
 const withSign = (n: number, body: string): string => (n < 0 ? `−${body}` : body);
 
 /**
