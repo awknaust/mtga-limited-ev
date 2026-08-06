@@ -116,6 +116,10 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
 
   const meanGross = buckets.reduce((acc, b) => acc + b.probability * b.grossGems, 0);
   const meanPacks = buckets.reduce((acc, b) => acc + b.probability * b.packs, 0);
+  const meanBoxes = buckets.reduce(
+    (acc, b) => acc + b.probability * (b.playBoxes + b.collectorBoxes),
+    0,
+  );
 
   return {
     trials,
@@ -124,6 +128,7 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
     exactMeanNet,
     meanGross,
     meanPacks,
+    meanBoxes,
     meanRounds: trials > 0 ? totalRounds / trials : 0,
     stdDevNet,
     stdErrNet: trials > 0 ? stdDevNet / Math.sqrt(trials) : 0,
