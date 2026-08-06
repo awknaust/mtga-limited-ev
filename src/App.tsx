@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 
-import { money, pct, type Unit } from "./format";
+import { approx, money, pct, type Unit } from "./format";
 import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
@@ -34,6 +34,7 @@ import {
   resizePayouts,
   simulate,
   simulateBankrolls,
+  startingValue,
   type EventConfig,
   type EventStructure,
   type PayoutTier,
@@ -412,6 +413,14 @@ export default function App() {
   const gems = m.fmt;
   const gems2 = m.fmt1;
   /*
+   * The ≈-marked variants, for gem-equivalent figures — the ones that fold
+   * packs, boxes or points in at the configured rates. Real balances and
+   * prices stay on the bare formatters; the contrast is what makes the mark
+   * legible.
+   */
+  const gemsEq = (g: number) => approx(m.fmt(g));
+  const gemsEq2 = (g: number) => approx(m.fmt1(g));
+  /*
    * Two forms because the label sits in two grammatical slots: `valueLabel`
    * stands alone ("Final gem value"), `unitLabel` only ever qualifies a figure
    * already named ("Mean ending value (gems)"), where repeating "value" reads
@@ -499,6 +508,13 @@ export default function App() {
       ),
     [config, startingGems, startingGold, maxEvents, spendWinnings, bankrollRuns, seed],
   );
+  /*
+   * The gem-equivalent baseline ending values are judged against — gems plus
+   * starting gold at the config's rate, since `runValue` counts leftover gold
+   * the same way. Judged against bare starting gems, a run beginning with
+   * gold would read as ahead before it played anything.
+   */
+  const startValue = startingValue(config, startingGems, startingGold);
   /*
    * The win rate is a guess, so these carry how much of one. Null throughout
    * when the player has called it certain.
@@ -651,14 +667,14 @@ export default function App() {
     {
       key: "value",
       label: `Avg ending value (${unitLabel})`,
-      value: gems(bankroll.meanFinalValue),
-      tone: signClass(bankroll.meanFinalValue - startingGems),
+      value: gemsEq(bankroll.meanFinalValue),
+      tone: signClass(bankroll.meanFinalValue - startValue),
       // No hint: the typical (median) figure is in the sentence below and the
       // starting balance is an input a few inches away.
       help: {
         label: "What average ending value means",
         content:
-          "Everything a run holds when it stops — gems, leftover gold and winnings — averaged across every simulated run. Green means the average run ends ahead of your starting balance; red, behind it.",
+          "Everything a run holds when it stops — gems, leftover gold, and winnings priced at the rates set on the left — averaged across every simulated run. Green means the average run ends ahead of the combined value you started with, gems and gold together; red, behind it.",
       },
     },
     {
@@ -773,17 +789,18 @@ export default function App() {
     {
       key: "net",
       label: "Expected net",
-      value: gems2(result.meanNet),
+      value: gemsEq2(result.meanNet),
       // The band the record supports. Falls back to the sampling error of the
       // simulated mean when the rate is called certain, since there is then
       // nothing else for a range to describe.
+      // No unit word: the figures above and here carry their own sign.
       hint: netBand
-        ? `${m.label} · plausibly ${gems2(netBand[0])} to ${gems2(netBand[1])}`
-        : `${m.label} · give or take ${gems2(1.96 * result.stdErrNet)}`,
+        ? `plausibly ${gems2(netBand[0])} to ${gems2(netBand[1])}`
+        : `give or take ${gems2(1.96 * result.stdErrNet)}`,
       tone: signClass(result.meanNet),
       help: {
         label: "What expected net means",
-        content: `What one entry wins or loses on average, after paying the entry. Any single event swings well above or below this; play many and your average result heads toward it. ${
+        content: `What one entry wins or loses on average, after paying the entry. Marked ≈ because packs and other rewards are priced at the rates set on the left, not paid as gems. Any single event swings well above or below this; play many and your average result heads toward it. ${
           netBand
             ? `The range underneath covers ${pct(CREDIBLE_LEVEL, 0)} of the possibilities your win-rate record allows.`
             : "The give-or-take underneath is the simulation's own sampling wobble, a 95% confidence interval."
@@ -793,12 +810,12 @@ export default function App() {
     {
       key: "gross",
       label: "Expected gross",
-      value: gems2(result.meanGross),
-      hint: `${m.label} + ${result.meanPacks.toFixed(2)} packs`,
+      value: gemsEq2(result.meanGross),
+      // No hint: the popover says what the figure folds in.
       help: {
         label: "What expected gross means",
         content:
-          "What one event pays back on average, before subtracting what it cost to enter. The packs beside it are counted separately rather than folded into the figure.",
+          "What one event pays back on average, before subtracting what it cost to enter. Packs and other rewards are folded in at the rates set on the left.",
       },
     },
     ...boxTiles,
@@ -971,6 +988,13 @@ export default function App() {
                       value={startingGold}
                       onChange={setStartingGold}
                     />
+                  </div>
+                  {/*
+                    The two balances as the one figure the results judge runs
+                    against.
+                  */}
+                  <div className="col-12 form-text mt-0">
+                    Together worth {gemsEq(startValue)}
                   </div>
                   <div className="col-12">
                     <label htmlFor={ids.maxEvents} className="form-label">
@@ -1365,8 +1389,8 @@ export default function App() {
                         >
                           <PercentileSummary
                             percentiles={bankroll.valuePercentiles}
-                            fmt={gems}
-                            tone={(v) => signClass(v - startingGems)}
+                            fmt={gemsEq}
+                            tone={(v) => signClass(v - startValue)}
                             noun="runs"
                           />
                         </Stat>
@@ -1375,12 +1399,17 @@ export default function App() {
                           m={m}
                           markers={[
                             {
-                              at: startingGems,
+                              // The gem-equivalent start, not the gem balance:
+                              // the axis this sits on counts gold, so the line
+                              // must too, or beginning with gold reads as an
+                              // immediate gain. Marked ≈ like every figure on
+                              // this chart.
+                              at: startValue,
                               // Carrying the figure, as the events histogram's
                               // median does: the axis under a landmark is
                               // lettered in thousands, so the line alone says
                               // roughly where you began and never what it was.
-                              label: `starting ${gems(startingGems)}`,
+                              label: `starting ${gemsEq(startValue)}`,
                               tone: "start",
                             },
                             {
@@ -1388,7 +1417,7 @@ export default function App() {
                               // "Typically", as the tiles say — the popover on
                               // the tile above teaches that the word means the
                               // median.
-                              label: `typically ${gems(bankroll.medianFinalValue)}`,
+                              label: `typically ${gemsEq(bankroll.medianFinalValue)}`,
                               tone: "median",
                             },
                           ]}
@@ -1465,14 +1494,20 @@ export default function App() {
                       <th scope="col" className="text-end">
                         Packs
                       </th>
+                      {/*
+                        The ≈ is declared once, on the column, rather than on
+                        every signed cell below it — the same way an axis names
+                        its unit. The About tab's wording list says what it
+                        means.
+                      */}
                       <th scope="col" className="text-end">
-                        Gross
+                        Gross ≈
                       </th>
                       <th scope="col" className="text-end">
-                        Net
+                        Net ≈
                       </th>
                       <th scope="col" className="text-end">
-                        Contribution to EV
+                        Contribution to EV ≈
                       </th>
                     </tr>
                   </thead>
@@ -1504,7 +1539,7 @@ export default function App() {
                         Expected net per event
                       </td>
                       <td className={`text-end fw-semibold ${signClass(result.meanNet)}`}>
-                        {gems2(result.meanNet)}
+                        {gemsEq2(result.meanNet)}
                       </td>
                     </tr>
                   </tfoot>
@@ -1523,14 +1558,14 @@ export default function App() {
               </SectionHeading>
               <PercentileSummary
                 percentiles={result.percentiles}
-                fmt={gems}
+                fmt={gemsEq}
                 tone={signClass}
                 noun="entries"
               />
               <div className="form-text">
                 Over {result.trials.toLocaleString()} events, total net ={" "}
                 <span className={`fw-semibold ${signClass(result.totalNet)}`}>
-                  {gems(result.totalNet)}
+                  {gemsEq(result.totalNet)}
                 </span>
                 .
               </div>

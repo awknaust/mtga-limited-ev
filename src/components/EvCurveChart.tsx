@@ -1,7 +1,7 @@
 import { line, scaleLinear } from "d3";
 
 import { expectedNetAt, type EventConfig } from "../lib";
-import { gemTick, type Money } from "../format";
+import { approx, gemTick, type Money } from "../format";
 
 const WIDTH = 560;
 const HEIGHT = 262;
@@ -122,7 +122,7 @@ export function EvCurveChart({
               textAnchor="middle"
               className="chart-value"
             >
-              {m.fmt(currentNet)}
+              {approx(m.fmt(currentNet))}
             </text>
           </g>
         )}
@@ -141,7 +141,8 @@ export function EvCurveChart({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          {`Expected net (${m.label})`}
+          {/* The unit is gem-equivalent, so the axis says so once; the ticks stay bare. */}
+          {`Expected net (≈ ${m.label})`}
         </text>
       </g>
     </svg>

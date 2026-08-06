@@ -103,7 +103,8 @@ export function ValueHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          {`Ending value (${m.unit === "gems" ? "gems" : "USD"})`}
+          {/* The unit is gem-equivalent, so the axis says so once; the ticks stay bare. */}
+          {`Ending value (≈ ${m.unit === "gems" ? "gems" : "USD"})`}
         </text>
         <text
           transform="rotate(-90)"

@@ -56,6 +56,7 @@ import {
   simulateBankroll,
   simulateBankrolls,
   runValue,
+  startingValue,
   seededRandom,
   type EventStructure,
 } from "./index";
@@ -720,6 +721,16 @@ describe("bankroll", () => {
     expect(runValue(config, run)).toBeCloseTo(1000 + 1500, 6);
     // Valuing gold at nothing drops the term entirely.
     expect(runValue({ ...config, goldPerGem: Infinity }, run)).toBe(1000);
+  });
+
+  it("values the starting balance the way it values the ending one", () => {
+    // The baseline ending values are judged against. Same rate, same Infinity
+    // behaviour as runValue — a run that begins with 10,000 gold has not
+    // gained 1,500 gems of value by playing zero events.
+    const config = { ...defaultConfig(), goldPerGem: GOLD_PER_GEM };
+    expect(startingValue(config, 1000, 10_000)).toBeCloseTo(1000 + 1500, 6);
+    expect(startingValue(config, 1000, 0)).toBe(1000);
+    expect(startingValue({ ...config, goldPerGem: Infinity }, 1000, 10_000)).toBe(1000);
   });
 
   it("histogram accounts for every run", () => {

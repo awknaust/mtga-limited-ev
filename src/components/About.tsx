@@ -1,8 +1,10 @@
 import type { EventConfig } from "../lib";
-import type { Money } from "../format";
+import { GEM_PREFIX, GEM_SIGN, approx, type Money } from "../format";
 import { SectionHeading } from "./SectionHeading";
 
-const show = (m: Money, n: number): string => (Number.isFinite(n) ? m.fmt(n) : "—");
+/* Rates are valuations, not prices anyone is paid, so they carry the ≈. */
+const show = (m: Money, n: number): string =>
+  Number.isFinite(n) ? approx(m.fmt(n)) : "—";
 
 /**
  * What the numbers mean and what they leave out.
@@ -35,21 +37,26 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
             <tr>
               <td>Gems</td>
               <td>Yes</td>
-              <td>Face value</td>
+              {/* Face value, written as the equation the other rows use — and
+                  a quiet primer on the notation. The left side is pinned to
+                  one real gem; only the right follows the display unit, so in
+                  dollars the row shows the exchange rate rather than the
+                  tautology $0.0050 = $0.0050. */}
+              <td>
+                {GEM_PREFIX}1 = {approx(m.fmt(1))}
+              </td>
             </tr>
             <tr>
               <td>Gold</td>
               <td>Only where the event has a gold price</td>
               <td>
-                {Math.round(10000 / config.goldPerGem).toLocaleString()} gems per 10,000 gold
+                {approx(m.fmt(Math.round(10000 / config.goldPerGem)))} = 10,000 gold
               </td>
             </tr>
             <tr>
               <td>Draft packs kept</td>
               <td>No</td>
-              <td>
-                {show(m, config.draftPackValueGems)} each × {config.draftPacks}
-              </td>
+              <td>{show(m, config.draftPackValueGems)} each</td>
             </tr>
             <tr>
               <td>Packs</td>
@@ -87,11 +94,13 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
 
       <SectionHeading className="mt-4" title="Terms" />
       <dl className="row mb-0">
-        <dt className="col-sm-4">Gem value</dt>
+        {/* Carrying its own notation, built by the same helper that marks
+            every figure, so the two cannot drift apart. */}
+        <dt className="col-sm-4">Gem value ({approx(GEM_SIGN)})</dt>
         <dd className="col-sm-8">
           Everything you hold at the end, converted to gems at the rates above.
           The only figure that compares two outcomes fairly, since events pay in
-          different currencies.
+          different currencies. Marked ≈ wherever it appears.
         </dd>
 
         <dt className="col-sm-4">Possible outcome</dt>
@@ -150,6 +159,13 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
         subtitle="The tiles speak plain words; each one is a precise statistic underneath."
       />
       <dl className="row mb-0">
+        <dt className="col-sm-4">≈</dt>
+        <dd className="col-sm-8">
+          A gem-equivalent figure: packs, boxes and points priced at the rates
+          above, not gems anyone was paid. A bare gem figure — an entry cost, a
+          ladder's gem payout, the gem balance — is a real amount.
+        </dd>
+
         <dt className="col-sm-4">Average</dt>
         <dd className="col-sm-8">
           The mean of every simulated outcome. A few lucky runs can pull it
