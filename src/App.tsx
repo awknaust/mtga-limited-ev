@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 
-import { approx, money, pct, type Unit } from "./format";
+import { approx, money, otherUnit, pct, type Unit } from "./format";
 import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
@@ -420,6 +420,14 @@ export default function App() {
    */
   const gemsEq = (g: number) => approx(m.fmt(g));
   const gemsEq2 = (g: number) => approx(m.fmt1(g));
+  /*
+   * The same amount priced in the unit that is not showing, at the same rate.
+   * Only the starting balance takes it: that figure is the one compared with
+   * what a top-up would cost, so it says both what Arena would show and what
+   * the store would charge, whichever unit the toggle is on.
+   */
+  const alt = useMemo(() => money(otherUnit(unit), gemsPerUsd), [unit, gemsPerUsd]);
+  const altEq = (g: number) => approx(alt.fmt(g));
   /*
    * Two forms because the label sits in two grammatical slots: `valueLabel`
    * stands alone ("Final gem value"), `unitLabel` only ever qualifies a figure
@@ -991,10 +999,13 @@ export default function App() {
                   </div>
                   {/*
                     The two balances as the one figure the results judge runs
-                    against.
+                    against, priced both ways — the gems Arena would show and
+                    the dollars they would cost, since deciding whether a
+                    bankroll is worth playing means weighing it against what
+                    refilling it would charge.
                   */}
                   <div className="col-12 form-text mt-0">
-                    Together worth {gemsEq(startValue)}
+                    Together worth {gemsEq(startValue)} or {altEq(startValue)}
                   </div>
                   <div className="col-12">
                     <label htmlFor={ids.maxEvents} className="form-label">
