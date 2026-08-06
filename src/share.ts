@@ -47,7 +47,6 @@ export type ShareState = {
   startingGems: number;
   startingGold: number;
   maxEvents: number;
-  spendWinnings: boolean;
   tab: Tab;
   unit: Unit;
   gemsPerUsd: number;
@@ -85,7 +84,6 @@ export function defaultShareState(): ShareState {
     startingGems: STARTING_ENTRIES * opening.entryCostGems,
     startingGold: 0,
     maxEvents: 20,
-    spendWinnings: false,
     tab: "bankroll",
     unit: "gems",
     gemsPerUsd: 200,
@@ -148,7 +146,16 @@ const CONFIG_NUMBERS = [
   ["confMatches", "winRateMatches"],
 ] as const satisfies readonly (readonly [string, keyof EventConfig])[];
 
-/** Bankroll and display fields, which sit outside the config. */
+/**
+ * Bankroll and display fields, which sit outside the config.
+ *
+ * `spendWinnings` was one of these and is retired: it let packs, points and
+ * boxes fund further entries, which nothing in Arena does. A link still
+ * carrying it decodes to a run that holds its winnings instead of spending
+ * them, and that is the intended reading rather than an oversight. The name
+ * must not be given a new meaning — an old link would then say something its
+ * author never chose.
+ */
 const UI_NUMBERS = [
   ["startGems", "startingGems"],
   ["startGold", "startingGold"],
@@ -274,7 +281,6 @@ export function encodeShareState(state: ShareState): string {
     if (value !== (fallback[field] as number)) params.set(key, num(value));
   }
 
-  if (state.spendWinnings !== fallback.spendWinnings) params.set("spendWinnings", "1");
   if (state.tab !== fallback.tab) params.set("tab", state.tab);
   if (state.unit !== fallback.unit) params.set("unit", state.unit);
 
@@ -358,7 +364,6 @@ export function decodeShareState(search: string): ShareState {
     startingGems: numberFrom(params, "startGems", fallback.startingGems),
     startingGold: numberFrom(params, "startGold", fallback.startingGold),
     maxEvents: numberFrom(params, "maxEvents", fallback.maxEvents, { min: 1, max: 2000, int: true }),
-    spendWinnings: params.get("spendWinnings") === "1",
     tab: oneOf<Tab>(params, "tab", ["bankroll", "event", "about"], fallback.tab),
     unit: oneOf<Unit>(params, "unit", ["gems", "usd"], fallback.unit),
     gemsPerUsd: numberFrom(params, "gemsPerUsd", fallback.gemsPerUsd, { min: 1 }),

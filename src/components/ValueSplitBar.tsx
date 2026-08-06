@@ -35,14 +35,8 @@ export type ValueSlice = {
 export function holdingSlices(
   bankroll: BankrollResult,
   config: EventConfig,
-  liquidating: boolean,
 ): ValueSlice[] {
-  const keys = heldKeys(config, bankroll.holdings.gold.mean > 0);
-  // With winnings liquidated their value already sits inside the gem balance,
-  // so a segment each would count it twice — the rule the cards follow.
-  const shown = liquidating ? keys.filter((k) => k === "gems" || k === "gold") : keys;
-
-  return shown
+  return heldKeys(config, bankroll.holdings.gold.mean > 0)
     .map((key) => ({
       key,
       label: holding(key).label,
