@@ -24,6 +24,25 @@ const GROUP_W = 72;
 /** Horizontal extent of the brace, flat side to tip. */
 const BRACE_W = 8;
 
+/**
+ * The trophy, marking the finish a player would call one: the win ceiling,
+ * whether that is 7 wins in an elimination event or 3-0 in a fixed-rounds one.
+ *
+ * It stands in for the win count over the braced total rather than sitting
+ * beside it — the rows the brace spans all start with that number, so naming
+ * it again said less than the trophy does. Where nothing is braced there is no
+ * total to head, and it goes on the ceiling's own row label instead.
+ *
+ * A system emoji rather than the bootstrap-icons glyph the rest of the app
+ * draws with. This is a mark on the data and not chrome around it, and it
+ * stays a trophy when the icon font does not load — which a fresh worktree's
+ * dev server is quite capable of arranging.
+ */
+const TROPHY = "🏆";
+
+/** What the trophy costs the row-label column when it has to carry one. */
+const TROPHY_W = 18;
+
 /** Offsets from the plot's right edge. */
 const VALUE_X = 8;
 const BRACE_X = 60;
@@ -102,10 +121,19 @@ function bracePath(x: number, y0: number, y1: number): string {
  */
 export function DistributionChart({ records }: { records: RecordBucket[] }) {
   const groups = groupByWins(records).filter((g) => g.to > g.from);
+  /*
+   * The ceiling is the last row, since the records arrive in win order. It is
+   * braced whenever more than one record reaches it, and only then does the
+   * trophy have a total to sit over; otherwise that one row wears it.
+   */
+  const ceiling = records[records.length - 1]?.wins;
+  const trophyRow = groups.some((g) => g.wins === ceiling) ? undefined : ceiling;
+
+  const left = MARGIN.left + (trophyRow === undefined ? 0 : TROPHY_W);
   const right = MARGIN.right + (groups.length > 0 ? GROUP_W : 0);
   const rows = records.length * ROW;
   const height = MARGIN.top + rows + MARGIN.bottom;
-  const inner = WIDTH - MARGIN.left - right;
+  const inner = WIDTH - left - right;
 
   const maxP = Math.max(...records.map((r) => Math.max(r.probability, r.exactProbability)));
   const x = scaleLinear().domain([0, maxP || 1]).nice().range([0, inner]);
@@ -121,7 +149,7 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
       role="img"
       aria-label="Distribution of outcomes by finishing record"
     >
-      <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
+      <g transform={`translate(${left},${MARGIN.top})`}>
         {x.ticks(8).map((t) => (
           <g key={t} transform={`translate(${x(t)},0)`}>
             <line y1={0} y2={rows} className="chart-gridline" />
@@ -140,15 +168,15 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
               <path d={bracePath(inner + BRACE_X, top, bottom)} className="chart-brace" />
               <text
                 x={inner + GROUP_TEXT_X}
-                y={mid - 6}
+                y={mid - 7}
                 dominantBaseline="middle"
-                className="chart-group-label"
+                className="chart-group-trophy"
               >
-                {`${g.wins}W`}
+                {TROPHY}
               </text>
               <text
                 x={inner + GROUP_TEXT_X}
-                y={mid + 7}
+                y={mid + 8}
                 dominantBaseline="middle"
                 className="chart-group-value"
               >
@@ -170,7 +198,11 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
                 textAnchor="end"
                 className="chart-tick"
               >
-                {`${r.wins}-${r.losses}`}
+                {/*
+                  The trophy leads, so the records stay right-aligned with each
+                  other rather than being shunted left by the row that has one.
+                */}
+                {r.wins === trophyRow ? `${TROPHY} ${rowKey(r)}` : rowKey(r)}
               </text>
               <rect
                 x={0}
