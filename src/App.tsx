@@ -1529,10 +1529,10 @@ export default function App() {
 
               <SectionHeading
                 className="mt-4"
-                title="Distribution of outcomes by wins"
+                title="Distribution of outcomes by record"
                 subtitle="Bars are the simulation; the tick mark is the closed-form probability."
               />
-              <DistributionChart buckets={result.buckets} />
+              <DistributionChart records={result.records} />
 
               <SectionHeading
                 className="mt-4"

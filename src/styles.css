@@ -562,6 +562,16 @@ body {
   white-space: nowrap;
 }
 
+/*
+ * An invisible hit target the width of the plot, so a row's tooltip answers
+ * anywhere along it rather than only over the few pixels its bar happens to
+ * cover. `transparent` is a paint, so the rect still takes pointer events;
+ * `fill: none` would not.
+ */
+.chart-row-hit {
+  fill: transparent;
+}
+
 /* Where the closed-form probability falls, against the simulated bar. */
 .chart-exact-tick {
   stroke: #fbbf24;
@@ -572,6 +582,36 @@ body {
   stroke: var(--bs-border-color);
   stroke-width: 1;
   opacity: 0.55;
+}
+
+/*
+ * The brace gathering the records that share a win count.
+ *
+ * Chrome rather than data: it says which rows belong together and the label
+ * beside it carries the number, so it is drawn at the weight of a gridline and
+ * not of a mark. Anything heavier competes with the bars it is annotating.
+ */
+.chart-brace {
+  fill: none;
+  stroke: var(--bs-secondary-color);
+  stroke-width: 1.25;
+  opacity: 0.7;
+}
+
+/*
+ * The trophy ahead of a braced total. A shade larger than the figure it sits
+ * beside, because it is carrying what the win count used to say and a colour
+ * emoji at the text's own size reads as a smudge rather than a cup.
+ */
+.chart-group-trophy {
+  font-size: 13px;
+}
+
+.chart-group-value {
+  fill: var(--bs-body-color);
+  font-size: 11px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .chart-zero {

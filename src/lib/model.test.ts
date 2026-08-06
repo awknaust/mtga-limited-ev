@@ -25,6 +25,8 @@ import {
   configFromPreset,
   defaultConfig,
   exactDistribution,
+  exactRecordDistribution,
+  possibleRecords,
   expectedNet,
   expectedNetAt,
   effectiveEntryGems,
@@ -59,9 +61,19 @@ import {
   startingValue,
   seededRandom,
   type EventStructure,
+  type RecordProbability,
 } from "./index";
 
 const ELIM: EventStructure = { kind: "elimination", maxWins: 7, maxLosses: 3 };
+
+/** Collapse a record distribution back to one probability per win count. */
+const byWins = (records: RecordProbability[]): number[] => {
+  const out: number[] = [];
+  for (const r of records) out[r.wins] = (out[r.wins] ?? 0) + r.probability;
+  return out;
+};
+
+const label = (r: { wins: number; losses: number }) => `${r.wins}-${r.losses}`;
 
 describe("exactDistribution — elimination", () => {
   it("sums to 1", () => {
@@ -111,6 +123,82 @@ describe("exactDistribution — fixed rounds", () => {
     for (const p of [0.4, 0.6]) {
       for (const mass of exactDistribution(p, rounds)) expect(mass).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("exactRecordDistribution", () => {
+  const ROUNDS: EventStructure = { kind: "rounds", rounds: 3 };
+
+  it("sums to 1", () => {
+    for (const structure of [ELIM, ROUNDS]) {
+      for (const p of [0, 0.25, 0.5, 0.62, 0.9, 1]) {
+        const total = exactRecordDistribution(p, structure).reduce(
+          (a, r) => a + r.probability,
+          0,
+        );
+        expect(total).toBeCloseTo(1, 12);
+      }
+    }
+  });
+
+  it("splits only the ceiling of an elimination ladder", () => {
+    const records = exactRecordDistribution(0.6, ELIM);
+    // Seven ways to bust out, then 7-0, 7-1 and 7-2.
+    expect(records.map(label)).toEqual([
+      "0-3",
+      "1-3",
+      "2-3",
+      "3-3",
+      "4-3",
+      "5-3",
+      "6-3",
+      "7-0",
+      "7-1",
+      "7-2",
+    ]);
+  });
+
+  it("matches hand-computed values at p=0.5", () => {
+    const at = (wins: number, losses: number) =>
+      exactRecordDistribution(0.5, ELIM).find(
+        (r) => r.wins === wins && r.losses === losses,
+      )!.probability;
+
+    // A clean run: seven wins and nothing else.
+    expect(at(7, 0)).toBeCloseTo(0.5 ** 7, 12);
+    // 7-1: the loss falls anywhere among the seven rounds before the last win.
+    expect(at(7, 1)).toBeCloseTo(7 * 0.5 ** 8, 12);
+    // 7-2: two losses among the eight rounds before it, so C(8,2) = 28.
+    expect(at(7, 2)).toBeCloseTo(28 * 0.5 ** 9, 12);
+    // Busting out at 0 wins is losing the first three.
+    expect(at(0, 3)).toBeCloseTo(0.125, 12);
+  });
+
+  it("collapses to the win-count distribution", () => {
+    for (const structure of [ELIM, ROUNDS]) {
+      for (const p of [0, 0.25, 0.5, 0.62, 0.9, 1]) {
+        const grouped = byWins(exactRecordDistribution(p, structure));
+        const direct = exactDistribution(p, structure);
+        expect(grouped).toHaveLength(direct.length);
+        grouped.forEach((mass, wins) => expect(mass).toBeCloseTo(direct[wins], 12));
+      }
+    }
+  });
+
+  it("puts all mass on one record at a certain win rate", () => {
+    const busted = exactRecordDistribution(0, ELIM);
+    expect(busted.find((r) => label(r) === "0-3")!.probability).toBe(1);
+    const perfect = exactRecordDistribution(1, ELIM);
+    expect(perfect.find((r) => label(r) === "7-0")!.probability).toBe(1);
+    // Nothing else takes any: a certain run has exactly one way to go.
+    for (const records of [busted, perfect]) {
+      expect(records.filter((r) => r.probability > 0)).toHaveLength(1);
+    }
+  });
+
+  it("leaves a fixed-rounds event one record per win count", () => {
+    const records = exactRecordDistribution(0.55, ROUNDS);
+    expect(records.map(label)).toEqual(["0-3", "1-2", "2-1", "3-0"]);
   });
 });
 
@@ -272,6 +360,37 @@ describe("simulate", () => {
     const config = defaultConfig();
     expect(simulate(config, 5_000, 7).meanNet).toBe(simulate(config, 5_000, 7).meanNet);
   });
+
+  it("counts every event once, by record as well as by win count", () => {
+    for (const preset of [PREMIER_DRAFT, ARENA_DIRECT, TRADITIONAL_DRAFT]) {
+      const res = simulate(configFromPreset(preset, defaultConfig()), 20_000, 11);
+      expect(res.records.reduce((a, r) => a + r.count, 0)).toBe(res.trials);
+      // Grouping the records by wins has to give the win buckets back.
+      const grouped: number[] = [];
+      for (const r of res.records) grouped[r.wins] = (grouped[r.wins] ?? 0) + r.count;
+      expect(grouped).toEqual(res.buckets.map((b) => b.count));
+    }
+  });
+
+  it("converges to the closed-form record distribution", () => {
+    const config = { ...defaultConfig(), winRate: 0.58 };
+    const res = simulate(config, 200_000, 42);
+    for (const r of res.records) {
+      expect(Math.abs(r.probability - r.exactProbability)).toBeLessThan(0.005);
+    }
+    // The ceiling splits three ways and every one of them is reached.
+    const ceiling = res.records.filter((r) => r.wins === 7);
+    expect(ceiling.map(label)).toEqual(["7-0", "7-1", "7-2"]);
+    for (const r of ceiling) expect(r.count).toBeGreaterThan(0);
+  });
+
+  it("leaves a fixed-rounds event's rows alone", () => {
+    // Nothing to split: three rounds are always played, so a win count is a
+    // record. The chart's braces have nothing to gather here.
+    const res = simulate(configFromPreset(TRADITIONAL_DRAFT, defaultConfig()), 20_000, 5);
+    expect(res.records.map(label)).toEqual(["0-3", "1-2", "2-1", "3-0"]);
+    expect(res.records.map((r) => r.count)).toEqual(res.buckets.map((b) => b.count));
+  });
 });
 
 describe("structure helpers", () => {
@@ -284,6 +403,31 @@ describe("structure helpers", () => {
     // 6 wins and 2 losses, then a decider.
     expect(maxRounds(ELIM)).toBe(9);
     expect(maxRounds({ kind: "rounds", rounds: 3 })).toBe(3);
+  });
+
+  it("enumerates the records an event can finish on", () => {
+    expect(possibleRecords({ kind: "elimination", maxWins: 4, maxLosses: 2 }).map(label))
+      .toEqual(["0-2", "1-2", "2-2", "3-2", "4-0", "4-1"]);
+    expect(possibleRecords({ kind: "rounds", rounds: 3 }).map(label)).toEqual([
+      "0-3",
+      "1-2",
+      "2-1",
+      "3-0",
+    ]);
+  });
+
+  it("gives every reachable record for each preset, and no unreachable one", () => {
+    for (const preset of PRESETS) {
+      const records = possibleRecords(preset.structure);
+      // Distinct rows, none of them longer than the event can run.
+      expect(new Set(records.map(label)).size).toBe(records.length);
+      for (const r of records) {
+        expect(r.wins + r.losses).toBeLessThanOrEqual(maxRounds(preset.structure));
+      }
+      expect(new Set(records.map((r) => r.wins)).size).toBe(
+        maxPossibleWins(preset.structure) + 1,
+      );
+    }
   });
 });
 
