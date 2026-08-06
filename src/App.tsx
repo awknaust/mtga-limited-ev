@@ -627,7 +627,7 @@ export default function App() {
    */
   const packsTile: StatTile = {
     key: "packs",
-    label: "Average packs won",
+    label: "Avg packs won",
     value: bankroll.holdings.packs.mean.toFixed(1),
     hint: spendWinnings ? "over the run, then converted to gems" : "over the whole run",
     help: {
@@ -639,7 +639,7 @@ export default function App() {
   const runTiles: StatTile[] = [
     {
       key: "events",
-      label: "Average events played",
+      label: "Avg events played",
       value: bankroll.meanEvents.toFixed(1),
       hint: `typically ${bankroll.eventPercentiles.p50}`,
       help: {
@@ -650,7 +650,7 @@ export default function App() {
     },
     {
       key: "value",
-      label: `Average ending value (${unitLabel})`,
+      label: `Avg ending value (${unitLabel})`,
       value: gems(bankroll.meanFinalValue),
       tone: signClass(bankroll.meanFinalValue - startingGems),
       // No hint: the typical (median) figure is in the sentence below and the
@@ -744,7 +744,7 @@ export default function App() {
           label: (
             <>
               <i className="bi bi-box-seam me-1" aria-hidden="true" />
-              Expected boxes / event
+              Expected boxes
             </>
           ),
           value: result.meanBoxes.toFixed(2),
@@ -772,7 +772,7 @@ export default function App() {
   const stats: StatTile[] = [
     {
       key: "net",
-      label: "Expected net / event",
+      label: "Expected net",
       value: gems2(result.meanNet),
       // The band the record supports. Falls back to the sampling error of the
       // simulated mean when the rate is called certain, since there is then
@@ -794,7 +794,7 @@ export default function App() {
       key: "gross",
       label: "Expected gross",
       value: gems2(result.meanGross),
-      hint: `${m.label} + ${result.meanPacks.toFixed(2)} packs / event`,
+      hint: `${m.label} + ${result.meanPacks.toFixed(2)} packs`,
       help: {
         label: "What expected gross means",
         content:
@@ -844,7 +844,7 @@ export default function App() {
     },
     {
       key: "matches",
-      label: "matches / event",
+      label: "Matches",
       value: result.meanRounds.toFixed(2),
       // The σ of net that used to share this hint lives in the spread section
       // now, where percentiles say the same thing in plainer words.
@@ -893,7 +893,7 @@ export default function App() {
           <div className="card">
             <div className="card-body">
               <h2 className="section-title d-flex flex-wrap align-items-center justify-content-between gap-2">
-                Global inputs
+                Your inputs
                 {/* Display only — everything is stored and simulated in gems. */}
                 <span
                   className="btn-group btn-group-sm"
@@ -947,42 +947,46 @@ export default function App() {
                 />
               </div>
 
-              <div className="row g-2 mb-3">
-                <div className="col-6">
-                  <label htmlFor={ids.startGems} className="form-label">
-                    Starting {m.label}
-                  </label>
-                  <MoneyInput
-                    id={ids.startGems}
-                    m={m}
-                    gemValue={startingGems}
-                    onChange={setStartingGems}
-                  />
-                </div>
-                <div className="col-6">
-                  <label htmlFor={ids.startGold} className="form-label">
-                    Starting gold
-                  </label>
-                  <GoldInput
-                    id={ids.startGold}
-                    value={startingGold}
-                    onChange={setStartingGold}
-                  />
-                </div>
-                <div className="col-12">
-                  <label htmlFor={ids.maxEvents} className="form-label">
-                    Stop after (events)
-                    <InfoTip
-                      label="About the event limit"
-                      content="Where you stop playing. A run that never goes broke has to end somewhere, and how long you intend to keep going changes the ending balance."
+              {/* The inputs the Bankroll tab runs on, boxed under its name. */}
+              <div className="adv-group mb-3">
+                <h3 className="section-title">Bankroll</h3>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label htmlFor={ids.startGems} className="form-label">
+                      Starting {m.label}
+                    </label>
+                    <MoneyInput
+                      id={ids.startGems}
+                      m={m}
+                      gemValue={startingGems}
+                      onChange={setStartingGems}
                     />
-                  </label>
-                  <NumberInput
-                    id={ids.maxEvents}
-                    min={1}
-                    value={maxEvents}
-                    onChange={(n) => setMaxEvents(clampInt(n, 1, 2000))}
-                  />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.startGold} className="form-label">
+                      Starting gold
+                    </label>
+                    <GoldInput
+                      id={ids.startGold}
+                      value={startingGold}
+                      onChange={setStartingGold}
+                    />
+                  </div>
+                  <div className="col-12">
+                    <label htmlFor={ids.maxEvents} className="form-label">
+                      Stop after (events)
+                      <InfoTip
+                        label="About the event limit"
+                        content="Where you stop playing. A run that never goes broke has to end somewhere, and how long you intend to keep going changes the ending balance."
+                      />
+                    </label>
+                    <NumberInput
+                      id={ids.maxEvents}
+                      min={1}
+                      value={maxEvents}
+                      onChange={(n) => setMaxEvents(clampInt(n, 1, 2000))}
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1305,13 +1309,12 @@ export default function App() {
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
-                    You start with the balance above and enter the same event
-                    over and over. Each entry is paid in gold if the event has a
-                    gold price and in gems otherwise, and whatever you win goes
-                    back into the pot to pay for the next one. A run stops when
-                    you can no longer afford an entry, or when it hits your event
-                    limit. The figures below summarise a few thousand different
-                    possible outcomes.
+                    As in tournament poker, your profitability depends on how
+                    much you start with: with too small a bankroll, an ordinary
+                    losing streak ends the run before the long-term averages
+                    can arrive. We simulate entering the same event repeatedly,
+                    recycling your gem and gold winnings, and summarise the
+                    thousands of outcomes below.
                   </div>
                   <div className="mb-3">
                     <StatStrip tiles={bankrollTiles} label="Bankroll summary" />
@@ -1406,6 +1409,13 @@ export default function App() {
                 </>
               ) : (
                 <>
+              <div className="form-text mb-2">
+                Conventional analysis: the (possibly very) long-term
+                expectations for this event, assuming a bankroll deep enough
+                that you can always afford the next entry. Every figure is per
+                event: what an average entry wins or loses, and how the
+                possible finishes are spread.
+              </div>
               <div className="row g-2">
                 {stats.map(({ key, ...s }) => (
                   <div key={key} className="col-6 col-xl-4">
