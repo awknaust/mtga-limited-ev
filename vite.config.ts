@@ -16,8 +16,14 @@ import babel from "@rolldown/plugin-babel";
  * Expected object property value to be an LVal, got: AssignmentPattern"
  * (react/react#36868). That silently cost six components here, NumberInput and
  * Tabs among them, and a bailout is invisible in a build log: the bundle just
- * quietly carries less memoisation. Let Dependabot offer Babel 8 again once
- * that issue closes, and check the test before taking it.
+ * quietly carries less memoisation.
+ *
+ * Everything else is on latest. Babel 8.0.1 was tried and reverted rather than
+ * skipped on the strength of the issue: it still fails, on exactly the five
+ * files the test names. Take it when that issue closes, and let the test say
+ * whether it is safe rather than assuming — the alternative, moving the six
+ * defaults out of their destructuring patterns, does satisfy Babel 8 but
+ * spreads a workaround across five components to save one line here.
  */
 export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
