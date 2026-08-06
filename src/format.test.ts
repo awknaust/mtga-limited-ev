@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GEM_SIGN, approx, gemTick, money, tickAmount } from "./format";
+import { GEM_SIGN, approx, gemTick, money, otherUnit, tickAmount } from "./format";
 
 // The default rate: 20,000 gems for $99.99, the largest bundle.
 const RATE = 200;
@@ -120,6 +120,26 @@ describe("gem-equivalent marker", () => {
     // Keyed to the quantity, not the display unit, so toggling gems/USD
     // cannot move the mark between figures.
     expect(approx(money("usd", RATE).fmt(3400))).toBe("≈\u202F$17.00");
+  });
+});
+
+describe("the unit that is not showing", () => {
+  it("is whichever of the two the toggle is off", () => {
+    expect(otherUnit("gems")).toBe("usd");
+    expect(otherUnit("usd")).toBe("gems");
+  });
+
+  it("prices one amount both ways, at one rate", () => {
+    // What the starting-balance line prints: the same quantity twice, so the
+    // pair has to agree. At 200 gems to the dollar 8,600 gems is $43.00, and
+    // which of the two leads is only which unit is showing.
+    const gems = money("gems", RATE);
+    const usd = money(otherUnit("gems"), RATE);
+    expect(gems.fmt(8600)).toBe(`${GEM_SIGN}\u202F8,600`);
+    expect(usd.fmt(8600)).toBe("$43.00");
+    // Both are gem-equivalent valuations — the total folds gold in — so both
+    // carry the mark. The unit does not decide that; the quantity does.
+    expect(approx(usd.fmt(8600))).toBe("≈\u202F$43.00");
   });
 });
 

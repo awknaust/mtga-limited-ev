@@ -13,6 +13,19 @@
 export type Unit = "gems" | "usd";
 
 /**
+ * The unit the display toggle is not on.
+ *
+ * For the figure that names both. The starting balance is checked in two
+ * places — against an Arena wallet, which counts gems, and against the store
+ * page that would sell them, which charges dollars — so it prints in the unit
+ * showing and again in the one that is not, and neither reader has to convert
+ * by hand. Every other figure takes the active unit alone; the toggle is what
+ * changes it, and a second unit on every line would undo the point of having
+ * one.
+ */
+export const otherUnit = (unit: Unit): Unit => (unit === "gems" ? "usd" : "gems");
+
+/**
  * Gems have no currency sign of their own, so this stands in for one.
  *
  * U+1F48E GEM STONE. Being an emoji it carries its own colour rather than
