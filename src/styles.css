@@ -562,6 +562,16 @@ body {
   white-space: nowrap;
 }
 
+/*
+ * An invisible hit target the width of the plot, so a row's tooltip answers
+ * anywhere along it rather than only over the few pixels its bar happens to
+ * cover. `transparent` is a paint, so the rect still takes pointer events;
+ * `fill: none` would not.
+ */
+.chart-row-hit {
+  fill: transparent;
+}
+
 /* Where the closed-form probability falls, against the simulated bar. */
 .chart-exact-tick {
   stroke: #fbbf24;

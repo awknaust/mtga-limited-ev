@@ -6,11 +6,13 @@ const WIDTH = 560;
 const ROW = 26;
 
 /**
- * The right margin carries three things past the plot, at the offsets below:
- * each row's share, the brace, and the braced total. Every event draws all
- * three, so unlike the rest of the layout this is not conditional.
+ * The right margin past the plot: each row's share, then the trophy, which
+ * every event draws at `BRACE_X` whether or not a brace is there to hold it.
  */
-const MARGIN = { top: 8, right: 108, bottom: 46, left: 48 };
+const MARGIN = { top: 8, right: 64, bottom: 46, left: 48 };
+
+/** What a brace and the total beside it need on top of that. */
+const BRACED_EXTRA = 44;
 
 /** Horizontal extent of the brace, flat side to tip. */
 const BRACE_W = 8;
@@ -110,25 +112,27 @@ function bracePath(x: number, y0: number, y1: number): string {
  * matters: 7-0, 7-1 and 7-2 are one row of the payout table but three quite
  * different runs, and the odds of each are worth seeing. What the payout table
  * cares about is still legible — a brace to the right of the rows gathers the
- * ceiling and totals it, which is the number the old chart showed.
+ * ceiling and totals it, which is the number the old chart showed. The trophy
+ * marks it either way.
  *
  * D3 supplies the scales and ticks; React renders the SVG. Keeping the DOM
  * under React avoids the two libraries both trying to own these nodes.
  */
 export function DistributionChart({ records }: { records: RecordBucket[] }) {
   /*
-   * The ceiling is the last group, since the records arrive in win order, and
-   * it is braced whether it holds three records or one. A fixed-rounds event
-   * reaches it exactly one way and so has nothing to gather, but the brace and
-   * its trophy are where a reader has learnt to look for the trophy odds, and
-   * an event that dropped them would be saying something it does not mean.
+   * The ceiling is the last group, since the records arrive in win order. It
+   * is braced only when it holds more than one record: a fixed-rounds event
+   * reaches 3-0 exactly one way, so there is nothing to gather and nothing to
+   * total that the row does not already say. The trophy still marks it — that
+   * is the part which is about the finish rather than about the grouping.
    */
   const groups = groupByWins(records);
   const trophy = groups[groups.length - 1];
+  const braced = trophy !== undefined && trophy.from !== trophy.to;
 
   const rows = records.length * ROW;
   const height = MARGIN.top + rows + MARGIN.bottom;
-  const inner = WIDTH - MARGIN.left - MARGIN.right;
+  const inner = WIDTH - MARGIN.left - MARGIN.right - (braced ? BRACED_EXTRA : 0);
 
   const maxP = Math.max(...records.map((r) => Math.max(r.probability, r.exactProbability)));
   const x = scaleLinear().domain([0, maxP || 1]).nice().range([0, inner]);
@@ -162,24 +166,29 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
 
         {trophy && band ? (
           <g>
-            <path
-              d={bracePath(inner + BRACE_X, band.top, band.bottom)}
-              className="chart-brace"
-            />
+            {braced ? (
+              <path
+                d={bracePath(inner + BRACE_X, band.top, band.bottom)}
+                className="chart-brace"
+              />
+            ) : null}
             <text
-              x={inner + GROUP_TEXT_X}
+              x={inner + (braced ? GROUP_TEXT_X : BRACE_X)}
               y={(band.top + band.bottom) / 2}
               dominantBaseline="middle"
               className="chart-group-value"
             >
               <tspan className="chart-group-trophy">{TROPHY}</tspan>
               {/*
-                A ceiling reached one way needs no total: the brace is against
-                that row, and its share is already printed on the same line an
-                inch to the left. Printing it again read as a bug.
+                Unbraced, the trophy takes the brace's own column and stands
+                alone: there is one row under it, and its share is already
+                printed on the same line an inch to the left.
               */}
-              {trophy.from === trophy.to ? null : ` ${pct(trophy.probability)}`}
-              <title>{`exact: ${(trophy.exactProbability * 100).toFixed(2)}%`}</title>
+              {braced ? ` ${pct(trophy.probability)}` : null}
+              <title>
+                {`${trophy.wins}W — ${(trophy.probability * 100).toFixed(2)}% simulated, ` +
+                  `${(trophy.exactProbability * 100).toFixed(2)}% exact`}
+              </title>
             </text>
           </g>
         ) : null}
@@ -188,6 +197,23 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
           const yPos = y(rowKey(r)) ?? 0;
           return (
             <g key={rowKey(r)}>
+              {/*
+                The unrounded pair, for anyone who wants the figure the label
+                had to round. A `<title>` is the browser's own tooltip: no
+                library, no state, and it needs no JS at all — the same
+                mechanism the exact tick used to carry on its own. As the
+                group's first child it answers for every mark in the row.
+              */}
+              <title>
+                {`${rowKey(r)} — ${(r.probability * 100).toFixed(2)}% simulated, ` +
+                  `${(r.exactProbability * 100).toFixed(2)}% exact`}
+              </title>
+              {/*
+                And something to hover. Without this the tooltip is only on the
+                marks themselves, so a 1% bar offers a few pixels of target and
+                the rest of its row is dead space.
+              */}
+              <rect x={0} y={yPos} width={inner} height={y.bandwidth()} className="chart-row-hit" />
               <text
                 x={-8}
                 y={yPos + y.bandwidth() / 2}
@@ -212,9 +238,7 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
                 y1={yPos - 2}
                 y2={yPos + y.bandwidth() + 2}
                 className="chart-exact-tick"
-              >
-                <title>{`exact: ${(r.exactProbability * 100).toFixed(2)}%`}</title>
-              </line>
+              />
               <text
                 x={inner + VALUE_X}
                 y={yPos + y.bandwidth() / 2}
