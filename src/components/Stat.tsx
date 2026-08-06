@@ -45,7 +45,7 @@ export function Stat({
 }: StatProps) {
   return (
     <div className={`stat ${className}`.trimEnd()}>
-      <div className="stat-label">
+      <div className={`stat-label${help ? " has-help" : ""}`}>
         {label}
         {help && <InfoTip label={help.label} content={help.content} />}
       </div>

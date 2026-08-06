@@ -281,6 +281,8 @@ body {
   border: 1px solid var(--bs-border-color);
   border-radius: 0.625rem;
   padding: 0.75rem 0.875rem;
+  /* Anchors the help icon pinned in the corner below. */
+  position: relative;
 }
 
 .stat-label,
@@ -289,6 +291,22 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--bs-secondary-color);
+}
+
+/*
+ * The tile's help icon sits pinned in the top-right corner rather than
+ * trailing the label, where a long label used to wrap it onto a line of its
+ * own. The label reserves the corner so its text wraps under the icon, not
+ * through it.
+ */
+.stat > .stat-label.has-help {
+  padding-right: 1.25rem;
+}
+
+.stat > .stat-label .info-btn {
+  position: absolute;
+  top: 0.75rem;
+  right: 0.75rem;
 }
 
 .stat-value {
@@ -670,6 +688,8 @@ body {
   padding: 0.75rem 0.875rem;
 }
 
+/* A titled box of related inputs — the Advanced groups, and the bankroll
+ * fields in the main column. */
 .adv-group {
   border: 1px solid var(--bs-border-color);
   border-radius: 0.5rem;
