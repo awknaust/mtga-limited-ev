@@ -263,6 +263,16 @@ body {
   height: 1.75rem;
 }
 
+/*
+ * The step buttons, held to the slider's two ends. The gap only matters once
+ * the card is narrow enough for the two pairs to meet, and the wrap keeps them
+ * stacking rather than overflowing if it gets narrower still.
+ */
+.win-rate-steps {
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
 /* Reads at stat size — it is the number the rest of the page answers. */
 .win-rate-value {
   font-size: 1.25rem;

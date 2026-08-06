@@ -2,6 +2,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 
 import { approx, money, pct, type Unit } from "./format";
+import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
@@ -78,6 +79,17 @@ const RESULT_TABS = [
 
 const clampInt = (n: number, lo: number, hi: number): number =>
   Math.max(lo, Math.min(hi, Math.round(n) || lo));
+
+/*
+ * What the win rate's step buttons move by, in percentage points, grouped as
+ * the two pairs they render in. The fine step is the slider's own — 0.005 of a
+ * rate is half a point — so the buttons hand a mouse the granularity the arrow
+ * keys already had.
+ */
+const WIN_RATE_STEPS = [
+  [-5, -0.5],
+  [0.5, 5],
+] as const;
 
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
@@ -316,6 +328,14 @@ export default function App() {
   const [eventDetailsOpen, setEventDetailsOpen] = useState(
     initial.presetName === CUSTOM_PRESET,
   );
+  /*
+   * What the win rate's step buttons announce. The slider's own aria-valuetext
+   * covers dragging and the arrow keys, but a button press leaves focus on the
+   * button, where nothing speaks the value it just moved. Kept as its own live
+   * region rather than put on the visible readout, which would then announce
+   * over the slider on every drag.
+   */
+  const [winRateStepped, setWinRateStepped] = useState("");
   const [startingGems, setStartingGems] = useState(initial.startingGems);
   const [startingGold, setStartingGold] = useState(initial.startingGold);
   // Where the player stops, not a numerical guard — a run that never busts has
@@ -623,6 +643,13 @@ export default function App() {
    * converting. The slider sets the rate the model runs on directly.
    */
   const roundWinRate = matchWinRate(config);
+
+  const stepWin = (points: number) => {
+    const next = stepWinRate(roundWinRate, points);
+    set("winRate", next);
+    setWinRateStepped(`Match win rate ${pct(next)}`);
+  };
+
   const breakEvenShown = breakEven;
   // Restates the event being priced, for the Results heading — the numbers
   // below are meaningless without it.
@@ -962,6 +989,42 @@ export default function App() {
                     set("winRate", Number(e.target.value))
                   }
                 />
+                {/*
+                  Held to the slider's two ends, so the pair that walks the
+                  value down sits at the end it moves towards. The labels read
+                  in percentage points, matching the readout above rather than
+                  the 0..1 fraction underneath.
+                */}
+                <div className="d-flex justify-content-between win-rate-steps">
+                  {WIN_RATE_STEPS.map((pair) => (
+                    <span
+                      key={pair[0]}
+                      className="btn-group btn-group-sm"
+                      role="group"
+                    >
+                      {pair.map((points) => (
+                        <button
+                          key={points}
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          aria-label={`${points > 0 ? "Increase" : "Decrease"} win rate by ${Math.abs(points)} percentage points`}
+                          // One expression for both ends: a step with nowhere
+                          // to go is a step already at the bound.
+                          disabled={
+                            stepWinRate(roundWinRate, points) === roundWinRate
+                          }
+                          onClick={() => stepWin(points)}
+                        >
+                          {points > 0 ? "+" : "−"}
+                          {Math.abs(points)}
+                        </button>
+                      ))}
+                    </span>
+                  ))}
+                </div>
+                <span className="visually-hidden" aria-live="polite">
+                  {winRateStepped}
+                </span>
               </div>
 
               {/* The inputs the Bankroll tab runs on, boxed under its name. */}
