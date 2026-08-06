@@ -449,13 +449,13 @@ export default function App() {
   const alt = useMemo(() => money(otherUnit(unit), gemsPerUsd), [unit, gemsPerUsd]);
   const altEq = (g: number) => approx(alt.fmt(g));
   /*
-   * Two forms because the label sits in two grammatical slots: `valueLabel`
-   * stands alone ("Final gem value"), `unitLabel` only ever qualifies a figure
-   * already named ("Mean ending value (gems)"), where repeating "value" reads
-   * as a stutter. Sentence case, like every other label in the app.
+   * Only for the slots where nothing else says which unit is showing — the
+   * view tab and the heading above the percentiles. A label sitting directly
+   * over a formatted figure does not take it: those render with 💎 or $ on
+   * the number, so a trailing "(gems)" only repeats what the reader is
+   * already looking at. Sentence case, like every other label in the app.
    */
   const valueLabel = unit === "gems" ? "Gem value" : "Dollar value";
-  const unitLabel = unit === "gems" ? "gems" : "USD";
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -701,7 +701,7 @@ export default function App() {
     },
     {
       key: "value",
-      label: `Avg ending value (${unitLabel})`,
+      label: "Avg ending value",
       value: gemsEq(bankroll.meanFinalValue),
       tone: signClass(bankroll.meanFinalValue - startValue),
       // No hint: the typical (median) figure is in the sentence below and the
