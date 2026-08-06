@@ -1,6 +1,6 @@
 import { scaleLinear } from "d3";
 
-import { approx, gemTick, tickAmount, type Money } from "../format";
+import { REAL_GEMS, approx, gemTick, tickAmount, type Money } from "../format";
 import { Stat } from "./Stat";
 import {
   heldKeys,
@@ -27,16 +27,21 @@ import {
 const CHART = { width: 220, height: 44 };
 
 /**
- * Balances follow the display unit; counts print as counts.
+ * Balances print in their own currency; counts print as counts.
+ *
+ * This card answers what a run is *holding*, so nothing on it follows the
+ * display unit: a gem balance is a real amount, not a valuation of one, and
+ * putting a dollar sign on it would price a wallet nobody can cash out. The
+ * conversion belongs to the "worth ≈ …" hint, which is the only figure here
+ * that is an estimate. Gold has always been exempt for the neighbouring
+ * reason — it is Arena-internal, with its own rate against gems.
  *
  * `whole` is for the figures that are whole by construction — a median, a
  * smallest, a largest — since only an average can land between two boxes. A
  * range reading 0.0 to 8.0 boxes implies a precision the thing does not have.
  */
-const amountText = (key: HoldingKey, n: number, m: Money, exact = false): string => {
-  if (key === "gems") return m.fmt(n);
-  // Gold is Arena-internal and has its own rate against gems, so it is never
-  // shown in dollars — the same reason format.ts refuses to convert it.
+const amountText = (key: HoldingKey, n: number, exact = false): string => {
+  if (key === "gems") return REAL_GEMS.fmt(n);
   if (key === "gold") return Math.round(n).toLocaleString();
   if (exact) return n.toLocaleString();
   return n.toFixed(n > 0 && n < 1 ? 2 : 1);
@@ -48,8 +53,8 @@ const amountText = (key: HoldingKey, n: number, m: Money, exact = false): string
  * thousand it is says enough — the figures that need to be read exactly are
  * printed above the chart.
  */
-const tickText = (key: HoldingKey, n: number, m: Money): string => {
-  if (key === "gems") return gemTick(m, n);
+const tickText = (key: HoldingKey, n: number): string => {
+  if (key === "gems") return gemTick(REAL_GEMS, n);
   // Gold has no sign of its own; gems take theirs, so the two axes cannot be
   // confused with each other where the cards sit side by side.
   if (key === "gold") return tickAmount(n);
@@ -70,7 +75,6 @@ const tickText = (key: HoldingKey, n: number, m: Money): string => {
 const axisTicks = (
   x: ReturnType<typeof scaleLinear<number, number>>,
   whole: boolean,
-  most: number,
 ): number[] => {
   const at = (count: number): number[] => {
     const ticks = x.ticks(count);
@@ -78,9 +82,19 @@ const axisTicks = (
   };
   let ticks = at(4);
   if (ticks.length < 3) ticks = at(6);
-  while (ticks.length > most) ticks = ticks.filter((_, i) => i % 2 === 0);
+  while (ticks.length > MOST_TICKS) ticks = ticks.filter((_, i) => i % 2 === 0);
   return ticks;
 };
+
+/**
+ * How many labels a card has room for, which the widest ones decide.
+ *
+ * One number for every card now that the gems axis has stopped converting.
+ * Dollars were the long labels — "$112.50" against "45k" — and they could only
+ * ever appear there, since gold does not convert and counts are counts, so the
+ * cards used to need a lower cap on that one axis alone.
+ */
+const MOST_TICKS = 5;
 
 /**
  * The spread across runs, small enough to sit in a card.
@@ -97,7 +111,6 @@ function MiniHistogram({
   whole,
   label,
   tickText,
-  mostTicks,
 }: {
   bins: Bin[];
   median: number;
@@ -105,8 +118,6 @@ function MiniHistogram({
   whole: boolean;
   label: string;
   tickText: (value: number) => string;
-  /** How many labels the card has room for, which the widest ones decide. */
-  mostTicks: number;
 }) {
   if (!bins.length) return null;
   const lo = bins[0].from;
@@ -120,7 +131,7 @@ function MiniHistogram({
     .domain([lo, hi === lo ? lo + 1 : hi])
     .range([0, CHART.width]);
   const y = scaleLinear().domain([0, peak]).range([CHART.height, 0]);
-  const ticks = axisTicks(x, whole, mostTicks);
+  const ticks = axisTicks(x, whole);
   const at = (value: number): number => (x(value) / CHART.width) * 100;
 
   return (
@@ -194,7 +205,7 @@ function HoldingCard({
 }) {
   const { label, whole } = holding(bankrollKey);
   const rate = holdingRate(config, bankrollKey);
-  const text = (n: number, exact = false) => amountText(bankrollKey, n, m, exact);
+  const text = (n: number, exact = false) => amountText(bankrollKey, n, exact);
 
   return (
     <div className="col-sm-6 col-xl-4">
@@ -226,15 +237,7 @@ function HoldingCard({
             median={totals.median}
             whole={whole}
             label={`Spread of ${label.toLowerCase()} across possible outcomes`}
-            tickText={(n) => tickText(bankrollKey, n, m)}
-            /*
-             * Dollar amounts are the long labels — "$112.50" against "45k" —
-             * and they only turn up on the gems card, since gold is never
-             * converted and counts are counts. Four rather than three because
-             * thinning halves: a cap of three takes a four-tick axis down to
-             * two, which is the bare ends again.
-             */
-            mostTicks={bankrollKey === "gems" && m.unit === "usd" ? 4 : 5}
+            tickText={(n) => tickText(bankrollKey, n)}
           />
         )}
       </Stat>

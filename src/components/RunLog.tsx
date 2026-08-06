@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { approx, pct, type Money } from "../format";
+import { REAL_GEMS, approx, pct, type Money } from "../format";
 import type { BankrollRun, EventConfig, EventLog, SampleRun } from "../lib";
 import { SectionHeading } from "./SectionHeading";
 import { Stat } from "./Stat";
@@ -68,10 +68,14 @@ const proseJoin = (parts: string[]): string =>
  * it won. Rewards spent on entries as they came in are not held at the end —
  * their value already sits in the gem balance — so a banked run lists only
  * the currencies.
+ *
+ * Every item here is a real amount rather than a valuation, gems included, so
+ * none of them follow the display unit. The valuation is the "worth ≈ …" that
+ * closes the sentence, and it is the only part dollars belong in.
  */
-const heldText = (run: BankrollRun, m: Money): string =>
+const heldText = (run: BankrollRun): string =>
   proseJoin([
-    m.fmt(run.finalGems),
+    REAL_GEMS.fmt(run.finalGems),
     `${Math.round(run.finalGold).toLocaleString()} gold`,
     ...(run.winningsBanked
       ? []
@@ -190,7 +194,7 @@ export function RunLog({
         ) : null}
         <div className="stat-hint mt-1">
           {/* The holdings are real amounts; the "all told" is a valuation. */}
-          Ended holding {heldText(run, m)}, worth{" "}
+          Ended holding {heldText(run)}, worth{" "}
           <span className="fw-semibold">{approx(m.fmt(sample.value))}</span> all told.
         </div>
       </Stat>
@@ -205,6 +209,15 @@ export function RunLog({
       ) : (
       <div className="table-responsive">
         <table className="table table-sm align-middle mb-0">
+          {/*
+            Every figure below is a real amount, so the whole table stays in
+            Arena's own two currencies whatever the display toggle says. What
+            an entry cost, what a tier paid and what the balance stood at are
+            all things that happened in gems; a dollar column would be pricing
+            a purchase nobody can make. Dollars belong to the summary above,
+            where the ≈ says it is a valuation — which is also why these two
+            headings can name their unit without contradicting the toggle.
+          */}
           <thead>
             <tr>
               <th scope="col">#</th>
@@ -231,15 +244,15 @@ export function RunLog({
                   <td className="text-body-secondary">
                     {row.paidWithGold
                       ? `${config.entryCostGold.toLocaleString()} gold`
-                      : m.fmt(config.entryCostGems)}
+                      : REAL_GEMS.fmt(config.entryCostGems)}
                   </td>
                   <td>
-                    {m.fmt(row.gems)}
+                    {REAL_GEMS.fmt(row.gems)}
                     {rewards ? (
                       <span className="text-body-secondary"> · {rewards}</span>
                     ) : null}
                   </td>
-                  <td className="text-end">{m.fmt(row.gemBalance)}</td>
+                  <td className="text-end">{REAL_GEMS.fmt(row.gemBalance)}</td>
                   <td className="text-end text-body-secondary">
                     {Math.round(row.goldBalance).toLocaleString()}
                   </td>

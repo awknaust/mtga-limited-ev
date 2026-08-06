@@ -1,7 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 
-import { approx, money, otherUnit, pct, type Unit } from "./format";
+import { REAL_GEMS, approx, money, otherUnit, pct, type Unit } from "./format";
 import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
@@ -216,8 +216,12 @@ function AddonInput({
 }
 
 /**
- * A rate quoted in gems. Always marked as gems, whatever the display unit —
- * these define the conversions rather than being subject to them.
+ * A field holding gems and only gems, whatever the display unit.
+ *
+ * Two kinds of field qualify. Rates — gems per dollar, gems per 10,000 gold —
+ * define the conversions rather than being subject to them. Real amounts — an
+ * entry cost, a ladder's gem payout, a starting balance — have no dollar form
+ * to convert *to*, which is what `REAL_GEMS` is about.
  */
 function GemInput(props: {
   id?: string;
@@ -428,18 +432,26 @@ export default function App() {
     copyTimer.current = window.setTimeout(() => setCopyState("idle"), 2000);
   };
   const m = useMemo(() => money(unit, gemsPerUsd), [unit, gemsPerUsd]);
-  // Shadowing the old helpers keeps every call site reading naturally while
-  // the unit behind them changes.
-  const gems = m.fmt;
-  const gems2 = m.fmt1;
   /*
-   * The ≈-marked variants, for gem-equivalent figures — the ones that fold
-   * packs, boxes or points in at the configured rates. Real balances and
-   * prices stay on the bare formatters; the contrast is what makes the mark
-   * legible.
+   * Real gem amounts: an entry cost, a ladder's gem payout, a gem balance.
+   * Pinned to gems whatever the toggle says, because a dollar figure for one
+   * of these is a price nobody can pay — see `REAL_GEMS`.
+   */
+  const gems = REAL_GEMS.fmt;
+  /*
+   * Gem-equivalent figures — the ones that fold packs, boxes or points in at
+   * the configured rates. These are valuations rather than amounts, so they
+   * are the only figures the dollar toggle can honestly convert.
+   *
+   * Two forms because the ≈ is sometimes declared above a group rather than on
+   * each of its members: `gemsEq` marks the figure itself, `eq` is for cells
+   * under a column heading that already carries the mark. Same conversion
+   * either way — the difference is only where the mark is written.
    */
   const gemsEq = (g: number) => approx(m.fmt(g));
   const gemsEq2 = (g: number) => approx(m.fmt1(g));
+  const eq = m.fmt;
+  const eq2 = m.fmt1;
   /*
    * The same amount priced in the unit that is not showing, at the same rate.
    * Only the starting balance takes it: that figure is the one compared with
@@ -830,8 +842,8 @@ export default function App() {
       // nothing else for a range to describe.
       // No unit word: the figures above and here carry their own sign.
       hint: netBand
-        ? `plausibly ${gems2(netBand[0])} to ${gems2(netBand[1])}`
-        : `give or take ${gems2(1.96 * result.stdErrNet)}`,
+        ? `plausibly ${eq2(netBand[0])} to ${eq2(netBand[1])}`
+        : `give or take ${eq2(1.96 * result.stdErrNet)}`,
       tone: signClass(result.meanNet),
       help: {
         label: "What expected net means",
@@ -1041,12 +1053,11 @@ export default function App() {
                 <div className="row g-2">
                   <div className="col-6">
                     <label htmlFor={ids.startGems} className="form-label">
-                      Starting {m.label}
+                      Starting gems
                     </label>
-                    <MoneyInput
+                    <GemInput
                       id={ids.startGems}
-                      m={m}
-                      gemValue={startingGems}
+                      value={startingGems}
                       onChange={setStartingGems}
                     />
                   </div>
@@ -1238,13 +1249,12 @@ export default function App() {
                 <div className="row g-2 mb-3">
                   <div className="col-6">
                     <label htmlFor={ids.entry} className="form-label">
-                      Entry cost ({m.label})
+                      Entry cost (gems)
                     </label>
-                    <MoneyInput
+                    <GemInput
                       id={ids.entry}
                       disabled={locked}
-                      m={m}
-                      gemValue={config.entryCostGems}
+                      value={config.entryCostGems}
                       onChange={(n) => set("entryCostGems", n)}
                     />
                   </div>
@@ -1595,14 +1605,14 @@ export default function App() {
                           {pct(b.exactProbability, 2)}
                         </td>
                         <td className="text-end">{b.packs}</td>
-                        <td className="text-end">{gems(b.grossGems)}</td>
+                        <td className="text-end">{eq(b.grossGems)}</td>
                         <td className={`text-end ${signClass(b.netGems)}`}>
-                          {gems(b.netGems)}
+                          {eq(b.netGems)}
                         </td>
                         <td
                           className={`text-end ${signClass(b.probability * b.netGems)}`}
                         >
-                          {gems2(b.probability * b.netGems)}
+                          {eq2(b.probability * b.netGems)}
                         </td>
                       </tr>
                     ))}
@@ -2027,8 +2037,8 @@ export default function App() {
               <>
                 <div className="modal-body">
                   <p className="mb-0">
-                    {topUp.name} costs {gems(topUp.entryGems)} {m.label} and you
-                    have {gems(startingGems)}.
+                    {topUp.name} costs {gems(topUp.entryGems)} and you have{" "}
+                    {gems(startingGems)}.
                     {topUp.goldPrice > 0 && (
                       <>
                         {" "}
