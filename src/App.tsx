@@ -1,7 +1,15 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import Modal from "bootstrap/js/dist/modal";
 
-import { REAL_GEMS, approx, money, otherUnit, pct, type Unit } from "./format";
+import {
+  REAL_GEMS,
+  approx,
+  money,
+  otherUnit,
+  pct,
+  valueLabel,
+  type Unit,
+} from "./format";
 import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
 import { DistributionChart } from "./components/DistributionChart";
@@ -16,6 +24,11 @@ import { Stat, type StatTile } from "./components/Stat";
 import { StatStrip } from "./components/StatStrip";
 import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
+import {
+  ValueSplitBar,
+  grossSlices,
+  holdingSlices,
+} from "./components/ValueSplitBar";
 import {
   CUSTOM_PRESET,
   PRESETS,
@@ -218,10 +231,17 @@ function AddonInput({
 /**
  * A field holding gems and only gems, whatever the display unit.
  *
- * Two kinds of field qualify. Rates — gems per dollar, gems per 10,000 gold —
- * define the conversions rather than being subject to them. Real amounts — an
- * entry cost, a ladder's gem payout, a starting balance — have no dollar form
- * to convert *to*, which is what `REAL_GEMS` is about.
+ * Rates — gems per dollar, gems per 10,000 gold — define the conversions
+ * rather than being subject to them. The rest of the entry-and-payout panel
+ * qualifies for a different reason: the entry cost and the ladder's payouts
+ * are the event's published numbers, transcribed from a rewards table that
+ * quotes gems, so a dollar field would mean converting by hand to check a row
+ * against its source. Those two also have to agree with each other — an entry
+ * in dollars over a ladder in gems cannot be read down the column.
+ *
+ * The starting balance is the one exception, and takes `MoneyInput`: it is
+ * what a reader compares against what a top-up would cost, so it is the field
+ * they are likeliest to want to type in money.
  */
 function GemInput(props: {
   id?: string;
@@ -433,9 +453,14 @@ export default function App() {
   };
   const m = useMemo(() => money(unit, gemsPerUsd), [unit, gemsPerUsd]);
   /*
-   * Real gem amounts: an entry cost, a ladder's gem payout, a gem balance.
-   * Pinned to gems whatever the toggle says, because a dollar figure for one
-   * of these is a price nobody can pay — see `REAL_GEMS`.
+   * Real gem amounts, as *reported*: what a run paid to enter, a ladder's gem
+   * payout, a gem balance. Pinned to gems whatever the toggle says, because a
+   * dollar figure for one of these is a price nobody can pay — see
+   * `REAL_GEMS`.
+   *
+   * The starting-balance *input* is a separate question and takes
+   * `MoneyInput`: naming a figure you are about to type is not the same as
+   * quoting one the simulation paid.
    */
   const gems = REAL_GEMS.fmt;
   /*
@@ -467,7 +492,7 @@ export default function App() {
    * the number, so a trailing "(gems)" only repeats what the reader is
    * already looking at. Sentence case, like every other label in the app.
    */
-  const valueLabel = unit === "gems" ? "Gem value" : "Dollar value";
+  const valueName = valueLabel(unit);
 
   const modalEl = useRef<HTMLDivElement>(null);
   const modal = useRef<Modal | null>(null);
@@ -653,7 +678,7 @@ export default function App() {
   const showCollectorBoxes =
     isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
   const viewItems = [
-    { key: "value" as const, label: valueLabel },
+    { key: "value" as const, label: valueName },
     { key: "breakdown" as const, label: "Payout breakdown" },
   ];
   const structure = config.structure;
@@ -718,6 +743,13 @@ export default function App() {
       tone: signClass(bankroll.meanFinalValue - startValue),
       // No hint: the typical (median) figure is in the sentence below and the
       // starting balance is an input a few inches away.
+      // What that average is made of, as a rule under the figure it decomposes.
+      children: (
+        <ValueSplitBar
+          slices={holdingSlices(bankroll, config, spendWinnings)}
+          m={m}
+        />
+      ),
       help: {
         label: "What average ending value means",
         content:
@@ -859,6 +891,9 @@ export default function App() {
       label: "Expected gross",
       value: gemsEq2(result.meanGross),
       // No hint: the popover says what the figure folds in.
+      // Which of those it is, though, the popover cannot say — a gross that is
+      // mostly gems and one that is mostly packs read alike as a number.
+      children: <ValueSplitBar slices={grossSlices(config, result.buckets)} m={m} />,
       help: {
         label: "What expected gross means",
         content:
@@ -870,10 +905,17 @@ export default function App() {
       key: "roi",
       label: "ROI",
       value: pct(result.roi),
+      /*
+       * Marked ≈, and converting with the toggle, because this is what ROI
+       * divides by rather than a price anyone was quoted: `meanEntryGems` is
+       * the entry discounted by the share of entries gold paid for, so it
+       * lands between the gem price and zero and equals neither. The no-gold
+       * wording quotes the same statistic, which is why it is marked too.
+       */
       hint:
         result.goldEntryFraction > 0
-          ? `of ${gems(result.meanEntryGems)} paid · ${pct(result.goldEntryFraction)} entries free`
-          : `of ${gems(config.entryCostGems)} entry`,
+          ? `of ${gemsEq(result.meanEntryGems)} paid · ${pct(result.goldEntryFraction)} entries free`
+          : `of ${gemsEq(config.entryCostGems)} entry`,
       tone: signClass(result.roi),
       help: {
         label: "What ROI means",
@@ -1053,11 +1095,12 @@ export default function App() {
                 <div className="row g-2">
                   <div className="col-6">
                     <label htmlFor={ids.startGems} className="form-label">
-                      Starting gems
+                      Starting {m.label}
                     </label>
-                    <GemInput
+                    <MoneyInput
                       id={ids.startGems}
-                      value={startingGems}
+                      m={m}
+                      gemValue={startingGems}
                       onChange={setStartingGems}
                     />
                   </div>
@@ -1464,7 +1507,7 @@ export default function App() {
                       <>
                         <Stat
                           className="mb-3"
-                          label={`Final ${valueLabel}`}
+                          label={`Final ${valueName}`}
                           help={{
                             label: "What the final value figures mean",
                             content:
