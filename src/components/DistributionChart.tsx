@@ -4,25 +4,21 @@ import type { RecordBucket } from "../lib";
 
 const WIDTH = 560;
 const ROW = 26;
-const MARGIN = { top: 8, right: 56, bottom: 46, left: 48 };
 
 /**
- * Extra right margin for the brace and its total, added only when something is
- * braced. A `rounds` event has one record per win count and nothing to group,
- * so it keeps the layout it always had.
- *
- * On the right because that is the side the rows already end on: the per-row
- * percentages are a column there, so the brace has something straight to sit
- * against, and the reader meets each bar, then its share, then the group's.
- * Everything beyond the plot is measured from its right edge by the three
- * offsets below, and the 72 is what those need — `100.00%` is the widest
- * either column has to hold, and the total must clear the viewBox as well as
- * the bars.
+ * The right margin carries three things past the plot, at the offsets below:
+ * each row's share, the brace, and the braced total. Every event draws all
+ * three, so unlike the rest of the layout this is not conditional.
  */
-const GROUP_W = 72;
+const MARGIN = { top: 8, right: 108, bottom: 46, left: 48 };
 
 /** Horizontal extent of the brace, flat side to tip. */
 const BRACE_W = 8;
+
+/** Offsets from the plot's right edge. */
+const VALUE_X = 8;
+const BRACE_X = 40;
+const GROUP_TEXT_X = 54;
 
 /**
  * The trophy, marking the finish a player would call one: the win ceiling,
@@ -30,8 +26,7 @@ const BRACE_W = 8;
  *
  * It stands in for the win count over the braced total rather than sitting
  * beside it — the rows the brace spans all start with that number, so naming
- * it again said less than the trophy does. Where nothing is braced there is no
- * total to head, and it goes on the ceiling's own row label instead.
+ * it again said less than the trophy does.
  *
  * A system emoji rather than the bootstrap-icons glyph the rest of the app
  * draws with. This is a mark on the data and not chrome around it, and it
@@ -40,13 +35,15 @@ const BRACE_W = 8;
  */
 const TROPHY = "🏆";
 
-/** What the trophy costs the row-label column when it has to carry one. */
-const TROPHY_W = 18;
-
-/** Offsets from the plot's right edge. */
-const VALUE_X = 8;
-const BRACE_X = 60;
-const GROUP_TEXT_X = 74;
+/**
+ * Shares are shown to the percent and no further.
+ *
+ * A bar you are reading off a 400-unit axis cannot support two decimal places,
+ * and printing them invited a comparison the chart could not settle. The
+ * closed-form figure in each row's tooltip keeps its precision, because that is
+ * the one number here whose whole job is to be more exact than the bar.
+ */
+const pct = (p: number) => `${Math.round(p * 100)}%`;
 
 const rowKey = (r: { wins: number; losses: number }) => `${r.wins}-${r.losses}`;
 
@@ -113,27 +110,25 @@ function bracePath(x: number, y0: number, y1: number): string {
  * matters: 7-0, 7-1 and 7-2 are one row of the payout table but three quite
  * different runs, and the odds of each are worth seeing. What the payout table
  * cares about is still legible — a brace to the right of the rows gathers the
- * records that share a win count and totals them, which is the number the old
- * chart showed.
+ * ceiling and totals it, which is the number the old chart showed.
  *
  * D3 supplies the scales and ticks; React renders the SVG. Keeping the DOM
  * under React avoids the two libraries both trying to own these nodes.
  */
 export function DistributionChart({ records }: { records: RecordBucket[] }) {
-  const groups = groupByWins(records).filter((g) => g.to > g.from);
   /*
-   * The ceiling is the last row, since the records arrive in win order. It is
-   * braced whenever more than one record reaches it, and only then does the
-   * trophy have a total to sit over; otherwise that one row wears it.
+   * The ceiling is the last group, since the records arrive in win order, and
+   * it is braced whether it holds three records or one. A fixed-rounds event
+   * reaches it exactly one way and so has nothing to gather, but the brace and
+   * its trophy are where a reader has learnt to look for the trophy odds, and
+   * an event that dropped them would be saying something it does not mean.
    */
-  const ceiling = records[records.length - 1]?.wins;
-  const trophyRow = groups.some((g) => g.wins === ceiling) ? undefined : ceiling;
+  const groups = groupByWins(records);
+  const trophy = groups[groups.length - 1];
 
-  const left = MARGIN.left + (trophyRow === undefined ? 0 : TROPHY_W);
-  const right = MARGIN.right + (groups.length > 0 ? GROUP_W : 0);
   const rows = records.length * ROW;
   const height = MARGIN.top + rows + MARGIN.bottom;
-  const inner = WIDTH - left - right;
+  const inner = WIDTH - MARGIN.left - MARGIN.right;
 
   const maxP = Math.max(...records.map((r) => Math.max(r.probability, r.exactProbability)));
   const x = scaleLinear().domain([0, maxP || 1]).nice().range([0, inner]);
@@ -142,6 +137,12 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
     .range([0, rows])
     .padding(0.22);
 
+  /** Top and bottom of the braced band, and where its total sits. */
+  const band = trophy && {
+    top: y(rowKey(records[trophy.from])) ?? 0,
+    bottom: (y(rowKey(records[trophy.to])) ?? 0) + y.bandwidth(),
+  };
+
   return (
     <svg
       viewBox={`0 0 ${WIDTH} ${height}`}
@@ -149,43 +150,39 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
       role="img"
       aria-label="Distribution of outcomes by finishing record"
     >
-      <g transform={`translate(${left},${MARGIN.top})`}>
+      <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
         {x.ticks(8).map((t) => (
           <g key={t} transform={`translate(${x(t)},0)`}>
             <line y1={0} y2={rows} className="chart-gridline" />
             <text y={rows + 16} className="chart-tick" textAnchor="middle">
-              {`${Math.round(t * 100)}%`}
+              {pct(t)}
             </text>
           </g>
         ))}
 
-        {groups.map((g) => {
-          const top = y(rowKey(records[g.from])) ?? 0;
-          const bottom = (y(rowKey(records[g.to])) ?? 0) + y.bandwidth();
-          const mid = (top + bottom) / 2;
-          return (
-            <g key={g.wins}>
-              <path d={bracePath(inner + BRACE_X, top, bottom)} className="chart-brace" />
-              <text
-                x={inner + GROUP_TEXT_X}
-                y={mid - 7}
-                dominantBaseline="middle"
-                className="chart-group-trophy"
-              >
-                {TROPHY}
-              </text>
-              <text
-                x={inner + GROUP_TEXT_X}
-                y={mid + 8}
-                dominantBaseline="middle"
-                className="chart-group-value"
-              >
-                {`${(g.probability * 100).toFixed(2)}%`}
-                <title>{`exact: ${(g.exactProbability * 100).toFixed(2)}%`}</title>
-              </text>
-            </g>
-          );
-        })}
+        {trophy && band ? (
+          <g>
+            <path
+              d={bracePath(inner + BRACE_X, band.top, band.bottom)}
+              className="chart-brace"
+            />
+            <text
+              x={inner + GROUP_TEXT_X}
+              y={(band.top + band.bottom) / 2}
+              dominantBaseline="middle"
+              className="chart-group-value"
+            >
+              <tspan className="chart-group-trophy">{TROPHY}</tspan>
+              {/*
+                A ceiling reached one way needs no total: the brace is against
+                that row, and its share is already printed on the same line an
+                inch to the left. Printing it again read as a bug.
+              */}
+              {trophy.from === trophy.to ? null : ` ${pct(trophy.probability)}`}
+              <title>{`exact: ${(trophy.exactProbability * 100).toFixed(2)}%`}</title>
+            </text>
+          </g>
+        ) : null}
 
         {records.map((r) => {
           const yPos = y(rowKey(r)) ?? 0;
@@ -198,11 +195,7 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
                 textAnchor="end"
                 className="chart-tick"
               >
-                {/*
-                  The trophy leads, so the records stay right-aligned with each
-                  other rather than being shunted left by the row that has one.
-                */}
-                {r.wins === trophyRow ? `${TROPHY} ${rowKey(r)}` : rowKey(r)}
+                {rowKey(r)}
               </text>
               <rect
                 x={0}
@@ -228,7 +221,7 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
                 dominantBaseline="middle"
                 className="chart-value"
               >
-                {`${(r.probability * 100).toFixed(2)}%`}
+                {pct(r.probability)}
               </text>
             </g>
           );

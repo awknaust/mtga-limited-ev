@@ -589,9 +589,9 @@ body {
 }
 
 /*
- * The trophy over a braced total. A shade larger than the figure beneath it,
- * because it is carrying what the win count used to say and a colour emoji at
- * the text's own size reads as a smudge rather than a cup.
+ * The trophy ahead of a braced total. A shade larger than the figure it sits
+ * beside, because it is carrying what the win count used to say and a colour
+ * emoji at the text's own size reads as a smudge rather than a cup.
  */
 .chart-group-trophy {
   font-size: 13px;
