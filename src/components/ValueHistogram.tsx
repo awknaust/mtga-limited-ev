@@ -103,8 +103,11 @@ export function ValueHistogram({
           textAnchor="middle"
           className="chart-axis-label"
         >
-          {/* The unit is gem-equivalent, so the axis says so once; the ticks stay bare. */}
-          {`Ending value (≈ ${m.unit === "gems" ? "gems" : "USD"})`}
+          {/* The unit is gem-equivalent, so the axis declares the ≈ once and
+              leaves the unit to the ticks, which carry 💎 or $ through
+              `gemTick`. Naming it here as well restated the symbol an inch
+              below — the same redundancy the ending-value tile shed. */}
+          Ending value ≈
         </text>
         <text
           transform="rotate(-90)"
