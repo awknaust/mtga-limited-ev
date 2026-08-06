@@ -241,6 +241,25 @@ describe("simulate", () => {
     expect(simulate({ ...defaultConfig(), winRate: 0 }, 1_000, 3).meanRounds).toBe(3);
   });
 
+  it("counts expected boxes per event, doubles included", () => {
+    /*
+     * Arena Direct pays one box at six wins and two at seven. At p = ½ the
+     * finishes land with probability 7 · p⁶q² = 7/256 on six wins and
+     * p⁷(1 + 7q) = 9/256 on seven, so the mean is 7/256 + 2 · 9/256 = 25/256
+     * of a box per entry.
+     */
+    const config = { ...configFromPreset(ARENA_DIRECT, defaultConfig()), winRate: 0.5 };
+    const res = simulate(config, 200_000, 42);
+    const exact = res.buckets.reduce(
+      (acc, b) => acc + b.exactProbability * (b.playBoxes + b.collectorBoxes),
+      0,
+    );
+    expect(exact).toBeCloseTo(25 / 256, 12);
+    expect(Math.abs(res.meanBoxes - exact)).toBeLessThan(0.005);
+    // A ladder with no boxes reports none.
+    expect(simulate(defaultConfig(), 1_000, 1).meanBoxes).toBe(0);
+  });
+
   it("sizes the outcome table to the structure", () => {
     expect(simulate(defaultConfig(), 100, 1).buckets).toHaveLength(8);
     expect(

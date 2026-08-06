@@ -30,6 +30,7 @@ import {
   winRatePosterior,
   maxPossibleWins,
   maxRounds,
+  paysBoxes,
   resizePayouts,
   simulate,
   simulateBankrolls,
@@ -730,6 +731,40 @@ export default function App() {
     : [runTiles[0], runTiles[1], packsTile, runTiles[2]];
 
   /*
+   * Boxes per entry, where the ladder pays them. A mean rather than a chance,
+   * because the two differ by more than rounding here: most winning finishes
+   * are seven-win doubles, so the ladder promises more boxes than it has
+   * winners. The share underneath is the chance, keeping the pair together;
+   * the run-level version of that question lives on the bankroll strip.
+   */
+  const boxTiles: StatTile[] = paysBoxes(config.payouts)
+    ? [
+        {
+          key: "boxes",
+          label: (
+            <>
+              <i className="bi bi-box-seam me-1" aria-hidden="true" />
+              Expected boxes / event
+            </>
+          ),
+          value: result.meanBoxes.toFixed(2),
+          hint: `${pct(
+            result.buckets.reduce(
+              (acc, b) =>
+                acc + (b.playBoxes + b.collectorBoxes > 0 ? b.probability : 0),
+              0,
+            ),
+          )} of events win at least one`,
+          help: {
+            label: "What expected boxes means",
+            content:
+              "How many physical boxes one entry wins on average, counting a double-box finish as two. At 0.17, six entries bring home about one box between them. The share underneath counts events that win any at all — fewer, because winners often take two.",
+          },
+        },
+      ]
+    : [];
+
+  /*
    * As on the bankroll strip, each tile carries a popover explaining the
    * statistic in plain terms — what was averaged, over what, and how to read
    * it — for a reader the bare label would leave behind.
@@ -766,6 +801,7 @@ export default function App() {
           "What one event pays back on average, before subtracting what it cost to enter. The packs beside it are counted separately rather than folded into the figure.",
       },
     },
+    ...boxTiles,
     {
       key: "roi",
       label: "ROI",

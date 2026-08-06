@@ -136,6 +136,8 @@ export type SimResult = {
   exactMeanNet: number;
   meanGross: number;
   meanPacks: number;
+  /** Mean boxes per event, both kinds together; a double-box finish counts as two. */
+  meanBoxes: number;
   /** Mean rounds (matches) played per event. */
   meanRounds: number;
   /** Standard deviation of net gems across events. */
