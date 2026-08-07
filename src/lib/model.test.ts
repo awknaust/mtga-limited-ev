@@ -1407,7 +1407,9 @@ describe("presets", () => {
 
   it("converts physical prizes at 200 gems to the dollar", () => {
     expect(GEMS_PER_USD).toBe(200);
-    // 20,000 gems for $99.99 is the largest bundle, so the most generous rate.
+    // 20,000 gems for $99.99 is the best rung on the store ladder, and so the
+    // most generous rate — not the largest bundle, which is the 40,000 and is
+    // fractionally worse per gem.
     // Averaged over Marvel Super Heroes, Edge of Eternities and Aetherdrift.
     expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(Math.round(((147 + 187 + 130) / 3) * 200));
     expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(

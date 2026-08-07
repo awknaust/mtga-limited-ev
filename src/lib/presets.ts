@@ -120,16 +120,31 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 /**
  * Gems per US dollar, for pricing physical prizes.
  *
- * From the largest gem bundle: 20,000 gems for $99.99, so 200 gems a dollar.
- * Smaller bundles are worse — 7,000 for $39.99 is 175 a dollar, 3,400 for
- * $19.99 is 170, 750 for $4.99 is 150 — which makes this the most generous
- * conversion and therefore the most conservative way to value a physical prize
- * in gems.
+ * The best rate on the store's ladder, which is 20,000 gems for $99.99 — 200.02
+ * a dollar. The whole ladder, largest first:
  *
- * The rest of the ladder is written out because this constant was wrong once,
- * at 400 from a misremembered $49.99, and nothing flagged it: a rate double
- * every other bundle's should not have survived a reading. Anyone changing it
- * should check the new figure sits above the neighbours and not far above.
+ *     40,000  $199.99   200.01
+ *     20,000   $99.99   200.02
+ *      9,200   $49.99   184.04
+ *      3,400   $19.99   170.09
+ *      1,600    $9.99   160.16
+ *        750    $4.99   150.30
+ *
+ * The best rate is *not* the largest bundle. The top two are the same price per
+ * gem to within a rounding error, and the 40,000 is fractionally the worse of
+ * them, so buying bigger stops paying at $99.99. Taking the best rate is what
+ * makes this the most conservative way to value a physical prize in gems: it
+ * assumes the cheapest gems you could have bought instead.
+ *
+ * The ladder is written out because this constant was wrong once, at 400 from a
+ * misremembered $49.99, and nothing flagged it: a rate double every other
+ * bundle's should not have survived a reading. Anyone changing it should check
+ * the new figure sits at or above the neighbours and not far above.
+ *
+ * The ladder itself is only in the client, so `npm run refresh:constants`
+ * cannot fetch it — the script prints these rungs from its own copy and asks
+ * for a look at the store. That copy went stale unnoticed, carrying a 7,000 for
+ * $39.99 bundle that had been replaced by the 9,200 and 1,600 tiers.
  */
 export const GEMS_PER_USD = 200;
 

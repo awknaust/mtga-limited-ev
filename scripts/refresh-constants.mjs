@@ -84,11 +84,13 @@ const BY_HAND = [
     constant: "GEMS_PER_USD",
     checkedOn: "2026-08-06",
     where: "MTG Arena store, Gems tab",
-    look: "the gem bundle ladder; this is the largest bundle's rate, and it should be the best of them",
+    look: "the whole gem bundle ladder — the constant is the best rate on it, which is no longer the largest bundle",
     ladder: [
+      { gems: 40000, usd: 199.99 },
       { gems: 20000, usd: 99.99 },
-      { gems: 7000, usd: 39.99 },
+      { gems: 9200, usd: 49.99 },
       { gems: 3400, usd: 19.99 },
+      { gems: 1600, usd: 9.99 },
       { gems: 750, usd: 4.99 },
     ],
   },
@@ -578,6 +580,15 @@ function render(report) {
     say(`  ${pad(item.constant, 34)}last checked ${item.checkedOn}`);
     say(`    ${item.where}`);
     say(`    ${item.look}`);
+    // Printed in full rather than summarised: the ladder carried a bundle that
+    // had not existed for some time, and it went unnoticed precisely because
+    // only the derived rate was ever on screen.
+    for (const rung of item.ladder ?? []) {
+      say(
+        `      ${padStart(gems(rung.gems), 6)} gems  ${padStart(`$${rung.usd.toFixed(2)}`, 8)}  ` +
+          `${(rung.gems / rung.usd).toFixed(2)} gems/$`,
+      );
+    }
   }
   say();
 
