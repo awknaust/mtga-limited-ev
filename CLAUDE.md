@@ -78,23 +78,40 @@ and have burned us. Three things to hold to:
 npm run refresh:constants
 ```
 
-`scripts/refresh-constants.mjs` repeats the derivations behind the sourced
-constants in `src/lib/presets.ts` and reports what has moved. It writes nothing:
-the output is a report plus an exit code — 0 clean, 1 drift, 2 a source was down
-or changed shape, kept apart so an outage never reads as a price move. Run it
-every couple of weeks. The two box constants track street prices and are the
-part that actually moves; the rest is cheap to check alongside and exists to
-catch the day Wizards changes a published rate quietly.
+`scripts/refresh-constants/` prints what the sourced constants in
+`src/lib/presets.ts` should be today: a table of names and values, `--verbose`
+for how each was arrived at, `--json` for either, and constant names as
+positional arguments to narrow it. `--list` names them without fetching
+anything. Run it every couple of weeks — the two box constants track street
+prices and are the part that actually moves.
 
-It reads Wizards' drop-rates page for the duplicate-protection gems, the mythic
-upgrade rates and the wildcard rates, Scryfall for release dates and set types,
-and MTGGoldfish for box street prices. The judgement calls the constants were
-written with are encoded rather than repeated by hand: newest three released
-Standard-legal sets, retail column not EV, and anything over twice the pool
-median dropped as an outlier — which is the rule that took Final Fantasy out.
-The report prints every input it used, because a recomputed number is only worth
-as much as the ability to check it. The three in-client figures no page
-publishes are listed at the end with the date each was last confirmed.
+It reads nothing from this repository and writes nothing to it. **Deciding
+whether a value here should replace the one in `presets.ts` is a person's job**,
+along with the doc comment that has to change with it: street prices wander a
+few percent between runs and most of that is noise. So there is no drift check
+and no exit code for "a number moved" — 0 means it printed, 2 means it could
+not, and the two are kept apart so an outage never reads as a price crash.
+
+Sources are Wizards' drop-rates page (duplicate-protection gems, mythic upgrade
+rates, wildcard rates, the daily win ladder), Scryfall (release dates and set
+types), and MTGGoldfish (box street prices). Fetching is lazy, so asking for one
+constant only pays for the feeds it needs, and `GEMS_PER_USD` touches the
+network not at all.
+
+The layering is worth keeping: `html` → `parse` → `sources` (the only module
+that fetches) → `derive` (pure maths) → `registry` → `report`/`main`. A constant
+is one entry in `registry.mjs` carrying its own `compute` and its own
+explanation, and every mode is a fold over that list, so adding one means adding
+an entry and nothing else.
+
+The judgement calls the constants were written with are encoded rather than
+redone by hand: newest three released Standard-legal sets, retail column not EV,
+anything over twice the pool median dropped as an outlier — the rule that took
+Final Fantasy out. Figures only in the client live in `by-hand.mjs` with the
+date each was last confirmed, and `--verbose` prints them in full. That file
+going stale is not hypothetical: the gem ladder carried a bundle Arena had
+already replaced, and nothing surfaced it because only the rate derived from it
+was ever on screen.
 
 ## Conventions
 
