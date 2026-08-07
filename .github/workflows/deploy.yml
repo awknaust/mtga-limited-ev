@@ -4,6 +4,15 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The escape hatch for when a push never becomes a run. GitHub sheds webhook
+  # deliveries under load rather than queueing them, and a shed delivery is
+  # never redelivered — so main can end up sitting at a commit that has no
+  # workflow run, with nothing left to re-run and no way to ask for one. That
+  # is not hypothetical: during the 2026-08-06 Actions incident deliveries were
+  # throttled to roughly 15%, main's head went unbuilt, and the only trigger
+  # available was pushing empty commits until one of them got through. It took
+  # three. This is the button that would have replaced them.
+  workflow_dispatch:
 
 # A newer push to the same branch makes an in-flight run redundant. Let main
 # finish, though: cancelling it would leave whatever it was deploying half done.
@@ -61,8 +70,18 @@ jobs:
     # Dependabot's branches live in this repo, so the fork check alone lets them
     # through and wrangler fails on a blank token. Both still get the test job,
     # which is the half that actually vets a dependency bump.
+    #
+    # `workflow_dispatch` has to be named here explicitly, and forgetting it is
+    # the quiet way to make the trigger useless: a manual run matches neither of
+    # the other arms — the event is not `push`, and `github.event.pull_request`
+    # is null so the fork comparison comes out false — so the button would run
+    # the tests and then skip the deploy, which is the one thing it exists to
+    # do. Dispatching is safe to allow because it needs write access, and the
+    # branch still decides where the build lands: only a dispatch on main gets
+    # `--branch=main` and reaches production, and anything else gets a preview.
     if: >-
       github.event_name == 'push' ||
+      github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
        github.actor != 'dependabot[bot]')
     # Gives the deploy a tracked URL in the GitHub UI. Only possible because the
