@@ -72,6 +72,30 @@ and have burned us. Three things to hold to:
   one. When a number is inferred rather than sourced, say so in the commit and
   open an issue.
 
+### Re-deriving the constants
+
+```bash
+npm run refresh:constants
+```
+
+`scripts/refresh-constants.mjs` repeats the derivations behind the sourced
+constants in `src/lib/presets.ts` and reports what has moved. It writes nothing:
+the output is a report plus an exit code — 0 clean, 1 drift, 2 a source was down
+or changed shape, kept apart so an outage never reads as a price move. Run it
+every couple of weeks. The two box constants track street prices and are the
+part that actually moves; the rest is cheap to check alongside and exists to
+catch the day Wizards changes a published rate quietly.
+
+It reads Wizards' drop-rates page for the duplicate-protection gems, the mythic
+upgrade rates and the wildcard rates, Scryfall for release dates and set types,
+and MTGGoldfish for box street prices. The judgement calls the constants were
+written with are encoded rather than repeated by hand: newest three released
+Standard-legal sets, retail column not EV, and anything over twice the pool
+median dropped as an outlier — which is the rule that took Final Fantasy out.
+The report prints every input it used, because a recomputed number is only worth
+as much as the ability to check it. The three in-client figures no page
+publishes are listed at the end with the date each was last confirmed.
+
 ## Conventions
 
 - The model in `src/lib` stays free of React and DOM imports; the tests run
