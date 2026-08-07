@@ -32,6 +32,7 @@ import {
 import {
   CUSTOM_PRESET,
   PRESETS,
+  bankrollRoi,
   breakEvenWinRate,
   configFromPreset,
   expectedNetAt,
@@ -700,6 +701,8 @@ export default function App() {
 
   /** Null unless the ladder pays boxes, which is what makes the strip move. */
   const box = bankroll.boxChance;
+  /** Null only on an empty wallet, where there is nothing to return on. */
+  const runRoi = bankrollRoi(bankroll.meanFinalValue, startValue);
   /*
    * The tiles' help popovers explain the statistics to someone who does not
    * live in them: what was averaged or counted, over which simulated runs,
@@ -752,6 +755,46 @@ export default function App() {
       },
     },
     {
+      key: "roi",
+      /*
+       * "Avg" as its neighbours on this strip carry it, and not as the
+       * per-event tile does — that one is a bare "ROI", and the difference is
+       * worth the inconsistency. Every figure on this strip is an average over
+       * simulated runs, and this is the one where the average is furthest from
+       * the run you should expect: a mean return of −13% on Arena Direct sits
+       * against a median of −79%, since the runs that win a box carry it.
+       */
+      label: "Avg ROI",
+      /*
+       * The ending value above, restated as a return on what was put in. It
+       * earns a tile of its own beside that one because the two answer
+       * different questions: ≈💎 9,400 says nothing about whether that is a
+       * fortune or a disappointment without the starting balance held in mind,
+       * and this is that comparison already made.
+       *
+       * Null only when the bankroll is empty, which is the one case where
+       * there is nothing to return on — an em dash rather than a percentage,
+       * as the break-even tile does for a rate that does not exist.
+       */
+      value: runRoi === null ? "—" : pct(runRoi),
+      tone: runRoi === null ? undefined : signClass(runRoi),
+      /*
+       * The denominator, marked ≈ because it is one: starting gold is folded
+       * in at the config's rate, the same figure the inputs print under the two
+       * balances. Naming it is what makes the percentage checkable against the
+       * ending value beside it.
+       */
+      hint:
+        runRoi === null
+          ? "no balance to return on"
+          : `of ${gemsEq(startValue)} to start`,
+      help: {
+        label: "What bankroll ROI means",
+        content:
+          "What the average run gained or lost, as a share of the balance it started with. Unlike the per-event ROI this is not per entry: it covers the whole run, so playing longer moves it — a profitable event compounds, and a losing one grinds toward −100%, which is as far as it can fall.",
+      },
+    },
+    {
       key: "ruin",
       // The model stores the survival rate; ruin is the figure with a name,
       // and the direction people quote it in.
@@ -766,24 +809,11 @@ export default function App() {
     },
   ];
   /**
-   * The bankroll tiles, in the order they earn their place.
-   *
-   * Four show and the rest sit behind the strip's arrow, so the order is a
-   * claim about what the event is for rather than a layout detail. Boxes take
-   * the front wherever the ladder pays them: they are the only reason to enter
-   * an Arena Direct, and they are the one reward a mean cannot describe,
-   * because 0.2 boxes is not something anyone receives. Packs give up their
-   * slot in that case rather than their place — they are still a real part of
-   * the payout, one arrow to the right.
-   *
-   * Five is the most this ever runs to. The closed-form chance for a single
-   * entry was a sixth for a while and has been taken out again: it answers a
-   * question nobody asked of a page about bankrolls, and sitting in the same
-   * row as the run-level chance it mostly invited the two to be confused. It
-   * still exists as `boxChancePerEvent`, where it does its real work of
-   * holding the simulation to account in the tests.
+   * The chance of coming away with a box, where the ladder pays one — and
+   * nothing at all where it does not, so it spreads into the strip below
+   * without a branch there.
    */
-  const bankrollTiles: StatTile[] = box
+  const boxChanceTiles: StatTile[] = box
     ? [
         {
           key: "box",
@@ -815,10 +845,37 @@ export default function App() {
             }`,
           },
         },
-        ...runTiles,
-        packsTile,
       ]
-    : [runTiles[0], runTiles[1], packsTile, runTiles[2]];
+    : [];
+
+  /**
+   * The bankroll tiles, in the order they earn their place.
+   *
+   * Four show and the rest sit behind the strip's arrow, so the order is a
+   * claim about what the event is for rather than a layout detail. Boxes take
+   * the front wherever the ladder pays them: they are the only reason to enter
+   * an Arena Direct, and they are the one reward a mean cannot describe,
+   * because 0.2 boxes is not something anyone receives.
+   *
+   * One order now serves both ladders, where it used to take an index shuffle
+   * to move packs forward when there was no box tile to displace them. Packs
+   * are last either way: they are a real part of the payout and no part of the
+   * decision, and they were the tile ROI was let in ahead of.
+   *
+   * ROI follows the ending value it restates, the two being one figure read
+   * twice — what a run came to, and what that came to per gem put in. That
+   * pairing is what costs risk of ruin its slot on a box ladder, where the
+   * strip runs to six: the tiles pair up as value with ROI and events played
+   * with ruin, and showing one of each pair beats showing both halves of one.
+   *
+   * Six is the most this ever runs to. The closed-form chance of a box for a
+   * single entry was among them for a while and has been taken out again: it
+   * answers a question nobody asked of a page about bankrolls, and sitting in
+   * the same row as the run-level chance it mostly invited the two to be
+   * confused. It still exists as `boxChancePerEvent`, where it does its real
+   * work of holding the simulation to account in the tests.
+   */
+  const bankrollTiles: StatTile[] = [...boxChanceTiles, ...runTiles, packsTile];
 
   /*
    * Boxes per entry, where the ladder pays them. A mean rather than a chance,

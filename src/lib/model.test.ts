@@ -47,6 +47,7 @@ import {
   PRIOR_ALPHA,
   PRIOR_BETA,
   ARENA_DIRECT_COLLECTOR,
+  bankrollRoi,
   maxPossibleWins,
   maxRounds,
   HOLDING_KEYS,
@@ -62,6 +63,7 @@ import {
   runValue,
   startingValue,
   seededRandom,
+  type EventConfig,
   type EventStructure,
   type RecordProbability,
 } from "./index";
@@ -903,6 +905,59 @@ describe("bankroll", () => {
     expect(startingValue(config, 1000, 10_000)).toBeCloseTo(1000 + 1500, 6);
     expect(startingValue(config, 1000, 0)).toBe(1000);
     expect(startingValue({ ...config, goldPerGem: Infinity }, 1000, 10_000)).toBe(1000);
+  });
+
+  it("reports the run's return against that same starting value", () => {
+    // ROI on the bankroll tab is the ending value read once more, as a share
+    // of what went in — so the two figures must be the one calculation.
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const start = { ...roll, startingGems: 12_000, startingGold: 20_000 };
+    const res = simulateBankrolls(config, start, 200, 41);
+    const sv = startingValue(config, start.startingGems, start.startingGold);
+    expect(bankrollRoi(res.meanFinalValue, sv)).toBeCloseTo(
+      (res.meanFinalValue - sv) / sv,
+      12,
+    );
+    // Doubling the bankroll is +100%; losing all of it is the floor at −100%.
+    expect(bankrollRoi(2 * sv, sv)).toBeCloseTo(1, 12);
+    expect(bankrollRoi(0, sv)).toBeCloseTo(-1, 12);
+    // Nothing to divide by, so no answer rather than an enormous one.
+    expect(bankrollRoi(res.meanFinalValue, 0)).toBeNull();
+  });
+
+  it("moves with the run length, where the per-event figure would not", () => {
+    /*
+     * What separates this from the per-event ROI, and the reason the tile's
+     * popover says so: it covers a whole run rather than one entry, so how
+     * long you intend to play is part of the answer.
+     */
+    const roiOver = (config: EventConfig, maxEvents: number): number => {
+      const res = simulateBankrolls(config, { ...roll, maxEvents }, 200, 7);
+      const value = bankrollRoi(
+        res.meanFinalValue,
+        startingValue(config, roll.startingGems, roll.startingGold),
+      );
+      if (value === null) throw new Error("a funded bankroll has a return");
+      return value;
+    };
+    // A rate called certain and no daily gold, so the ladder is the only
+    // income and every run plays at the stated rate.
+    const base = { winRateMatches: 0, eventsPerDay: 0 };
+    const winning = {
+      ...configFromPreset(PREMIER_DRAFT, defaultConfig()),
+      ...base,
+      winRate: 0.75,
+    };
+    // Winnings go back in and buy further entries, so a longer run compounds.
+    expect(roiOver(winning, 20)).toBeGreaterThan(0);
+    expect(roiOver(winning, 100)).toBeGreaterThan(roiOver(winning, 20));
+
+    // The other direction has a floor that is not the cap: a hopeless run
+    // goes broke after six entries and then stops, so raising the limit
+    // cannot take it any further down.
+    const hopeless = { ...defaultConfig(), ...base, winRate: 0 };
+    expect(roiOver(hopeless, 20)).toBeLessThan(0);
+    expect(roiOver(hopeless, 100)).toBe(roiOver(hopeless, 20));
   });
 
   it("histogram accounts for every run", () => {
