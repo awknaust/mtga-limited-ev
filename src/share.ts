@@ -90,6 +90,62 @@ export function defaultShareState(): ShareState {
   };
 }
 
+/**
+ * Advanced settings back to a fresh load's values, leaving the rest alone.
+ *
+ * Written as what the dialog does *not* own rather than as a list of what it
+ * does, and the direction is the whole point. Knobs accumulate in Advanced
+ * settings, so a field added there is restored by this without anyone
+ * remembering to come back here — whereas the list-what-it-owns version fails
+ * silently, leaving one field untouched by a button that says it resets
+ * everything. The three groups kept below fail loudly instead: forget one and
+ * the payout table, the balance or the win rate visibly moves on a press.
+ *
+ * The fields it restores are all preset-independent — `configFromPreset` sets
+ * only the ones kept here — so "default" means the same thing whichever event
+ * is selected.
+ */
+export function resetAdvanced(state: ShareState): ShareState {
+  const fresh = defaultShareState();
+  return {
+    ...fresh,
+    presetName: state.presetName,
+    config: {
+      ...fresh.config,
+      /*
+       * The Event card's own fields: everything a preset defines, plus the win
+       * rate, whose slider sits above the Advanced button rather than inside
+       * the dialog.
+       */
+      winRate: state.config.winRate,
+      structure: state.config.structure,
+      entryCostGems: state.config.entryCostGems,
+      entryCostGold: state.config.entryCostGold,
+      draftPacks: state.config.draftPacks,
+      payouts: state.config.payouts,
+    },
+    // The Bankroll card's.
+    startingGems: state.startingGems,
+    startingGold: state.startingGold,
+    maxEvents: state.maxEvents,
+    // Where the page is pointed, which is not a setting to restore.
+    tab: state.tab,
+    unit: state.unit,
+  };
+}
+
+/**
+ * Whether the reset has anything left to do, which is what greys its button.
+ *
+ * Compared as the links the two states write rather than field by field, so it
+ * cannot fall out of step with `resetAdvanced` by listing one field fewer: a
+ * value the reset moved writes a different parameter, and one it kept writes
+ * the same. The comparison inherits the encoder's six decimal places, which is
+ * four more than any field on screen resolves.
+ */
+export const isAdvancedDefault = (state: ShareState): boolean =>
+  encodeShareState(resetAdvanced(state)) === encodeShareState(state);
+
 /** Preset name to the token that names it in a URL. */
 export const presetSlug = (name: string): string =>
   name

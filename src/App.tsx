@@ -57,6 +57,9 @@ import {
   STARTING_ENTRIES,
   decodeShareState,
   encodeShareState,
+  isAdvancedDefault,
+  resetAdvanced,
+  type ShareState,
   type Tab,
 } from "./share";
 
@@ -381,6 +384,35 @@ export default function App() {
   // Set when a preset switch lands on an event the balance cannot enter. Not
   // in the URL: it describes a moment, not a configuration worth sharing.
   const [topUp, setTopUp] = useState<TopUp | null>(null);
+  /*
+   * What the Advanced reset announces. The fields it clears sit further up the
+   * dialog and some of them are scrolled off it, so the press has a visible
+   * answer and no audible one — the button disabling itself is not something a
+   * screen reader is told about either.
+   */
+  const [advancedReset, setAdvancedReset] = useState("");
+
+  /**
+   * Everything a link carries, as the one object two things here take.
+   *
+   * A function rather than a value so the effect below keeps a dependency list
+   * of plain numbers and strings: an object built in the render body is a new
+   * one every time unless the compiler memoises it, and a silent bailout would
+   * turn that effect into a history write per render.
+   */
+  const shareState = (): ShareState => ({
+    presetName,
+    config,
+    trials,
+    bankrollRuns,
+    seed,
+    startingGems,
+    startingGold,
+    maxEvents,
+    tab,
+    unit,
+    gemsPerUsd,
+  });
 
   /*
    * replaceState, not pushState: these are live-edited fields, and a history
@@ -392,19 +424,7 @@ export default function App() {
    * decode above already handles.
    */
   useEffect(() => {
-    const query = encodeShareState({
-      presetName,
-      config,
-      trials,
-      bankrollRuns,
-      seed,
-      startingGems,
-      startingGold,
-      maxEvents,
-      tab,
-      unit,
-      gemsPerUsd,
-    });
+    const query = encodeShareState(shareState());
     const { pathname, hash } = window.location;
     window.history.replaceState(
       null,
@@ -643,6 +663,31 @@ export default function App() {
       goldPrice,
       suggested: STARTING_ENTRIES * preset.entryCostGems,
     });
+  };
+
+  /**
+   * Advanced settings back to their defaults, from the dialog's own footer.
+   *
+   * `resetAdvanced` decides where the line falls; this only puts back what it
+   * returns. Every field is handed to its setter rather than the ones the
+   * dialog happens to show today, so moving a field into it stays a change in
+   * share.ts alone — React drops a set to the value already held, which is
+   * what makes the unchanged ones free.
+   */
+  const resetAdvancedSettings = () => {
+    const next = resetAdvanced(shareState());
+    setPresetName(next.presetName);
+    setConfig(next.config);
+    setTrials(next.trials);
+    setBankrollRuns(next.bankrollRuns);
+    setSeed(next.seed);
+    setStartingGems(next.startingGems);
+    setStartingGold(next.startingGold);
+    setMaxEvents(next.maxEvents);
+    setTab(next.tab);
+    setUnit(next.unit);
+    setGemsPerUsd(next.gemsPerUsd);
+    setAdvancedReset("Advanced settings reset to defaults");
   };
 
   /*
@@ -2015,6 +2060,29 @@ export default function App() {
               </div>
             </div>
             <div className="modal-footer">
+              {/*
+                Held to the far end, away from Done: one button leaves the
+                dialog and the other changes what is in it, and they should not
+                be adjacent. Disabled when there is nothing left to restore,
+                which is also what tells you the dialog is untouched — the
+                fields themselves never say so, since a default is just a
+                number sitting in a box.
+              */}
+              <button
+                type="button"
+                className="btn btn-outline-secondary me-auto"
+                disabled={isAdvancedDefault(shareState())}
+                onClick={resetAdvancedSettings}
+              >
+                <i
+                  className="bi bi-arrow-counterclockwise me-1"
+                  aria-hidden="true"
+                />
+                Reset to defaults
+              </button>
+              <span className="visually-hidden" aria-live="polite">
+                {advancedReset}
+              </span>
               <button type="button" className="btn btn-primary" data-bs-dismiss="modal">
                 Done
               </button>
