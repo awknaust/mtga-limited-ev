@@ -422,6 +422,39 @@ export function startingValue(
   return startingGems + startingGold / config.goldPerGem;
 }
 
+/**
+ * What the average run returned on the bankroll it started with.
+ *
+ * The bankroll counterpart to the per-event ROI, and it is worth being clear
+ * that the two divide by different things. Per event, ROI is the net of one
+ * entry over what that entry cost, and it does not care how many you play.
+ * This is the whole run's gain over the whole stake, so the run length is part
+ * of the answer: a profitable event compounds toward a larger number the longer
+ * `maxEvents` lets it run, and a losing one grinds down toward −100%, which is
+ * the floor — a run can lose the bankroll and no more.
+ *
+ * It is a mean return, and exactly that rather than a ratio of means standing
+ * in for one: every run stakes the same bankroll, so the denominator does not
+ * vary and dividing the mean ending value is identically averaging each run's
+ * own return. No test pins the equality because none could fail — it is an
+ * identity given a constant stake, not a property of this arithmetic.
+ *
+ * Which leaves the usual caveat about means, and it is a large one here. The
+ * average run is not the typical one: at Arena Direct's rates a mean return of
+ * −13% sits beside a median of −79%, because the runs that win a box carry the
+ * average and most runs never see one. `medianFinalValue` is the figure that
+ * answers for the typical run, and the value tile's percentiles are where a
+ * reader meets it.
+ *
+ * Null when there is no bankroll to return on. Nothing sensible divides by an
+ * empty wallet, and a run that starts with nothing plays no events, so the
+ * figure would be 0/0 rather than large.
+ */
+export function bankrollRoi(meanFinalValue: number, startValue: number): number | null {
+  if (startValue <= 0) return null;
+  return (meanFinalValue - startValue) / startValue;
+}
+
 /** Boxes a run came away with, both kinds together. */
 const boxesWon = (run: BankrollRun): number => run.playBoxes + run.collectorBoxes;
 
