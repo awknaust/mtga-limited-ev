@@ -243,7 +243,16 @@ export const DEFAULT_EVENTS_PER_DAY = 1;
 
 /**
  * Street prices in USD from MTGGoldfish's sealed product list, averaged over
- * three released, Standard-legal sets:
+ * three released, Standard-legal sets.
+ *
+ * These are the *fallback* behind the two box constants below. On the
+ * production origin the app fetches `/api/box-prices` — a Worker-published
+ * feed of every tracked set (see `worker/`) — and derives the same average
+ * from live prices in `src/lib/boxPrices.ts`; these figures only govern when
+ * that feed is unreachable: preview deployments, dev without the proxy, or an
+ * outage. Refresh the snapshot with `npm run refresh:constants`.
+ *
+ * The three sets used:
  *
  *     Marvel Super Heroes   play $147   collector $599
  *     Edge of Eternities    play $187   collector $914
@@ -265,7 +274,9 @@ const COLLECTOR_BOX_USD = [599, 914, 378];
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 /**
- * Default gem value of a physical Play Booster box, converted at GEMS_PER_USD.
+ * Fallback gem value of a physical Play Booster box, converted at
+ * GEMS_PER_USD. Live prices normally replace it — see the note on
+ * PLAY_BOX_USD above.
  *
  * Street price rather than sticker. Wizards' own figure is higher — the Arena
  * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
@@ -277,11 +288,13 @@ export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(
 );
 
 /**
- * Default gem value of a physical Collector Booster box, same basis.
+ * Fallback gem value of a physical Collector Booster box, same basis.
  *
  * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88
  * — because the price tracks the singles inside. It is also the most volatile
- * number here: recent sets have ranged from under $400 to over $900.
+ * number here — recent sets have ranged from under $400 to over $900 — which
+ * is exactly why the live feed exists: this snapshot is the figure that goes
+ * stale fastest.
  */
 export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
   mean(COLLECTOR_BOX_USD) * GEMS_PER_USD,

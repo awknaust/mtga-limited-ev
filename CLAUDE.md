@@ -72,6 +72,47 @@ and have burned us. Three things to hold to:
   one. When a number is inferred rather than sourced, say so in the commit and
   open an issue.
 
+### Live box prices
+
+The two box values are the one input that goes stale in weeks, so they do not
+ride on deploys: a scheduled Worker (`worker/`) reads MTGGoldfish and Scryfall
+daily, publishes street prices for **every** tracked set — with release date
+and set type, not a pre-averaged answer — to KV, and serves the payload at
+`/api/box-prices` on the production origin. The app fetches it once at load
+and derives its defaults in `src/lib/boxPrices.ts`: newest three released
+Standard-legal sets, outliers past twice the pool median set aside. Publishing
+data rather than an answer is deliberate twice over — changing the rule is an
+app change, not a data migration, and the per-set rows are the shape a future
+"this payout is a box of set X" feature would price against.
+
+Boundaries that should outlive any refactor:
+
+- **The route is same-origin because the CSP says so.** `connect-src 'self'`
+  is not to be amended for this; the Worker's route on
+  `mtga-limited-ev.awknaust.me/api/*` is what makes the fetch legal. Preview
+  deploys and offline dev have no route and *fall back* to
+  `DEFAULT_PLAY_BOX_VALUE_GEMS` / `DEFAULT_COLLECTOR_BOX_VALUE_GEMS` — the
+  baked snapshot of the same rule. A missing feed must never be worse than
+  the constants were alone. (`npm run dev` proxies `/api` to production, so
+  dev normally sees live data anyway.)
+- **Share links never depend on the feed.** Encode measures against the fixed
+  constants and decode falls back to them, so live values are always written
+  into links explicitly, and an old link means what it meant the day it was
+  written. The app only overwrites a box value that still sits at its baked
+  default — a link's explicit value and a user's edit both survive the fetch
+  resolving late.
+- **The Worker parses with `scripts/refresh-constants/`'s modules**, imported
+  relatively, not copied. Fixing a parser fixes both consumers; a second copy
+  would drift.
+- A failed refresh — cron or on-demand — leaves the previous KV value
+  serving. Yesterday's street prices are not a degradation; a half-parsed
+  page would be, which is why `worker/src/dataset.mjs` refuses to publish a
+  stump.
+
+The Worker deploys from `deploy.yml` on pushes to main, same credentials as
+the Pages upload. Its KV namespace id sits in `worker/wrangler.jsonc` and is
+not a secret.
+
 ### Re-deriving the constants
 
 ```bash

@@ -1,0 +1,44 @@
+/**
+ * The box-price feed: a scheduled Worker that publishes street prices for
+ * every set MTGGoldfish tracks, joined to Scryfall's set metadata, into KV —
+ * and serves them at /api/box-prices on the app's own origin.
+ *
+ * The route is the load-bearing choice. The app's CSP (public/_headers) says
+ * `connect-src 'self'` and that policy is deliberately hard to amend, so the
+ * feed has to be same-origin. A Workers route on the custom domain takes
+ * precedence over the Pages project for matching paths, which puts this
+ * Worker on /api/* while Pages keeps everything else. Preview deployments
+ * (*.pages.dev) have no such route, so they fall back to the constants baked
+ * into the app — that is by design, not a gap.
+ *
+ * Deployed by .github/workflows/deploy.yml on pushes to main, with the same
+ * account credentials as the Pages upload. The KV namespace was created once
+ * by hand; its id below is not a secret.
+ */
+{
+  "name": "mtga-limited-ev-box-prices",
+  "main": "src/index.mjs",
+  "compatibility_date": "2026-08-01",
+
+  // Route-only on purpose: a workers.dev origin would be a second URL serving
+  // the same data with no CSP story. The one origin that matters is the app's.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "routes": [
+    { "pattern": "mtga-limited-ev.awknaust.me/api/*", "zone_name": "awknaust.me" }
+  ],
+
+  // Daily, at a deliberately odd minute. Street prices move on the order of
+  // weeks; daily keeps the feed fresh enough that nobody has to think about
+  // it, while staying a polite once-a-day read of the source pages. A failed
+  // run leaves the previous KV value serving, so a source outage degrades to
+  // yesterday's prices rather than to an error.
+  "triggers": { "crons": ["43 10 * * *"] },
+
+  "kv_namespaces": [
+    { "binding": "BOX_PRICES", "id": "3613fd85a00e4ab3ad5f8fda0bdbc7ff" }
+  ],
+
+  "observability": { "enabled": true }
+}

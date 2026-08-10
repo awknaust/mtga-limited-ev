@@ -141,3 +141,31 @@ jobs:
             echo "Pinned to \`$GITHUB_SHA\`: $EXACT"
           } > comment.md
           gh pr comment "$PR" --body-file comment.md --edit-last --create-if-none
+
+  # The box-price feed Worker (worker/), which serves /api/box-prices on the
+  # production origin and refreshes its KV data on a daily cron. Main only:
+  # its route lives on the custom domain, so there is nothing preview-shaped
+  # to deploy — previews fall back to the constants baked into the app, by
+  # design. Deploying on every main push is idempotent and takes seconds;
+  # gating it on a paths filter would just add a way for the workflow file and
+  # reality to disagree.
+  deploy-worker:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      # The worker imports its source-reading modules from
+      # scripts/refresh-constants/, so it needs the checkout, not just its own
+      # directory — wrangler bundles the relative imports at deploy time.
+      - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          command: deploy

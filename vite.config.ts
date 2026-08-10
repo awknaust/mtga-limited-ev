@@ -27,4 +27,20 @@ import babel from "@rolldown/plugin-babel";
  */
 export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  server: {
+    /*
+     * /api is the box-price feed, served in production by the Worker in
+     * `worker/` on the app's own origin (the CSP allows nothing else). Dev has
+     * no Worker, so the dev server relays the path to production — the browser
+     * still sees a same-origin request. Offline, the proxy fails, the app's
+     * fetch catches, and the baked-in fallback values stand; dev never
+     * *requires* the network.
+     */
+    proxy: {
+      "/api": {
+        target: "https://mtga-limited-ev.awknaust.me",
+        changeOrigin: true,
+      },
+    },
+  },
 });
