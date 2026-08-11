@@ -11,9 +11,11 @@
  * even though only `--verbose` prints it: it costs nothing, and a derivation
  * that is only assembled when asked for is a derivation that rots.
  *
- * Deliberately absent are the constants that are modelling choices rather than
- * sourced figures — the default win rate, matches behind it, and events per day
- * have no external answer to check against.
+ * Deliberately absent, twice over: the constants that are modelling choices
+ * rather than sourced figures — the default win rate, matches behind it, and
+ * events per day have no external answer to check against — and the two box
+ * constants, whose data comes from the box-price feed (`scripts/box-prices/`)
+ * and whose modelling lives in the app (`src/lib/boxPrices.ts`).
  */
 
 import {
@@ -21,34 +23,58 @@ import {
   DUAL_PRICED_EVENTS,
   GEM_BUNDLES,
   PLAY_IN_ENTRY,
-} from "./by-hand.mjs";
+} from "./by-hand.ts";
 import {
-  BOX_SAMPLE_SIZE,
-  OUTLIER_FACTOR,
-  RECENT_SET_MONTHS,
-  chooseBoxSets,
   goldPerGem,
-  mean,
   rareSlotGems,
   representativeMythicRate,
   wildcardShare,
-} from "./derive.mjs";
-import { SourceError } from "./errors.mjs";
+  type MythicRateSummary,
+} from "./derive.ts";
+import { SourceError } from "../shared/http.ts";
+import type { SourceKey, Sources } from "./sources.ts";
+import type { DropRates } from "./wizards.ts";
 
-const gems = (n) => n.toLocaleString("en-US");
-const usd = (n) => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+export type ConstantValue = number | readonly number[];
+
+export type ConstantResult = {
+  value: ConstantValue;
+  /** How to print the value, when plain number formatting would mislead. */
+  format?: (value: ConstantValue) => string;
+  explain: string[];
+};
+
+export type Context = { sources: Sources; now: Date };
+
+export type ConstantDef = {
+  name: string;
+  summary: string;
+  sources: SourceKey[];
+  compute(ctx: Context): ConstantResult | Promise<ConstantResult>;
+};
+
+const gems = (n: number): string => n.toLocaleString("en-US");
+const usd = (n: number): string => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
 
 /** A ratio in lowest terms, so a rate can be shown the way it is written in code. */
-function reduce(a, b) {
-  const gcd = (x, y) => (y === 0 ? x : gcd(y, x % y));
+function reduce(a: number, b: number): [number, number] {
+  const gcd = (x: number, y: number): number => (y === 0 ? x : gcd(y, x % y));
   const d = gcd(a, b);
   return [a / d, b / d];
 }
 
 // --- shared intermediate results -------------------------------------------
-// Two constants come out of each of these, so both are computed once per run.
+// Two constants come out of this, so it is computed once per run.
 
-const packBasis = (ctx) =>
+type PackBasis = {
+  rates: DropRates;
+  mythic: MythicRateSummary;
+  raw: number;
+  displaced: number;
+  adjusted: number;
+};
+
+const packBasis = (ctx: Context): Promise<PackBasis> =>
   ctx.sources.once("packBasis", async () => {
     const rates = await ctx.sources.dropRates();
     const sets = await ctx.sources.sets();
@@ -58,21 +84,14 @@ const packBasis = (ctx) =>
     return { rates, mythic, raw, displaced, adjusted: raw * (1 - displaced) };
   });
 
-const boxBasis = (ctx) =>
-  ctx.sources.once("boxBasis", async () => {
-    const prices = await ctx.sources.boxPrices();
-    const sets = await ctx.sources.sets();
-    return chooseBoxSets(prices, sets, ctx.now);
-  });
-
-/** Gems per dollar, from the by-hand ladder, as every physical prize is priced through it. */
+/** Gems per dollar, from the by-hand ladder. */
 function gemsPerUsd() {
   const rated = GEM_BUNDLES.rungs.map((r) => ({ ...r, rate: r.gems / r.usd }));
   const best = rated.reduce((a, b) => (b.rate > a.rate ? b : a));
   return { rated, best, value: Math.round(best.rate) };
 }
 
-function explainMythicRate(mythic) {
+function explainMythicRate(mythic: MythicRateSummary): string[] {
   const lines = [
     `mythic upgrade rate 1:${mythic.rate}, the rate covering the most sets released`,
     `  since ${mythic.window.from} (${mythic.buckets[0].sets.length} of ` +
@@ -96,25 +115,9 @@ function explainMythicRate(mythic) {
   return lines;
 }
 
-function explainBoxSets(basis, kind) {
-  const lines = [
-    `newest ${BOX_SAMPLE_SIZE} released Standard-legal sets, at TCGplayer market price:`,
-  ];
-  for (const set of basis.used) {
-    lines.push(`  ${set.code.toUpperCase().padEnd(5)}${set.name.padEnd(31)}${set.releasedAt}   ${usd(set[kind])}`);
-  }
-  for (const set of basis.dropped) {
-    lines.push(
-      `  ${set.code.toUpperCase().padEnd(5)}${set.name.padEnd(31)}${set.releasedAt}   ` +
-        `${usd(set[kind])}  dropped: ${set.over.join(" and ")} over ${OUTLIER_FACTOR}x the pool median`,
-    );
-  }
-  return lines;
-}
-
 // --- the constants ----------------------------------------------------------
 
-export const CONSTANTS = [
+export const CONSTANTS: ConstantDef[] = [
   {
     name: "DEFAULT_PACK_VALUE_GEMS",
     summary: "gem value of a booster pack to a complete collection",
@@ -166,51 +169,6 @@ export const CONSTANTS = [
   },
 
   {
-    name: "DEFAULT_PLAY_BOX_VALUE_GEMS",
-    summary: "gem value of a physical Play Booster box",
-    sources: ["boxPrices", "sets"],
-    async compute(ctx) {
-      const basis = await boxBasis(ctx);
-      const rate = gemsPerUsd();
-      const average = mean(basis.used.map((s) => s.play));
-      return {
-        value: Math.round(average * rate.value),
-        explain: [
-          "market price rather than sticker or listing: what boxes actually sell for",
-          "  on TCGplayer, which is what a box is worth to you. Wizards' own figure is",
-          "  higher — the Arena Direct terms offer $209.70 a box in cash — but that",
-          "  cash is taxed.",
-          ...explainBoxSets(basis, "play"),
-          `average                   ${usd(Number(average.toFixed(2)))}`,
-          `at ${rate.value} gems to the dollar  ${gems(Math.round(average * rate.value))} gems`,
-        ],
-      };
-    },
-  },
-
-  {
-    name: "DEFAULT_COLLECTOR_BOX_VALUE_GEMS",
-    summary: "gem value of a physical Collector Booster box",
-    sources: ["boxPrices", "sets"],
-    async compute(ctx) {
-      const basis = await boxBasis(ctx);
-      const rate = gemsPerUsd();
-      const average = mean(basis.used.map((s) => s.collector));
-      return {
-        value: Math.round(average * rate.value),
-        explain: [
-          "the most volatile figure here: collector boxes run far above MSRP because",
-          "  the price tracks the singles inside, and recent sets have ranged from",
-          "  around $400 to over $1,700 at market",
-          ...explainBoxSets(basis, "collector"),
-          `average                   ${usd(Number(average.toFixed(2)))}`,
-          `at ${rate.value} gems to the dollar  ${gems(Math.round(average * rate.value))} gems`,
-        ],
-      };
-    },
-  },
-
-  {
     name: "GEMS_PER_USD",
     summary: "gems per dollar, for pricing physical prizes",
     sources: [],
@@ -241,9 +199,9 @@ export const CONSTANTS = [
     sources: [],
     compute() {
       const { rates, agrees, value } = goldPerGem(DUAL_PRICED_EVENTS.events);
-      if (!agrees) {
+      if (!agrees || value === null) {
         throw new SourceError(
-          "dual-priced events no longer agree on a rate — see by-hand.mjs; the model " +
+          "dual-priced events no longer agree on a rate — see by-hand.ts; the model " +
             "needs a per-event rate, not a new constant",
         );
       }
@@ -260,7 +218,7 @@ export const CONSTANTS = [
             (r) =>
               `  ${r.name.padEnd(18)}${gems(r.gold).padStart(7)} gold / ${gems(r.gems).padStart(5)} gems = ${r.ratio.toFixed(4)}`,
           ),
-          `all ${rates.length} agree, so Arena sets the rate by what it charges: ${value.toFixed(4)}, or 20/3`,
+          `all ${rates.length} agree, so Arena sets the rate by what it charges: ${value.toFixed(4)}, or ${gold}/${gem}`,
           "holds only while you have something to spend gold on — gold cannot be",
           "  bought or sold, so this overstates a balance you are sitting on",
         ],
@@ -278,7 +236,7 @@ export const CONSTANTS = [
       const total = gold.reduce((a, b) => a + b, 0);
       return {
         value: gold,
-        format: (v) => `[${v.join(", ")}]`,
+        format: (v) => `[${(v as readonly number[]).join(", ")}]`,
         explain: [
           `read straight off the daily win table: ${gold.length} wins, ${total} gold in total`,
           `it front-loads hard — the first win alone is ${((gold[0] / total) * 100).toFixed(0)}% of the day`,
@@ -338,26 +296,29 @@ export const CONSTANTS = [
  * naming the alternatives rather than a guess, because silently checking a
  * different constant than the one asked for is worse than not running.
  */
-export function selectConstants(names) {
+export function selectConstants(names: string[]): ConstantDef[] {
   if (names.length === 0) return CONSTANTS;
 
   const byKey = new Map(CONSTANTS.map((c) => [c.name.toLowerCase(), c]));
-  const chosen = new Set();
-  const unknown = [];
+  const chosen = new Set<ConstantDef>();
+  const unknown: string[] = [];
   for (const name of names) {
     const found = byKey.get(name.toLowerCase());
     if (found) chosen.add(found);
     else unknown.push(name);
   }
   if (unknown.length > 0) {
-    throw new UnknownConstantError(unknown, CONSTANTS.map((c) => c.name));
+    throw new UnknownConstantError(
+      unknown,
+      CONSTANTS.map((c) => c.name),
+    );
   }
   return CONSTANTS.filter((c) => chosen.has(c));
 }
 
 export class UnknownConstantError extends Error {
-  constructor(unknown, known) {
+  override name = "UnknownConstantError";
+  constructor(unknown: string[], known: string[]) {
     super(`Unknown constant: ${unknown.join(", ")}\nKnown constants:\n  ${known.join("\n  ")}`);
-    this.name = "UnknownConstantError";
   }
 }

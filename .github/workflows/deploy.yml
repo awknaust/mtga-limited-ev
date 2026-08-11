@@ -160,9 +160,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      # The worker imports its source-reading modules from
-      # scripts/refresh-constants/, so it needs the checkout, not just its own
-      # directory — wrangler bundles the relative imports at deploy time.
+      # The worker imports the box-price module from scripts/box-prices/, so
+      # it needs the checkout, not just its own directory — wrangler bundles
+      # the relative imports at deploy time.
       - uses: cloudflare/wrangler-action@ebbaa1584979971c8614a24965b4405ff95890e0 # v4
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}

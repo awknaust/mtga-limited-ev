@@ -1,31 +1,30 @@
 /**
- * Handlers: a cron that refreshes the KV feed, and a fetch that serves it.
+ * The deployment of the box-price module, and nothing more: a cron that
+ * refreshes the KV copy of the feed, and a fetch handler that serves it.
  *
- * The source-reading modules are imported from `scripts/refresh-constants/`
- * rather than copied. That directory is the single place this repository
- * knows how to read Wizards' pages, Scryfall and TCGplayer's data, and a second
- * copy here would drift from it the first time either was fixed alone. The
- * modules are plain fetch-and-regex with no Node imports, which is what makes
- * them portable to the Workers runtime unchanged.
+ * Everything about *what* the feed is — which sets, which products, what the
+ * payload looks like — lives in `scripts/box-prices/`, imported relatively
+ * rather than copied, so fixing the module fixes the Worker and the
+ * `npm run box:prices` inspection script in the same motion. This file only
+ * knows where the feed is stored and how it is served.
  */
 
-import { SourceError } from "../../scripts/refresh-constants/errors.mjs";
-import { createSources } from "../../scripts/refresh-constants/sources.mjs";
-import { KV_KEY, buildDataset } from "./dataset.mjs";
+import { fetchBoxPriceFeed } from "../../scripts/box-prices/fetch.ts";
+import { SourceError } from "../../scripts/shared/http.ts";
 
-/** Fetch both feeds, build the payload, store it. Returns the JSON body. */
-async function refresh(env) {
-  const sources = createSources();
-  const [prices, sets] = await Promise.all([sources.boxPrices(), sources.sets()]);
-  const dataset = buildDataset(prices, sets, new Date());
-  const body = JSON.stringify(dataset);
+const KV_KEY = "box-prices:v1";
+
+/** Build the feed, store it, return the JSON body that was stored. */
+async function refresh(env: Env): Promise<string> {
+  const feed = await fetchBoxPriceFeed();
+  const body = JSON.stringify(feed);
   await env.BOX_PRICES.put(KV_KEY, body);
   console.log(
     JSON.stringify({
       event: "refreshed",
-      sets: dataset.boxes.length,
-      unmatched: dataset.unmatched,
-      generatedAt: dataset.generatedAt,
+      sets: feed.boxes.length,
+      unmatched: feed.unmatched,
+      generatedAt: feed.generatedAt,
     }),
   );
   return body;
@@ -83,4 +82,4 @@ export default {
       throw err;
     }
   },
-};
+} satisfies ExportedHandler<Env>;

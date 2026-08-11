@@ -3,13 +3,25 @@
  * derivation spelled out, and JSON.
  *
  * Nothing here computes anything — a number that appears in the output was
- * produced by `registry.mjs` and is only being formatted.
+ * produced by `registry.ts` and is only being formatted.
  */
 
-const defaultFormat = (value) =>
-  typeof value === "number" ? value.toLocaleString("en-US") : String(value);
+import type { ConstantDef, ConstantResult, ConstantValue } from "./registry.ts";
 
-export const displayValue = (result) => (result.format ?? defaultFormat)(result.value);
+/** A computed constant, carrying everything the renderers need. */
+export type NamedResult = ConstantResult & {
+  name: string;
+  summary: string;
+  sourceUrls: string[];
+};
+
+const defaultFormat = (value: ConstantValue): string =>
+  typeof value === "number" ? value.toLocaleString("en-US") : `[${value.join(", ")}]`;
+
+export const displayValue = (result: ConstantResult): string =>
+  (result.format ?? defaultFormat)(result.value);
+
+type Column = { header: string; align: "left" | "right"; maxWidth?: number };
 
 /**
  * A plain aligned table.
@@ -25,19 +37,17 @@ export const displayValue = (result) => (result.format ?? defaultFormat)(result.
  * defeating the point of a column. Columns without `maxWidth` — the names, all
  * of them long — fit their contents as usual.
  */
-function table(columns, rows) {
+function table(columns: Column[], rows: string[][]): string {
   const widths = columns.map((column, i) =>
     Math.max(
       column.header.length,
-      ...rows
-        .map((row) => String(row[i] ?? "").length)
-        .filter((width) => width <= (column.maxWidth ?? Infinity)),
+      ...rows.map((row) => (row[i] ?? "").length).filter((w) => w <= (column.maxWidth ?? Infinity)),
     ),
   );
-  const line = (cells) =>
+  const line = (cells: string[]): string =>
     cells
       .map((cell, i) => {
-        const text = String(cell ?? "");
+        const text = cell ?? "";
         if (text.length > widths[i]) return text;
         return columns[i].align === "right" ? text.padStart(widths[i]) : text.padEnd(widths[i]);
       })
@@ -52,7 +62,7 @@ function table(columns, rows) {
 }
 
 /** The default output: what each constant should be. */
-export function renderTable(results) {
+export function renderTable(results: NamedResult[]): string {
   return table(
     [
       { header: "Constant", align: "left" },
@@ -63,7 +73,7 @@ export function renderTable(results) {
 }
 
 /** The same, with each value's derivation under it. */
-export function renderVerbose(results) {
+export function renderVerbose(results: NamedResult[]): string {
   return results
     .map((result) => {
       const heading = `${result.name} = ${displayValue(result)}`;
@@ -84,22 +94,25 @@ export function renderVerbose(results) {
  * The derivation is included only under `--verbose`, so the shape matches what
  * the text output would have shown.
  */
-export function renderJson(results, { verbose, generatedAt }) {
-  const constants = {};
+export function renderJson(
+  results: NamedResult[],
+  opts: { verbose: boolean; generatedAt: string },
+): string {
+  const constants: Record<string, unknown> = {};
   for (const result of results) {
     constants[result.name] = {
       value: result.value,
       display: displayValue(result),
       summary: result.summary,
       sources: result.sourceUrls,
-      ...(verbose ? { derivation: result.explain } : {}),
+      ...(opts.verbose ? { derivation: result.explain } : {}),
     };
   }
-  return JSON.stringify({ generatedAt, constants }, null, 2);
+  return JSON.stringify({ generatedAt: opts.generatedAt, constants }, null, 2);
 }
 
 /** `--list`: the names, without fetching anything. */
-export function renderList(constants) {
+export function renderList(constants: ConstantDef[]): string {
   return table(
     [
       { header: "Constant", align: "left" },

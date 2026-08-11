@@ -9,14 +9,13 @@
  *     npm run refresh:constants -- --json
  *
  * It reads nothing from the repository and writes nothing to it. Whether a
- * number here should replace the one in `presets.ts` is a judgement — street
- * prices wander by a few percent between runs and most moves are noise — so
- * that call is left to whoever is reading, and the doc comments they would have
- * to update along with it.
+ * number here should replace the one in `presets.ts` is a judgement — most
+ * moves are noise — so that call is left to whoever is reading, and the doc
+ * comments they would have to update along with it.
  *
- * Run it every couple of weeks. The two box constants track street prices and
- * are the part that actually moves; the rest is cheap to compute alongside and
- * exists to catch the day Wizards changes a published rate quietly.
+ * The two box constants are not here: their data is the box-price feed
+ * (`npm run box:prices`, `scripts/box-prices/`) and their modelling lives in
+ * the app (`src/lib/boxPrices.ts`).
  *
  * Exit codes: 0 printed a result, 2 could not — a source was unreachable, a
  * page changed shape, or the arguments named no constant this knows. There is
@@ -26,26 +25,29 @@
 
 import { Command, InvalidArgumentError } from "commander";
 
-import { SourceError } from "./errors.mjs";
-import { isoDate } from "./derive.mjs";
-import { CONSTANTS, UnknownConstantError, selectConstants } from "./registry.mjs";
-import { renderJson, renderList, renderTable, renderVerbose } from "./report.mjs";
-import { SOURCE_URLS, createSources } from "./sources.mjs";
+import { isoDate } from "../shared/dates.ts";
+import { SourceError } from "../shared/http.ts";
+import {
+  CONSTANTS,
+  UnknownConstantError,
+  selectConstants,
+  type ConstantDef,
+  type Context,
+} from "./registry.ts";
+import { renderJson, renderList, renderTable, renderVerbose, type NamedResult } from "./report.ts";
+import { SOURCE_URLS, createSources } from "./sources.ts";
 
 const EXIT_OK = 0;
 const EXIT_CANNOT_ANSWER = 2;
 
-function buildProgram() {
+function buildProgram(): Command {
   return new Command()
     .name("refresh-constants")
     .description(
-      "Re-derive the sourced constants in src/lib/presets.ts from Wizards' drop rates,\n" +
-        "Scryfall and TCGplayer (via tcgcsv.com), plus the in-client figures recorded in by-hand.mjs.",
+      "Re-derive the sourced constants in src/lib/presets.ts from Wizards' drop rates\n" +
+        "and Scryfall, plus the in-client figures recorded in by-hand.ts.",
     )
-    .argument(
-      "[constant...]",
-      "names to derive, case-insensitive; every constant if none are given",
-    )
+    .argument("[constant...]", "names to derive, case-insensitive; every constant if none are given")
     .option("--json", "emit JSON instead of a table")
     .option("-v, --verbose", "show how each value was arrived at")
     .option("-l, --list", "list the constants this knows, without deriving them")
@@ -63,26 +65,23 @@ function buildProgram() {
  * page share one request, and a constant that wants no page makes none. Asking
  * for GEMS_PER_USD alone touches the network zero times.
  */
-async function derive(constants, ctx) {
+async function derive(constants: ConstantDef[], ctx: Context): Promise<NamedResult[]> {
   return Promise.all(
-    constants.map(async (constant) => {
-      const computed = await constant.compute(ctx);
-      return {
-        name: constant.name,
-        summary: constant.summary,
-        sourceUrls: constant.sources.map((key) => SOURCE_URLS[key]),
-        ...computed,
-      };
-    }),
+    constants.map(async (constant) => ({
+      name: constant.name,
+      summary: constant.summary,
+      sourceUrls: constant.sources.map((key) => SOURCE_URLS[key]),
+      ...(await constant.compute(ctx)),
+    })),
   );
 }
 
-async function main(argv) {
+async function main(argv: string[]): Promise<number> {
   const program = buildProgram();
   program.parse(argv);
 
-  const options = program.opts();
-  const names = program.processedArgs[0] ?? [];
+  const options = program.opts<{ json?: boolean; verbose?: boolean; list?: boolean }>();
+  const names = (program.processedArgs[0] ?? []) as string[];
 
   if (options.list) {
     console.log(renderList(CONSTANTS));

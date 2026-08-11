@@ -18,7 +18,7 @@
  */
 {
   "name": "mtga-limited-ev-box-prices",
-  "main": "src/index.mjs",
+  "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
 
   // Route-only on purpose: a workers.dev origin would be a second URL serving

@@ -86,7 +86,7 @@ TCGplayer tracks with the full price statistics — market, low, mid, high,
 directLow — and the feed chooses among none of them: **the worker publishes
 data, and every modelling question lives in the app.** The twenty-set cap is
 what keeps a refresh inside the Workers free plan's 50 subrequests — the
-arithmetic is in `scripts/refresh-constants/sources.mjs` — and it is a
+arithmetic is in `scripts/box-prices/select.ts` — and it is a
 budget, not a model. The app fetches the feed once at load and makes its
 choices in `src/lib/boxPrices.ts`: market price (sales-derived, 15–25% under
 listings; the basis change from MTGGoldfish's listing figures was
@@ -105,66 +105,69 @@ Boundaries that should outlive any refactor:
   deploys and offline dev have no route and *fall back* to
   `DEFAULT_PLAY_BOX_VALUE_GEMS` / `DEFAULT_COLLECTOR_BOX_VALUE_GEMS` — the
   baked snapshot of the same rule. A missing feed must never be worse than
-  the constants were alone. (`npm run dev` proxies `/api` to production, so
-  dev normally sees live data anyway.)
+  the constants were alone. Dev behaves like a preview by default; to
+  exercise the live path, name a proxy target per shell —
+  `MTGA_EV_API_PROXY=http://localhost:8787 npm run dev` against `wrangler
+  dev` — rather than baking the production origin into the build config.
 - **Share links never depend on the feed.** Encode measures against the fixed
   constants and decode falls back to them, so live values are always written
   into links explicitly, and an old link means what it meant the day it was
   written. The app only overwrites a box value that still sits at its baked
   default — a link's explicit value and a user's edit both survive the fetch
   resolving late.
-- **The Worker parses with `scripts/refresh-constants/`'s modules**, imported
-  relatively, not copied. Fixing a parser fixes both consumers; a second copy
-  would drift.
+- **The Worker is a deployment of `scripts/box-prices/`, not a program of its
+  own.** It imports the module relatively, never copies it, so the feed the
+  Worker publishes and the one `npm run box:prices` prints are the same code
+  path; `worker/src/index.ts` knows only the KV key and the route.
 - A failed refresh — cron or on-demand — leaves the previous KV value
   serving. Yesterday's street prices are not a degradation; a half-parsed
-  page would be, which is why `worker/src/dataset.mjs` refuses to publish a
-  stump.
+  page would be, which is why `scripts/box-prices/feed.ts` refuses to publish
+  a stump.
 
 The Worker deploys from `deploy.yml` on pushes to main, same credentials as
 the Pages upload. Its KV namespace id sits in `worker/wrangler.jsonc` and is
 not a secret.
 
-### Re-deriving the constants
+### The two tool modules
+
+Everything under `scripts/` is TypeScript, run directly by Node's type
+stripping (Node 23.6+; no build step), and typechecked in CI by `npm run
+build`. There are two modules, each with a small driver for manual
+inspection, standing on a thin `scripts/shared/` floor (http, Scryfall,
+dates):
 
 ```bash
-npm run refresh:constants
+npm run refresh:constants   # scripts/constants/  — every constant except boxes
+npm run box:prices          # scripts/box-prices/ — the feed the Worker publishes
 ```
 
-`scripts/refresh-constants/` prints what the sourced constants in
+**`scripts/constants/`** prints what the sourced constants in
 `src/lib/presets.ts` should be today: a table of names and values, `--verbose`
-for how each was arrived at, `--json` for either, and constant names as
-positional arguments to narrow it. `--list` names them without fetching
-anything. Run it every couple of weeks — the two box constants track street
-prices and are the part that actually moves.
+for how each was arrived at, `--json` for either, constant names as positional
+arguments to narrow it, `--list` to name them without fetching. It reads
+nothing from this repository and writes nothing to it. **Deciding whether a
+value here should replace the one in `presets.ts` is a person's job**, along
+with the doc comment that has to change with it — so there is no drift check
+and no exit code for "a number moved": 0 means it printed, 2 means it could
+not, kept apart so an outage never reads as a price crash. Sources are
+Wizards' drop-rates page and Scryfall; fetching is lazy and memoised, so
+`GEMS_PER_USD` alone touches the network not at all. A constant is one entry
+in `registry.ts` carrying its own `compute` and its own explanation, and every
+output mode is a fold over that list — adding one means adding an entry and
+nothing else. Figures only in the client live in `by-hand.ts` with the date
+each was last confirmed, and `--verbose` prints them in full. That file going
+stale is not hypothetical: the gem ladder carried a bundle Arena had already
+replaced, and nothing surfaced it because only the rate derived from it was
+ever on screen.
 
-It reads nothing from this repository and writes nothing to it. **Deciding
-whether a value here should replace the one in `presets.ts` is a person's job**,
-along with the doc comment that has to change with it: street prices wander a
-few percent between runs and most of that is noise. So there is no drift check
-and no exit code for "a number moved" — 0 means it printed, 2 means it could
-not, and the two are kept apart so an outage never reads as a price crash.
-
-Sources are Wizards' drop-rates page (duplicate-protection gems, mythic upgrade
-rates, wildcard rates, the daily win ladder), Scryfall (release dates and set
-types), and TCGplayer via tcgcsv.com (box market prices). Fetching is lazy, so asking for one
-constant only pays for the feeds it needs, and `GEMS_PER_USD` touches the
-network not at all.
-
-The layering is worth keeping: `html` → `parse` → `sources` (the only module
-that fetches) → `derive` (pure maths) → `registry` → `report`/`main`. A constant
-is one entry in `registry.mjs` carrying its own `compute` and its own
-explanation, and every mode is a fold over that list, so adding one means adding
-an entry and nothing else.
-
-The judgement calls the constants were written with are encoded rather than
-redone by hand: newest three released Standard-legal sets, retail column not EV,
-anything over twice the pool median dropped as an outlier — the rule that took
-Final Fantasy out. Figures only in the client live in `by-hand.mjs` with the
-date each was last confirmed, and `--verbose` prints them in full. That file
-going stale is not hypothetical: the gem ladder carried a bundle Arena had
-already replaced, and nothing surfaced it because only the rate derived from it
-was ever on screen.
+**`scripts/box-prices/`** is the feed: `tcgcsv.ts` reads TCGplayer's mirror,
+`select.ts` picks which sets are worth two requests (a budget, never a
+model), `feed.ts` joins and refuses to publish stumps, `fetch.ts` is the
+front door the Worker and the driver both call. The box constants are *not*
+in the constants registry — their data is this feed and their modelling is
+the app's (`src/lib/boxPrices.ts`). To refresh the baked fallbacks in
+`presets.ts`, read the newest three released expansions' market prices off
+`npm run box:prices` and follow the doc comment on `PLAY_BOX_USD`.
 
 ## Conventions
 

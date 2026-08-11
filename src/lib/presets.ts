@@ -250,8 +250,10 @@ export const DEFAULT_EVENTS_PER_DAY = 1;
  * feed of the newest twenty draftable paper sets (see `worker/`) — and
  * derives the same average from live prices in `src/lib/boxPrices.ts`; these
  * figures only govern when that feed is unreachable: preview deployments,
- * dev without the proxy, or an outage. Refresh the snapshot with
- * `npm run refresh:constants`.
+ * dev without the proxy, or an outage. To refresh the snapshot, run
+ * `npm run box:prices` and copy the newest three released expansions' play
+ * and collector market prices into the two arrays below, newest first —
+ * skipping any set the twice-the-median outlier rule would drop.
  *
  * The three sets used:
  *

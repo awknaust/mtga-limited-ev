@@ -8,15 +8,34 @@
  * digital flag, so released-or-not is the reader's call. And each box carries
  * the whole statistics object (market, low, mid, high, directLow) rather than
  * one chosen number, so market-versus-listing is the reader's call too. The
- * modelling lives in the app; this file only refuses to publish data that
- * looks broken.
+ * modelling lives in the app (`src/lib/boxPrices.ts` validates this shape and
+ * derives the defaults from it); this module only refuses to publish data
+ * that looks broken.
  *
  * Pure join, no fetching: testable under plain Node against fixture rows.
  */
 
-import { SourceError } from "../../scripts/refresh-constants/errors.mjs";
+import { SourceError } from "../shared/http.ts";
+import type { ScryfallSet } from "../shared/scryfall.ts";
+import type { BoxPrices } from "./tcgcsv.ts";
 
-export const KV_KEY = "box-prices:v1";
+export type FeedSet = {
+  code: string;
+  name: string;
+  releasedAt: string | null;
+  setType: string;
+  digital: boolean;
+  boxes: BoxPrices;
+};
+
+export type BoxPriceFeed = {
+  version: 1;
+  /** ISO timestamp of the run that built the payload. */
+  generatedAt: string;
+  boxes: FeedSet[];
+  /** Set codes the price source used that Scryfall does not know. */
+  unmatched: string[];
+};
 
 /**
  * The floor under "the parse worked". The feed targets the twenty newest
@@ -29,28 +48,18 @@ export const KV_KEY = "box-prices:v1";
 const MIN_SETS = 12;
 const MIN_PLAY_MARKETS = 3;
 
-/**
- * @param priceRows rows from the sources module: `{ code, kind, prices }`,
- *   where `prices` is `{ market, low, mid, high, directLow }`, each nullable
- * @param setsByCode the Map from `indexSets`
- * @returns the JSON-ready feed object
- */
-export function buildDataset(priceRows, setsByCode, now = new Date()) {
-  const merged = new Map();
-  for (const row of priceRows) {
-    const entry = merged.get(row.code) ?? { code: row.code, boxes: {} };
-    entry.boxes[row.kind] = row.prices;
-    merged.set(row.code, entry);
-  }
-
-  const sets = [];
-  const unmatched = [];
-  for (const entry of merged.values()) {
+export function buildFeed(
+  priced: { code: string; boxes: BoxPrices }[],
+  setsByCode: Map<string, ScryfallSet>,
+  now: Date,
+): BoxPriceFeed {
+  const sets: FeedSet[] = [];
+  const unmatched: string[] = [];
+  for (const entry of priced) {
     const set = setsByCode.get(entry.code);
     if (!set) {
-      // A code the price source used that Scryfall does not know. Kept
-      // visible in the payload rather than dropped silently — a growing list
-      // here is the early sign the join is rotting.
+      // Kept visible in the payload rather than dropped silently — a growing
+      // list here is the early sign the join is rotting.
       unmatched.push(entry.code);
       continue;
     }
@@ -75,7 +84,7 @@ export function buildDataset(priceRows, setsByCode, now = new Date()) {
   const playMarkets = sets.filter((s) => s.boxes.play?.market != null).length;
   if (sets.length < MIN_SETS || playMarkets < MIN_PLAY_MARKETS) {
     throw new SourceError(
-      `dataset: only ${sets.length} sets (${playMarkets} with play-box market prices) — ` +
+      `feed: only ${sets.length} sets (${playMarkets} with play-box market prices) — ` +
         "the source has probably changed shape",
     );
   }

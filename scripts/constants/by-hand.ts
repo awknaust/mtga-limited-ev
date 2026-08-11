@@ -14,7 +14,7 @@
  * This file going stale is not hypothetical. The ladder below carried a 7,000
  * for $39.99 bundle long after the store replaced it with the 9,200 and 1,600
  * tiers, and nothing surfaced it because only the rate derived from it was ever
- * printed. Everything recorded here is now shown in full under `--verbose`.
+ * printed. Everything recorded here is shown in full under `--verbose`.
  */
 
 /**
@@ -35,7 +35,7 @@ export const GEM_BUNDLES = {
     { gems: 1_600, usd: 9.99 },
     { gems: 750, usd: 4.99 },
   ],
-};
+} as const;
 
 /**
  * Events that take both currencies, which is what sets the gold-to-gem rate.
@@ -54,7 +54,7 @@ export const DUAL_PRICED_EVENTS = {
     { name: "Pick Two Draft", gems: 900, gold: 6_000 },
     { name: "Contender Draft", gems: 3_000, gold: 20_000 },
   ],
-};
+} as const;
 
 /**
  * What a play-in point is worth, priced off what the points are for.
@@ -68,7 +68,7 @@ export const PLAY_IN_ENTRY = {
   where: "https://magic.wizards.com/en/news/mtg-arena/arena-open-terms-and-conditions",
   pointsPerEntry: 20,
   gemsPerEntry: 4_000,
-};
+} as const;
 
 /**
  * Gold from a daily quest, which is the softest number in the model.
@@ -81,4 +81,4 @@ export const DAILY_QUEST = {
   where: "MTG Arena, daily quest",
   gold: 600,
   range: [500, 750],
-};
+} as const;

@@ -1,0 +1,32 @@
+{
+  // The Worker. Its globals come from @cloudflare/workers-types plus the
+  // generated worker-configuration.d.ts (rerun `npx wrangler types
+  // --include-runtime=false` here after changing wrangler.jsonc — it is what
+  // defines `Env`). The box-price module it imports from ../scripts is pulled
+  // into this program by the import graph and so gets checked under Workers
+  // globals too, on top of the Node/DOM check scripts/tsconfig.json gives it —
+  // code shared across runtimes should typecheck under both.
+  //
+  // No DOM lib: a Worker is not a browser, and workers-types provides fetch,
+  // Response and friends itself.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["@cloudflare/workers-types"],
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src", "worker-configuration.d.ts"]
+}
