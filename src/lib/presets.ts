@@ -262,10 +262,10 @@ export const DEFAULT_EVENTS_PER_DAY = 1;
  * Market price is derived from actual sales on TCGplayer — the same
  * marketplace Scryfall's USD card prices come from — and runs 15–25% under
  * the listing-style figures these constants once carried; the change of
- * basis was deliberate. Only released sets are used, since a presale has no
- * sales to derive a market price from. Final Fantasy is excluded as an
- * outlier by the twice-the-pool-median rule: $1,728 a collector box at
- * market against a median near $450.
+ * basis was deliberate. Only released sets are used: presale boxes trade
+ * too, but at hype prices that settle after release. Final Fantasy is
+ * excluded as an outlier by the twice-the-pool-median rule: $1,728 a
+ * collector box at market against a median near $450.
  *
  * @see https://tcgcsv.com — a public JSON mirror of TCGplayer's API
  */

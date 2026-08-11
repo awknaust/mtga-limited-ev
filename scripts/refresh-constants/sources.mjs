@@ -16,18 +16,15 @@ export const SOURCE_URLS = {
 };
 
 /**
- * How many sets the box-price feed covers: the newest released paper
- * expansions, this many of them.
+ * How many sets the box-price feed covers: the newest paper sets of the types
+ * below, this many of them.
  *
  * The bound exists because tcgcsv is priced per set — two requests each — and
  * the Worker's whole run must stay inside the free plan's 50 subrequests:
  * 1 Scryfall + 1 group list + 2 × 20 = 42. Twenty sets reaches back about two
  * years, which covers the newest-three default rule many times over and any
- * set an Arena Direct is likely to pay out in.
- *
- * Unreleased sets are not fetched at all: their products exist as presales,
- * presales have no sales history, and `extractBoxPrices` takes marketPrice or
- * nothing — so a preorder would spend two subrequests to learn null twice.
+ * set an Arena Direct is likely to pay out in. It is the one genuine
+ * restriction left in the feed, and it is a budget, not a model.
  */
 const BOX_FEED_SETS = 20;
 
@@ -84,22 +81,30 @@ const isoDate = (d) =>
 const BOX_FEED_SET_TYPES = new Set(["expansion", "core", "masters", "draft_innovation"]);
 
 /**
- * The sets whose boxes are worth pricing: released paper sets of the types
- * above, newest first, capped at BOX_FEED_SETS, and only those TCGplayer
- * actually has a group for. Released-only is not a taste call: the prices
- * taken are market prices, a presale has no sales to derive one from, and
- * `extractBoxPrices` substitutes nothing — so an unreleased set would spend
- * two subrequests to learn null twice.
+ * The sets whose boxes are worth pricing: paper sets of the types above,
+ * newest first, capped at BOX_FEED_SETS, and only those TCGplayer actually
+ * has a group for. Unreleased sets are included on purpose — presale boxes
+ * trade and carry real prices (even market prices: The Hobbit had one four
+ * days before release), an Arena Direct can run in a set's release window,
+ * and released-or-not is exactly the kind of question the feed leaves to its
+ * consumers.
+ *
+ * Sets more than a few weeks out are ignored: TCGplayer opens presale pages
+ * months ahead, and a slot spent on a set nobody can hold yet is a slot taken
+ * from a set someone is actually pricing.
  */
+const PRESALE_HORIZON_DAYS = 45;
+
 export function pickBoxFeedSets(setsByCode, groupsByAbbreviation, now) {
-  const today = isoDate(now);
+  const horizon = new Date(now.getTime() + PRESALE_HORIZON_DAYS * 24 * 60 * 60 * 1000);
+  const cutoff = isoDate(horizon);
   return [...setsByCode.values()]
     .filter(
       (set) =>
         BOX_FEED_SET_TYPES.has(set.setType) &&
         !set.digital &&
         set.releasedAt !== null &&
-        set.releasedAt <= today &&
+        set.releasedAt <= cutoff &&
         groupsByAbbreviation.has(set.code),
     )
     .sort((a, b) => (a.releasedAt < b.releasedAt ? 1 : -1))
@@ -124,12 +129,16 @@ export function createSources() {
     once("sets", async () => indexSets(await request(SOURCE_URLS.sets, { json: true })));
 
   /**
-   * Box price rows, `{ code, kind, usd }`, one per set and box type.
+   * Box price rows, `{ code, kind, prices }`, one per set and box kind, where
+   * `prices` is TCGplayer's full statistics object — market, low, mid, high,
+   * directLow, each possibly null.
    *
-   * TCGplayer market prices via tcgcsv — the same marketplace Scryfall's USD
-   * card prices come from, and a figure derived from sales rather than
-   * listings. Any single set failing fails the whole feed: a partial answer
-   * would quietly bias the averages toward whichever sets happened to load.
+   * Via tcgcsv — the same marketplace Scryfall's USD card prices come from.
+   * Every statistic is carried and none is chosen here; which one a number
+   * should rest on is a modelling question, and those belong to the
+   * consumers. Any single set failing fails the whole feed: a partial answer
+   * would quietly bias anything averaged over it toward whichever sets
+   * happened to load.
    */
   const boxPrices = () =>
     once("boxPrices", async () => {
@@ -140,7 +149,7 @@ export function createSources() {
       const groups = indexTcgGroups(groupsJson);
       const targets = pickBoxFeedSets(setsByCode, groups, new Date());
       if (targets.length === 0) {
-        throw new SourceError("tcgcsv: no released expansion matched a TCGplayer group");
+        throw new SourceError("tcgcsv: no candidate set matched a TCGplayer group");
       }
 
       const rows = [];
@@ -158,8 +167,9 @@ export function createSources() {
           }),
         );
         for (const { code, boxes } of found) {
-          if (boxes.play !== null) rows.push({ code, kind: "play", usd: boxes.play });
-          if (boxes.collector !== null) rows.push({ code, kind: "collector", usd: boxes.collector });
+          for (const [kind, prices] of Object.entries(boxes)) {
+            rows.push({ code, kind, prices });
+          }
         }
       }
 

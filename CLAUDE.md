@@ -78,20 +78,24 @@ The two box values are the one input that goes stale in weeks, so they do not
 ride on deploys: a scheduled Worker (`worker/`) reads TCGplayer market prices
 (via tcgcsv.com, a public JSON mirror of TCGplayer's API — the same
 marketplace Scryfall's USD card prices come from) and Scryfall daily,
-publishes prices for the newest twenty draftable paper sets — Modern Horizons
-and Foundations included, since Arena Directs have paid such boxes; with
-release date and set type, not a pre-averaged answer — to KV, and serves the
-payload at
-`/api/box-prices` on the production origin. Market price is sales-derived and
-runs 15–25% under listing-style figures; the basis change from MTGGoldfish's
-listings was deliberate. The twenty-set cap is what keeps a refresh inside
-the Workers free plan's 50 subrequests — the arithmetic is in
-`scripts/refresh-constants/sources.mjs`. The app fetches it once at load
-and derives its defaults in `src/lib/boxPrices.ts`: newest three released
-Standard-legal sets, outliers past twice the pool median set aside. Publishing
-data rather than an answer is deliberate twice over — changing the rule is an
-app change, not a data migration, and the per-set rows are the shape a future
-"this payout is a box of set X" feature would price against.
+publishes the newest twenty draftable paper sets — Modern Horizons and
+Foundations included, since Arena Directs have paid such boxes, and presales
+too — to KV, and serves the payload at
+`/api/box-prices` on the production origin. Each set carries every box kind
+TCGplayer tracks with the full price statistics — market, low, mid, high,
+directLow — and the feed chooses among none of them: **the worker publishes
+data, and every modelling question lives in the app.** The twenty-set cap is
+what keeps a refresh inside the Workers free plan's 50 subrequests — the
+arithmetic is in `scripts/refresh-constants/sources.mjs` — and it is a
+budget, not a model. The app fetches the feed once at load and makes its
+choices in `src/lib/boxPrices.ts`: market price (sales-derived, 15–25% under
+listings; the basis change from MTGGoldfish's listing figures was
+deliberate), released sets only (presales trade at hype prices that settle
+later), newest three Standard-legal expansions, outliers past twice the pool
+median set aside. Publishing data rather than an answer is deliberate twice
+over — changing a rule is an app change, not a data migration, and the
+per-set rows are the shape a future "this payout is a box of set X" feature
+would price against.
 
 Boundaries that should outlive any refactor:
 

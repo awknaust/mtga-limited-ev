@@ -158,10 +158,16 @@ function setResolver(setsByCode) {
  * The sets whose box prices feed the averages: released, physical, Standard
  * legal, newest first, outliers set aside.
  *
+ * This is the *model* half of the split: the feed carries every draftable
+ * set with TCGplayer's full price statistics, and the choices — expansions
+ * only, released only, market price and not a listing — are all made here.
+ *
  * "Standard legal" is `set_type === "expansion"`, which is also what keeps
  * Modern Horizons and the Remastered sets out. Taking the newest few keeps them
  * in rotation without needing a rotation calendar. A set whose release date is
- * still ahead is a preorder, and its price is a guess.
+ * still ahead is excluded even when it already trades: presale prices ride
+ * preorder hype and settle after release, and a default should rest on
+ * settled prices.
  */
 export function chooseBoxSets(priceRows, setsByCode, now) {
   const today = isoDate(now);
@@ -169,7 +175,7 @@ export function chooseBoxSets(priceRows, setsByCode, now) {
   const merged = new Map();
   for (const row of priceRows) {
     const entry = merged.get(row.code) ?? { code: row.code };
-    entry[row.kind] = row.usd;
+    entry[row.kind] = row.prices.market;
     merged.set(row.code, entry);
   }
 

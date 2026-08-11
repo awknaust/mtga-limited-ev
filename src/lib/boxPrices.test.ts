@@ -8,20 +8,38 @@ import {
   parseBoxPriceFeed,
   type BoxPriceFeed,
   type BoxPriceRow,
+  type BoxPriceStats,
 } from ".";
 
 /** The date every test asks the question on. */
 const NOW = new Date(2026, 7, 9); // 2026-08-09, local time like the code under test
 
-const row = (overrides: Partial<BoxPriceRow> & { code: string }): BoxPriceRow => ({
-  name: overrides.code.toUpperCase(),
-  releasedAt: "2026-01-01",
-  setType: "expansion",
-  digital: false,
-  playUsd: 150,
-  collectorUsd: 600,
-  ...overrides,
+/** Stats with only the market set — the common case in these tests. */
+const market = (usd: number | null): BoxPriceStats => ({
+  market: usd,
+  low: usd === null ? null : usd * 0.95,
+  mid: usd === null ? null : usd * 1.2,
+  high: usd === null ? null : usd * 2,
+  directLow: null,
 });
+
+const row = (
+  overrides: Partial<Omit<BoxPriceRow, "boxes">> & {
+    code: string;
+    playUsd?: number | null;
+    collectorUsd?: number | null;
+  },
+): BoxPriceRow => {
+  const { playUsd = 150, collectorUsd = 600, ...rest } = overrides;
+  return {
+    name: overrides.code.toUpperCase(),
+    releasedAt: "2026-01-01",
+    setType: "expansion",
+    digital: false,
+    ...rest,
+    boxes: { play: market(playUsd), collector: market(collectorUsd) },
+  };
+};
 
 const feed = (boxes: BoxPriceRow[]): BoxPriceFeed => ({
   version: 1,
@@ -49,7 +67,7 @@ describe("liveBoxDefaults", () => {
     expect(live?.collectorBoxValueGems).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
   });
 
-  it("averages the newest three and prices at 200 gems to the dollar", () => {
+  it("averages the newest three market prices at 200 gems to the dollar", () => {
     const live = liveBoxDefaults(
       feed([
         row({ code: "aaa", releasedAt: "2026-03-01", playUsd: 100, collectorUsd: 400 }),
@@ -63,6 +81,21 @@ describe("liveBoxDefaults", () => {
     expect(live?.sets.map((s) => s.code)).toEqual(["aaa", "bbb", "ccc"]);
     expect(live?.playBoxValueGems).toBe(200 * 200);
     expect(live?.collectorBoxValueGems).toBe(500 * 200);
+  });
+
+  it("uses market price, never the listing spread", () => {
+    // Same markets as SHIPPED_BASIS but a wildly different ask spread. If any
+    // low/mid/high leaks into the derivation, the values move.
+    const askew = SHIPPED_BASIS.map((r) => ({
+      ...r,
+      boxes: {
+        play: { ...r.boxes.play!, low: 1, mid: 9999, high: 99999 },
+        collector: { ...r.boxes.collector!, low: 1, mid: 9999, high: 99999 },
+      },
+    }));
+    const live = liveBoxDefaults(feed(askew), NOW);
+    expect(live?.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(live?.collectorBoxValueGems).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
   });
 
   it("drops a collector-box outlier and reaches past it", () => {
@@ -87,18 +120,21 @@ describe("liveBoxDefaults", () => {
     expect(live?.outliers.map((s) => s.code)).toEqual(["fin"]);
   });
 
-  it("keeps preorders, digital sets, non-expansions and half-priced rows out", () => {
+  it("keeps preorders, digital sets, non-expansions and marketless rows out", () => {
     const usable = [
       row({ code: "aaa", releasedAt: "2026-03-01" }),
       row({ code: "bbb", releasedAt: "2026-02-01" }),
       row({ code: "ccc", releasedAt: "2026-01-01" }),
     ];
     const excluded = [
-      row({ code: "pre", releasedAt: "2026-11-13" }), // future: price is speculation
+      // A presale as the feed actually carries one: listings, no sales yet.
+      // The feed publishes it — released-or-not is the app's call, and this
+      // is where the call is made.
+      row({ code: "pre", releasedAt: "2026-11-13", playUsd: null, collectorUsd: null }),
       row({ code: "dig", digital: true }),
-      row({ code: "mh3", setType: "masters" }),
+      row({ code: "mh3", setType: "draft_innovation" }),
       row({ code: "old", releasedAt: null }),
-      row({ code: "half", playUsd: null }), // collector tracked, play not
+      row({ code: "half", playUsd: null }), // collector sold, play never listed
     ];
     const live = liveBoxDefaults(feed([...excluded, ...usable]), NOW);
     expect(live?.sets.map((s) => s.code)).toEqual(["aaa", "bbb", "ccc"]);
@@ -122,17 +158,32 @@ describe("parseBoxPriceFeed", () => {
   const good = (): Record<string, unknown> =>
     JSON.parse(JSON.stringify(feed(SHIPPED_BASIS))) as Record<string, unknown>;
 
+  const firstBoxes = (d: Record<string, unknown>): Record<string, unknown> =>
+    (d.boxes as Record<string, unknown>[])[0].boxes as Record<string, unknown>;
+
   it("accepts the worker's payload shape", () => {
     expect(parseBoxPriceFeed(good())).not.toBeNull();
   });
 
-  it("tolerates fields it does not know", () => {
+  it("tolerates fields and box kinds it does not know", () => {
     // The Worker deploys separately from the app; a newer payload with more
     // metadata must not read as corrupt to an older app.
     const data = good();
     data.unmatched = ["xyz"];
-    (data.boxes as Record<string, unknown>[])[0].draftUsd = 300;
-    expect(parseBoxPriceFeed(data)).not.toBeNull();
+    firstBoxes(data).jumpstart = { market: 120, low: 110, mid: 130, high: 200, directLow: null };
+    firstBoxes(data).bundle = { market: 40 }; // even with stats missing
+    const parsed = parseBoxPriceFeed(data);
+    expect(parsed).not.toBeNull();
+    expect(parsed?.boxes[0].boxes.jumpstart?.market).toBe(120);
+    expect(parsed?.boxes[0].boxes.bundle?.low).toBeNull();
+  });
+
+  it("keeps a presale's listing prices alongside its null market", () => {
+    const data = good();
+    firstBoxes(data).play = { market: null, low: 189.99, mid: 219.99, high: 300, directLow: null };
+    const parsed = parseBoxPriceFeed(data);
+    expect(parsed?.boxes[0].boxes.play?.market).toBeNull();
+    expect(parsed?.boxes[0].boxes.play?.low).toBe(189.99);
   });
 
   it.each([
@@ -143,7 +194,7 @@ describe("parseBoxPriceFeed", () => {
       "a price that is a string",
       () => {
         const d = good();
-        (d.boxes as Record<string, unknown>[])[0].playUsd = "147";
+        (firstBoxes(d).play as Record<string, unknown>).market = "147";
         return d;
       },
     ],
@@ -151,7 +202,15 @@ describe("parseBoxPriceFeed", () => {
       "a negative price",
       () => {
         const d = good();
-        (d.boxes as Record<string, unknown>[])[0].playUsd = -1;
+        (firstBoxes(d).collector as Record<string, unknown>).low = -1;
+        return d;
+      },
+    ],
+    [
+      "a box kind that is not an object",
+      () => {
+        const d = good();
+        firstBoxes(d).play = 147;
         return d;
       },
     ],

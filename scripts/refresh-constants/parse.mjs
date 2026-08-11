@@ -147,17 +147,20 @@ export function indexTcgGroups(payload) {
 }
 
 /**
- * One set's Play and Collector box prices from its tcgcsv products and prices
- * payloads.
+ * One set's booster-box prices from its tcgcsv products and prices payloads:
+ * every "… Booster Display" product, each with TCGplayer's full price
+ * statistics, keyed by kind — `play`, `collector`, `jumpstart`, whatever the
+ * set was sold as.
  *
- * TCGplayer calls a booster box a "Display", and the exact tail anchors the
- * match: "… - Play Booster Display Case" and "… Master Case" must not match,
- * because a case is six boxes and would read as a box at six times the price.
+ * Everything is carried and nothing is chosen: `market` is sales-derived,
+ * `low`/`mid`/`high` are the current listing spread, `directLow` is the
+ * cheapest TCGplayer-Direct listing, and any of them can be null. Which
+ * statistic to trust is a modelling question, and modelling questions belong
+ * to the consumers.
  *
- * The figure taken is `marketPrice` — derived from actual sales, which is the
- * honest street price — and nothing substitutes for it: a product with
- * listings but no sales history (chiefly presales) yields null rather than a
- * listing price dressed up as one.
+ * TCGplayer calls a booster box a "Display", and the `$`-anchored tail is the
+ * match: "… Booster Display Case" and "… Master Case" must not match, because
+ * a case is six boxes and would read as a box at six times the price.
  */
 export function extractBoxPrices(productsPayload, pricesPayload) {
   const products = productsPayload.results;
@@ -166,25 +169,28 @@ export function extractBoxPrices(productsPayload, pricesPayload) {
     throw new SourceError("tcgcsv: products or prices payload has no results array");
   }
 
-  const marketOf = new Map();
-  for (const price of prices) {
+  const price = (v) => (typeof v === "number" && Number.isFinite(v) ? v : null);
+  const statsOf = new Map();
+  for (const row of prices) {
     // Sealed product is only ever the "Normal" printing; the guard is there
     // for the day a foil-subtype row appears against a product id.
-    if (price.subTypeName !== "Normal") continue;
-    if (typeof price.marketPrice === "number" && Number.isFinite(price.marketPrice)) {
-      marketOf.set(price.productId, price.marketPrice);
-    }
+    if (row.subTypeName !== "Normal") continue;
+    statsOf.set(row.productId, {
+      market: price(row.marketPrice),
+      low: price(row.lowPrice),
+      mid: price(row.midPrice),
+      high: price(row.highPrice),
+      directLow: price(row.directLowPrice),
+    });
   }
 
-  const found = { play: null, collector: null };
+  const boxes = {};
   for (const product of products) {
-    const kind = /- Play Booster Display$/.test(product.name)
-      ? "play"
-      : /- Collector Booster Display$/.test(product.name)
-        ? "collector"
-        : null;
-    if (!kind) continue;
-    found[kind] = marketOf.get(product.productId) ?? null;
+    const m = /- (?:([A-Za-z][A-Za-z' ]*?) )?Booster Display$/.exec(product.name);
+    if (!m) continue;
+    const kind = (m[1] ?? "booster").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const stats = statsOf.get(product.productId);
+    if (stats) boxes[kind] = stats;
   }
-  return found;
+  return boxes;
 }
