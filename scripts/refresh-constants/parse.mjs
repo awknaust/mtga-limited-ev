@@ -100,8 +100,8 @@ function parseDailyWinGold(html) {
 }
 
 /**
- * Scryfall, for the two things MTGGoldfish does not say: when a set came out,
- * and what kind of set it is.
+ * Scryfall, for the two things the price source does not say: when a set came
+ * out, and what kind of set it is.
  *
  * @see https://scryfall.com/docs/api/sets
  */
@@ -121,62 +121,70 @@ export function indexSets(payload) {
 }
 
 /**
- * Play and Collector booster box street prices, one row per set and box type.
+ * tcgcsv's group list — TCGplayer's sets, one group per set.
  *
- * The page prints two price columns, EV and Retail, and leaves EV blank for
- * recent sets. Retail is the one wanted — what a box sells for, not what the
- * singles inside are thought to be worth — so the column is located by its
- * heading rather than by position.
+ * Keyed by abbreviation because it joins to Scryfall's set codes exactly:
+ * checked over every paper expansion since Throne of Eldraine, 33 of 33
+ * matched. (The names would not — TCGplayer writes "Murders at Karlov Manor"
+ * where a storefront might prefix the block.)
  *
- * Sets are keyed by the code in each row's `data-card-id` rather than by the
- * heading above it, because the codes join to Scryfall exactly and the names
- * do not: this page says "Ravnica: Murders at Karlov Manor" where Scryfall says
- * "Murders at Karlov Manor".
- *
- * @see https://www.mtggoldfish.com/prices/paper/boosters
+ * @see https://tcgcsv.com — a public JSON mirror of TCGplayer's API,
+ *      refreshed daily around 20:00 UTC
  */
-export function parseBoxPrices(html) {
-  const rows = [];
+export function indexTcgGroups(payload) {
+  const byAbbreviation = new Map();
+  for (const group of payload.results ?? []) {
+    if (typeof group.abbreviation !== "string" || group.abbreviation === "") continue;
+    const key = group.abbreviation.toLowerCase();
+    // First writer wins; duplicates have not been observed and the newest
+    // groups sort first in the payload, which is the right tiebreak anyway.
+    if (!byAbbreviation.has(key)) {
+      byAbbreviation.set(key, { groupId: group.groupId, name: group.name });
+    }
+  }
+  if (byAbbreviation.size === 0) throw new SourceError("tcgcsv: no groups returned");
+  return byAbbreviation;
+}
 
-  for (const section of html.split("<div class='priceListV2-subsection'>").slice(1)) {
-    const headerEnd = section.indexOf("</div>\n<div class='priceListV2-row'>");
-    const header = section.slice(0, headerEnd === -1 ? section.length : headerEnd);
-    const columns = [...header.matchAll(/<div class='priceListV2-price'>([\s\S]*?)<\/div>/g)].map(
-      (m) => textOf(m[1]),
-    );
-    const retail = columns.findIndex((c) => /retail/i.test(c));
-    if (retail === -1) continue;
+/**
+ * One set's Play and Collector box prices from its tcgcsv products and prices
+ * payloads.
+ *
+ * TCGplayer calls a booster box a "Display", and the exact tail anchors the
+ * match: "… - Play Booster Display Case" and "… Master Case" must not match,
+ * because a case is six boxes and would read as a box at six times the price.
+ *
+ * The figure taken is `marketPrice` — derived from actual sales, which is the
+ * honest street price — and nothing substitutes for it: a product with
+ * listings but no sales history (chiefly presales) yields null rather than a
+ * listing price dressed up as one.
+ */
+export function extractBoxPrices(productsPayload, pricesPayload) {
+  const products = productsPayload.results;
+  const prices = pricesPayload.results;
+  if (!Array.isArray(products) || !Array.isArray(prices)) {
+    throw new SourceError("tcgcsv: products or prices payload has no results array");
+  }
 
-    for (const row of section.split("<div class='priceListV2-row'>").slice(1)) {
-      const parsed = parseBoxRow(row, retail);
-      if (parsed) rows.push(parsed);
+  const marketOf = new Map();
+  for (const price of prices) {
+    // Sealed product is only ever the "Normal" printing; the guard is there
+    // for the day a foil-subtype row appears against a product id.
+    if (price.subTypeName !== "Normal") continue;
+    if (typeof price.marketPrice === "number" && Number.isFinite(price.marketPrice)) {
+      marketOf.set(price.productId, price.marketPrice);
     }
   }
 
-  if (rows.length === 0) throw new SourceError("mtggoldfish: no booster box prices parsed");
-  return rows;
-}
-
-function parseBoxRow(row, retailColumn) {
-  const id = /data-card-id="([^"]*)"/.exec(row);
-  if (!id) return null;
-
-  const label = id[1];
-  const kind = /\bPlay Booster Box\b/.test(label)
-    ? "play"
-    : /\bCollector Booster Box\b/.test(label)
-      ? "collector"
-      : null;
-  if (!kind) return null;
-
-  const code = /\[([A-Z0-9]+)\]\s*$/.exec(label);
-  if (!code) return null;
-
-  const prices = [...row.matchAll(/priceList-price-price-wrapper'>\s*(?:\$\s*([\d,.]+))?/g)].map(
-    (m) => (m[1] ? Number(m[1].replace(/,/g, "")) : null),
-  );
-  const usd = prices[retailColumn];
-  if (usd == null || !Number.isFinite(usd)) return null;
-
-  return { code: code[1].toLowerCase(), kind, usd };
+  const found = { play: null, collector: null };
+  for (const product of products) {
+    const kind = /- Play Booster Display$/.test(product.name)
+      ? "play"
+      : /- Collector Booster Display$/.test(product.name)
+        ? "collector"
+        : null;
+    if (!kind) continue;
+    found[kind] = marketOf.get(product.productId) ?? null;
+  }
+  return found;
 }

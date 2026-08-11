@@ -98,14 +98,14 @@ function explainMythicRate(mythic) {
 
 function explainBoxSets(basis, kind) {
   const lines = [
-    `newest ${BOX_SAMPLE_SIZE} released Standard-legal sets, at retail rather than EV:`,
+    `newest ${BOX_SAMPLE_SIZE} released Standard-legal sets, at TCGplayer market price:`,
   ];
   for (const set of basis.used) {
-    lines.push(`  ${set.code.toUpperCase().padEnd(5)}${set.name.padEnd(28)}${set.releasedAt}   ${usd(set[kind])}`);
+    lines.push(`  ${set.code.toUpperCase().padEnd(5)}${set.name.padEnd(31)}${set.releasedAt}   ${usd(set[kind])}`);
   }
   for (const set of basis.dropped) {
     lines.push(
-      `  ${set.code.toUpperCase().padEnd(5)}${set.name.padEnd(28)}${set.releasedAt}   ` +
+      `  ${set.code.toUpperCase().padEnd(5)}${set.name.padEnd(31)}${set.releasedAt}   ` +
         `${usd(set[kind])}  dropped: ${set.over.join(" and ")} over ${OUTLIER_FACTOR}x the pool median`,
     );
   }
@@ -176,11 +176,12 @@ export const CONSTANTS = [
       return {
         value: Math.round(average * rate.value),
         explain: [
-          "street price rather than sticker: what a box is worth to you is what you",
-          "  could get for it. Wizards' own figure is higher — the Arena Direct terms",
-          "  offer $209.70 a box in cash — but that cash is taxed.",
+          "market price rather than sticker or listing: what boxes actually sell for",
+          "  on TCGplayer, which is what a box is worth to you. Wizards' own figure is",
+          "  higher — the Arena Direct terms offer $209.70 a box in cash — but that",
+          "  cash is taxed.",
           ...explainBoxSets(basis, "play"),
-          `average                   ${usd(Math.round(average))}`,
+          `average                   ${usd(Number(average.toFixed(2)))}`,
           `at ${rate.value} gems to the dollar  ${gems(Math.round(average * rate.value))} gems`,
         ],
       };
@@ -200,9 +201,9 @@ export const CONSTANTS = [
         explain: [
           "the most volatile figure here: collector boxes run far above MSRP because",
           "  the price tracks the singles inside, and recent sets have ranged from",
-          "  under $400 to over $900",
+          "  around $400 to over $1,700 at market",
           ...explainBoxSets(basis, "collector"),
-          `average                   ${usd(Math.round(average))}`,
+          `average                   ${usd(Number(average.toFixed(2)))}`,
           `at ${rate.value} gems to the dollar  ${gems(Math.round(average * rate.value))} gems`,
         ],
       };

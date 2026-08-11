@@ -1,7 +1,8 @@
 /**
- * The box-price feed: a scheduled Worker that publishes street prices for
- * every set MTGGoldfish tracks, joined to Scryfall's set metadata, into KV —
- * and serves them at /api/box-prices on the app's own origin.
+ * The box-price feed: a scheduled Worker that publishes TCGplayer market
+ * prices (via tcgcsv.com) for the newest twenty expansions, joined to
+ * Scryfall's set metadata, into KV — and serves them at /api/box-prices on
+ * the app's own origin.
  *
  * The route is the load-bearing choice. The app's CSP (public/_headers) says
  * `connect-src 'self'` and that policy is deliberately hard to amend, so the
@@ -29,12 +30,17 @@
     { "pattern": "mtga-limited-ev.awknaust.me/api/*", "zone_name": "awknaust.me" }
   ],
 
-  // Daily, at a deliberately odd minute. Street prices move on the order of
-  // weeks; daily keeps the feed fresh enough that nobody has to think about
-  // it, while staying a polite once-a-day read of the source pages. A failed
-  // run leaves the previous KV value serving, so a source outage degrades to
-  // yesterday's prices rather than to an error.
-  "triggers": { "crons": ["43 10 * * *"] },
+  // Daily, at a deliberately odd minute, and after 20:00 UTC because that is
+  // when tcgcsv refreshes its mirror of TCGplayer's data — running earlier
+  // would fetch the same numbers a day late forever. Prices move on the order
+  // of weeks; a polite once-a-day read is plenty. A failed run leaves the
+  // previous KV value serving, so a source outage degrades to yesterday's
+  // prices rather than to an error.
+  //
+  // The refresh makes 1 Scryfall + 1 group-list + 2-per-set requests, and the
+  // set count is capped in scripts/refresh-constants/sources.mjs to keep a
+  // run inside the free plan's 50 subrequests.
+  "triggers": { "crons": ["23 21 * * *"] },
 
   "kv_namespaces": [
     { "binding": "BOX_PRICES", "id": "3613fd85a00e4ab3ad5f8fda0bdbc7ff" }

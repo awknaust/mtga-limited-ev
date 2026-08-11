@@ -17,10 +17,11 @@ import { SourceError } from "../../scripts/refresh-constants/errors.mjs";
 export const KV_KEY = "box-prices:v1";
 
 /**
- * The floor under "the parse worked". The page has carried ~40 sets with
- * collector boxes since 2019 and Play boxes exist from early 2024 on, so
- * numbers far below these mean the page changed shape and the parse is
- * returning fragments — better to keep serving yesterday's data than to
+ * The floor under "the parse worked". The feed targets the twenty newest
+ * released expansions and TCGplayer has market prices for nearly all of them
+ * — nineteen sets, fourteen with Play boxes, on the day this was written — so
+ * numbers far below these mean the source changed shape and the parse is
+ * returning fragments. Better to keep serving yesterday's data than to
  * publish a stump.
  */
 const MIN_SETS = 12;
@@ -44,7 +45,7 @@ export function buildDataset(priceRows, setsByCode, now = new Date()) {
   for (const entry of merged.values()) {
     const set = setsByCode.get(entry.code);
     if (!set) {
-      // A code Goldfish uses that Scryfall does not know. Kept visible in the
+      // A code the price source used that Scryfall does not know. Kept visible in the
       // payload rather than dropped silently — a growing list here is the
       // early sign the join is rotting.
       unmatched.push(entry.code);

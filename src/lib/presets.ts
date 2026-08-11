@@ -242,34 +242,34 @@ export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
 export const DEFAULT_EVENTS_PER_DAY = 1;
 
 /**
- * Street prices in USD from MTGGoldfish's sealed product list, averaged over
- * three released, Standard-legal sets.
+ * TCGplayer market prices in USD (read via tcgcsv.com), averaged over the
+ * three newest released, Standard-legal sets as of 2026-08-10.
  *
  * These are the *fallback* behind the two box constants below. On the
  * production origin the app fetches `/api/box-prices` — a Worker-published
- * feed of every tracked set (see `worker/`) — and derives the same average
- * from live prices in `src/lib/boxPrices.ts`; these figures only govern when
- * that feed is unreachable: preview deployments, dev without the proxy, or an
- * outage. Refresh the snapshot with `npm run refresh:constants`.
+ * feed of the newest twenty expansions (see `worker/`) — and derives the same
+ * average from live prices in `src/lib/boxPrices.ts`; these figures only
+ * govern when that feed is unreachable: preview deployments, dev without the
+ * proxy, or an outage. Refresh the snapshot with `npm run refresh:constants`.
  *
  * The three sets used:
  *
- *     Marvel Super Heroes   play $147   collector $599
- *     Edge of Eternities    play $187   collector $914
- *     Aetherdrift           play $130   collector $378
+ *     Marvel Super Heroes    play $116.26   collector $440.45
+ *     Secrets of Strixhaven  play $135.34   collector $494.36
+ *     TMNT                   play $112.72   collector $440.56
  *
- * Only released sets are used — the newest entries on that page are preorders,
- * whose prices are speculative. Final Fantasy is excluded as an outlier: at
- * $260 a play box and $2,399 a collector box it would roughly double the
- * collector average on its own.
+ * Market price is derived from actual sales on TCGplayer — the same
+ * marketplace Scryfall's USD card prices come from — and runs 15–25% under
+ * the listing-style figures these constants once carried; the change of
+ * basis was deliberate. Only released sets are used, since a presale has no
+ * sales to derive a market price from. Final Fantasy is excluded as an
+ * outlier by the twice-the-pool-median rule: $1,728 a collector box at
+ * market against a median near $450.
  *
- * One caveat on the source: for older sets it prints two columns, EV and
- * Retail, while recent sets show a single figure. These are the single values.
- *
- * @see https://www.mtggoldfish.com/prices/paper/boosters
+ * @see https://tcgcsv.com — a public JSON mirror of TCGplayer's API
  */
-const PLAY_BOX_USD = [147, 187, 130];
-const COLLECTOR_BOX_USD = [599, 914, 378];
+const PLAY_BOX_USD = [116.26, 135.34, 112.72];
+const COLLECTOR_BOX_USD = [440.45, 494.36, 440.56];
 
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 

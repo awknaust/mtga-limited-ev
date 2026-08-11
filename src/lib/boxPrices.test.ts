@@ -31,12 +31,12 @@ const feed = (boxes: BoxPriceRow[]): BoxPriceFeed => ({
 
 /**
  * The three sets the shipped constants were derived from, priced as the doc
- * comment on PLAY_BOX_USD records them.
+ * comment on PLAY_BOX_USD records them: TCGplayer market as of 2026-08-10.
  */
 const SHIPPED_BASIS = [
-  row({ code: "msh", releasedAt: "2026-06-26", playUsd: 147, collectorUsd: 599 }),
-  row({ code: "eoe", releasedAt: "2025-08-01", playUsd: 187, collectorUsd: 914 }),
-  row({ code: "dft", releasedAt: "2025-02-14", playUsd: 130, collectorUsd: 378 }),
+  row({ code: "msh", releasedAt: "2026-06-26", playUsd: 116.26, collectorUsd: 440.45 }),
+  row({ code: "sos", releasedAt: "2026-04-24", playUsd: 135.34, collectorUsd: 494.36 }),
+  row({ code: "tmt", releasedAt: "2026-03-06", playUsd: 112.72, collectorUsd: 440.56 }),
 ];
 
 describe("liveBoxDefaults", () => {
@@ -112,7 +112,7 @@ describe("liveBoxDefaults", () => {
   it("counts a set released today as released", () => {
     const today = row({ code: "new", releasedAt: "2026-08-09" });
     const live = liveBoxDefaults(feed([today, ...SHIPPED_BASIS]), NOW);
-    expect(live?.sets.map((s) => s.code)).toEqual(["new", "msh", "eoe"]);
+    expect(live?.sets.map((s) => s.code)).toEqual(["new", "msh", "sos"]);
   });
 });
 

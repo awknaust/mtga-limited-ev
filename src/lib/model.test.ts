@@ -1410,10 +1410,13 @@ describe("presets", () => {
     // 20,000 gems for $99.99 is the best rung on the store ladder, and so the
     // most generous rate — not the largest bundle, which is the 40,000 and is
     // fractionally worse per gem.
-    // Averaged over Marvel Super Heroes, Edge of Eternities and Aetherdrift.
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(Math.round(((147 + 187 + 130) / 3) * 200));
+    // TCGplayer market prices averaged over Marvel Super Heroes, Secrets of
+    // Strixhaven and Teenage Mutant Ninja Turtles, as of 2026-08-10.
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(
+      Math.round(((116.26 + 135.34 + 112.72) / 3) * 200),
+    );
     expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(
-      Math.round(((599 + 914 + 378) / 3) * 200),
+      Math.round(((440.45 + 494.36 + 440.56) / 3) * 200),
     );
     /*
      * Pinned outright as well, because the two lines above re-derive the value
@@ -1422,8 +1425,8 @@ describe("presets", () => {
      * — double every other bundle on the ladder — and it is the hole these two
      * literals close.
      */
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(30_933);
-    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(126_067);
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(24_288);
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(91_691);
   });
 
   it("models Contender Draft as paying nothing below three wins", () => {

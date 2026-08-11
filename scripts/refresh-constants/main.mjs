@@ -40,7 +40,7 @@ function buildProgram() {
     .name("refresh-constants")
     .description(
       "Re-derive the sourced constants in src/lib/presets.ts from Wizards' drop rates,\n" +
-        "Scryfall and MTGGoldfish, plus the in-client figures recorded in by-hand.mjs.",
+        "Scryfall and TCGplayer (via tcgcsv.com), plus the in-client figures recorded in by-hand.mjs.",
     )
     .argument(
       "[constant...]",

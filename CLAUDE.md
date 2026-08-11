@@ -75,10 +75,16 @@ and have burned us. Three things to hold to:
 ### Live box prices
 
 The two box values are the one input that goes stale in weeks, so they do not
-ride on deploys: a scheduled Worker (`worker/`) reads MTGGoldfish and Scryfall
-daily, publishes street prices for **every** tracked set — with release date
-and set type, not a pre-averaged answer — to KV, and serves the payload at
-`/api/box-prices` on the production origin. The app fetches it once at load
+ride on deploys: a scheduled Worker (`worker/`) reads TCGplayer market prices
+(via tcgcsv.com, a public JSON mirror of TCGplayer's API — the same
+marketplace Scryfall's USD card prices come from) and Scryfall daily,
+publishes prices for the newest twenty expansions — with release date and set
+type, not a pre-averaged answer — to KV, and serves the payload at
+`/api/box-prices` on the production origin. Market price is sales-derived and
+runs 15–25% under listing-style figures; the basis change from MTGGoldfish's
+listings was deliberate. The twenty-set cap is what keeps a refresh inside
+the Workers free plan's 50 subrequests — the arithmetic is in
+`scripts/refresh-constants/sources.mjs`. The app fetches it once at load
 and derives its defaults in `src/lib/boxPrices.ts`: newest three released
 Standard-legal sets, outliers past twice the pool median set aside. Publishing
 data rather than an answer is deliberate twice over — changing the rule is an
@@ -135,7 +141,7 @@ not, and the two are kept apart so an outage never reads as a price crash.
 
 Sources are Wizards' drop-rates page (duplicate-protection gems, mythic upgrade
 rates, wildcard rates, the daily win ladder), Scryfall (release dates and set
-types), and MTGGoldfish (box street prices). Fetching is lazy, so asking for one
+types), and TCGplayer via tcgcsv.com (box market prices). Fetching is lazy, so asking for one
 constant only pays for the feeds it needs, and `GEMS_PER_USD` touches the
 network not at all.
 

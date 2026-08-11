@@ -3,7 +3,7 @@
  *
  * The source-reading modules are imported from `scripts/refresh-constants/`
  * rather than copied. That directory is the single place this repository
- * knows how to read Wizards' pages, Scryfall and MTGGoldfish, and a second
+ * knows how to read Wizards' pages, Scryfall and TCGplayer's data, and a second
  * copy here would drift from it the first time either was fixed alone. The
  * modules are plain fetch-and-regex with no Node imports, which is what makes
  * them portable to the Workers runtime unchanged.
