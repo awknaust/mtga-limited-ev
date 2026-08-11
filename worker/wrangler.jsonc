@@ -1,7 +1,7 @@
 /**
  * The box-price feed: a scheduled Worker that publishes TCGplayer market
- * prices (via tcgcsv.com) for the newest twenty expansions, joined to
- * Scryfall's set metadata, into KV — and serves them at /api/box-prices on
+ * prices (via tcgcsv.com) for the newest twenty draftable paper sets, joined
+ * to Scryfall's set metadata, into KV — and serves them at /api/box-prices on
  * the app's own origin.
  *
  * The route is the load-bearing choice. The app's CSP (public/_headers) says

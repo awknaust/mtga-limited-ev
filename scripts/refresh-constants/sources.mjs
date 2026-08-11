@@ -21,9 +21,9 @@ export const SOURCE_URLS = {
  *
  * The bound exists because tcgcsv is priced per set — two requests each — and
  * the Worker's whole run must stay inside the free plan's 50 subrequests:
- * 1 Scryfall + 1 group list + 2 × 20 = 42. Twenty expansions is about three
- * years of Standard, which covers the newest-three default rule many times
- * over and any set an Arena Direct is likely to pay out in.
+ * 1 Scryfall + 1 group list + 2 × 20 = 42. Twenty sets reaches back about two
+ * years, which covers the newest-three default rule many times over and any
+ * set an Arena Direct is likely to pay out in.
  *
  * Unreleased sets are not fetched at all: their products exist as presales,
  * presales have no sales history, and `extractBoxPrices` takes marketPrice or
@@ -69,17 +69,34 @@ const isoDate = (d) =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 
 /**
- * The sets whose boxes are worth pricing: released paper expansions, newest
- * first, capped at BOX_FEED_SETS, and only those TCGplayer actually has a
- * group for. Pure; exported for the doc value of being visible, used by
- * `boxPrices` below.
+ * Set types whose boxes the feed carries: everything sold as a draftable
+ * paper set with its own boosters.
+ *
+ * Wider than the app's default rule on purpose. The default averages
+ * Standard-legal expansions only, but the feed is data rather than an answer,
+ * and Arena has already paid non-expansion boxes out — an Arena Direct ran
+ * for Modern Horizons 3 (`draft_innovation`), and Foundations (`core`) is as
+ * likely a future prize as any expansion. Restricting the *feed* to
+ * expansions would have priced neither. Excluded types are the ones with no
+ * box anyone drafts: Commander decks, Secret Lairs, promos, tokens, funny
+ * sets, and everything digital.
+ */
+const BOX_FEED_SET_TYPES = new Set(["expansion", "core", "masters", "draft_innovation"]);
+
+/**
+ * The sets whose boxes are worth pricing: released paper sets of the types
+ * above, newest first, capped at BOX_FEED_SETS, and only those TCGplayer
+ * actually has a group for. Released-only is not a taste call: the prices
+ * taken are market prices, a presale has no sales to derive one from, and
+ * `extractBoxPrices` substitutes nothing — so an unreleased set would spend
+ * two subrequests to learn null twice.
  */
 export function pickBoxFeedSets(setsByCode, groupsByAbbreviation, now) {
   const today = isoDate(now);
   return [...setsByCode.values()]
     .filter(
       (set) =>
-        set.setType === "expansion" &&
+        BOX_FEED_SET_TYPES.has(set.setType) &&
         !set.digital &&
         set.releasedAt !== null &&
         set.releasedAt <= today &&

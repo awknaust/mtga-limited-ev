@@ -78,8 +78,10 @@ The two box values are the one input that goes stale in weeks, so they do not
 ride on deploys: a scheduled Worker (`worker/`) reads TCGplayer market prices
 (via tcgcsv.com, a public JSON mirror of TCGplayer's API — the same
 marketplace Scryfall's USD card prices come from) and Scryfall daily,
-publishes prices for the newest twenty expansions — with release date and set
-type, not a pre-averaged answer — to KV, and serves the payload at
+publishes prices for the newest twenty draftable paper sets — Modern Horizons
+and Foundations included, since Arena Directs have paid such boxes; with
+release date and set type, not a pre-averaged answer — to KV, and serves the
+payload at
 `/api/box-prices` on the production origin. Market price is sales-derived and
 runs 15–25% under listing-style figures; the basis change from MTGGoldfish's
 listings was deliberate. The twenty-set cap is what keeps a refresh inside

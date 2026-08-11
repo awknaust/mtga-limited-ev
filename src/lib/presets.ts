@@ -247,10 +247,11 @@ export const DEFAULT_EVENTS_PER_DAY = 1;
  *
  * These are the *fallback* behind the two box constants below. On the
  * production origin the app fetches `/api/box-prices` — a Worker-published
- * feed of the newest twenty expansions (see `worker/`) — and derives the same
- * average from live prices in `src/lib/boxPrices.ts`; these figures only
- * govern when that feed is unreachable: preview deployments, dev without the
- * proxy, or an outage. Refresh the snapshot with `npm run refresh:constants`.
+ * feed of the newest twenty draftable paper sets (see `worker/`) — and
+ * derives the same average from live prices in `src/lib/boxPrices.ts`; these
+ * figures only govern when that feed is unreachable: preview deployments,
+ * dev without the proxy, or an outage. Refresh the snapshot with
+ * `npm run refresh:constants`.
  *
  * The three sets used:
  *

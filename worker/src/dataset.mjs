@@ -18,11 +18,11 @@ export const KV_KEY = "box-prices:v1";
 
 /**
  * The floor under "the parse worked". The feed targets the twenty newest
- * released expansions and TCGplayer has market prices for nearly all of them
- * — nineteen sets, fourteen with Play boxes, on the day this was written — so
- * numbers far below these mean the source changed shape and the parse is
- * returning fragments. Better to keep serving yesterday's data than to
- * publish a stump.
+ * released draftable sets and TCGplayer has market prices for nearly all of
+ * them — seventeen sets, sixteen with Play boxes, on the day this was
+ * written — so numbers far below these mean the source changed shape and the
+ * parse is returning fragments. Better to keep serving yesterday's data than
+ * to publish a stump.
  */
 const MIN_SETS = 12;
 const MIN_PLAY_PRICES = 3;
