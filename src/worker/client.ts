@@ -3,9 +3,9 @@
  *
  * One worker per request kind, spawned lazily from the same entry file: the
  * event and bankroll simulations run on separate threads, so neither ever
- * queues behind the other. The caches never overlap between kinds — keys
- * are kind-prefixed — so the split costs nothing but a worker's baseline
- * memory.
+ * queues behind the other. The caches never overlap between kinds — the
+ * request kind is serialized into every key — so the split costs nothing
+ * but a worker's baseline memory.
  *
  * A submission returns a handle rather than a promise alone. `cancel()`
  * rejects the local promise immediately and tells the worker fire-and-

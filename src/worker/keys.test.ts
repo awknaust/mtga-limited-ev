@@ -1,10 +1,11 @@
 /**
  * The cache key must move when any input the model reads moves, and must not
- * move when the request means the same simulation. The mutation table below
- * is typed over every field of `EventConfig`, so adding a field to the type
- * without teaching the key about it fails to compile here — which is the
- * point, because a key that ignores a field serves one config's results to
- * another's requests.
+ * move when the request means the same simulation. Canonical serialization
+ * makes the first property nearly automatic — every field is in the key
+ * unless the normalization in keys.ts drops it — so the typed mutation
+ * table below now guards the normalizer: it fails to compile when
+ * `EventConfig` grows a field, as a prompt to decide whether the new field
+ * needs the same absent-means-zero treatment the payout tiers get.
  */
 
 import { describe, expect, it } from "vitest";
@@ -52,6 +53,18 @@ describe("requestKey", () => {
   it("is identical for structurally equal requests", () => {
     expect(requestKey(simRequest())).toBe(requestKey(simRequest()));
     expect(requestKey(bankRequest())).toBe(requestKey(bankRequest()));
+  });
+
+  it("ignores property insertion order", () => {
+    // Configs reach the key from different builders — URL decode, preset
+    // application, hand edits — and nothing guarantees they assemble their
+    // properties in the same order. Deep-equal must mean same key anyway.
+    const config = defaultConfig();
+    const reversed = Object.fromEntries(Object.entries(config).reverse()) as EventConfig;
+    reversed.structure = Object.fromEntries(
+      Object.entries(config.structure).reverse(),
+    ) as EventConfig["structure"];
+    expect(requestKey(simRequest(reversed))).toBe(requestKey(simRequest(config)));
   });
 
   it.each(Object.keys(MUTATED) as (keyof EventConfig)[])(
