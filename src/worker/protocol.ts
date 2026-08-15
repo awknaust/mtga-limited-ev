@@ -28,9 +28,13 @@ export type BankrollsRequest = {
 
 export type SimulationRequest = SimulateRequest | BankrollsRequest;
 
-/** What the worker exposes over comlink, and what the backend implements. */
+/**
+ * What the worker exposes over comlink, and what the backend implements:
+ * run one simulation, cancelable by id. Queueing, caching and dispatch are
+ * the client-side pool's business — a worker only ever holds one job.
+ */
 export type SimulationApi = {
-  submit(id: string, request: SimulationRequest): Promise<SimResult | BankrollResult>;
+  run(id: string, request: SimulationRequest): Promise<SimResult | BankrollResult>;
   cancel(id: string): void;
 };
 
