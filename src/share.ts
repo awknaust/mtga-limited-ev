@@ -31,7 +31,7 @@ import {
   type PayoutTier,
 } from "./lib";
 
-export type Tab = "bankroll" | "event" | "about";
+export type Tab = "bankroll" | "event" | "mastery" | "about";
 
 /** Everything a link restores. */
 export type ShareState = {
@@ -223,6 +223,21 @@ const CONFIG_NUMBERS = [
   ["playInValue", "playInPointValueGems"],
   ["playBoxValue", "playBoxValueGems"],
   ["collectorBoxValue", "collectorBoxValueGems"],
+  /*
+   * The mastery rates. Nothing but the Mastery tab reads them, but they are
+   * ordinary reward values sitting in Advanced settings beside the rest, and a
+   * link that restored every rate except these would be lying about what it
+   * carries. They only ever appear in a URL once someone has changed one.
+   */
+  ["draftTokenValue", "draftTokenValueGems"],
+  ["mythicIcrValue", "mythicIcrValueGems"],
+  ["rareCardValue", "rareCardValueGems"],
+  ["uncommonIcrValue", "uncommonIcrValueGems"],
+  ["orbValue", "orbValueGems"],
+  ["cardStyleValue", "cardStyleValueGems"],
+  ["sleeveValue", "sleeveValueGems"],
+  ["avatarValue", "avatarValueGems"],
+  ["companionValue", "companionValueGems"],
   // The field became `otherGoldPerDay` when daily-win gold started coming off
   // the ladder instead. The parameter keeps its old spelling deliberately —
   // renaming it would strand every link already written, and the mapping is
@@ -449,7 +464,13 @@ export function decodeShareState(search: string): ShareState {
       max: SIM_LIMITS.maxEvents,
       int: true,
     }),
-    tab: oneOf<Tab>(params, "tab", ["bankroll", "event", "about"], fallback.tab),
+    /*
+     * The allow-list is a runtime one, and TypeScript will not check it against
+     * `Tab`: `oneOf<T>` takes `readonly T[]`, which a subset satisfies. A tab
+     * missing from here compiles cleanly and silently falls back to Bankroll,
+     * so the list and the union have to be kept in step by hand.
+     */
+    tab: oneOf<Tab>(params, "tab", ["bankroll", "event", "mastery", "about"], fallback.tab),
     unit: oneOf<Unit>(params, "unit", ["gems", "usd"], fallback.unit),
     gemsPerUsd: numberFrom(params, "gemsPerUsd", fallback.gemsPerUsd, { min: 1 }),
   };

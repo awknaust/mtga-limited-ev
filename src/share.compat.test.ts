@@ -102,6 +102,8 @@ const CORPUS: [name: string, search: string][] = [
    * the one thing this file exists to prevent.
    */
   ["counts above the ceilings", "?trials=999999999&runs=999999&maxEvents=99999"],
+  ["mastery tab", "?tab=mastery"],
+  ["mastery rates, cosmetics priced", "?tab=mastery&orbValue=5&mythicIcrValue=60&draftTokenValue=0"],
 ];
 
 describe("the parameter names are the contract", () => {
@@ -133,6 +135,15 @@ describe("the parameter names are the contract", () => {
         playInPointValueGems: 9,
         playBoxValueGems: 10,
         collectorBoxValueGems: 11,
+        draftTokenValueGems: 18,
+        mythicIcrValueGems: 19,
+        rareCardValueGems: 20,
+        uncommonIcrValueGems: 21,
+        orbValueGems: 22,
+        cardStyleValueGems: 23,
+        sleeveValueGems: 24,
+        avatarValueGems: 25,
+        companionValueGems: 26,
         payouts: [
           { wins: 0, gems: 1, packs: 1 },
           { wins: 1, gems: 2, packs: 2 },
@@ -163,10 +174,14 @@ describe("the parameter names are the contract", () => {
       ...new URLSearchParams(encodeShareState(elimination)).keys(),
     ]);
     expect([...names].sort()).toEqual([
+      "avatarValue",
+      "cardStyleValue",
       "collectorBoxValue",
+      "companionValue",
       "confMatches",
       "draftPackValue",
       "draftPacks",
+      "draftTokenValue",
       "entry",
       "entryGold",
       "eventsPerDay",
@@ -176,6 +191,8 @@ describe("the parameter names are the contract", () => {
       "maxEvents",
       "maxLosses",
       "maxWins",
+      "mythicIcrValue",
+      "orbValue",
       "packValue",
       "payouts",
       "playBoxValue",
@@ -184,10 +201,12 @@ describe("the parameter names are the contract", () => {
       "rounds",
       "runs",
       "seed",
+      "sleeveValue",
       "startGems",
       "startGold",
       "tab",
       "trials",
+      "uncommonIcrValue",
       "unit",
       "wr",
     ]);

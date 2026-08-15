@@ -16,6 +16,7 @@ import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
 import { InfoTip } from "./components/InfoTip";
+import { Mastery } from "./components/Mastery";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
 import { PercentileSummary } from "./components/PercentileSummary";
 import { ResultsPlaceholder } from "./components/ResultsPlaceholder";
@@ -32,6 +33,7 @@ import {
   holdingSlices,
 } from "./components/ValueSplitBar";
 import {
+  CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
   PRESETS,
   bankrollRoi,
@@ -94,6 +96,7 @@ const CONFIDENCE_CHOICES = [
 const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
   { key: "event" as const, label: "Per event" },
+  { key: "mastery" as const, label: "Mastery" },
   { key: "about" as const, label: "About" },
 ];
 
@@ -589,6 +592,15 @@ export default function App() {
     playInValue: `${uid}-play-in-value`,
     playBoxValue: `${uid}-play-box-value`,
     collectorBoxValue: `${uid}-collector-box-value`,
+    draftTokenValue: `${uid}-draft-token-value`,
+    mythicIcrValue: `${uid}-mythic-icr-value`,
+    rareCardValue: `${uid}-rare-card-value`,
+    uncommonIcrValue: `${uid}-uncommon-icr-value`,
+    orbValue: `${uid}-orb-value`,
+    cardStyleValue: `${uid}-card-style-value`,
+    sleeveValue: `${uid}-sleeve-value`,
+    avatarValue: `${uid}-avatar-value`,
+    companionValue: `${uid}-companion-value`,
     trials: `${uid}-trials`,
     bankrollRuns: `${uid}-bankroll-runs`,
     seed: `${uid}-seed`,
@@ -1607,8 +1619,15 @@ export default function App() {
               />
 
               <TabPanel group={ids.resultTabs} active={tab}>
+              {/*
+                The last branch is the per-event panel rather than a
+                `tab === "event"` test, so a tab added above without its own
+                rung here renders that panel silently. Add the rung.
+              */}
               {tab === "about" ? (
                 <About config={config} m={m} />
+              ) : tab === "mastery" ? (
+                <Mastery track={CURRENT_MASTERY_TRACK} config={config} m={m} />
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
@@ -2065,6 +2084,171 @@ export default function App() {
                       gemsPerUsd={gemsPerUsd}
                       gemValue={config.collectorBoxValueGems}
                       onChange={(n) => set("collectorBoxValueGems", n)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/*
+                The Mastery tab's rates, which no event ladder pays. Kept in
+                their own group rather than mixed into the reward values above:
+                these price a season's pass, and the four cosmetics are all zero
+                by default, so a reader scanning the group above should not have
+                to wonder why five of its fields do nothing.
+              */}
+              <div className="adv-group mb-3">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <h3 className="section-title mb-0">Mastery rewards</h3>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() =>
+                      update({
+                        ...config,
+                        draftTokenValueGems: 0,
+                        mythicIcrValueGems: 0,
+                        rareCardValueGems: 0,
+                        uncommonIcrValueGems: 0,
+                      })
+                    }
+                  >
+                    Zero these out
+                  </button>
+                </div>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label htmlFor={ids.draftTokenValue} className="form-label">
+                      Draft token value ({m.label})
+                      <InfoTip
+                        label="About draft token value"
+                        content="A Player Draft token is redeemable for a Premier or Traditional Draft entry, both of which cost 1,500 gems — so it is priced at the entry it replaces. That holds if you would have drafted anyway; if you would not, what the entry returns is the better figure, and at most win rates it is smaller."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.draftTokenValue}
+                      m={m}
+                      gemValue={config.draftTokenValueGems}
+                      onChange={(n) => set("draftTokenValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.mythicIcrValue} className="form-label">
+                      Mythic ICR value ({m.label})
+                      <InfoTip
+                        label="About mythic ICR value"
+                        content="Arena's published duplicate protection: a mythic you already hold four of converts to 40 gems. Higher than a pack because a card reward has no rare slot to lose to a wildcard."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.mythicIcrValue}
+                      m={m}
+                      gemValue={config.mythicIcrValueGems}
+                      onChange={(n) => set("mythicIcrValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.rareCardValue} className="form-label">
+                      Rare card value ({m.label})
+                      <InfoTip
+                        label="About rare card value"
+                        content="The published rare buyout, 20 gems on a complete collection."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.rareCardValue}
+                      m={m}
+                      gemValue={config.rareCardValueGems}
+                      onChange={(n) => set("rareCardValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.uncommonIcrValue} className="form-label">
+                      Uncommon ICR value ({m.label})
+                      <InfoTip
+                        label="About uncommon ICR value"
+                        content="An uncommon has no gem buyout, so this is only its 5% chance of upgrading to a rare — about 1.1 gems. It is what every mastery level past the cap pays."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.uncommonIcrValue}
+                      m={m}
+                      gemValue={config.uncommonIcrValueGems}
+                      onChange={(n) => set("uncommonIcrValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.orbValue} className="form-label">
+                      Mastery Orb value ({m.label})
+                      <InfoTip
+                        label="About Mastery Orb value"
+                        content="Zero by default, for want of anything to derive a figure from: an orb buys a card style or an avatar in the Mastery Emporium, and neither has a gem price."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.orbValue}
+                      m={m}
+                      gemValue={config.orbValueGems}
+                      onChange={(n) => set("orbValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.cardStyleValue} className="form-label">
+                      Card style value ({m.label})
+                      <InfoTip
+                        label="About card style value"
+                        content="Cosmetic, so zero by default. Nothing in Arena converts a style to currency."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.cardStyleValue}
+                      m={m}
+                      gemValue={config.cardStyleValueGems}
+                      onChange={(n) => set("cardStyleValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.sleeveValue} className="form-label">
+                      Card sleeve value ({m.label})
+                      <InfoTip
+                        label="About card sleeve value"
+                        content="Cosmetic, so zero by default."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.sleeveValue}
+                      m={m}
+                      gemValue={config.sleeveValueGems}
+                      onChange={(n) => set("sleeveValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.avatarValue} className="form-label">
+                      Avatar value ({m.label})
+                      <InfoTip
+                        label="About avatar value"
+                        content="Cosmetic, so zero by default."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.avatarValue}
+                      m={m}
+                      gemValue={config.avatarValueGems}
+                      onChange={(n) => set("avatarValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.companionValue} className="form-label">
+                      Companion value ({m.label})
+                      <InfoTip
+                        label="About companion value"
+                        content="Cosmetic, so zero by default."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.companionValue}
+                      m={m}
+                      gemValue={config.companionValueGems}
+                      onChange={(n) => set("companionValueGems", n)}
                     />
                   </div>
                 </div>

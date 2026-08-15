@@ -190,6 +190,15 @@ describe("resetting advanced settings", () => {
         otherGoldPerDay: 900,
         eventsPerDay: 2,
         gemsPer10kGold: 2000,
+        draftTokenValueGems: 900,
+        mythicIcrValueGems: 60,
+        rareCardValueGems: 30,
+        uncommonIcrValueGems: 3,
+        orbValueGems: 1,
+        cardStyleValueGems: 2,
+        sleeveValueGems: 25,
+        avatarValueGems: 100,
+        companionValueGems: 7,
         payouts: [
           { wins: 0, gems: 10, packs: 1 },
           { wins: 1, gems: 20, packs: 1 },
@@ -230,19 +239,28 @@ describe("resetting advanced settings", () => {
     const after = new URLSearchParams(encodeShareState(resetAdvanced(touched)));
 
     expect([...before.keys()].filter((k) => !after.has(k)).sort()).toEqual([
+      "avatarValue",
+      "cardStyleValue",
       "collectorBoxValue",
+      "companionValue",
       "confMatches",
       "draftPackValue",
+      "draftTokenValue",
       "eventsPerDay",
       "gemsPerUsd",
       "goldPer10k",
       "goldPerDay",
+      "mythicIcrValue",
+      "orbValue",
       "packValue",
       "playBoxValue",
       "playInValue",
+      "rareCardValue",
       "runs",
       "seed",
+      "sleeveValue",
       "trials",
+      "uncommonIcrValue",
     ]);
     // The event on screen, the balance it is played from, and where the page
     // is pointed — none of which the dialog shows.
@@ -271,6 +289,18 @@ describe("resetting advanced settings", () => {
     expect(reset.config.playInPointValueGems).toBe(config.playInPointValueGems);
     expect(reset.config.playBoxValueGems).toBe(config.playBoxValueGems);
     expect(reset.config.collectorBoxValueGems).toBe(config.collectorBoxValueGems);
+    // The Mastery rewards group, which the reset reaches for the same reason it
+    // reaches the rest: `resetAdvanced` names what it keeps, not what it clears,
+    // so a rate added to the dialog is restored without anyone editing it.
+    expect(reset.config.draftTokenValueGems).toBe(config.draftTokenValueGems);
+    expect(reset.config.mythicIcrValueGems).toBe(config.mythicIcrValueGems);
+    expect(reset.config.rareCardValueGems).toBe(config.rareCardValueGems);
+    expect(reset.config.uncommonIcrValueGems).toBe(config.uncommonIcrValueGems);
+    expect(reset.config.orbValueGems).toBe(config.orbValueGems);
+    expect(reset.config.cardStyleValueGems).toBe(config.cardStyleValueGems);
+    expect(reset.config.sleeveValueGems).toBe(config.sleeveValueGems);
+    expect(reset.config.avatarValueGems).toBe(config.avatarValueGems);
+    expect(reset.config.companionValueGems).toBe(config.companionValueGems);
     expect(reset.config.otherGoldPerDay).toBe(config.otherGoldPerDay);
     expect(reset.config.eventsPerDay).toBe(config.eventsPerDay);
     expect(reset.config.gemsPer10kGold).toBe(config.gemsPer10kGold);
