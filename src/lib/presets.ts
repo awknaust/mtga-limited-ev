@@ -149,18 +149,19 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 export const GEMS_PER_USD = 200;
 
 /**
- * Gold per gem, for valuing a leftover gold balance.
+ * Gems 10,000 gold is worth, for valuing a leftover gold balance.
  *
  * Every event that prices both ways uses the same ratio — Premier 10,000 gold
  * against 1,500 gems, Quick 5,000 against 750, Pick Two 6,000 against 900,
- * Contender 20,000 against 3,000 — all exactly 20/3. Arena sets the rate by
- * what it charges, so this is read off rather than invented.
+ * Contender 20,000 against 3,000 — all exactly 1,500 per 10,000. Arena sets
+ * the rate by what it charges, so this is read off rather than invented.
  *
  * It only holds while you have something to spend gold on. Gold you never use
  * is worth nothing, and it cannot be bought or sold, so this overstates a
- * balance you are sitting on.
+ * balance you are sitting on; a rate of 0 is the honest price for that case,
+ * and the model reads 0 as exactly that.
  */
-export const GOLD_PER_GEM = 20 / 3;
+export const GEMS_PER_10K_GOLD = 1500;
 
 /**
  * Default gem value of one pack's worth of drafted cards.
@@ -323,7 +324,7 @@ export function defaultConfig(): EventConfig {
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
     otherGoldPerDay: DEFAULT_OTHER_GOLD_PER_DAY,
     eventsPerDay: DEFAULT_EVENTS_PER_DAY,
-    goldPerGem: GOLD_PER_GEM,
+    gemsPer10kGold: GEMS_PER_10K_GOLD,
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,

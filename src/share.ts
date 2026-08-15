@@ -90,6 +90,62 @@ export function defaultShareState(): ShareState {
   };
 }
 
+/**
+ * Advanced settings back to a fresh load's values, leaving the rest alone.
+ *
+ * Written as what the dialog does *not* own rather than as a list of what it
+ * does, and the direction is the whole point. Knobs accumulate in Advanced
+ * settings, so a field added there is restored by this without anyone
+ * remembering to come back here — whereas the list-what-it-owns version fails
+ * silently, leaving one field untouched by a button that says it resets
+ * everything. The three groups kept below fail loudly instead: forget one and
+ * the payout table, the balance or the win rate visibly moves on a press.
+ *
+ * The fields it restores are all preset-independent — `configFromPreset` sets
+ * only the ones kept here — so "default" means the same thing whichever event
+ * is selected.
+ */
+export function resetAdvanced(state: ShareState): ShareState {
+  const fresh = defaultShareState();
+  return {
+    ...fresh,
+    presetName: state.presetName,
+    config: {
+      ...fresh.config,
+      /*
+       * The Event card's own fields: everything a preset defines, plus the win
+       * rate, whose slider sits above the Advanced button rather than inside
+       * the dialog.
+       */
+      winRate: state.config.winRate,
+      structure: state.config.structure,
+      entryCostGems: state.config.entryCostGems,
+      entryCostGold: state.config.entryCostGold,
+      draftPacks: state.config.draftPacks,
+      payouts: state.config.payouts,
+    },
+    // The Bankroll card's.
+    startingGems: state.startingGems,
+    startingGold: state.startingGold,
+    maxEvents: state.maxEvents,
+    // Where the page is pointed, which is not a setting to restore.
+    tab: state.tab,
+    unit: state.unit,
+  };
+}
+
+/**
+ * Whether the reset has anything left to do, which is what greys its button.
+ *
+ * Compared as the links the two states write rather than field by field, so it
+ * cannot fall out of step with `resetAdvanced` by listing one field fewer: a
+ * value the reset moved writes a different parameter, and one it kept writes
+ * the same. The comparison inherits the encoder's six decimal places, which is
+ * four more than any field on screen resolves.
+ */
+export const isAdvancedDefault = (state: ShareState): boolean =>
+  encodeShareState(resetAdvanced(state)) === encodeShareState(state);
+
 /** Preset name to the token that names it in a URL. */
 export const presetSlug = (name: string): string =>
   name
@@ -141,6 +197,8 @@ const CONFIG_NUMBERS = [
   // here precisely so a field can be renamed without one.
   ["goldPerDay", "otherGoldPerDay"],
   ["eventsPerDay", "eventsPerDay"],
+  // 0 means unspent gold counts for nothing.
+  ["goldPer10k", "gemsPer10kGold"],
   // 0 means "certain", which is how a URL spells the absence of uncertainty —
   // the same trick `goldPer10k` uses for gold that is worth nothing.
   ["confMatches", "winRateMatches"],
@@ -165,15 +223,6 @@ const UI_NUMBERS = [
   ["runs", "bankrollRuns"],
   ["seed", "seed"],
 ] as const satisfies readonly (readonly [string, keyof ShareState])[];
-
-/**
- * Gold's exchange rate is written the way the field reads it — gems per 10,000
- * gold — rather than as the `goldPerGem` the model stores. Counting unspent
- * gold as worthless is an infinite `goldPerGem`, which has no useful spelling
- * in a URL; as a rate it is plainly 0.
- */
-const gemsPer10kGold = (goldPerGem: number): number =>
-  Number.isFinite(goldPerGem) && goldPerGem > 0 ? Math.round(10000 / goldPerGem) : 0;
 
 /**
  * A payout table as `gems-packs[-points[-playBoxes[-collectorBoxes]]]` per row,
@@ -273,9 +322,6 @@ export function encodeShareState(state: ShareState): string {
     params.set("payouts", payouts);
   }
 
-  const rate = gemsPer10kGold(state.config.goldPerGem);
-  if (rate !== gemsPer10kGold(base.goldPerGem)) params.set("goldPer10k", num(rate));
-
   for (const [key, field] of UI_NUMBERS) {
     const value = state[field] as number;
     if (value !== (fallback[field] as number)) params.set(key, num(value));
@@ -348,7 +394,6 @@ export function decodeShareState(search: string): ShareState {
     ...numbers,
     structure,
     payouts,
-    goldPerGem: decodeGoldPerGem(params, base.goldPerGem),
   };
 
   return {
@@ -383,11 +428,4 @@ function decodeStructure(params: URLSearchParams, base: EventStructure): EventSt
     };
   }
   return base;
-}
-
-/** A rate of 0 means unspent gold counts for nothing, which the model spells ∞. */
-function decodeGoldPerGem(params: URLSearchParams, base: number): number {
-  if (!params.has("goldPer10k")) return base;
-  const rate = numberFrom(params, "goldPer10k", gemsPer10kGold(base), { min: 0 });
-  return rate > 0 ? 10000 / rate : Number.POSITIVE_INFINITY;
 }

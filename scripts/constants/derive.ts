@@ -166,17 +166,21 @@ function setResolver(setsByCode: Map<string, ScryfallSet>): (name: string) => Sc
   };
 }
 
-export type GoldPerGem = {
-  rates: { name: string; gems: number; gold: number; ratio: number }[];
+export type GemsPer10kGold = {
+  rates: { name: string; gems: number; gold: number; per10k: number }[];
   agrees: boolean;
   value: number | null;
 };
 
-/** Gold per gem, and whether the events that price both ways still agree on it. */
-export function goldPerGem(
+/**
+ * Gems 10,000 gold is worth, and whether the events that price both ways
+ * still agree on it. Stored the way the model stores it — the finite
+ * reciprocal, where "unspent gold is worthless" is plainly 0.
+ */
+export function gemsPer10kGold(
   events: readonly { name: string; gems: number; gold: number }[],
-): GoldPerGem {
-  const rates = events.map((e) => ({ ...e, ratio: e.gold / e.gems }));
-  const distinct = [...new Set(rates.map((r) => r.ratio.toFixed(9)))];
-  return { rates, agrees: distinct.length === 1, value: rates[0]?.ratio ?? null };
+): GemsPer10kGold {
+  const rates = events.map((e) => ({ ...e, per10k: (e.gems * 10_000) / e.gold }));
+  const distinct = [...new Set(rates.map((r) => r.per10k.toFixed(6)))];
+  return { rates, agrees: distinct.length === 1, value: rates[0]?.per10k ?? null };
 }

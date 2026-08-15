@@ -12,7 +12,7 @@ import {
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   GEMS_PER_USD,
-  GOLD_PER_GEM,
+  GEMS_PER_10K_GOLD,
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
@@ -612,15 +612,14 @@ describe("holdings", () => {
     const config = defaultConfig();
     // Gems are the unit, so they are worth themselves.
     expect(holdingRate(config, "gems")).toBe(1);
-    expect(holdingRate(config, "gold")).toBeCloseTo(1 / GOLD_PER_GEM, 12);
+    expect(holdingRate(config, "gold")).toBe(GEMS_PER_10K_GOLD / 10000);
     expect(holdingRate(config, "packs")).toBe(DEFAULT_PACK_VALUE_GEMS);
     expect(holdingRate(config, "playInPoints")).toBe(DEFAULT_PLAY_IN_POINT_VALUE_GEMS);
     expect(holdingRate(config, "playBoxes")).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
     expect(holdingRate(config, "collectorBoxes")).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
     expect(holdingRate(config, "draftPacks")).toBe(DEFAULT_DRAFT_PACK_VALUE_GEMS);
-    // Gold valued at nothing drops out rather than blowing up, the same way
-    // runValue treats it.
-    expect(holdingRate({ ...config, goldPerGem: Infinity }, "gold")).toBe(0);
+    // Gold valued at nothing drops out, the same way runValue treats it.
+    expect(holdingRate({ ...config, gemsPer10kGold: 0 }, "gold")).toBe(0);
   });
 });
 
@@ -877,8 +876,8 @@ describe("bankroll", () => {
 
   it("values leftover gold at the configured rate", () => {
     // 10,000 gold for 1,500 gems is what every dual-priced event charges.
-    expect(GOLD_PER_GEM).toBeCloseTo(10000 / 1500, 12);
-    const config = { ...defaultConfig(), goldPerGem: GOLD_PER_GEM };
+    expect(GEMS_PER_10K_GOLD).toBe(1500);
+    const config = { ...defaultConfig(), gemsPer10kGold: GEMS_PER_10K_GOLD };
     const run = {
       events: 0,
       wins: 0,
@@ -892,19 +891,19 @@ describe("bankroll", () => {
       collectorBoxes: 0,
       survived: false,
     };
-    expect(runValue(config, run)).toBeCloseTo(1000 + 1500, 6);
+    expect(runValue(config, run)).toBe(1000 + 1500);
     // Valuing gold at nothing drops the term entirely.
-    expect(runValue({ ...config, goldPerGem: Infinity }, run)).toBe(1000);
+    expect(runValue({ ...config, gemsPer10kGold: 0 }, run)).toBe(1000);
   });
 
   it("values the starting balance the way it values the ending one", () => {
-    // The baseline ending values are judged against. Same rate, same Infinity
+    // The baseline ending values are judged against. Same rate, same zero-rate
     // behaviour as runValue — a run that begins with 10,000 gold has not
     // gained 1,500 gems of value by playing zero events.
-    const config = { ...defaultConfig(), goldPerGem: GOLD_PER_GEM };
-    expect(startingValue(config, 1000, 10_000)).toBeCloseTo(1000 + 1500, 6);
+    const config = { ...defaultConfig(), gemsPer10kGold: GEMS_PER_10K_GOLD };
+    expect(startingValue(config, 1000, 10_000)).toBe(1000 + 1500);
     expect(startingValue(config, 1000, 0)).toBe(1000);
-    expect(startingValue({ ...config, goldPerGem: Infinity }, 1000, 10_000)).toBe(1000);
+    expect(startingValue({ ...config, gemsPer10kGold: 0 }, 1000, 10_000)).toBe(1000);
   });
 
   it("reports the run's return against that same starting value", () => {

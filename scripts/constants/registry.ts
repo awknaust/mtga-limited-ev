@@ -25,7 +25,7 @@ import {
   PLAY_IN_ENTRY,
 } from "./by-hand.ts";
 import {
-  goldPerGem,
+  gemsPer10kGold,
   rareSlotGems,
   representativeMythicRate,
   wildcardShare,
@@ -55,13 +55,6 @@ export type ConstantDef = {
 
 const gems = (n: number): string => n.toLocaleString("en-US");
 const usd = (n: number): string => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
-
-/** A ratio in lowest terms, so a rate can be shown the way it is written in code. */
-function reduce(a: number, b: number): [number, number] {
-  const gcd = (x: number, y: number): number => (y === 0 ? x : gcd(y, x % y));
-  const d = gcd(a, b);
-  return [a / d, b / d];
-}
 
 // --- shared intermediate results -------------------------------------------
 // Two constants come out of this, so it is computed once per run.
@@ -194,31 +187,28 @@ export const CONSTANTS: ConstantDef[] = [
   },
 
   {
-    name: "GOLD_PER_GEM",
-    summary: "gold per gem, for valuing a leftover gold balance",
+    name: "GEMS_PER_10K_GOLD",
+    summary: "gems 10,000 gold is worth, for valuing a leftover gold balance",
     sources: [],
     compute() {
-      const { rates, agrees, value } = goldPerGem(DUAL_PRICED_EVENTS.events);
+      const { rates, agrees, value } = gemsPer10kGold(DUAL_PRICED_EVENTS.events);
       if (!agrees || value === null) {
         throw new SourceError(
           "dual-priced events no longer agree on a rate — see by-hand.ts; the model " +
             "needs a per-event rate, not a new constant",
         );
       }
-      // Shown as the ratio the constant is actually written as. The decimal is
-      // 6.666..., and no rounding of it is a value anyone should paste.
-      const [gold, gem] = reduce(rates[0].gold, rates[0].gems);
-
       return {
         value,
-        format: () => `${gold} / ${gem}`,
         explain: [
           `every event that prices both ways, checked by hand on ${DUAL_PRICED_EVENTS.checkedOn}:`,
           ...rates.map(
             (r) =>
-              `  ${r.name.padEnd(18)}${gems(r.gold).padStart(7)} gold / ${gems(r.gems).padStart(5)} gems = ${r.ratio.toFixed(4)}`,
+              `  ${r.name.padEnd(18)}${gems(r.gems).padStart(6)} gems / ${gems(r.gold).padStart(7)} gold = ${gems(r.per10k)} per 10,000`,
           ),
-          `all ${rates.length} agree, so Arena sets the rate by what it charges: ${value.toFixed(4)}, or ${gold}/${gem}`,
+          `all ${rates.length} agree, so Arena sets the rate by what it charges: ${gems(value)} gems per 10,000 gold`,
+          "stored as the finite reciprocal on purpose — unspent gold being worthless",
+          "  is a rate of 0, with no Infinity anywhere in the model",
           "holds only while you have something to spend gold on — gold cannot be",
           "  bought or sold, so this overstates a balance you are sitting on",
         ],

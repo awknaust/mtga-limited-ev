@@ -6,7 +6,9 @@ import {
   defaultShareState,
   encodePayouts,
   encodeShareState,
+  isAdvancedDefault,
   presetSlug,
+  resetAdvanced,
   type ShareState,
 } from "./share";
 import {
@@ -114,7 +116,7 @@ describe("round trips", () => {
         entryCostGold: 9000,
         otherGoldPerDay: 900,
         eventsPerDay: 2,
-        goldPerGem: 5,
+        gemsPer10kGold: 2000,
         draftPacks: 4,
         draftPackValueGems: 110,
         packValueGems: 132,
@@ -153,10 +155,176 @@ describe("round trips", () => {
 
   it("restores gold counted as worthless", () => {
     const state = withState({
-      config: { ...defaultConfig(), goldPerGem: Number.POSITIVE_INFINITY },
+      config: { ...defaultConfig(), gemsPer10kGold: 0 },
     });
     expect(encodeShareState(state)).toBe("goldPer10k=0");
-    expect(roundTrip(state).config.goldPerGem).toBe(Number.POSITIVE_INFINITY);
+    expect(roundTrip(state).config.gemsPer10kGold).toBe(0);
+  });
+});
+
+describe("resetting advanced settings", () => {
+  /**
+   * A state with every parameter the encoder can write off its default.
+   *
+   * The reset is measured against this rather than against a state with one
+   * field moved, because the interesting failure is a field it *misses*, and a
+   * field that was never touched cannot be missed.
+   */
+  const fullyEdited = (): ShareState =>
+    withState({
+      presetName: CUSTOM_PRESET,
+      config: {
+        ...defaultConfig(),
+        winRate: 0.61,
+        winRateMatches: 20,
+        structure: { kind: "rounds", rounds: 4 },
+        entryCostGems: 1234,
+        entryCostGold: 9000,
+        draftPacks: 4,
+        draftPackValueGems: 110,
+        packValueGems: 132,
+        playInPointValueGems: 250,
+        playBoxValueGems: 60_000,
+        collectorBoxValueGems: 250_000,
+        otherGoldPerDay: 900,
+        eventsPerDay: 2,
+        gemsPer10kGold: 2000,
+        payouts: [
+          { wins: 0, gems: 10, packs: 1 },
+          { wins: 1, gems: 20, packs: 1 },
+          { wins: 2, gems: 30, packs: 2, playInPoints: 1 },
+          { wins: 3, gems: 40, packs: 3, playBoxes: 1 },
+          { wins: 4, gems: 50, packs: 4, collectorBoxes: 2 },
+        ],
+      },
+      trials: 25_000,
+      bankrollRuns: 2_500,
+      seed: 7,
+      startingGems: 12_000,
+      startingGold: 5_000,
+      maxEvents: 50,
+      tab: "event",
+      unit: "usd",
+      gemsPerUsd: 350,
+    });
+
+  it("leaves a fresh load exactly as it was", () => {
+    expect(resetAdvanced(defaultShareState())).toEqual(defaultShareState());
+    expect(isAdvancedDefault(defaultShareState())).toBe(true);
+  });
+
+  /*
+   * The scope, read off the link rather than asserted field by field: a
+   * parameter that survives is a field the reset did not restore, and one that
+   * disappears is a field it restored and should not have.
+   *
+   * The one blind spot is the payout table, which stays in the link either way
+   * — restored to Premier's ladder it still differs from the Custom baseline,
+   * because that baseline is resized to the structure and Premier's is not.
+   * That is what the test below pins by value.
+   */
+  it("clears every advanced parameter and no other", () => {
+    const touched = fullyEdited();
+    const before = new URLSearchParams(encodeShareState(touched));
+    const after = new URLSearchParams(encodeShareState(resetAdvanced(touched)));
+
+    expect([...before.keys()].filter((k) => !after.has(k)).sort()).toEqual([
+      "collectorBoxValue",
+      "confMatches",
+      "draftPackValue",
+      "eventsPerDay",
+      "gemsPerUsd",
+      "goldPer10k",
+      "goldPerDay",
+      "packValue",
+      "playBoxValue",
+      "playInValue",
+      "runs",
+      "seed",
+      "trials",
+    ]);
+    // The event on screen, the balance it is played from, and where the page
+    // is pointed — none of which the dialog shows.
+    expect([...after.keys()].sort()).toEqual([
+      "draftPacks",
+      "entry",
+      "entryGold",
+      "maxEvents",
+      "payouts",
+      "preset",
+      "rounds",
+      "startGems",
+      "startGold",
+      "tab",
+      "unit",
+      "wr",
+    ]);
+  });
+
+  it("restores the values the dialog shows", () => {
+    const reset = resetAdvanced(fullyEdited());
+    const { config, ...ui } = defaultShareState();
+    expect(reset.config.winRateMatches).toBe(config.winRateMatches);
+    expect(reset.config.packValueGems).toBe(config.packValueGems);
+    expect(reset.config.draftPackValueGems).toBe(config.draftPackValueGems);
+    expect(reset.config.playInPointValueGems).toBe(config.playInPointValueGems);
+    expect(reset.config.playBoxValueGems).toBe(config.playBoxValueGems);
+    expect(reset.config.collectorBoxValueGems).toBe(config.collectorBoxValueGems);
+    expect(reset.config.otherGoldPerDay).toBe(config.otherGoldPerDay);
+    expect(reset.config.eventsPerDay).toBe(config.eventsPerDay);
+    expect(reset.config.gemsPer10kGold).toBe(config.gemsPer10kGold);
+    expect(reset.gemsPerUsd).toBe(ui.gemsPerUsd);
+    expect(reset.trials).toBe(ui.trials);
+    expect(reset.bankrollRuns).toBe(ui.bankrollRuns);
+    expect(reset.seed).toBe(ui.seed);
+  });
+
+  it("keeps the event, the balance and the win rate", () => {
+    const touched = fullyEdited();
+    const reset = resetAdvanced(touched);
+    expect(reset.presetName).toBe(touched.presetName);
+    expect(reset.config.winRate).toBe(touched.config.winRate);
+    expect(reset.config.structure).toEqual(touched.config.structure);
+    expect(reset.config.entryCostGems).toBe(touched.config.entryCostGems);
+    expect(reset.config.entryCostGold).toBe(touched.config.entryCostGold);
+    expect(reset.config.draftPacks).toBe(touched.config.draftPacks);
+    expect(reset.config.payouts).toEqual(touched.config.payouts);
+    expect(reset.startingGems).toBe(touched.startingGems);
+    expect(reset.startingGold).toBe(touched.startingGold);
+    expect(reset.maxEvents).toBe(touched.maxEvents);
+    expect(reset.tab).toBe(touched.tab);
+    expect(reset.unit).toBe(touched.unit);
+  });
+
+  it("has nothing left to do once it has run", () => {
+    expect(isAdvancedDefault(resetAdvanced(fullyEdited()))).toBe(true);
+    expect(isAdvancedDefault(fullyEdited())).toBe(false);
+  });
+
+  it("counts only what the dialog owns as touched", () => {
+    // Outside it: the balance, and the win rate its slider sets.
+    expect(isAdvancedDefault(withState({ startingGems: 99_000 }))).toBe(true);
+    expect(
+      isAdvancedDefault(withState({ config: { ...defaultConfig(), winRate: 0.7 } })),
+    ).toBe(true);
+    // Inside it, one field from each group the dialog is divided into.
+    expect(isAdvancedDefault(withState({ seed: 9 }))).toBe(false);
+    expect(isAdvancedDefault(withState({ gemsPerUsd: 175 }))).toBe(false);
+    expect(
+      isAdvancedDefault(
+        withState({ config: { ...defaultConfig(), winRateMatches: 20 } }),
+      ),
+    ).toBe(false);
+    expect(
+      isAdvancedDefault(
+        withState({ config: { ...defaultConfig(), packValueGems: 0 } }),
+      ),
+    ).toBe(false);
+    expect(
+      isAdvancedDefault(
+        withState({ config: { ...defaultConfig(), eventsPerDay: 3 } }),
+      ),
+    ).toBe(false);
   });
 });
 
