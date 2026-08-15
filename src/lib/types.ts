@@ -94,8 +94,8 @@ export type EventConfig = {
    * alone.
    */
   eventsPerDay: number;
-  /** Gold worth one gem, for valuing a leftover balance. */
-  goldPerGem: number;
+  /** Gems 10,000 gold is worth, for valuing a leftover balance; 0 counts unspent gold as worthless. */
+  gemsPer10kGold: number;
   /** Packs' worth of cards kept per entry; 0 for phantom events. */
   draftPacks: number;
   /** Gem value of one pack's worth of drafted cards. */

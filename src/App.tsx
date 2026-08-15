@@ -2037,14 +2037,8 @@ export default function App() {
                     </label>
                     <GemInput
                       id={ids.goldRate}
-                      value={
-                        Number.isFinite(config.goldPerGem)
-                          ? Math.round(10000 / config.goldPerGem)
-                          : 0
-                      }
-                      onChange={(n) =>
-                        set("goldPerGem", n > 0 ? 10000 / n : Number.POSITIVE_INFINITY)
-                      }
+                      value={config.gemsPer10kGold}
+                      onChange={(n) => set("gemsPer10kGold", n)}
                     />
                   </div>
                 </div>

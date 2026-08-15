@@ -42,7 +42,6 @@ import { PRESETS, effectiveEntryGems, goldPerEvent, maxPossibleWins } from "./li
  */
 function fingerprint(state: ShareState): string {
   const c = state.config;
-  const goldRate = Number.isFinite(c.goldPerGem) ? c.goldPerGem.toFixed(4) : "worthless";
   return [
     `preset     ${state.presetName}`,
     `winRate    ${c.winRate} over ${c.winRateMatches} matches`,
@@ -50,7 +49,7 @@ function fingerprint(state: ShareState): string {
     `entry      ${c.entryCostGems} gems / ${c.entryCostGold} gold`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
     `values     pack=${c.packValueGems} playIn=${c.playInPointValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
-    `gold       other=${c.otherGoldPerDay}/day over ${c.eventsPerDay} events, goldPerGem=${goldRate}`,
+    `gold       other=${c.otherGoldPerDay}/day over ${c.eventsPerDay} events, goldPer10k=${c.gemsPer10kGold}`,
     /*
      * Derived rather than stored, and that is the point. A link pins inputs,
      * but what a reader cares about is the answer, and the two can come apart:
@@ -119,7 +118,7 @@ describe("the parameter names are the contract", () => {
         otherGoldPerDay: 3,
         eventsPerDay: 4,
         winRateMatches: 33,
-        goldPerGem: 5,
+        gemsPer10kGold: 5,
         draftPacks: 6,
         draftPackValueGems: 7,
         packValueGems: 8,
@@ -245,7 +244,7 @@ describe("the defaults are the contract", () => {
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23
       values     pack=22 playIn=200 playBox=30933 collBox=126067
-      gold       other=600/day over 1 events, goldPerGem=6.6667
+      gold       other=600/day over 1 events, goldPer10k=1500
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3000 gold=0 maxEvents=20

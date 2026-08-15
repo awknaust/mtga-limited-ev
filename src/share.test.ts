@@ -116,7 +116,7 @@ describe("round trips", () => {
         entryCostGold: 9000,
         otherGoldPerDay: 900,
         eventsPerDay: 2,
-        goldPerGem: 5,
+        gemsPer10kGold: 2000,
         draftPacks: 4,
         draftPackValueGems: 110,
         packValueGems: 132,
@@ -155,10 +155,10 @@ describe("round trips", () => {
 
   it("restores gold counted as worthless", () => {
     const state = withState({
-      config: { ...defaultConfig(), goldPerGem: Number.POSITIVE_INFINITY },
+      config: { ...defaultConfig(), gemsPer10kGold: 0 },
     });
     expect(encodeShareState(state)).toBe("goldPer10k=0");
-    expect(roundTrip(state).config.goldPerGem).toBe(Number.POSITIVE_INFINITY);
+    expect(roundTrip(state).config.gemsPer10kGold).toBe(0);
   });
 });
 
@@ -188,7 +188,7 @@ describe("resetting advanced settings", () => {
         collectorBoxValueGems: 250_000,
         otherGoldPerDay: 900,
         eventsPerDay: 2,
-        goldPerGem: 5,
+        gemsPer10kGold: 2000,
         payouts: [
           { wins: 0, gems: 10, packs: 1 },
           { wins: 1, gems: 20, packs: 1 },
@@ -272,7 +272,7 @@ describe("resetting advanced settings", () => {
     expect(reset.config.collectorBoxValueGems).toBe(config.collectorBoxValueGems);
     expect(reset.config.otherGoldPerDay).toBe(config.otherGoldPerDay);
     expect(reset.config.eventsPerDay).toBe(config.eventsPerDay);
-    expect(reset.config.goldPerGem).toBe(config.goldPerGem);
+    expect(reset.config.gemsPer10kGold).toBe(config.gemsPer10kGold);
     expect(reset.gemsPerUsd).toBe(ui.gemsPerUsd);
     expect(reset.trials).toBe(ui.trials);
     expect(reset.bankrollRuns).toBe(ui.bankrollRuns);
