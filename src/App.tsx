@@ -18,8 +18,10 @@ import { EventsHistogram } from "./components/EventsHistogram";
 import { InfoTip } from "./components/InfoTip";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
 import { PercentileSummary } from "./components/PercentileSummary";
+import { ResultsPlaceholder } from "./components/ResultsPlaceholder";
 import { RunLog } from "./components/RunLog";
 import { SectionHeading } from "./components/SectionHeading";
+import { SimPending } from "./components/SimPending";
 import { Stat, type StatTile } from "./components/Stat";
 import { StatStrip } from "./components/StatStrip";
 import { Tabs, TabPanel } from "./components/Tabs";
@@ -47,8 +49,6 @@ import {
   maxRounds,
   paysBoxes,
   resizePayouts,
-  simulate,
-  simulateBankrolls,
   startingValue,
   type EventConfig,
   type EventStructure,
@@ -63,6 +63,8 @@ import {
   type ShareState,
   type Tab,
 } from "./share";
+import { SIM_DEBOUNCE_MS, useDebouncedValue } from "./hooks/useDebouncedValue";
+import { useSimulate, useSimulateBankrolls } from "./hooks/useSimulation";
 
 /** An event the current balance cannot enter, and what to do about it. */
 type TopUp = {
@@ -522,6 +524,28 @@ export default function App() {
     };
   }, []);
 
+  /*
+   * Whether the Advanced dialog is open, which holds the simulations: its
+   * edits apply together when it closes rather than one recompute per
+   * keystroke. `show` rather than `shown` puts the hold in place before the
+   * first keystroke can land in the dialog; `hide` rather than `hidden` lets
+   * the flush overlap the closing fade. Done, ×, Esc and a backdrop click
+   * all arrive through these two Bootstrap events.
+   */
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  useEffect(() => {
+    const el = modalEl.current;
+    if (!el) return;
+    const onShow = () => setAdvancedOpen(true);
+    const onHide = () => setAdvancedOpen(false);
+    el.addEventListener("show.bs.modal", onShow);
+    el.addEventListener("hide.bs.modal", onHide);
+    return () => {
+      el.removeEventListener("show.bs.modal", onShow);
+      el.removeEventListener("hide.bs.modal", onHide);
+    };
+  }, []);
+
   const topUpEl = useRef<HTMLDivElement>(null);
   const topUpModal = useRef<Modal | null>(null);
   useEffect(() => {
@@ -577,18 +601,29 @@ export default function App() {
     topUpTitle: `${uid}-top-up-title`,
   };
 
-  const result = useMemo(() => simulate(config, trials, seed), [config, trials, seed]);
-  const breakEven = useMemo(() => breakEvenWinRate(config), [config]);
-  const bankroll = useMemo(
-    () =>
-      simulateBankrolls(
-        config,
-        { startingGems, startingGold, maxEvents },
-        bankrollRuns,
-        seed,
-      ),
+  /*
+   * The Monte Carlo runs live in workers, debounced behind the inputs; only
+   * the closed-form figures below are computed here, live. The params
+   * objects are memoised so the debounce sees one identity per actual
+   * change, and the *objects* are what debounce — a flush is atomic, so no
+   * render can pair this keystroke's trials with the last one's seed.
+   */
+  const eventParams = useMemo(() => ({ config, trials, seed }), [config, trials, seed]);
+  const bankrollParams = useMemo(
+    () => ({ config, startingGems, startingGold, maxEvents, runs: bankrollRuns, seed }),
     [config, startingGems, startingGold, maxEvents, bankrollRuns, seed],
   );
+  const {
+    result,
+    pending: eventPending,
+    error: eventError,
+  } = useSimulate(useDebouncedValue(eventParams, SIM_DEBOUNCE_MS, advancedOpen));
+  const {
+    result: bankroll,
+    pending: bankrollPending,
+    error: bankrollError,
+  } = useSimulateBankrolls(useDebouncedValue(bankrollParams, SIM_DEBOUNCE_MS, advancedOpen));
+  const breakEven = useMemo(() => breakEvenWinRate(config), [config]);
   /*
    * The gem-equivalent baseline ending values are judged against — gems plus
    * starting gold at the config's rate, since `runValue` counts leftover gold
@@ -744,10 +779,17 @@ export default function App() {
       ? `${structure.rounds} rounds played in full`
       : `to ${structure.maxWins} wins or ${structure.maxLosses} losses`;
 
+  /*
+   * Tile building tolerates results that have not arrived: `result` and
+   * `bankroll` are null until each first simulation lands, and every tile
+   * list below collapses to empty for the skeleton to stand in. Once a
+   * result exists it is never null again — recomputes dim the stale tiles
+   * instead.
+   */
   /** Null unless the ladder pays boxes, which is what makes the strip move. */
-  const box = bankroll.boxChance;
+  const box = bankroll?.boxChance ?? null;
   /** Null only on an empty wallet, where there is nothing to return on. */
-  const runRoi = bankrollRoi(bankroll.meanFinalValue, startValue);
+  const runRoi = bankroll === null ? null : bankrollRoi(bankroll.meanFinalValue, startValue);
   /*
    * The tiles' help popovers explain the statistics to someone who does not
    * live in them: what was averaged or counted, over which simulated runs,
@@ -756,18 +798,23 @@ export default function App() {
    * and each popover names the statistic behind its word, so the precise
    * vocabulary is one click away rather than ambient.
    */
-  const packsTile: StatTile = {
-    key: "packs",
-    label: "Avg packs won",
-    value: bankroll.holdings.packs.mean.toFixed(1),
-    hint: "over the whole run",
-    help: {
-      label: "What average packs won means",
-      content:
-        "How many packs a run had collected by the time it stopped, averaged across every simulated run.",
-    },
-  };
-  const runTiles: StatTile[] = [
+  const packsTiles: StatTile[] =
+    bankroll === null
+      ? []
+      : [
+          {
+            key: "packs",
+            label: "Avg packs won",
+            value: bankroll.holdings.packs.mean.toFixed(1),
+            hint: "over the whole run",
+            help: {
+              label: "What average packs won means",
+              content:
+                "How many packs a run had collected by the time it stopped, averaged across every simulated run.",
+            },
+          },
+        ];
+  const runTiles: StatTile[] = bankroll === null ? [] : [
     {
       key: "events",
       label: "Avg events played",
@@ -858,7 +905,7 @@ export default function App() {
    * nothing at all where it does not, so it spreads into the strip below
    * without a branch there.
    */
-  const boxChanceTiles: StatTile[] = box
+  const boxChanceTiles: StatTile[] = box && bankroll
     ? [
         {
           key: "box",
@@ -920,7 +967,7 @@ export default function App() {
    * confused. It still exists as `boxChancePerEvent`, where it does its real
    * work of holding the simulation to account in the tests.
    */
-  const bankrollTiles: StatTile[] = [...boxChanceTiles, ...runTiles, packsTile];
+  const bankrollTiles: StatTile[] = [...boxChanceTiles, ...runTiles, ...packsTiles];
 
   /*
    * Boxes per entry, where the ladder pays them. A mean rather than a chance,
@@ -929,7 +976,7 @@ export default function App() {
    * winners. The share underneath is the chance, keeping the pair together;
    * the run-level version of that question lives on the bankroll strip.
    */
-  const boxTiles: StatTile[] = paysBoxes(config.payouts)
+  const boxTiles: StatTile[] = result !== null && paysBoxes(config.payouts)
     ? [
         {
           key: "boxes",
@@ -961,7 +1008,7 @@ export default function App() {
    * statistic in plain terms — what was averaged, over what, and how to read
    * it — for a reader the bare label would leave behind.
    */
-  const stats: StatTile[] = [
+  const stats: StatTile[] = result === null ? [] : [
     {
       key: "net",
       label: "Expected net",
@@ -1547,6 +1594,13 @@ export default function App() {
                 trailing={
                   <span className="section-note">
                     {presetName} · {structureSummary}
+                    {/* Visible from any tab, unlike the dimmed panel itself. */}
+                    {(eventPending || bankrollPending) && (
+                      <span
+                        className="spinner-border spinner-border-sm ms-2 text-secondary"
+                        aria-hidden="true"
+                      />
+                    )}
                   </span>
                 }
               />
@@ -1564,6 +1618,17 @@ export default function App() {
                     recycling your gem and gold winnings, and summarise the
                     thousands of outcomes below.
                   </div>
+                  {bankrollError != null && (
+                    <div className="alert alert-warning" role="alert">
+                      {bankroll === null
+                        ? "The simulation failed to run. Adjust any input to retry."
+                        : "The simulation failed — showing previous results. Adjust any input to retry."}
+                    </div>
+                  )}
+                  {bankroll === null ? (
+                    <ResultsPlaceholder variant="bankroll" />
+                  ) : (
+                  <SimPending pending={bankrollPending}>
                   <div className="mb-3">
                     <StatStrip tiles={bankrollTiles} label="Bankroll summary" />
                   </div>
@@ -1654,6 +1719,8 @@ export default function App() {
                   </div>
 
                   <RunLog samples={bankroll.samples} config={config} m={m} />
+                  </SimPending>
+                  )}
                 </>
               ) : (
                 <>
@@ -1664,6 +1731,17 @@ export default function App() {
                 event: what an average entry wins or loses, and how the
                 possible finishes are spread.
               </div>
+              {eventError != null && (
+                <div className="alert alert-warning" role="alert">
+                  {result === null
+                    ? "The simulation failed to run. Adjust any input to retry."
+                    : "The simulation failed — showing previous results. Adjust any input to retry."}
+                </div>
+              )}
+              {result === null ? (
+                <ResultsPlaceholder variant="event" />
+              ) : (
+              <SimPending pending={eventPending}>
               <div className="row g-2">
                 {stats.map(({ key, ...s }) => (
                   <div key={key} className="col-6 col-xl-4">
@@ -1788,6 +1866,8 @@ export default function App() {
                 </span>
                 .
               </div>
+              </SimPending>
+              )}
                 </>
               )}
               </TabPanel>
