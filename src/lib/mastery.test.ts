@@ -59,22 +59,33 @@ describe("the Hobbit mastery track", () => {
   });
 
   /*
-   * The same reconciliation from the other direction. Levels 1-40 are printed
-   * rows and 41-45 are the residual, so if the transcription were short a pack
-   * the two halves would still add to the published total — this is what catches
-   * that, by pinning each half.
+   * The tail, which came off an in-game screenshot rather than the published
+   * table and so has no second source of its own. Pinned by the shape of the
+   * curve: level 40's 600 gems is the last large step, levels 41-43 and 45 are
+   * cosmetics worth nothing, and the four Tarkir boosters at 44 are the only
+   * thing left that moves it.
    */
-  it("splits into printed levels 1-40 and an inferred 41-45 residual", () => {
-    const v = value();
-    const through40 = v.levelValues.find((l) => l.level === 40);
-    expect(through40?.cumulativePassGems).toBe(3532);
-    expect(v.pass - 3532).toBe(688);
-    expect(v.pass).toBe(4220);
+  it("closes out the track with the gems at 40 and the boosters at 44", () => {
+    const at = (level: number) =>
+      value().levelValues.find((l) => l.level === level)?.cumulativePassGems ?? 0;
+    expect(at(39)).toBeCloseTo(3532, 9);
+    expect(at(40)).toBeCloseTo(4132, 9); // + 600 gems
+    expect(at(43)).toBeCloseTo(4132, 9); // cosmetics only
+    expect(at(44)).toBeCloseTo(4220, 9); // + 4 packs × 22
+    expect(at(45)).toBeCloseTo(4220, 9);
+    expect(value().pass).toBeCloseTo(4220, 9);
+  });
 
-    // Nothing printed is inferred, and nothing inferred is printed.
-    expect(v.levelValues.filter((l) => l.inferred).map((l) => l.level)).toEqual([
-      41, 42, 43, 44, 45,
-    ]);
+  /*
+   * The one entry that is reasoned rather than seen. Wizards' table prints level
+   * 35's text again at 36; taken literally that gives 26 card styles against a
+   * published 25 and 2 companions against a published 3, so 36 is read as the
+   * companion. If this ever needs revisiting, the reconciliation test above is
+   * what will say so.
+   */
+  it("reads level 36 as the Thorin companion, not a repeated card style", () => {
+    const lvl = track.levels.find((l) => l.level === 36);
+    expect(lvl?.pass.rewards).toEqual({ companions: 1, orbs: 1 });
   });
 
   it("covers every level from 1 to the pass cap, exactly once", () => {

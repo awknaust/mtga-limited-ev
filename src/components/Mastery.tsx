@@ -216,9 +216,7 @@ export function Mastery({
               {v.levelValues.map((lvl) => (
                 <tr
                   key={lvl.level}
-                  className={
-                    lvl.breakEven ? "table-success" : lvl.inferred ? "text-body-secondary" : undefined
-                  }
+                  className={lvl.breakEven ? "table-success" : undefined}
                 >
                   <th scope="row" className="fw-normal">
                     {lvl.level}
@@ -237,12 +235,11 @@ export function Mastery({
         </div>
       </details>
       <p className="form-text">
-        Levels 1–40 are Wizards' own wording. Levels 41–45 are not published row
-        by row: the amounts come from subtracting the printed rows from the
-        season totals, and they are entered at the end of each track because
-        their placement is unknown. Everything below level 41 is exact, which
-        includes the break-even level. Past level {track.passCap} each further
-        level pays one uncommon ICR, worth {gemsEq1(v.beyondPerLevel)}.
+        Levels 1–39 carry Wizards' own wording, from the reward table they
+        publish; the table stops there, so levels 40–45 are read off the track in
+        game and named by kind. Every reward total the two agree on reconciles
+        exactly. Past level {track.passCap} each further level pays one uncommon
+        ICR, worth {gemsEq1(v.beyondPerLevel)}.
       </p>
     </div>
   );

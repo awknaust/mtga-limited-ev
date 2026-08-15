@@ -157,8 +157,6 @@ export type MasteryLevelValue = {
   cumulativePassGems: number;
   /** The first level at which the pass has paid for itself. At most one is true. */
   breakEven: boolean;
-  /** Whether this row's amounts came from the totals rather than a printed row. */
-  inferred: boolean;
 };
 
 export type MasteryValue = {
@@ -221,9 +219,6 @@ export function masteryValue(track: MasteryTrack, config: EventConfig): MasteryV
       cumulativeFreeGems,
       cumulativePassGems,
       breakEven: crossed,
-      // Everything past the last printed row of Wizards' table. The amounts are
-      // sourced from the season totals; only their placement is inferred.
-      inferred: lvl.level > 40,
     };
   });
 

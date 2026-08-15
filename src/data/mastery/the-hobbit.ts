@@ -15,27 +15,28 @@ import type { MasteryTrack } from "../../lib/types";
  * you already know the answer.
  *
  * The **Mastery Details page** prints per-column totals for the whole track,
- * which runs to 42 free and 45 pass. Those totals exceed what levels 1–40 add
- * up to, and the difference is levels 41–45:
+ * which runs to 42 free and 45 pass — more than levels 1–40 account for.
  *
- *     free   21 packs, 5 orbs        − 20 packs, 4 orbs      = 1 pack, 1 orb
- *     pass   20 packs                − 16 packs              = 4 packs
- *            1,200 gems              − 600 gems              = 600 gems
- *            30 orbs                 − 27 orbs               = 3 orbs
- *            25 card styles          − 23 card styles        = 2 card styles
- *            2 sleeves               − 1 sleeve              = 1 sleeve
- *            3 companions            − 2 companions          = 1 companion
+ * **Levels 39–45 were then read off the track in game**, from a screenshot, so
+ * the tail is observed rather than inferred. That reading confirms the columns
+ * line up where they overlap — level 39 pass is a card style and an orb, level
+ * 40 free is a booster, both as printed — and it corrects two things the
+ * published table gets wrong:
  *
- * Gold (4,000), mythic ICRs (10), the draft token (1) and the avatar (1) match
- * exactly across the two sources, which is what makes the subtraction credible
- * rather than a guess.
+ *   - **Level 40 pass is 600 gems.** The drop-rates table prints that cell
+ *     blank. It has to be somewhere for the published 1,200-gem total to hold.
+ *   - **Level 36 pass is the Thorin Oakenshield *companion*, not a second
+ *     Thorin Oakenshield card style.** The table prints level 35's text twice.
+ *     Taken at face value that gives 26 card styles against a published 25, and
+ *     2 companions against a published 3; reading level 36 as the companion
+ *     settles both at once, and Thorin is otherwise the one companion of the
+ *     three with nowhere to live. This is the only entry below that is reasoned
+ *     rather than seen — the screenshot starts at level 39 — so it is the first
+ *     thing to check if these totals ever stop reconciling.
  *
- * **Levels 41–45 are inferred.** Wizards publishes the totals but not the rows,
- * so the residual is entered at each track's last level — 42 for free, 45 for
- * pass — and the levels between are left empty. The *amounts* are sourced; the
- * *placement* is not, and no one should read a cumulative figure in that range
- * as anything but "somewhere in the last five levels". Everything below level 41
- * is exact, which includes the whole of the break-even calculation.
+ * With those corrections every published total reconciles exactly, and
+ * `mastery.test.ts` asserts all ten of them. That is the check standing between
+ * a mis-transcribed row and a wrong headline.
  *
  * One item appears on the drop-rates table and not in the Details totals: the
  * four Gandalf, Party Guest cards at level 6. The Details page's card list names
@@ -307,10 +308,16 @@ export const THE_HOBBIT_MASTERY = {
     {
       level: 36,
       free: { text: "HOB Booster", rewards: { packs: 1 } },
-      // The same style name as level 35, as printed. Not a transcription slip.
+      /*
+       * The drop-rates table prints level 35's text again here. Read as the
+       * companion instead: at face value the track carries 26 card styles and 2
+       * companions, where Wizards publishes 25 and 3, and this one row settles
+       * both. Thorin is also the only one of the three companions the printed
+       * table never places. The wording is ours, following level 23's form.
+       */
       pass: {
-        text: "Thorin Oakenshield Card Style, Orb",
-        rewards: { cardStyles: 1, orbs: 1 },
+        text: "Thorin Oakenshield Companion, Orb",
+        rewards: { companions: 1, orbs: 1 },
       },
     },
     {
@@ -335,36 +342,42 @@ export const THE_HOBBIT_MASTERY = {
         rewards: { cardStyles: 1, orbs: 1 },
       },
     },
+    /*
+     * From here down the drop-rates table stops and the in-game screenshot
+     * takes over. Card styles past this point are named only by their art in
+     * game, so they are recorded by kind rather than invented a name for.
+     */
     {
       level: 40,
       free: { text: "HOB Booster", rewards: { packs: 1 } },
-      pass: { text: "", rewards: {} },
+      pass: { text: "600 Gems", rewards: { gems: 600 } },
     },
-    { level: 41, free: { text: "", rewards: {} }, pass: { text: "", rewards: {} } },
+    {
+      level: 41,
+      free: { text: "Orb", rewards: { orbs: 1 } },
+      pass: { text: "Card Style, Orb", rewards: { cardStyles: 1, orbs: 1 } },
+    },
     {
       level: 42,
-      free: {
-        text: "Not published per level — the season totals leave 1 booster and 1 Orb across levels 41–42",
-        rewards: { packs: 1, orbs: 1 },
-      },
-      pass: { text: "", rewards: {} },
+      free: { text: "HOB Booster", rewards: { packs: 1 } },
+      // The second of the two published sleeves; the first is at level 1.
+      pass: { text: "Card Sleeve", rewards: { sleeves: 1 } },
     },
-    { level: 43, free: { text: "", rewards: {} }, pass: { text: "", rewards: {} } },
-    { level: 44, free: { text: "", rewards: {} }, pass: { text: "", rewards: {} } },
+    {
+      level: 43,
+      free: { text: "", rewards: {} },
+      pass: { text: "Card Style, Orb", rewards: { cardStyles: 1, orbs: 1 } },
+    },
+    {
+      level: 44,
+      free: { text: "", rewards: {} },
+      // Tarkir: Dragonstorm, the fifth and last of the pass's five pack sets.
+      pass: { text: "TDM Booster ×4", rewards: { packs: 4 } },
+    },
     {
       level: 45,
       free: { text: "", rewards: {} },
-      pass: {
-        text: "Not published per level — the season totals leave 4 Tarkir: Dragonstorm boosters, 600 gems, 3 Orbs, 2 card styles, 1 sleeve and 1 companion across levels 41–45",
-        rewards: {
-          packs: 4,
-          gems: 600,
-          orbs: 3,
-          cardStyles: 2,
-          sleeves: 1,
-          companions: 1,
-        },
-      },
+      pass: { text: "Card Style, Orb", rewards: { cardStyles: 1, orbs: 1 } },
     },
   ],
 } satisfies MasteryTrack;
