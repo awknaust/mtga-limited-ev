@@ -25,11 +25,14 @@ import { describe, expect, it } from "vitest";
  * component without anyone remembering to list it here.
  *
  * `main.tsx` is excluded because it holds no component, only the `createRoot`
- * call, and `lib` and `data` are outside the glob entirely — by convention
- * they are model and data modules with no React in them.
+ * call, and `lib`, `data` and `worker` are outside the glob entirely — by
+ * convention they are model, data and worker modules with no React in them.
+ * `hooks` is inside it: the compiler memoises `use*` functions the same way
+ * it does components, and a hook it silently bails on is the same quiet
+ * regression this file exists to catch.
  */
 const COMPONENTS: Record<string, string> = import.meta.glob(
-  ["./App.tsx", "./components/**/*.tsx"],
+  ["./App.tsx", "./components/**/*.tsx", "./hooks/**/*.ts"],
   { query: "?raw", import: "default", eager: true },
 );
 

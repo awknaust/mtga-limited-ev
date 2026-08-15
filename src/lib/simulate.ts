@@ -40,7 +40,30 @@ export function simulateEvent(
   return { wins, rounds };
 }
 
-export function simulate(config: EventConfig, trials: number, seed = 1): SimResult {
+/**
+ * How many events a resumable simulation plays between yields.
+ *
+ * Small enough that a cancel lands within a chunk, large enough that the
+ * yield itself is noise. The exact figure is not load-bearing — a yield
+ * touches no simulation state — and how often a yield actually reaches the
+ * event loop is the worker's decision, not this one.
+ */
+export const CHUNK_EVENTS = 1000;
+
+/**
+ * `simulate`, resumable: yields the completed-trial count every `chunk`
+ * trials, then returns the full result.
+ *
+ * The yield points touch no RNG or accumulator state, so a drain in chunks
+ * of any size is bit-identical to `simulate` — the contract that lets the
+ * worker pause for cancellation without the sync tests noticing a thing.
+ */
+export function* simulateSteps(
+  config: EventConfig,
+  trials: number,
+  seed = 1,
+  chunk = CHUNK_EVENTS,
+): Generator<number, SimResult> {
   const rand = seededRandom(seed);
   const pMatch = matchWinRate(config);
   const topWins = maxPossibleWins(config.structure);
@@ -82,6 +105,7 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
     counts[wins]++;
     recordCounts[recordIndex[wins][rounds - wins]]++;
     totalRounds += rounds;
+    if ((i + 1) % chunk === 0) yield i + 1;
   }
 
   const goldEntryFraction = trials > 0 ? goldEntries / trials : 0;
@@ -167,6 +191,15 @@ export function simulate(config: EventConfig, trials: number, seed = 1): SimResu
     meanEntryGems,
     percentiles: netPercentiles(buckets),
   };
+}
+
+/** Monte Carlo per-event results: `simulateSteps` drained in one go. */
+export function simulate(config: EventConfig, trials: number, seed = 1): SimResult {
+  const gen = simulateSteps(config, trials, seed);
+  for (;;) {
+    const r = gen.next();
+    if (r.done) return r.value;
+  }
 }
 
 /**
