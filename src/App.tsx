@@ -55,6 +55,7 @@ import {
   type PayoutTier,
 } from "./lib";
 import {
+  SIM_LIMITS,
   STARTING_ENTRIES,
   decodeShareState,
   encodeShareState,
@@ -1280,7 +1281,7 @@ export default function App() {
                       id={ids.maxEvents}
                       min={1}
                       value={maxEvents}
-                      onChange={(n) => setMaxEvents(clampInt(n, 1, 2000))}
+                      onChange={(n) => setMaxEvents(clampInt(n, 1, SIM_LIMITS.maxEvents))}
                     />
                   </div>
                 </div>
@@ -2159,7 +2160,7 @@ export default function App() {
                       id={ids.trials}
                       min={1}
                       value={trials}
-                      onChange={(n) => setTrials(clampInt(n, 1, 5_000_000))}
+                      onChange={(n) => setTrials(clampInt(n, 1, SIM_LIMITS.trials))}
                     />
                   </div>
                   <div className="col-6">
@@ -2174,7 +2175,7 @@ export default function App() {
                       id={ids.bankrollRuns}
                       min={1}
                       value={bankrollRuns}
-                      onChange={(n) => setBankrollRuns(clampInt(n, 1, 200_000))}
+                      onChange={(n) => setBankrollRuns(clampInt(n, 1, SIM_LIMITS.bankrollRuns))}
                     />
                   </div>
                   <div className="col-6">

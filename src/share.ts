@@ -72,6 +72,38 @@ export type ShareState = {
  */
 export const STARTING_ENTRIES = 2;
 
+/**
+ * The ceilings the simulation inputs hold, in one place because two things
+ * apply them: the Advanced dialog's fields and the URL decoder below. Split
+ * across both, a raised cap in one is a link that resolves differently from
+ * the field it fills.
+ *
+ * What the numbers answer has changed. They were picked when every simulation
+ * ran synchronously during render, so a cap was really a budget for how long
+ * the page was allowed to freeze. Simulations run in workers now, cancelled
+ * within about ten milliseconds by a superseding edit, so nothing here blocks
+ * paint and the question is only how long someone is willing to wait for a
+ * number that keeps getting better.
+ *
+ * Measured at roughly 56–66 ns per trial, which puts `trials` at its ceiling
+ * near six seconds for a standard error under half what five million gave —
+ * cheap, and the result stays a few kB whatever the count. `bankrollRuns`
+ * costs in proportion to *events played*, so it multiplies with `maxEvents`,
+ * and the two maxed together is a wait of minutes. That corner is left
+ * reachable rather than designed away: capping the product instead would say
+ * what actually costs time, but it is a different shape of control than a
+ * number in a box, and this change is only the ceilings.
+ *
+ * Memory is not what bounds any of these. A `BankrollResult` is summary
+ * statistics plus a fixed hundred recorded runs, so its size tracks
+ * `maxEvents` and not the run count at all.
+ */
+export const SIM_LIMITS = {
+  trials: 25_000_000,
+  bankrollRuns: 1_000_000,
+  maxEvents: 2_000,
+} as const;
+
 export function defaultShareState(): ShareState {
   // The event the app opens on, which the starting balance is priced against.
   const opening = PRESETS[0];
@@ -399,16 +431,24 @@ export function decodeShareState(search: string): ShareState {
   return {
     presetName,
     config,
-    trials: numberFrom(params, "trials", fallback.trials, { min: 1, max: 5_000_000, int: true }),
+    trials: numberFrom(params, "trials", fallback.trials, {
+      min: 1,
+      max: SIM_LIMITS.trials,
+      int: true,
+    }),
     bankrollRuns: numberFrom(params, "runs", fallback.bankrollRuns, {
       min: 1,
-      max: 200_000,
+      max: SIM_LIMITS.bankrollRuns,
       int: true,
     }),
     seed: numberFrom(params, "seed", fallback.seed, { int: true }),
     startingGems: numberFrom(params, "startGems", fallback.startingGems),
     startingGold: numberFrom(params, "startGold", fallback.startingGold),
-    maxEvents: numberFrom(params, "maxEvents", fallback.maxEvents, { min: 1, max: 2000, int: true }),
+    maxEvents: numberFrom(params, "maxEvents", fallback.maxEvents, {
+      min: 1,
+      max: SIM_LIMITS.maxEvents,
+      int: true,
+    }),
     tab: oneOf<Tab>(params, "tab", ["bankroll", "event", "about"], fallback.tab),
     unit: oneOf<Unit>(params, "unit", ["gems", "usd"], fallback.unit),
     gemsPerUsd: numberFrom(params, "gemsPerUsd", fallback.gemsPerUsd, { min: 1 }),

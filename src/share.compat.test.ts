@@ -94,6 +94,14 @@ const CORPUS: [name: string, search: string][] = [
   ["display only", "?tab=about&unit=usd&gemsPerUsd=350"],
   ["bankroll only", "?startGems=20000&startGold=15000&maxEvents=200&spendWinnings=1"],
   ["custom elimination shape", "?preset=custom&maxWins=5&maxLosses=2&payouts=0-0_100-1_200-2_400-3_800-4_1600-5"],
+  /*
+   * Counts past the ceilings, where raising a cap changes what an old link
+   * says: `runs=999999` resolved to 200,000 before the simulations moved off
+   * the main thread and resolves to itself after. Nothing else in the corpus
+   * exceeds a cap, so without this row that break happens silently — which is
+   * the one thing this file exists to prevent.
+   */
+  ["counts above the ceilings", "?trials=999999999&runs=999999&maxEvents=99999"],
 ];
 
 describe("the parameter names are the contract", () => {
