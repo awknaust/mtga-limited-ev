@@ -54,18 +54,6 @@ export function Mastery({
       hint: `for ${price}`,
     },
     {
-      key: "roi",
-      label: "ROI",
-      help: {
-        label: "What the ROI figure means",
-        content:
-          "The net above as a share of the pass price. Assumes the track is finished — see the break-even level for how far you have to get.",
-      },
-      value: pct(v.roi),
-      tone: signClass(v.roi),
-      hint: `of ${price} paid`,
-    },
-    {
       key: "breakEven",
       label: "Break-even level",
       help: {
@@ -90,17 +78,6 @@ export function Mastery({
       },
       value: gemsEq(v.pass),
       hint: "everything the pass track pays",
-    },
-    {
-      key: "certain",
-      label: "Certain value",
-      help: {
-        label: "What the certain value figure means",
-        content:
-          "The part of the pass value that needs no judgement call: gems are gems, gold converts at the rate every dual-priced event charges, and the draft token is worth the entry it buys. Everything else — packs, cards, cosmetics — is worth what you decide it is worth. The closer this sits to the price, the less the arguable rates can change the answer.",
-      },
-      value: gemsEq(v.certain),
-      hint: "gems, gold and the token alone",
     },
     {
       key: "free",
