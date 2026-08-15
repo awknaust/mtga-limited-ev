@@ -390,11 +390,11 @@ function heldBy(run: BankrollRun, key: HoldingKey): number {
  * Gem-equivalent value of everything a run ends holding.
  *
  * Gems, the leftover gold at the config's exchange rate, and every
- * non-currency reward at the rate the config carries. A rate of Infinity — set
- * by valuing gold at nothing — drops the gold term to zero.
+ * non-currency reward at the rate the config carries. A rate of 0 — valuing
+ * gold at nothing — drops the gold term to zero.
  */
 export function runValue(config: EventConfig, run: BankrollRun): number {
-  const currency = run.finalGems + run.finalGold / config.goldPerGem;
+  const currency = run.finalGems + (run.finalGold * config.gemsPer10kGold) / 10000;
   return (
     currency +
     run.packs * config.packValueGems +
@@ -412,14 +412,14 @@ export function runValue(config: EventConfig, run: BankrollRun): number {
  * The baseline `runValue` is judged against. Bare starting gems are the wrong
  * one wherever gold is in play — the ending value counts leftover gold, so a
  * run that began with gold would read as ahead the moment it converted. As in
- * `runValue`, a rate of Infinity drops the gold term to zero.
+ * `runValue`, a rate of 0 drops the gold term to zero.
  */
 export function startingValue(
   config: EventConfig,
   startingGems: number,
   startingGold: number,
 ): number {
-  return startingGems + startingGold / config.goldPerGem;
+  return startingGems + (startingGold * config.gemsPer10kGold) / 10000;
 }
 
 /**

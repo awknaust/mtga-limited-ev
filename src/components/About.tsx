@@ -50,7 +50,7 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
               <td>Gold</td>
               <td>Only where the event has a gold price</td>
               <td>
-                {approx(m.fmt(Math.round(10000 / config.goldPerGem)))} = 10,000 gold
+                {approx(m.fmt(config.gemsPer10kGold))} = 10,000 gold
               </td>
             </tr>
             <tr>

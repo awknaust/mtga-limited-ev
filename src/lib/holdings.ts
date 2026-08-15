@@ -109,12 +109,12 @@ export function holding(key: HoldingKey): Holding {
  * Gems one of them is worth.
  *
  * Gems are worth themselves. Gold converts at the rate every dual-priced event
- * charges, and a rate of Infinity — set by valuing gold at nothing — drops it
- * to zero, the same way `runValue` treats it.
+ * charges, and a rate of 0 — set by valuing gold at nothing — drops it to
+ * zero, the same way `runValue` treats it.
  */
 export function holdingRate(config: EventConfig, key: HoldingKey): number {
   if (key === "gems") return 1;
-  if (key === "gold") return 1 / config.goldPerGem;
+  if (key === "gold") return config.gemsPer10kGold / 10000;
   const h = holding(key);
   return "rateKey" in h ? config[h.rateKey] : 1;
 }

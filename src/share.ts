@@ -197,6 +197,8 @@ const CONFIG_NUMBERS = [
   // here precisely so a field can be renamed without one.
   ["goldPerDay", "otherGoldPerDay"],
   ["eventsPerDay", "eventsPerDay"],
+  // 0 means unspent gold counts for nothing.
+  ["goldPer10k", "gemsPer10kGold"],
   // 0 means "certain", which is how a URL spells the absence of uncertainty —
   // the same trick `goldPer10k` uses for gold that is worth nothing.
   ["confMatches", "winRateMatches"],
@@ -221,15 +223,6 @@ const UI_NUMBERS = [
   ["runs", "bankrollRuns"],
   ["seed", "seed"],
 ] as const satisfies readonly (readonly [string, keyof ShareState])[];
-
-/**
- * Gold's exchange rate is written the way the field reads it — gems per 10,000
- * gold — rather than as the `goldPerGem` the model stores. Counting unspent
- * gold as worthless is an infinite `goldPerGem`, which has no useful spelling
- * in a URL; as a rate it is plainly 0.
- */
-const gemsPer10kGold = (goldPerGem: number): number =>
-  Number.isFinite(goldPerGem) && goldPerGem > 0 ? Math.round(10000 / goldPerGem) : 0;
 
 /**
  * A payout table as `gems-packs[-points[-playBoxes[-collectorBoxes]]]` per row,
@@ -329,9 +322,6 @@ export function encodeShareState(state: ShareState): string {
     params.set("payouts", payouts);
   }
 
-  const rate = gemsPer10kGold(state.config.goldPerGem);
-  if (rate !== gemsPer10kGold(base.goldPerGem)) params.set("goldPer10k", num(rate));
-
   for (const [key, field] of UI_NUMBERS) {
     const value = state[field] as number;
     if (value !== (fallback[field] as number)) params.set(key, num(value));
@@ -404,7 +394,6 @@ export function decodeShareState(search: string): ShareState {
     ...numbers,
     structure,
     payouts,
-    goldPerGem: decodeGoldPerGem(params, base.goldPerGem),
   };
 
   return {
@@ -439,11 +428,4 @@ function decodeStructure(params: URLSearchParams, base: EventStructure): EventSt
     };
   }
   return base;
-}
-
-/** A rate of 0 means unspent gold counts for nothing, which the model spells ∞. */
-function decodeGoldPerGem(params: URLSearchParams, base: number): number {
-  if (!params.has("goldPer10k")) return base;
-  const rate = numberFrom(params, "goldPer10k", gemsPer10kGold(base), { min: 0 });
-  return rate > 0 ? 10000 / rate : Number.POSITIVE_INFINITY;
 }
