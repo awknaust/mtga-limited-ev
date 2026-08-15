@@ -237,9 +237,12 @@ export function Mastery({
       <p className="form-text">
         Levels 1–39 carry Wizards' own wording, from the reward table they
         publish; the table stops there, so levels 40–45 are read off the track in
-        game and named by kind. Every reward total the two agree on reconciles
-        exactly. Past level {track.passCap} each further level pays one uncommon
-        ICR, worth {gemsEq1(v.beyondPerLevel)}.
+        game and named by kind. Two rows correct that table, where it disagrees
+        with Wizards' own season totals: level 36 pays a companion rather than
+        repeating level 35's card style, and level 40 pays 600 gems where the
+        table prints nothing. With those, every published reward total
+        reconciles exactly. Past level {track.passCap} each further level pays
+        one uncommon ICR, worth {gemsEq1(v.beyondPerLevel)}.
       </p>
     </div>
   );

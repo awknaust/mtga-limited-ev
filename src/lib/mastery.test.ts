@@ -77,15 +77,16 @@ describe("the Hobbit mastery track", () => {
   });
 
   /*
-   * The one entry that is reasoned rather than seen. Wizards' table prints level
-   * 35's text again at 36; taken literally that gives 26 card styles against a
-   * published 25 and 2 companions against a published 3, so 36 is read as the
-   * companion. If this ever needs revisiting, the reconciliation test above is
-   * what will say so.
+   * Wizards' table prints level 35's text again at 36; in game the slot shows a
+   * paw print, so it is a companion. The reconciliation test above said so first
+   * — taken literally the table gives 26 card styles against a published 25, and
+   * 2 companions against a published 3 — which is the case for keeping that test
+   * even though it looks like it only restates the data.
    */
   it("reads level 36 as the Thorin companion, not a repeated card style", () => {
     const lvl = track.levels.find((l) => l.level === 36);
     expect(lvl?.pass.rewards).toEqual({ companions: 1, orbs: 1 });
+    expect(lvl?.free.rewards).toEqual({ packs: 1 });
   });
 
   it("covers every level from 1 to the pass cap, exactly once", () => {

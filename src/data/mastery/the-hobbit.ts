@@ -17,26 +17,32 @@ import type { MasteryTrack } from "../../lib/types";
  * The **Mastery Details page** prints per-column totals for the whole track,
  * which runs to 42 free and 45 pass — more than levels 1–40 account for.
  *
- * **Levels 39–45 were then read off the track in game**, from a screenshot, so
+ * **Levels 35–45 were then read off the track in game**, from screenshots, so
  * the tail is observed rather than inferred. That reading confirms the columns
- * line up where they overlap — level 39 pass is a card style and an orb, level
- * 40 free is a booster, both as printed — and it corrects two things the
- * published table gets wrong:
+ * line up where they overlap — levels 35, 37 and 39 pass a card style and an
+ * orb, level 38 passes four boosters, all as printed — and it corrects two
+ * things the published table gets wrong:
  *
  *   - **Level 40 pass is 600 gems.** The drop-rates table prints that cell
- *     blank. It has to be somewhere for the published 1,200-gem total to hold.
- *   - **Level 36 pass is the Thorin Oakenshield *companion*, not a second
- *     Thorin Oakenshield card style.** The table prints level 35's text twice.
- *     Taken at face value that gives 26 card styles against a published 25, and
- *     2 companions against a published 3; reading level 36 as the companion
- *     settles both at once, and Thorin is otherwise the one companion of the
- *     three with nowhere to live. This is the only entry below that is reasoned
- *     rather than seen — the screenshot starts at level 39 — so it is the first
- *     thing to check if these totals ever stop reconciling.
+ *     blank. It has to be somewhere for the published 1,200-gem total to hold,
+ *     and it is not in the last five levels.
+ *   - **Level 36 pass is a *companion*, not a second Thorin Oakenshield card
+ *     style.** The table prints level 35's text twice; in game the slot shows a
+ *     paw print, which is how Arena draws a companion. Taking the table at face
+ *     value gives 26 card styles against a published 25 and 2 companions
+ *     against a published 3, so the totals said as much before the screenshot
+ *     did. Which companion follows by elimination: Wizards names three — the
+ *     Dwarven Cook at level 1, the Dwarven Smith at level 23, and Thorin
+ *     Oakenshield, who has nowhere else to go. The *wording* here is therefore
+ *     ours, following level 23's form; the reward kind is observed.
  *
  * With those corrections every published total reconciles exactly, and
  * `mastery.test.ts` asserts all ten of them. That is the check standing between
- * a mis-transcribed row and a wrong headline.
+ * a mis-transcribed row and a wrong headline — and it is what flagged both of
+ * the errors above before there was a screenshot to confirm them.
+ *
+ * The card styles at levels 41, 43 and 45 are named only by their art in game,
+ * so they are recorded by kind rather than given an invented name.
  *
  * One item appears on the drop-rates table and not in the Details totals: the
  * four Gandalf, Party Guest cards at level 6. The Details page's card list names
@@ -309,11 +315,9 @@ export const THE_HOBBIT_MASTERY = {
       level: 36,
       free: { text: "HOB Booster", rewards: { packs: 1 } },
       /*
-       * The drop-rates table prints level 35's text again here. Read as the
-       * companion instead: at face value the track carries 26 card styles and 2
-       * companions, where Wizards publishes 25 and 3, and this one row settles
-       * both. Thorin is also the only one of the three companions the printed
-       * table never places. The wording is ours, following level 23's form.
+       * The drop-rates table prints level 35's text again here; in game the slot
+       * shows a paw print, so it is a companion. Thorin by elimination — the
+       * other two are placed at levels 1 and 23. Wording ours, following 23's.
        */
       pass: {
         text: "Thorin Oakenshield Companion, Orb",
@@ -342,11 +346,7 @@ export const THE_HOBBIT_MASTERY = {
         rewards: { cardStyles: 1, orbs: 1 },
       },
     },
-    /*
-     * From here down the drop-rates table stops and the in-game screenshot
-     * takes over. Card styles past this point are named only by their art in
-     * game, so they are recorded by kind rather than invented a name for.
-     */
+    // From here down the drop-rates table stops and the screenshots take over.
     {
       level: 40,
       free: { text: "HOB Booster", rewards: { packs: 1 } },
