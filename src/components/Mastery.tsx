@@ -16,9 +16,10 @@ import type { StatTile } from "./Stat";
  *
  * Unlike every other results tab, nothing here moves with the win rate. That is
  * a property of the valuation rather than an oversight — the one reward that
- * could vary, the Player Draft token, is priced at the entry it replaces — and
- * the intro says so, because a panel that ignores the slider otherwise reads as
- * broken wiring.
+ * could vary, the Player Draft token, is priced at the entry it replaces. The
+ * tab does not say so, so a reader who drags the slider expecting these figures
+ * to follow will find they do not; `mastery.test.ts` pins the invariance, which
+ * is where the reasoning lives if that ever wants revisiting.
  *
  * The prose names no computed figure. Every number it would have quoted is in
  * the strip a few lines below it, and a sentence that restates a tile is a
@@ -101,10 +102,8 @@ export function Mastery({
     <div>
       <div className="form-text mb-2">
         What the Mastery Pass costs, against what its reward track pays at the
-        values in Advanced settings. The whole track is priced, so this assumes
-        you finish it — how far a season of play gets you depends on experience
-        points, which Wizards publishes no rates for. Nothing here moves with the
-        win rate.
+        values in Advanced settings. The whole track is priced assuming you
+        reach the final level.
       </div>
       <div className="mb-3">
         <StatStrip tiles={tiles} label="Mastery Pass summary" />
