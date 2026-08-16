@@ -1,6 +1,12 @@
 /** Turning a win count into gems, via the config's payout table. */
 
-import { boxValueGems, tierBoxGems } from "./boxes";
+import {
+  boxHoldingKey,
+  boxValueGems,
+  priceTiers,
+  tierBoxesAt,
+  type LadderBoxes,
+} from "./boxes";
 import { exactDistribution } from "./distribution";
 import { DAILY_WIN_CAP, DAILY_WIN_GOLD } from "./presets";
 import { matchWinRate } from "./structure";
@@ -67,26 +73,29 @@ export function grossSplit(
   const mean = (of: (b: WinBucket) => number): number =>
     buckets.reduce((acc, b) => acc + b.probability * of(b), 0);
 
+  const priced = priceTiers(config);
   return {
     gems: mean((b) => payoutFor(config, b.wins).gems),
     // Never part of a gross: nothing on a payout ladder pays gold.
     gold: 0,
     packs: mean((b) => b.packs) * config.packValueGems,
     playInPoints: mean((b) => b.playInPoints) * config.playInPointValueGems,
-    /*
-     * Priced per bucket rather than as a mean count times a rate, since two
-     * win counts can pay play boxes of different sets. Weighting the gems
-     * each row actually pays is the only version that adds back up to
-     * `meanGross`.
-     */
-    playBoxes: mean((b) => tierBoxGems(config, payoutFor(config, b.wins), "play")),
-    collectorBoxes: mean((b) =>
-      tierBoxGems(config, payoutFor(config, b.wins), "collector"),
+    // One entry per box the ladder pays, each at its own price — two play
+    // boxes of different sets are different amounts and different rows.
+    ...boxSplit(priced, (i) =>
+      mean((b) => (tierBoxesAt(priced, b.wins)[i] ?? 0) * priced.prices[i]),
     ),
     // Flat across win counts: the pool is kept for entering, however it goes.
     draftPacks: config.draftPacks * config.draftPackValueGems,
   };
 }
+
+/** One entry per box the ladder pays, keyed as a holding. */
+const boxSplit = (
+  priced: LadderBoxes,
+  of: (index: number) => number,
+): Record<string, number> =>
+  Object.fromEntries(priced.products.map((box, i) => [boxHoldingKey(box), of(i)]));
 
 /**
  * How many of each reward an event pays on average, alongside what they came
@@ -100,13 +109,13 @@ export function grossCounts(
   const mean = (of: (b: WinBucket) => number): number =>
     buckets.reduce((acc, b) => acc + b.probability * of(b), 0);
 
+  const priced = priceTiers(config);
   return {
     gems: mean((b) => payoutFor(config, b.wins).gems),
     gold: 0,
     packs: mean((b) => b.packs),
     playInPoints: mean((b) => b.playInPoints),
-    playBoxes: mean((b) => b.playBoxes),
-    collectorBoxes: mean((b) => b.collectorBoxes),
+    ...boxSplit(priced, (i) => mean((b) => tierBoxesAt(priced, b.wins)[i] ?? 0)),
     draftPacks: config.draftPacks,
   };
 }

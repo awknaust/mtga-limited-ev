@@ -82,66 +82,96 @@ export function boxValueGems(config: EventConfig, box: PayoutBox): number {
   return boxPriceSet(config.boxPrices, code)?.boxes[box.kind] ?? generic;
 }
 
-/** How many boxes of one kind a tier pays. */
-export function boxCount(tier: PayoutTier, kind: BoxKind): number {
-  return tier.boxes?.reduce((acc, b) => acc + (b.kind === kind ? 1 : 0), 0) ?? 0;
-}
-
-/** Gems a tier's boxes of one kind come to, each priced against its own set. */
-export function tierBoxGems(
-  config: EventConfig,
-  tier: PayoutTier,
-  kind: BoxKind,
-): number {
-  return (
-    tier.boxes?.reduce(
-      (acc, b) => (b.kind === kind ? acc + boxValueGems(config, b) : acc),
-      0,
-    ) ?? 0
-  );
-}
-
-/** What a ladder's boxes come to at each win count, counted and priced. */
-export type TierBoxes = {
-  playBoxes: number;
-  collectorBoxes: number;
-  playBoxGems: number;
-  collectorBoxGems: number;
-};
-
-const NO_BOXES: TierBoxes = {
-  playBoxes: 0,
-  collectorBoxes: 0,
-  playBoxGems: 0,
-  collectorBoxGems: 0,
-};
+/** A box's identity, which is its kind and the set it names. */
+export const boxId = (box: PayoutBox): string => `${box.kind}.${box.set ?? ""}`;
 
 /**
- * The ladder's boxes priced once, indexed by win count.
+ * How a box names itself among the things a run can hold.
  *
- * The bankroll simulation prices boxes inside a loop that runs once per event
- * across a million runs, and pricing a box means a lookup by set code. Doing
- * that per event would be a table scan in the hottest loop in the app for an
- * answer that cannot change during a run.
+ * Prefixed, because the other holdings are a fixed list and these are not:
+ * which boxes exist depends on the ladder, so a key has to carry the box
+ * rather than be one of a handful the code knows. The prefix is what lets
+ * anything walking a holding key tell the two apart.
  */
-export function priceTiers(config: EventConfig): TierBoxes[] {
-  const out: TierBoxes[] = [];
-  for (const tier of config.payouts) {
-    out[tier.wins] = tier.boxes?.length
-      ? {
-          playBoxes: boxCount(tier, "play"),
-          collectorBoxes: boxCount(tier, "collector"),
-          playBoxGems: tierBoxGems(config, tier, "play"),
-          collectorBoxGems: tierBoxGems(config, tier, "collector"),
-        }
-      : NO_BOXES;
+export const BOX_HOLDING = "box:";
+
+export const boxHoldingKey = (box: PayoutBox): string => `${BOX_HOLDING}${boxId(box)}`;
+
+export const isBoxHolding = (key: string): boolean => key.startsWith(BOX_HOLDING);
+
+/**
+ * Every distinct box a ladder pays, in the order they first appear.
+ *
+ * The results report boxes one product at a time — "0.05 Marvel Super Heroes
+ * Play boxes" rather than "0.21 play boxes" — because that is what a run comes
+ * away holding, and because two play boxes of different sets are worth
+ * different amounts. This list is the set of things there are to report, and
+ * the order everything downstream indexes by.
+ */
+export function ladderBoxes(payouts: readonly PayoutTier[]): PayoutBox[] {
+  const seen = new Set<string>();
+  const out: PayoutBox[] = [];
+  for (const tier of payouts) {
+    for (const box of tier.boxes ?? []) {
+      const id = boxId(box);
+      if (seen.has(id)) continue;
+      seen.add(id);
+      out.push(box);
+    }
   }
   return out;
 }
 
-/** Boxes at a win count, for a table `priceTiers` built from the same config. */
-export const tierBoxesAt = (priced: readonly TierBoxes[], wins: number): TierBoxes =>
-  priced[wins] ?? NO_BOXES;
+/**
+ * A ladder's boxes, counted and priced once.
+ *
+ * `products` is the ladder's distinct boxes; `prices` is what each is worth;
+ * `counts[wins]` is how many of each that win count pays, indexed the same
+ * way. Everything downstream carries the counts array and nothing else, so a
+ * run's boxes are as cheap to tally as a number.
+ *
+ * Built once per simulation because the bankroll loop runs once per event
+ * across a million runs, and pricing a box means a lookup by set code — a
+ * table scan in the hottest loop in the app, for an answer that cannot change
+ * during a run.
+ */
+export type LadderBoxes = {
+  products: PayoutBox[];
+  prices: number[];
+  counts: number[][];
+};
+
+const NONE: number[] = [];
+
+export function priceTiers(config: EventConfig): LadderBoxes {
+  const products = ladderBoxes(config.payouts);
+  const prices = products.map((box) => boxValueGems(config, box));
+  const index = new Map(products.map((box, i) => [boxId(box), i]));
+
+  const counts: number[][] = [];
+  for (const tier of config.payouts) {
+    if (!tier.boxes?.length) {
+      counts[tier.wins] = NONE;
+      continue;
+    }
+    const row = new Array<number>(products.length).fill(0);
+    for (const box of tier.boxes) row[index.get(boxId(box)) as number]++;
+    counts[tier.wins] = row;
+  }
+  return { products, prices, counts };
+}
+
+/** How many of each box a win count pays; empty where it pays none. */
+export const tierBoxesAt = (priced: LadderBoxes, wins: number): number[] =>
+  priced.counts[wins] ?? NONE;
+
+/** Gems a win count's boxes come to. */
+export function tierBoxGems(priced: LadderBoxes, wins: number): number {
+  const counts = tierBoxesAt(priced, wins);
+  let total = 0;
+  for (let i = 0; i < counts.length; i++) total += counts[i] * priced.prices[i];
+  return total;
+}
 
 const KIND_LABEL = { play: "Play", collector: "Collector" } as const;
 

@@ -654,12 +654,14 @@ body {
   --slice: #a78bfa;
 }
 
-.slice-playBoxes {
+/*
+ * Every box, whichever set and whichever kind. A ladder names its own boxes,
+ * so there is no fixed list of them to give hues to — and the difference a
+ * reader is after is boxes against packs and gems, not one set against
+ * another. The segments stay separate and say which set they are on hover.
+ */
+.slice-boxes {
   --slice: #f472b6;
-}
-
-.slice-collectorBoxes {
-  --slice: #fb923c;
 }
 
 /*
@@ -1136,11 +1138,24 @@ button.box-chip {
   cursor: pointer;
 }
 
-button.box-chip:hover,
-button.box-chip:focus-visible {
-  /* The chip deletes itself, so hover reads as a warning rather than a lift. */
+/* The picker's chips, a size up: they are the thing being chosen there. */
+.box-chip-lg {
+  padding: 0.35em 0.7em;
+  font-size: 0.875em;
+}
+
+/* A chip in a payout row deletes itself, so hover warns rather than lifts. */
+.box-chip-remove:hover,
+.box-chip-remove:focus-visible {
   background-color: rgba(var(--bs-danger-rgb), 0.85);
   color: #10131a;
+}
+
+/* A chip in the picker adds one, so it lifts rather than warns. */
+.box-chip-lg:hover,
+.box-chip-lg:focus-visible {
+  outline: 2px solid var(--bs-primary);
+  outline-offset: 1px;
 }
 
 /*
@@ -1164,8 +1179,8 @@ button.box-chip:focus-visible {
   animation: box-foil 8s linear infinite;
 }
 
-button.box-chip-collector:hover,
-button.box-chip-collector:focus-visible {
+.box-chip-remove.box-chip-collector:hover,
+.box-chip-remove.box-chip-collector:focus-visible {
   /* The gradient would otherwise sit on top of the danger colour. */
   background-image: none;
 }
@@ -1186,6 +1201,32 @@ button.box-chip-collector:focus-visible {
   background-color: transparent;
   border: 1px dashed var(--bs-border-color);
   color: var(--bs-secondary-color);
+}
+
+/*
+ * The box picker, as a native dialog rather than a Bootstrap modal — see
+ * `AddBox`. That means it inherits none of `.modal-content`'s styling and
+ * states it here instead, which is the whole of the cost.
+ *
+ * `color` is set because a dialog is a top-layer element and does not inherit
+ * from the page: left alone it draws the browser's default black on the dark
+ * card beneath it.
+ */
+.box-dialog {
+  width: min(22rem, calc(100vw - 2rem));
+  padding: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: 0.625rem;
+  background-color: var(--bs-card-bg);
+  color: var(--bs-body-color);
+}
+
+.box-dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.box-dialog-body {
+  padding: 0.875rem;
 }
 
 button.box-add:hover,

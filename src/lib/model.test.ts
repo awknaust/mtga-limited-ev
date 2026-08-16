@@ -50,10 +50,13 @@ import {
   ARENA_DIRECT_PLAY,
   LATEST_SET,
   bankrollRoi,
+  HOLDING_KEYS,
+  boxHoldingKey,
   boxValueGems,
+  isBoxHolding,
+  ladderBoxes,
   maxPossibleWins,
   maxRounds,
-  HOLDING_KEYS,
   heldKeys,
   holdingRate,
   paidRewards,
@@ -347,7 +350,7 @@ describe("simulate", () => {
     const config = { ...configFromPreset(ARENA_DIRECT, defaultConfig()), winRate: 0.5 };
     const res = simulate(config, 200_000, 42);
     const exact = res.buckets.reduce(
-      (acc, b) => acc + b.exactProbability * (b.playBoxes + b.collectorBoxes),
+      (acc, b) => acc + b.exactProbability * b.boxes,
       0,
     );
     expect(exact).toBeCloseTo(25 / 256, 12);
@@ -586,7 +589,13 @@ describe("holdings", () => {
   it("lists what a ladder pays, and only that", () => {
     expect(paidRewards(PREMIER_DRAFT.payouts)).toEqual(["packs"]);
     expect(paidRewards(TRADITIONAL_DRAFT.payouts)).toEqual(["packs", "playInPoints"]);
-    expect(paidRewards(ARENA_DIRECT.payouts)).toEqual(["packs", "playBoxes"]);
+    // Boxes are not among these: which exist depends on which the ladder
+    // names, so they arrive as their own holdings rather than as a fixed pair.
+    expect(paidRewards(ARENA_DIRECT.payouts)).toEqual(["packs"]);
+    expect(ladderBoxes(ARENA_DIRECT.payouts)).toEqual([
+      { kind: "play", set: "spm" },
+      { kind: "play", set: "msh" },
+    ]);
     // Zeroing the tiers retires the reward, whatever the conversion rate is.
     const gemsOnly = PREMIER_DRAFT.payouts.map((t) => ({ ...t, packs: 0 }));
     expect(paidRewards(gemsOnly)).toEqual([]);
@@ -598,16 +607,28 @@ describe("holdings", () => {
     // and drafted cards because the pool is yours to keep.
     expect(heldKeys(premier)).toEqual(["gems", "gold", "packs", "draftPacks"]);
 
-    // Arena Direct is phantom and gem-priced, but gold still piles up.
+    // Arena Direct is phantom and gem-priced, but gold still piles up. Its
+    // two boxes are two holdings, since they are two different products.
     const direct = configFromPreset(ARENA_DIRECT, defaultConfig());
-    expect(heldKeys(direct)).toEqual(["gems", "gold", "packs", "playBoxes"]);
+    expect(heldKeys(direct)).toEqual([
+      "gems",
+      "gold",
+      "packs",
+      "box:play.spm",
+      "box:play.msh",
+    ]);
 
     // No gold earned and none charged: nothing to report, unless a starting
     // balance the event cannot spend is sitting there. Zero events a day is
     // what stops the accrual now that daily-win gold comes off the ladder —
     // an event that is never played wins nothing to climb it with.
     const noGold = { ...direct, eventsPerDay: 0 };
-    expect(heldKeys(noGold)).toEqual(["gems", "packs", "playBoxes"]);
+    expect(heldKeys(noGold)).toEqual([
+      "gems",
+      "packs",
+      "box:play.spm",
+      "box:play.msh",
+    ]);
     expect(heldKeys(noGold, true)).toContain("gold");
   });
 
@@ -618,11 +639,17 @@ describe("holdings", () => {
     expect(holdingRate(config, "gold")).toBe(GEMS_PER_10K_GOLD / 10000);
     expect(holdingRate(config, "packs")).toBe(DEFAULT_PACK_VALUE_GEMS);
     expect(holdingRate(config, "playInPoints")).toBe(DEFAULT_PLAY_IN_POINT_VALUE_GEMS);
-    // The generic rates, which is all a rate can say about boxes: a named one
-    // is worth what its set's box trades at, and `heldValue` is what prices it.
-    expect(holdingRate(config, "playBoxes")).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
-    expect(holdingRate(config, "collectorBoxes")).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
     expect(holdingRate(config, "draftPacks")).toBe(DEFAULT_DRAFT_PACK_VALUE_GEMS);
+    /*
+     * Boxes have no rate here at all, and that is the point of naming them:
+     * what one is worth is that product's own price, which `boxValueGems`
+     * answers and `heldValue` applies. The generic rates below are what a box
+     * naming no set falls back to.
+     */
+    expect(boxValueGems(config, { kind: "play" })).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(boxValueGems(config, { kind: "collector" })).toBe(
+      DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+    );
     // Gold valued at nothing drops out, the same way runValue treats it.
     expect(holdingRate({ ...config, gemsPer10kGold: 0 }, "gold")).toBe(0);
   });
@@ -716,7 +743,9 @@ describe("bankroll", () => {
       for (const prices of [defaultConfig().boxPrices, boxPrices]) {
         const config = { ...configFromPreset(preset, defaultConfig()), boxPrices: prices };
         const res = simulateBankrolls(config, { ...roll, startingGems: 20_000 }, 200, 23);
-        const summed = HOLDING_KEYS.reduce((acc, key) => acc + res.holdings[key].worth, 0);
+        // Every holding the result reports, which is what the breakdown
+        // draws — the static ones plus one per box the ladder pays.
+        const summed = Object.values(res.holdings).reduce((a, h) => a + h.worth, 0);
         expect(summed).toBeCloseTo(res.meanFinalValue, 6);
       }
     }
@@ -743,15 +772,23 @@ describe("bankroll", () => {
     const res = simulate(config, 20_000, 7);
     const split = grossSplit(config, res.buckets);
     // The split still adds up to the gross it decomposes, boxes and all.
-    expect(HOLDING_KEYS.reduce((acc, key) => acc + split[key], 0)).toBeCloseTo(
+    expect(Object.values(split).reduce((a, n) => a + n, 0)).toBeCloseTo(
       res.meanGross,
       6,
     );
-    // And the box term is the two prices weighted by how often each row lands,
-    // not a count at either one of them.
+    /*
+     * And each box is its own term at its own price. Six wins pays the
+     * Spider-Man box alone; seven pays that and the Marvel Super Heroes box,
+     * so the two rows weight the two products differently — which is what a
+     * single "play boxes" figure could not say.
+     */
     const p = res.buckets;
-    expect(split.playBoxes).toBeCloseTo(
-      p[6].probability * 25_538 + p[7].probability * (25_538 + 23_444),
+    expect(split[boxHoldingKey({ kind: "play", set: "spm" })]).toBeCloseTo(
+      (p[6].probability + p[7].probability) * 25_538,
+      6,
+    );
+    expect(split[boxHoldingKey({ kind: "play", set: "msh" })]).toBeCloseTo(
+      p[7].probability * 23_444,
       6,
     );
   });
@@ -769,21 +806,48 @@ describe("bankroll", () => {
     expect(res.holdings.gems.median).toBeLessThanOrEqual(res.holdings.gems.max);
   });
 
+  /*
+   * Every static holding is reported whether or not the event pays it, which
+   * is the contract every reader was written against: the packs tile reads
+   * `holdings.packs.mean` without asking whether this ladder pays packs, and
+   * a ladder that pays none should give it a zero rather than a crash. Only
+   * the boxes are conditional, since which exist depends on the ladder.
+   *
+   * Pinned because filtering this list once shipped a blank page: the tests
+   * all passed, because none of them simulated a ladder paying no packs.
+   */
+  it("reports every static holding, paid or not", () => {
+    const config = {
+      ...configFromPreset(ARENA_DIRECT, defaultConfig()),
+      payouts: ARENA_DIRECT.payouts.map((t) => ({ ...t, packs: 0, gems: 0 })),
+    };
+    const res = simulateBankrolls(config, { ...roll, startingGems: 16_000 }, 50, 3);
+    for (const key of HOLDING_KEYS) {
+      expect(res.holdings[key], key).toBeDefined();
+      expect(res.holdings[key].mean, key).toBeGreaterThanOrEqual(0);
+    }
+    // And it does not invent box holdings the ladder never pays.
+    expect(Object.keys(res.holdings).filter(isBoxHolding)).toEqual([
+      "box:play.spm",
+      "box:play.msh",
+    ]);
+  });
+
   it("counts every reward a run wins, not just packs", () => {
     const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
     const res = simulateBankrolls(config, roll, 300, 19);
     expect(res.holdings.packs.mean).toBeGreaterThan(0);
     expect(res.holdings.playInPoints.mean).toBeGreaterThan(0);
     expect(res.holdings.draftPacks.mean).toBeGreaterThan(0);
-    // Traditional Draft pays no physical product, so there is nothing to show.
-    expect(res.holdings.playBoxes.mean).toBe(0);
-    expect(res.holdings.playBoxes.probAny).toBe(0);
+    // Traditional Draft pays no physical product, so no box holding exists at
+    // all — an absent row rather than a row of zeroes.
+    expect(Object.keys(res.holdings).some(isBoxHolding)).toBe(false);
   });
 
   it("bins whole things on whole boundaries", () => {
     const config = configFromPreset(ARENA_DIRECT, defaultConfig());
     const res = simulateBankrolls(config, { ...roll, startingGems: 60_000 }, 300, 29);
-    const boxes = res.holdings.playBoxes;
+    const boxes = res.holdings[boxHoldingKey({ kind: "play", set: "spm" })];
     // Nobody wins half a box, so no bar may start or end at one.
     for (const bin of boxes.histogram) {
       expect(Number.isInteger(bin.from)).toBe(true);
@@ -850,7 +914,11 @@ describe("bankroll", () => {
         log.reduce((a, e) => a + pick(e), 0);
       expect(sum((e) => e.packs)).toBe(run.packs);
       expect(sum((e) => e.playInPoints)).toBe(run.playInPoints);
-      expect(sum((e) => e.playBoxes)).toBe(run.playBoxes);
+      // The log names the boxes each event shipped; the run counts them per
+      // product. Both have to describe the same run.
+      expect(sum((e) => e.boxes.length)).toBe(
+        run.boxes.reduce((a, n) => a + n, 0),
+      );
       expect(sum((e) => e.wins)).toBe(run.wins);
       expect(sum((e) => e.rounds)).toBe(run.rounds);
     }
@@ -882,8 +950,8 @@ describe("bankroll", () => {
 
   it("histograms every holding across every run", () => {
     const res = simulateBankrolls(defaultConfig(), roll, 200, 13);
-    for (const key of HOLDING_KEYS) {
-      const counted = res.holdings[key].histogram.reduce((a, h) => a + h.count, 0);
+    for (const totals of Object.values(res.holdings)) {
+      const counted = totals.histogram.reduce((a, h) => a + h.count, 0);
       expect(counted).toBe(200);
     }
   });
@@ -894,7 +962,7 @@ describe("bankroll", () => {
     // the median run sees. Reporting one without the other would mislead.
     const config = configFromPreset(ARENA_DIRECT, defaultConfig());
     const res = simulateBankrolls(config, { ...roll, startingGems: 16_000 }, 400, 29);
-    const boxes = res.holdings.playBoxes;
+    const boxes = res.holdings[boxHoldingKey({ kind: "play", set: "spm" })];
     expect(boxes.median).toBe(0);
     expect(boxes.mean).toBeGreaterThan(0);
     expect(boxes.probAny).toBeGreaterThan(0);
@@ -938,10 +1006,7 @@ describe("bankroll", () => {
       packs: 0,
       draftPacks: 0,
       playInPoints: 0,
-      playBoxes: 0,
-      collectorBoxes: 0,
-      playBoxGems: 0,
-      collectorBoxGems: 0,
+      boxes: [],
       survived: false,
     };
     expect(runValue(config, run)).toBe(1000 + 1500);
@@ -1103,14 +1168,15 @@ describe("the chance of a box", () => {
     };
     const res = simulateBankrolls(config, several, 500, 17);
     const box = res.boxChance!;
-    // Winning either counts, so the chance of one covers each kind's own, and
-    // strictly beats them where both kinds actually turn up.
-    expect(box.probAny).toBeGreaterThan(res.holdings.playBoxes.probAny);
-    expect(box.probAny).toBeGreaterThan(res.holdings.collectorBoxes.probAny);
-    // And no run holds a box the per-kind counts have not also recorded.
-    expect(box.probAny).toBeLessThanOrEqual(
-      res.holdings.playBoxes.probAny + res.holdings.collectorBoxes.probAny,
-    );
+    // Winning any counts, so the chance of one covers each product's own, and
+    // strictly beats them where more than one kind actually turns up.
+    const perBox = Object.entries(res.holdings)
+      .filter(([key]) => isBoxHolding(key))
+      .map(([, totals]) => totals.probAny);
+    expect(perBox.length).toBeGreaterThan(1);
+    for (const p of perBox) expect(box.probAny).toBeGreaterThan(p);
+    // And no run holds a box the per-product counts have not also recorded.
+    expect(box.probAny).toBeLessThanOrEqual(perBox.reduce((a, p) => a + p, 0));
   });
 
   it("improves with a bankroll that buys more entries", () => {

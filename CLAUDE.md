@@ -111,10 +111,19 @@ median set aside.
 Two consequences worth holding on to. A generic rate of **0 zeroes named
 boxes too** — otherwise "zero these out" would leave an Arena Direct still
 paying for its boxes at market, and `?playBoxValue=0` links would quietly
-stop meaning what they say. And because one row can pay two boxes of
-different sets, **nothing prices a box as a count times a rate**: the
-bankroll tallies gems as boxes are won and `HoldingTotals.worth` carries the
-result, which is what keeps the breakdown summing to the total it breaks down.
+stop meaning what they say.
+
+And **a box holding is one product, not one kind**. "Play boxes" stopped
+being a thing worth a rate the moment a ladder could pay two sets of them, so
+the results report `box:play.spm` and `box:play.msh` separately — one
+breakdown card, one bar segment and one run-log chip each, each at its own
+market price. `ladderBoxes` is the list of them and `HOLDING_KEYS` is
+everything else; a run carries `boxes[]` counts indexed by the first, which
+is what keeps the breakdown summing to the total it breaks down. Note the
+contract the static keys keep and the box keys do not: every static holding
+is reported whether or not the event pays it, so `holdings.packs` is a row of
+zeroes on a ladder paying no packs rather than absent. Filtering that list
+once shipped a blank page.
 
 Boundaries that should outlive any refactor:
 

@@ -910,7 +910,7 @@ export default function App() {
           hint: `${pct(
             result.buckets.reduce(
               (acc, b) =>
-                acc + (b.playBoxes + b.collectorBoxes > 0 ? b.probability : 0),
+                acc + (b.boxes > 0 ? b.probability : 0),
               0,
             ),
           )} of events win at least one`,
@@ -1428,10 +1428,6 @@ export default function App() {
                         <th scope="col">
                           <i className="bi bi-box-seam me-1" aria-hidden="true" />
                           Boxes
-                          <InfoTip
-                            label="About box payouts"
-                            content="The physical booster boxes this row ships. Each is priced at its own set's market price where the live feed knows it, and at the generic box value in Advanced settings otherwise."
-                          />
                         </th>
                       )}
                     </tr>

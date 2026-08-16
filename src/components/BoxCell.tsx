@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   BOX_KINDS,
@@ -43,8 +43,11 @@ const boxFromToken = (token: string): PayoutBox => {
     : { kind: kind as BoxKind, set };
 };
 
-/** One `<optgroup>` of the picker. */
-export type OptionGroup = { label: string; options: { token: string; label: string }[] };
+/** One group of the picker: a heading and the boxes under it. */
+export type OptionGroup = {
+  label: string;
+  options: { token: string; label: string; box: PayoutBox }[];
+};
 
 const KIND_LABEL = { play: "Play", collector: "Collector" } as const;
 
@@ -65,6 +68,7 @@ export function optionGroups(table: BoxPriceTable, selected: PayoutBox[]): Optio
       options: BOX_KINDS.map((kind) => ({
         token: kind,
         label: `${KIND_LABEL[kind]} (generic)`,
+        box: { kind },
       })),
     },
   ];
@@ -72,7 +76,11 @@ export function optionGroups(table: BoxPriceTable, selected: PayoutBox[]): Optio
   for (const kind of BOX_KINDS) {
     const options = table.sets
       .filter((s) => s.boxes[kind] !== undefined)
-      .map((s) => ({ token: `${kind}.${s.code}`, label: `${s.code.toUpperCase()} ${KIND_LABEL[kind]}` }));
+      .map((s) => ({
+        token: `${kind}.${s.code}`,
+        label: `${s.code.toUpperCase()} ${KIND_LABEL[kind]}`,
+        box: { kind, set: s.code },
+      }));
     if (options.length) groups.push({ label: `${KIND_LABEL[kind]} boxes`, options });
   }
 
@@ -92,7 +100,7 @@ export function optionGroups(table: BoxPriceTable, selected: PayoutBox[]): Optio
     const token = boxToken(box, table);
     if (known.has(token)) continue;
     known.add(token);
-    missing.push({ token, label: boxLabel(table, box) });
+    missing.push({ token, label: boxLabel(table, box), box });
   }
   if (missing.length) groups.push({ label: "Not in the feed", options: missing });
 
@@ -143,7 +151,7 @@ export function BoxCell({
         ) : (
           <button
             type="button"
-            className={className}
+            className={`${className} box-chip-remove`}
             // The chip is the delete control, so the label has to say so —
             // "MSH" alone would leave a screen reader with a button whose
             // name is the thing it removes rather than the act of removing.
@@ -162,17 +170,18 @@ export function BoxCell({
 }
 
 /**
- * The `+` that adds a box: a chip-sized button that becomes a picker.
+ * The `+` that adds a box, and the small dialog it opens.
  *
- * Two controls rather than one because they want different widths. At rest
- * this is a `+` the size of the chips beside it; choosing needs a list wide
- * enough to read, and a `<select>` sized down to a plus would leave its
- * option list at the mercy of how each browser draws a popup.
+ * A dialog rather than a control in the cell, because there is no room for
+ * one: the column is a chip wide inside a table that scrolls horizontally, so
+ * anything that expands in place either overflows the cell or is clipped by
+ * that scroller. Lifting the choice out of the table sidesteps both.
  *
- * The picker is a native `<select>` for the same reason it is not a menu: it
- * sits inside the payout table's horizontal scroller, where a CSS popover
- * would be clipped and the browser's own list cannot be. It also costs no
- * Bootstrap JS and no inline script, which the CSP forbids.
+ * A native `<dialog>` rather than a Bootstrap modal, for two reasons. It
+ * draws in the browser's top layer, which is what puts it beyond the reach of
+ * the scroller; and there is one of these per payout row, where a Bootstrap
+ * modal would mean an instance to construct and dispose for each. Escape and
+ * the focus trap come with the element.
  */
 function AddBox({
   table,
@@ -183,46 +192,82 @@ function AddBox({
   boxes: PayoutBox[];
   onAdd: (token: string) => void;
 }) {
-  const [picking, setPicking] = useState(false);
+  const ref = useRef<HTMLDialogElement>(null);
+  const [open, setOpen] = useState(false);
 
-  if (!picking) {
-    return (
+  const show = () => {
+    setOpen(true);
+    ref.current?.showModal();
+  };
+  const close = () => {
+    setOpen(false);
+    ref.current?.close();
+  };
+
+  return (
+    <>
       <button
         type="button"
         className="box-chip box-add"
         aria-label="Add a box"
         title="Add a box"
-        onClick={() => setPicking(true)}
+        onClick={show}
       >
         +
       </button>
-    );
-  }
-
-  return (
-    <select
-      className="form-select form-select-sm w-auto"
-      aria-label="Add a box"
-      autoFocus
-      value=""
-      // Closed on blur as well as on a pick, so a picker opened by mistake
-      // goes away by clicking off it rather than by choosing something.
-      onBlur={() => setPicking(false)}
-      onChange={(e) => {
-        if (e.target.value) onAdd(e.target.value);
-        setPicking(false);
-      }}
-    >
-      <option value="">Add a box…</option>
-      {optionGroups(table, boxes).map((g) => (
-        <optgroup label={g.label} key={g.label}>
-          {g.options.map((o) => (
-            <option value={o.token} key={o.token}>
-              {o.label}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </select>
+      <dialog
+        ref={ref}
+        className="box-dialog"
+        aria-label="Add a box"
+        // `close` fires for Escape too, which the element handles itself —
+        // this is what keeps React's idea of open in step with the DOM's.
+        onClose={() => setOpen(false)}
+        // The dialog fills its own backdrop, so a click landing on the
+        // element itself rather than on its contents is a click outside.
+        onClick={(e) => {
+          if (e.target === ref.current) close();
+        }}
+      >
+        {/* Built only while open, so a table of eight rows is not eight
+            copies of the set list sitting in the DOM. */}
+        {open && (
+          <div className="box-dialog-body">
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <h2 className="section-title mb-0">Add a box</h2>
+              <button
+                type="button"
+                className="btn-close btn-sm"
+                aria-label="Close"
+                onClick={close}
+              />
+            </div>
+            {/* The same chips the row shows, a size up: what you pick is what
+                lands in the cell, and a collector box is foil in both places. */}
+            {optionGroups(table, boxes).map((g) => (
+              <div className="mb-2" key={g.label}>
+                <div className="form-label mb-1">{g.label}</div>
+                <div className="d-flex flex-wrap gap-2">
+                  {g.options.map((o) => (
+                    <button
+                      type="button"
+                      className={`box-chip box-chip-lg box-chip-${o.box.kind}`}
+                      title={boxFullName(table, o.box)}
+                      aria-label={`Add ${boxFullName(table, o.box)}`}
+                      key={o.token}
+                      onClick={() => {
+                        onAdd(o.token);
+                        close();
+                      }}
+                    >
+                      {boxChip(table, o.box)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </dialog>
+    </>
   );
 }

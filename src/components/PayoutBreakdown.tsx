@@ -13,6 +13,7 @@ import { Stat } from "./Stat";
 import {
   heldKeys,
   holding,
+  holdingLabel,
   type Bin,
   type BankrollResult,
   type EventConfig,
@@ -261,13 +262,17 @@ function ValueCard({ bankroll, m }: { bankroll: BankrollResult; m: Money }) {
 function HoldingCard({
   bankrollKey,
   totals,
+  config,
   m,
 }: {
   bankrollKey: HoldingKey;
   totals: BankrollResult["holdings"][HoldingKey];
+  config: EventConfig;
   m: Money;
 }) {
-  const { label, whole } = holding(bankrollKey);
+  const { whole } = holding(bankrollKey);
+  // Boxes name their set, which only the config can resolve.
+  const label = holdingLabel(config, bankrollKey);
   const text = (n: number, exact = false) => amountText(bankrollKey, n, exact);
 
   return (
@@ -329,7 +334,13 @@ export function PayoutBreakdown({
         {/* First, so the total is read before the parts that make it up. */}
         <ValueCard bankroll={bankroll} m={m} />
         {keys.map((key) => (
-          <HoldingCard key={key} bankrollKey={key} totals={bankroll.holdings[key]} m={m} />
+          <HoldingCard
+            key={key}
+            bankrollKey={key}
+            totals={bankroll.holdings[key]}
+            config={config}
+            m={m}
+          />
         ))}
       </div>
       <div className="form-text">

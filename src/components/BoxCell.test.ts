@@ -84,7 +84,9 @@ describe("the box picker's options", () => {
     const groups = optionGroups(TABLE, [{ kind: "play", set: "spm" }]);
     expect(groups[groups.length - 1]).toEqual({
       label: "Not in the feed",
-      options: [{ token: "play.spm", label: "SPM Play" }],
+      options: [
+        { token: "play.spm", label: "SPM Play", box: { kind: "play", set: "spm" } },
+      ],
     });
   });
 

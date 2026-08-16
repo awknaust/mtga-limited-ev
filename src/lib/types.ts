@@ -232,8 +232,14 @@ export type WinBucket = {
   netGems: number;
   packs: number;
   playInPoints: number;
-  playBoxes: number;
-  collectorBoxes: number;
+  /**
+   * Boxes paid at this win count, all products together.
+   *
+   * A total rather than a count per product, because what a bucket is asked is
+   * how often a box turns up at all — the breakdown that cares *which* box
+   * prices them one at a time, off the ladder rather than off a bucket.
+   */
+  boxes: number;
 };
 
 /**
