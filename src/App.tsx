@@ -16,6 +16,7 @@ import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
 import { InfoTip } from "./components/InfoTip";
+import { NumberInput } from "./components/NumberInput";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
 import { PercentileSummary } from "./components/PercentileSummary";
 import { ResultsPlaceholder } from "./components/ResultsPlaceholder";
@@ -97,9 +98,6 @@ const RESULT_TABS = [
   { key: "about" as const, label: "About" },
 ];
 
-const clampInt = (n: number, lo: number, hi: number): number =>
-  Math.max(lo, Math.min(hi, Math.round(n) || lo));
-
 /*
  * What the win rate's step buttons move by, in percentage points, grouped as
  * the two pairs they render in. The fine step is the slider's own — 0.005 of a
@@ -113,87 +111,6 @@ const WIN_RATE_STEPS = [
 
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
-
-/**
- * Number input for whole-number amounts.
- *
- * Drops focus on wheel events — otherwise scrolling the page with the cursor
- * over a focused field silently edits the value.
- *
- * `step` is deliberately left at 1 rather than set to a convenient spinner
- * increment: the attribute is a *validation* rule counted from `min`, so a
- * step of 1000 from a min of 1 makes 100,000 invalid, and an invalid field
- * silently blocks form submission.
- */
-function NumberInput({
-  value,
-  onChange,
-  min,
-  id,
-  disabled,
-  fractional,
-  text,
-  className = "form-control",
-}: {
-  value: number;
-  onChange: (n: number) => void;
-  min?: number;
-  id?: string;
-  disabled?: boolean;
-  /** Allows decimals — "any" imposes no step rule, so nothing is invalidated. */
-  fractional?: boolean;
-  /**
-   * What to display instead of the bare number, for units that fix their
-   * precision. Shown only while the field is idle — see below.
-   */
-  text?: string;
-  className?: string;
-}) {
-  /*
-   * Keystrokes are echoed verbatim while the field is being edited, and the
-   * formatted text returns once the value settles. Reformatting as the user
-   * types would fight them: typing "8.5" into a two-place field rewrites it to
-   * "8.50" before the 5 is finished, putting the caret behind two zeros the
-   * user did not type.
-   */
-  const [draft, setDraft] = useState<string | null>(null);
-  const ref = useRef<HTMLInputElement>(null);
-
-  /*
-   * What counts as settled is the native change event, which is not React's
-   * onChange — that one is the input event, and fires on every keystroke.
-   * The native one fires immediately when a number field is stepped with the
-   * spinner or the arrow keys, but not until commit when text is typed. That
-   * is precisely the line wanted here: stepping 8.50 up should read 9.50, not
-   * strip to 9.5 and stay stripped until the field is left.
-   */
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const settle = () => setDraft(null);
-    el.addEventListener("change", settle);
-    return () => el.removeEventListener("change", settle);
-  }, []);
-
-  return (
-    <input
-      ref={ref}
-      id={id}
-      type="number"
-      className={className}
-      min={min}
-      step={fractional ? "any" : 1}
-      value={draft ?? text ?? String(value)}
-      disabled={disabled}
-      onWheel={(e) => e.currentTarget.blur()}
-      onChange={(e) => {
-        setDraft(e.target.value);
-        onChange(Number(e.target.value) || 0);
-      }}
-      onBlur={() => setDraft(null)}
-    />
-  );
-}
 
 /** A number input with a currency marker in front of it. */
 function AddonInput({
@@ -1280,8 +1197,9 @@ export default function App() {
                     <NumberInput
                       id={ids.maxEvents}
                       min={1}
+                      max={SIM_LIMITS.maxEvents}
                       value={maxEvents}
-                      onChange={(n) => setMaxEvents(clampInt(n, 1, SIM_LIMITS.maxEvents))}
+                      onChange={setMaxEvents}
                     />
                   </div>
                 </div>
@@ -1395,10 +1313,9 @@ export default function App() {
                           id={ids.maxWins}
                           disabled={locked}
                           min={1}
+                          max={20}
                           value={structure.maxWins}
-                          onChange={(n) =>
-                            setStructure({ ...structure, maxWins: clampInt(n, 1, 20) })
-                          }
+                          onChange={(n) => setStructure({ ...structure, maxWins: n })}
                         />
                       </div>
                       <div className="col-6">
@@ -1409,10 +1326,9 @@ export default function App() {
                           id={ids.maxLosses}
                           disabled={locked}
                           min={1}
+                          max={20}
                           value={structure.maxLosses}
-                          onChange={(n) =>
-                            setStructure({ ...structure, maxLosses: clampInt(n, 1, 20) })
-                          }
+                          onChange={(n) => setStructure({ ...structure, maxLosses: n })}
                         />
                       </div>
                     </>
@@ -1425,10 +1341,9 @@ export default function App() {
                         id={ids.rounds}
                         disabled={locked}
                         min={1}
+                        max={20}
                         value={structure.rounds}
-                        onChange={(n) =>
-                          setStructure({ kind: "rounds", rounds: clampInt(n, 1, 20) })
-                        }
+                        onChange={(n) => setStructure({ kind: "rounds", rounds: n })}
                       />
                     </div>
                   )}
@@ -2159,8 +2074,9 @@ export default function App() {
                     <NumberInput
                       id={ids.trials}
                       min={1}
+                      max={SIM_LIMITS.trials}
                       value={trials}
-                      onChange={(n) => setTrials(clampInt(n, 1, SIM_LIMITS.trials))}
+                      onChange={setTrials}
                     />
                   </div>
                   <div className="col-6">
@@ -2174,8 +2090,9 @@ export default function App() {
                     <NumberInput
                       id={ids.bankrollRuns}
                       min={1}
+                      max={SIM_LIMITS.bankrollRuns}
                       value={bankrollRuns}
-                      onChange={(n) => setBankrollRuns(clampInt(n, 1, SIM_LIMITS.bankrollRuns))}
+                      onChange={setBankrollRuns}
                     />
                   </div>
                   <div className="col-6">
