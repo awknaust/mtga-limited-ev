@@ -14,6 +14,7 @@ import {
 } from "./share";
 import {
   CUSTOM_PRESET,
+  MASTERY_TRACKS,
   PRESETS,
   QUICK_DRAFT,
   SEALED,
@@ -88,6 +89,41 @@ describe("encoding only what was touched", () => {
     expect(encodeShareState(withState({ tab: "event", unit: "usd" }))).toBe(
       "tab=event&unit=usd",
     );
+  });
+
+  /*
+   * There is one mastery season, so the picker cannot be off its default and
+   * `mastery=` cannot appear in a link yet. Both halves are asserted: the second
+   * is what will start failing the day a second season lands, which is the point
+   * — it is a reminder to add a corpus entry for the new slug, not a bug.
+   */
+  it("keeps the mastery season out of a link while there is only one", () => {
+    for (const track of MASTERY_TRACKS) {
+      expect(encodeShareState(withState({ masterySlug: track.slug }))).toBe("");
+    }
+    expect(MASTERY_TRACKS).toHaveLength(1);
+  });
+});
+
+describe("the mastery season", () => {
+  it("round-trips every season by its slug", () => {
+    for (const track of MASTERY_TRACKS) {
+      const state = withState({ masterySlug: track.slug });
+      expect(roundTrip(state).masterySlug).toBe(track.slug);
+    }
+  });
+
+  /*
+   * A slug this build does not carry — an older link, or a newer one — falls
+   * back to the current season rather than leaving the tab pricing nothing.
+   * Slugs are written out on the track for exactly this reason: relabelling a
+   * season must not quietly turn every link naming it into this case.
+   */
+  it("falls back to the current season on a slug it does not know", () => {
+    const fallback = defaultShareState().masterySlug;
+    expect(decodeShareState("?mastery=some-future-set").masterySlug).toBe(fallback);
+    expect(decodeShareState("?mastery=").masterySlug).toBe(fallback);
+    expect(decodeShareState("").masterySlug).toBe(fallback);
   });
 });
 

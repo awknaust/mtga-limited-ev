@@ -60,7 +60,8 @@ import type { MasteryTrack } from "../../lib/types";
  * @see https://magic.wizards.com/en/news/mtg-arena/the-hobbit-mastery-details
  */
 export const THE_HOBBIT_MASTERY = {
-  set: "Magic: The Gathering | The Hobbit",
+  name: "The Hobbit",
+  slug: "the-hobbit",
   priceGems: 3400,
   freeCap: 42,
   passCap: 45,

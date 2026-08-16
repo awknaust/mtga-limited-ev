@@ -32,8 +32,25 @@ import {
 
 export { THE_HOBBIT_MASTERY };
 
-/** The track the app prices. One season is live at a time. */
-export const CURRENT_MASTERY_TRACK: MasteryTrack = THE_HOBBIT_MASTERY;
+/**
+ * Every season the app can price, newest first.
+ *
+ * Only one is live in Arena at a time — a Set Mastery runs from its set's
+ * release until the next set's — but a finished season is still worth pricing,
+ * both to check the model against a track whose totals are settled and to
+ * compare one season's pass against another's. The picker exists for that, and
+ * because the alternative is a hard-coded track that quietly means "whichever
+ * season the last person to touch this file was playing".
+ */
+export const MASTERY_TRACKS: MasteryTrack[] = [THE_HOBBIT_MASTERY];
+
+/** What the app opens on: the newest season. */
+export const CURRENT_MASTERY_TRACK: MasteryTrack = MASTERY_TRACKS[0];
+
+/** The track a URL token names, or null if it names none. */
+export function masteryBySlug(slug: string): MasteryTrack | null {
+  return MASTERY_TRACKS.find((t) => t.slug === slug) ?? null;
+}
 
 /** What to call each reward kind on screen. */
 export const MASTERY_REWARD_LABELS: Record<MasteryRewardKind, string> = {

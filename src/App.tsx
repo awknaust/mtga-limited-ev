@@ -35,8 +35,10 @@ import {
 import {
   CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
+  MASTERY_TRACKS,
   PRESETS,
   bankrollRoi,
+  masteryBySlug,
   breakEvenWinRate,
   configFromPreset,
   expectedNetAt,
@@ -376,6 +378,8 @@ export default function App() {
   // to end somewhere, and how long you intend to play is a real input.
   const [maxEvents, setMaxEvents] = useState(initial.maxEvents);
   const [tab, setTab] = useState<Tab>(initial.tab);
+  // Which Set Mastery season the Mastery tab prices. Only that tab reads it.
+  const [masterySlug, setMasterySlug] = useState(initial.masterySlug);
   /*
    * Whether the ending total is shown as one figure or as what it is made of.
    * Deliberately not in the shared state beside `tab`: the link format is
@@ -417,6 +421,7 @@ export default function App() {
     startingGold,
     maxEvents,
     tab,
+    masterySlug,
     unit,
     gemsPerUsd,
   });
@@ -609,6 +614,7 @@ export default function App() {
     maxEvents: `${uid}-max-events`,
     gemsPerUsd: `${uid}-gems-per-usd`,
     confMatches: `${uid}-conf-matches`,
+    masteryTrack: `${uid}-mastery-track`,
     resultTabs: `${uid}-results`,
     viewTabs: `${uid}-view`,
     topUpTitle: `${uid}-top-up-title`,
@@ -734,6 +740,7 @@ export default function App() {
     setStartingGold(next.startingGold);
     setMaxEvents(next.maxEvents);
     setTab(next.tab);
+    setMasterySlug(next.masterySlug);
     setUnit(next.unit);
     setGemsPerUsd(next.gemsPerUsd);
     setAdvancedReset("Advanced settings reset to defaults");
@@ -1627,7 +1634,14 @@ export default function App() {
               {tab === "about" ? (
                 <About config={config} m={m} />
               ) : tab === "mastery" ? (
-                <Mastery track={CURRENT_MASTERY_TRACK} config={config} m={m} />
+                <Mastery
+                  track={masteryBySlug(masterySlug) ?? CURRENT_MASTERY_TRACK}
+                  tracks={MASTERY_TRACKS}
+                  onSelect={setMasterySlug}
+                  selectId={ids.masteryTrack}
+                  config={config}
+                  m={m}
+                />
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">

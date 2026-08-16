@@ -288,7 +288,16 @@ export type MasteryLevel = {
 
 /** A season's Set Mastery, as stored in src/data/mastery. */
 export type MasteryTrack = {
-  set: string;
+  /** What the picker calls it — the set, not the full product name. */
+  name: string;
+  /**
+   * The token that names this track in a URL.
+   *
+   * Written out rather than derived from `name`, so rewording the label cannot
+   * silently retarget every link that already names this season. Once shipped it
+   * is fixed; a season is not renamed, it is superseded.
+   */
+  slug: string;
   /**
    * What this pass was sold for.
    *

@@ -22,10 +22,17 @@ import type { StatTile } from "./Stat";
  */
 export function Mastery({
   track,
+  tracks,
+  onSelect,
+  selectId,
   config,
   m,
 }: {
   track: MasteryTrack;
+  /** Every season that can be priced. One today; the picker is for the next. */
+  tracks: MasteryTrack[];
+  onSelect: (slug: string) => void;
+  selectId: string;
   config: EventConfig;
   m: Money;
 }) {
@@ -94,9 +101,37 @@ export function Mastery({
 
   return (
     <div>
+      {/*
+        The one input on a results tab, because it is the only thing here it
+        controls — a season is what is being priced, not a setting that changes
+        how anything is priced. It stays visible at a single option so that what
+        the figures below refer to is never left to be assumed.
+      */}
+      <div className="row g-2 align-items-end mb-3">
+        <div className="col-sm-6 col-lg-5">
+          <label htmlFor={selectId} className="form-label">
+            Mastery season
+          </label>
+          <select
+            id={selectId}
+            className="form-select"
+            value={track.slug}
+            onChange={(e) => onSelect(e.target.value)}
+          >
+            {tracks.map((t) => (
+              <option key={t.slug} value={t.slug}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
       <div className="form-text mb-2">
-        The Mastery Pass costs {price} and runs for the season, from this set's
-        release until the next. At the values in Advanced settings its rewards
+        {/* Named after the noun, not before it: a season's name supplies its
+            own article where it needs one, and prefixing one reads as "The The
+            Hobbit". This phrasing works for any set name. */}
+        The Mastery Pass for {track.name} costs {price} and runs for the season,
+        from that set's release until the next. At the values in Advanced settings its rewards
         come to {gemsEq(v.pass)}, a net of {gemsEq(v.net)} ({pct(v.roi)}), and it
         has paid for itself by{" "}
         {v.breakEvenLevel === null

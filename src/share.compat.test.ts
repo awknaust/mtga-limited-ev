@@ -32,7 +32,13 @@ import {
   presetSlug,
   type ShareState,
 } from "./share";
-import { PRESETS, effectiveEntryGems, goldPerEvent, maxPossibleWins } from "./lib";
+import {
+  CURRENT_MASTERY_TRACK,
+  PRESETS,
+  effectiveEntryGems,
+  goldPerEvent,
+  maxPossibleWins,
+} from "./lib";
 
 /**
  * Everything a link resolves to, rendered compactly.
@@ -159,6 +165,9 @@ describe("the parameter names are the contract", () => {
       startingGold: 15,
       maxEvents: 16,
       tab: "about",
+      // The only season there is, so it cannot differ from the default and
+      // cannot appear in the link. The names list below says as much.
+      masterySlug: CURRENT_MASTERY_TRACK.slug,
       unit: "usd",
       gemsPerUsd: 17,
     };
