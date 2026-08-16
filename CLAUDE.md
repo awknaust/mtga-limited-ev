@@ -75,7 +75,17 @@ and have burned us. Three things to hold to:
 ## Conventions
 
 - The model in `src/lib` stays free of React and DOM imports; the tests run
-  without a DOM because of it.
+  without a DOM because of it. One file opts out —
+  `components/NumberInput.test.tsx` asks for jsdom in a
+  `// @vitest-environment` docblock, so the environment stays node everywhere
+  else. It earns the exception because that component's bug was *which browser
+  event wrote to state*, and no test without a document can tell `input` from
+  `change`.
+- A number field given a `max` is a **bounded** one, and reports when it settles
+  rather than on every keystroke. A cap can only be applied to a number someone
+  has finished typing; clamping each keystroke is what made a field disagree
+  with the state behind it (#54). Call sites hand `NumberInput` the bounds and
+  do no clamping of their own.
 - Events are data-only modules in `src/data/presets`, one per file, checked with
   `satisfies EventPreset`. Adding an event should need no model change.
 - Distributions and the seeded generator come from libraries (stdlib PMFs,
