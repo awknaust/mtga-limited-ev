@@ -58,7 +58,11 @@ export const MASTERY_REWARD_LABELS: Record<MasteryRewardKind, string> = {
   gold: "Gold",
   packs: "Packs",
   draftToken: "Player Draft tokens",
-  mythicIcr: "Mythic rare ICRs",
+  // "Mythic ICR" as the track itself prints it, and as the Advanced field is
+  // already labelled. "Rare cards" is not the odd one out it looks like: the
+  // level 6 row pays four copies of a named card, not a random rare, so an ICR
+  // is the one thing it is not. See `rareCard` in types.ts.
+  mythicIcr: "Mythic ICRs",
   rareCard: "Rare cards",
   uncommonIcr: "Uncommon ICRs",
   orbs: "Mastery Orbs",

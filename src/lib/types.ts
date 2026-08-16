@@ -123,7 +123,15 @@ export type EventConfig = {
   draftTokenValueGems: number;
   /** Gem value of one mythic rare individual card reward. */
   mythicIcrValueGems: number;
-  /** Gem value of one rare card award. */
+  /**
+   * Gem value of one rare card award.
+   *
+   * Named a card rather than an ICR because that is what it is: the only track
+   * row paying these is level 6's four copies of Gandalf, Party Guest, a card
+   * Wizards names. An ICR is a random card of a rarity, so calling this one
+   * would claim the pass pays something it does not. The sibling fields are
+   * ICRs and say so.
+   */
   rareCardValueGems: number;
   /** Gem value of one uncommon individual card reward. */
   uncommonIcrValueGems: number;
