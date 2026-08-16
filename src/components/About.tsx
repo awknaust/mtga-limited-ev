@@ -102,7 +102,7 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
               <td>{show(m, config.draftTokenValueGems)} each</td>
             </tr>
             <tr>
-              <td>Mythic rare ICR</td>
+              <td>Mythic ICR</td>
               <td>{show(m, config.mythicIcrValueGems)} each</td>
             </tr>
             <tr>
