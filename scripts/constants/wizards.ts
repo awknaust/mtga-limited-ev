@@ -86,6 +86,13 @@ export type DropRates = {
   wildcards: { rare: number; mythic: number } & Record<string, number>;
   /** Gold at each daily win, first through last. */
   dailyWinGold: number[];
+  /** How often a rare ICR upgrades to a mythic, as N in "1:N". */
+  icrRareToMythicRate: number;
+  /**
+   * The upgrade chance on the mastery track's beyond-cap reward, in percent —
+   * the "∞ Uncommon ICR – 5% Upgrade" row.
+   */
+  masteryUncommonUpgradePct: number;
 };
 
 /**
@@ -101,12 +108,34 @@ export function parseDropRates(rawHtml: string): DropRates {
   const dupe = /(\d+)\s*Gems for rares,\s*(\d+)\s*Gems for mythic rares/i.exec(text);
   if (!dupe) throw new SourceError("drop rates: duplicate protection gems not found");
 
+  // "Standard ICRs that upgrade from Rare to Mythic Rare are approximately at
+  // a rate of 1:8" — the Event Rewards section. The Historic line repeats the
+  // figure; matching the Standard one keeps the anchor unambiguous.
+  const icr = /Standard ICRs that upgrade from Rare to Mythic Rare are approximately at a rate of 1:([\d.]+)/i.exec(
+    text,
+  );
+  if (!icr) throw new SourceError("drop rates: ICR rare-to-mythic rate not found");
+
+  // The mastery track's every-level-after reward. The spelling moves between
+  // seasons — TMNT's table printed "∞ Uncommon ICR – 5% Upgrade", The Hobbit's
+  // page writes "1x Uncommon ICR that has a 5% upgrade rate" — so both forms
+  // are accepted, plus dash siblings rather than breaking on a typographic
+  // edit.
+  const masteryUpgrade = /Uncommon ICR(?:\s*[–—-]\s*|\s+that has a\s+)([\d.]+)%\s*upgrade/i.exec(
+    text,
+  );
+  if (!masteryUpgrade) {
+    throw new SourceError("drop rates: mastery uncommon ICR upgrade row not found");
+  }
+
   return {
     rareDupeGems: Number(dupe[1]),
     mythicDupeGems: Number(dupe[2]),
     mythicRates: parseMythicRates(html),
     wildcards: parseWildcardRates(html),
     dailyWinGold: parseDailyWinGold(html),
+    icrRareToMythicRate: Number(icr[1]),
+    masteryUncommonUpgradePct: Number(masteryUpgrade[1]),
   };
 }
 

@@ -12,10 +12,15 @@
  * that is only assembled when asked for is a derivation that rots.
  *
  * Deliberately absent, twice over: the constants that are modelling choices
- * rather than sourced figures — the default win rate, matches behind it, and
- * events per day have no external answer to check against — and the two box
- * constants, whose data comes from the box-price feed (`scripts/box-prices/`)
- * and whose modelling lives in the app (`src/lib/boxPrices.ts`).
+ * rather than sourced figures — the default win rate, matches behind it,
+ * events per day, and DEFAULT_COSMETIC_VALUE_GEMS, whose zero is a refusal to
+ * invent a number rather than a number — and the two box constants, whose
+ * data comes from the box-price feed (`scripts/box-prices/`) and whose
+ * modelling lives in the app (`src/lib/boxPrices.ts`).
+ *
+ * Mastery *track* data (`src/data/mastery/`) is also not covered: it is
+ * presets-like data with its own provenance discipline, reconciliation tests
+ * and transcription skill, not a constant.
  */
 
 import {
@@ -233,6 +238,96 @@ export const CONSTANTS: ConstantDef[] = [
           "which is why gold is not a flat daily figure: what one event generates is",
           "  closer to its own few wins than to the full day's total",
           `a ${gold.length + 1}th win pays nothing`,
+        ],
+      };
+    },
+  },
+
+  {
+    name: "DEFAULT_DRAFT_TOKEN_VALUE_GEMS",
+    summary: "gem value of one Player Draft token",
+    sources: [],
+    compute() {
+      const premier = DUAL_PRICED_EVENTS.events.find((e) => e.name === "Premier Draft");
+      if (!premier) {
+        throw new SourceError("by-hand: Premier Draft missing from DUAL_PRICED_EVENTS");
+      }
+      return {
+        value: premier.gems,
+        explain: [
+          `the token is "redeemable for a Premier or Traditional Draft entry", and both`,
+          `  cost ${gems(premier.gems)} gems — checked by hand on ${DUAL_PRICED_EVENTS.checkedOn}`,
+          "replacement cost, on the same footing as DEFAULT_PLAY_IN_POINT_VALUE_GEMS:",
+          "  it holds only for someone who would have paid for a draft anyway; a free",
+          "  entry into a losing proposition is not worth its sticker",
+          "in presets.ts this is derived from PREMIER_DRAFT.entryCostGems rather than",
+          "  written out, so it follows the ladder data if the entry ever moves",
+        ],
+      };
+    },
+  },
+
+  {
+    name: "DEFAULT_MYTHIC_ICR_VALUE_GEMS",
+    summary: "gem value of one mythic individual card reward",
+    sources: ["dropRates"],
+    async compute(ctx) {
+      const rates = await ctx.sources.dropRates();
+      return {
+        value: rates.mythicDupeGems,
+        explain: [
+          "the published duplicate-protection figure, unmodified: on a complete",
+          `  collection a fifth mythic converts to ${rates.mythicDupeGems} gems`,
+          "flat 40 where DEFAULT_PACK_VALUE_GEMS is 22 is not an inconsistency: a",
+          "  booster's rare slot is sometimes a wildcard instead, which costs it the",
+          "  gems; an ICR is a card award with no slot to lose",
+          "a floor rather than a fair value — a mythic you actually want to play is",
+          "  worth more than its buyout, and the model cannot know which those are",
+        ],
+      };
+    },
+  },
+
+  {
+    name: "DEFAULT_RARE_CARD_VALUE_GEMS",
+    summary: "gem value of one rare card award",
+    sources: ["dropRates"],
+    async compute(ctx) {
+      const rates = await ctx.sources.dropRates();
+      return {
+        value: rates.rareDupeGems,
+        explain: [
+          `the published rare buyout: a fifth rare converts to ${rates.rareDupeGems} gems`,
+          "  under duplicate protection, on a complete collection",
+        ],
+      };
+    },
+  },
+
+  {
+    name: "DEFAULT_UNCOMMON_ICR_VALUE_GEMS",
+    summary: "gem value of one uncommon ICR — the reward past the mastery cap",
+    sources: ["dropRates"],
+    async compute(ctx) {
+      const rates = await ctx.sources.dropRates();
+      const upgrade = rates.masteryUncommonUpgradePct / 100;
+      const icrRate = rates.icrRareToMythicRate;
+      const upgraded =
+        ((icrRate - 1) / icrRate) * rates.rareDupeGems +
+        (1 / icrRate) * rates.mythicDupeGems;
+      const value = upgrade * upgraded;
+      return {
+        value,
+        explain: [
+          "an uncommon has no duplicate-protection gem value at all; it feeds vault",
+          "  progress, which DEFAULT_PACK_VALUE_GEMS already excludes on purpose",
+          `all that is left is the published ${rates.masteryUncommonUpgradePct}% upgrade chance on the mastery`,
+          `  track's beyond-cap row, and an upgraded card is the rare/mythic mix at`,
+          `  the ICR rate of 1:${icrRate}:`,
+          `  ${upgrade} x ((${icrRate - 1}/${icrRate} x ${rates.rareDupeGems}) + (1/${icrRate} x ${rates.mythicDupeGems})) = ${value} gems`,
+          "left unrounded, against the Math.round(160/7) precedent: rounding 22.9 to",
+          "  23 is a 0.4% error, rounding 1.125 to 1 is 11%, and unlike the pack",
+          "  figure this is never a number anyone types into a field",
         ],
       };
     },
