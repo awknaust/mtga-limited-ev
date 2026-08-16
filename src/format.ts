@@ -253,9 +253,9 @@ export function money(unit: Unit, gemsPerUsd: number): Money {
  * dollars invents a price nobody can pay, and reads as though the event were
  * purchasable in cash.
  *
- * The About tab already draws this line for the reader — "a bare gem figure —
- * an entry cost, a ladder's gem payout, the gem balance — is a real amount" —
- * so this is what keeps that wording true rather than aspirational. The rule
+ * The About tab already draws this line for the reader — a bare gem figure
+ * "is a real amount, and stays in gems whichever unit is showing" — so this is
+ * what keeps that wording true rather than aspirational. The rule
  * in one line: dollars go with ≈ and nowhere else.
  *
  * Built with a rate of 1 because the gem branch above never consults one, and
