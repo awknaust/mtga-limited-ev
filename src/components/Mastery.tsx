@@ -1,4 +1,4 @@
-import { REAL_GEMS, approx, pct, type Money } from "../format";
+import { REAL_GEMS, approx, type Money } from "../format";
 import { masteryValue, type EventConfig, type MasteryTrack } from "../lib";
 import { SectionHeading } from "./SectionHeading";
 import { StatStrip } from "./StatStrip";
@@ -19,20 +19,18 @@ import type { StatTile } from "./Stat";
  * could vary, the Player Draft token, is priced at the entry it replaces — and
  * the intro says so, because a panel that ignores the slider otherwise reads as
  * broken wiring.
+ *
+ * The prose names no computed figure. Every number it would have quoted is in
+ * the strip a few lines below it, and a sentence that restates a tile is a
+ * second place to keep in step with the model for no gain.
  */
 export function Mastery({
   track,
-  tracks,
-  onSelect,
-  selectId,
   config,
   m,
 }: {
+  /** Which season to price. Chosen beside the event, with the other inputs. */
   track: MasteryTrack;
-  /** Every season that can be priced. One today; the picker is for the next. */
-  tracks: MasteryTrack[];
-  onSelect: (slug: string) => void;
-  selectId: string;
   config: EventConfig;
   m: Money;
 }) {
@@ -101,50 +99,12 @@ export function Mastery({
 
   return (
     <div>
-      {/*
-        The one input on a results tab, because it is the only thing here it
-        controls — a season is what is being priced, not a setting that changes
-        how anything is priced. It stays visible at a single option so that what
-        the figures below refer to is never left to be assumed.
-      */}
-      <div className="row g-2 align-items-end mb-3">
-        <div className="col-sm-6 col-lg-5">
-          <label htmlFor={selectId} className="form-label">
-            Mastery season
-          </label>
-          <select
-            id={selectId}
-            className="form-select"
-            value={track.slug}
-            onChange={(e) => onSelect(e.target.value)}
-          >
-            {tracks.map((t) => (
-              <option key={t.slug} value={t.slug}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
       <div className="form-text mb-2">
-        {/* Named after the noun, not before it: a season's name supplies its
-            own article where it needs one, and prefixing one reads as "The The
-            Hobbit". This phrasing works for any set name. */}
-        The Mastery Pass for {track.name} costs {price} and runs for the season,
-        from that set's release until the next. At the values in Advanced settings its rewards
-        come to {gemsEq(v.pass)}, a net of {gemsEq(v.net)} ({pct(v.roi)}), and it
-        has paid for itself by{" "}
-        {v.breakEvenLevel === null
-          ? "no level on the track"
-          : `level ${v.breakEvenLevel} of ${track.passCap}`}
-        .
-      </div>
-      <div className="form-text mb-2">
-        This is the ceiling: it assumes you finish the track. How far your play
-        actually gets you is a question about experience points, and Wizards
-        publishes where experience comes from — quests and weekly wins — but none
-        of the amounts, so it is not modelled here. Nothing on this tab moves
-        with the win rate.
+        What the Mastery Pass costs, against what its reward track pays at the
+        values in Advanced settings. The whole track is priced, so this assumes
+        you finish it — how far a season of play gets you depends on experience
+        points, which Wizards publishes no rates for. Nothing here moves with the
+        win rate.
       </div>
       <div className="mb-3">
         <StatStrip tiles={tiles} label="Mastery Pass summary" />
@@ -269,16 +229,6 @@ export function Mastery({
           </table>
         </div>
       </details>
-      <p className="form-text">
-        Levels 1–39 carry Wizards' own wording, from the reward table they
-        publish; the table stops there, so levels 40–45 are read off the track in
-        game and named by kind. Two rows correct that table, where it disagrees
-        with Wizards' own season totals: level 36 pays a companion rather than
-        repeating level 35's card style, and level 40 pays 600 gems where the
-        table prints nothing. With those, every published reward total
-        reconciles exactly. Past level {track.passCap} each further level pays
-        one uncommon ICR, worth {gemsEq1(v.beyondPerLevel)}.
-      </p>
     </div>
   );
 }
