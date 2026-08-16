@@ -16,6 +16,15 @@ import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
 import { InfoTip } from "./components/InfoTip";
+import {
+  AddonInput,
+  GemInput,
+  GoldInput,
+  MoneyInput,
+  NumberInput,
+  UsdInput,
+} from "./components/Inputs";
+import { Mastery } from "./components/Mastery";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
 import { PercentileSummary } from "./components/PercentileSummary";
 import { ResultsPlaceholder } from "./components/ResultsPlaceholder";
@@ -32,9 +41,12 @@ import {
   holdingSlices,
 } from "./components/ValueSplitBar";
 import {
+  CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
+  MASTERY_TRACKS,
   PRESETS,
   bankrollRoi,
+  masteryBySlug,
   breakEvenWinRate,
   configFromPreset,
   expectedNetAt,
@@ -94,6 +106,7 @@ const CONFIDENCE_CHOICES = [
 const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
   { key: "event" as const, label: "Per event" },
+  { key: "mastery" as const, label: "Mastery" },
   { key: "about" as const, label: "About" },
 ];
 
@@ -114,226 +127,6 @@ const WIN_RATE_STEPS = [
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
 
-/**
- * Number input for whole-number amounts.
- *
- * Drops focus on wheel events — otherwise scrolling the page with the cursor
- * over a focused field silently edits the value.
- *
- * `step` is deliberately left at 1 rather than set to a convenient spinner
- * increment: the attribute is a *validation* rule counted from `min`, so a
- * step of 1000 from a min of 1 makes 100,000 invalid, and an invalid field
- * silently blocks form submission.
- */
-function NumberInput({
-  value,
-  onChange,
-  min,
-  id,
-  disabled,
-  fractional,
-  text,
-  className = "form-control",
-}: {
-  value: number;
-  onChange: (n: number) => void;
-  min?: number;
-  id?: string;
-  disabled?: boolean;
-  /** Allows decimals — "any" imposes no step rule, so nothing is invalidated. */
-  fractional?: boolean;
-  /**
-   * What to display instead of the bare number, for units that fix their
-   * precision. Shown only while the field is idle — see below.
-   */
-  text?: string;
-  className?: string;
-}) {
-  /*
-   * Keystrokes are echoed verbatim while the field is being edited, and the
-   * formatted text returns once the value settles. Reformatting as the user
-   * types would fight them: typing "8.5" into a two-place field rewrites it to
-   * "8.50" before the 5 is finished, putting the caret behind two zeros the
-   * user did not type.
-   */
-  const [draft, setDraft] = useState<string | null>(null);
-  const ref = useRef<HTMLInputElement>(null);
-
-  /*
-   * What counts as settled is the native change event, which is not React's
-   * onChange — that one is the input event, and fires on every keystroke.
-   * The native one fires immediately when a number field is stepped with the
-   * spinner or the arrow keys, but not until commit when text is typed. That
-   * is precisely the line wanted here: stepping 8.50 up should read 9.50, not
-   * strip to 9.5 and stay stripped until the field is left.
-   */
-  useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const settle = () => setDraft(null);
-    el.addEventListener("change", settle);
-    return () => el.removeEventListener("change", settle);
-  }, []);
-
-  return (
-    <input
-      ref={ref}
-      id={id}
-      type="number"
-      className={className}
-      min={min}
-      step={fractional ? "any" : 1}
-      value={draft ?? text ?? String(value)}
-      disabled={disabled}
-      onWheel={(e) => e.currentTarget.blur()}
-      onChange={(e) => {
-        setDraft(e.target.value);
-        onChange(Number(e.target.value) || 0);
-      }}
-      onBlur={() => setDraft(null)}
-    />
-  );
-}
-
-/** A number input with a currency marker in front of it. */
-function AddonInput({
-  addon,
-  id,
-  disabled,
-  fractional,
-  text,
-  value,
-  onChange,
-  compact,
-}: {
-  addon: React.ReactNode;
-  id?: string;
-  disabled?: boolean;
-  fractional?: boolean;
-  text?: string;
-  value: number;
-  onChange: (n: number) => void;
-  /** Narrower marker and field, for the payout table's cramped columns. */
-  compact?: boolean;
-}) {
-  return (
-    // The marker names the currency at the point of entry, so a field cannot
-    // be misread as the other one while the toggle is out of view.
-    <div className={`input-group${compact ? " input-group-sm input-group-compact" : ""}`}>
-      <span className="input-group-text">{addon}</span>
-      <NumberInput
-        id={id}
-        disabled={disabled}
-        min={0}
-        fractional={fractional}
-        text={text}
-        value={value}
-        onChange={onChange}
-        className={`form-control${compact ? " form-control-sm text-end" : ""}`}
-      />
-    </div>
-  );
-}
-
-/**
- * A field holding gems and only gems, whatever the display unit.
- *
- * Rates — gems per dollar, gems per 10,000 gold — define the conversions
- * rather than being subject to them. The rest of the entry-and-payout panel
- * qualifies for a different reason: the entry cost and the ladder's payouts
- * are the event's published numbers, transcribed from a rewards table that
- * quotes gems, so a dollar field would mean converting by hand to check a row
- * against its source. Those two also have to agree with each other — an entry
- * in dollars over a ladder in gems cannot be read down the column.
- *
- * The starting balance is the one exception, and takes `MoneyInput`: it is
- * what a reader compares against what a top-up would cost, so it is the field
- * they are likeliest to want to type in money.
- */
-function GemInput(props: {
-  id?: string;
-  value: number;
-  onChange: (n: number) => void;
-  disabled?: boolean;
-  compact?: boolean;
-}) {
-  return <AddonInput addon={<i className="bi bi-gem" aria-hidden="true" />} {...props} />;
-}
-
-/** Gold is Arena's own currency and never follows the display unit. */
-function GoldInput(props: {
-  id?: string;
-  disabled?: boolean;
-  value: number;
-  onChange: (n: number) => void;
-}) {
-  return <AddonInput addon={<i className="bi bi-coin" aria-hidden="true" />} {...props} />;
-}
-
-/** A gem-valued input, displayed and edited in the active unit. */
-function MoneyInput({
-  gemValue,
-  onChange,
-  m,
-  id,
-  disabled,
-}: {
-  gemValue: number;
-  onChange: (gems: number) => void;
-  m: ReturnType<typeof money>;
-  id?: string;
-  disabled?: boolean;
-}) {
-  return (
-    <AddonInput
-      addon={m.unit === "usd" ? "$" : <i className="bi bi-gem" aria-hidden="true" />}
-      id={id}
-      disabled={disabled}
-      fractional={m.fractional}
-      text={m.inputText(gemValue)}
-      value={m.toInput(gemValue)}
-      onChange={(n) => onChange(m.fromInput(n))}
-    />
-  );
-}
-
-/**
- * A gem-valued input pinned to dollars, whatever the display unit.
- *
- * Box prices are quoted in dollars everywhere they are sourced — street price
- * on MTGGoldfish, Wizards' cash substitution — so editing them in gems means
- * converting by hand to check a figure against the page it came from.
- *
- * Only the field is dollars. The stored value is still gems, so the rate
- * applies at the edit and not inside the simulation, and `gemsPerUsd` stays
- * what its own tooltip says it is: a display setting. The visible consequence
- * is that changing the rate re-prices a box that was already set, because the
- * gems behind it are what is held.
- */
-function UsdInput({
-  gemValue,
-  onChange,
-  gemsPerUsd,
-  id,
-  disabled,
-}: {
-  gemValue: number;
-  onChange: (gems: number) => void;
-  gemsPerUsd: number;
-  id?: string;
-  disabled?: boolean;
-}) {
-  const usd = useMemo(() => money("usd", gemsPerUsd), [gemsPerUsd]);
-  return (
-    <MoneyInput
-      id={id}
-      m={usd}
-      gemValue={gemValue}
-      onChange={onChange}
-      disabled={disabled}
-    />
-  );
-}
 
 export default function App() {
   /*
@@ -373,6 +166,11 @@ export default function App() {
   // to end somewhere, and how long you intend to play is a real input.
   const [maxEvents, setMaxEvents] = useState(initial.maxEvents);
   const [tab, setTab] = useState<Tab>(initial.tab);
+  // Which Set Mastery season the Mastery tab prices.
+  const [masterySlug, setMasterySlug] = useState(initial.masterySlug);
+  // Resolved here rather than in the tab, since the picker sits beside the
+  // event and the tab is only one of the two things reading it.
+  const masteryTrack = masteryBySlug(masterySlug) ?? CURRENT_MASTERY_TRACK;
   /*
    * Whether the ending total is shown as one figure or as what it is made of.
    * Deliberately not in the shared state beside `tab`: the link format is
@@ -414,6 +212,7 @@ export default function App() {
     startingGold,
     maxEvents,
     tab,
+    masterySlug,
     unit,
     gemsPerUsd,
   });
@@ -589,6 +388,15 @@ export default function App() {
     playInValue: `${uid}-play-in-value`,
     playBoxValue: `${uid}-play-box-value`,
     collectorBoxValue: `${uid}-collector-box-value`,
+    draftTokenValue: `${uid}-draft-token-value`,
+    mythicIcrValue: `${uid}-mythic-icr-value`,
+    rareCardValue: `${uid}-rare-card-value`,
+    uncommonIcrValue: `${uid}-uncommon-icr-value`,
+    orbValue: `${uid}-orb-value`,
+    cardStyleValue: `${uid}-card-style-value`,
+    sleeveValue: `${uid}-sleeve-value`,
+    avatarValue: `${uid}-avatar-value`,
+    companionValue: `${uid}-companion-value`,
     trials: `${uid}-trials`,
     bankrollRuns: `${uid}-bankroll-runs`,
     seed: `${uid}-seed`,
@@ -597,6 +405,8 @@ export default function App() {
     maxEvents: `${uid}-max-events`,
     gemsPerUsd: `${uid}-gems-per-usd`,
     confMatches: `${uid}-conf-matches`,
+    masterySeason: `${uid}-mastery-season`,
+    masteryPrice: `${uid}-mastery-price`,
     resultTabs: `${uid}-results`,
     viewTabs: `${uid}-view`,
     topUpTitle: `${uid}-top-up-title`,
@@ -722,6 +532,7 @@ export default function App() {
     setStartingGold(next.startingGold);
     setMaxEvents(next.maxEvents);
     setTab(next.tab);
+    setMasterySlug(next.masterySlug);
     setUnit(next.unit);
     setGemsPerUsd(next.gemsPerUsd);
     setAdvancedReset("Advanced settings reset to defaults");
@@ -1581,6 +1392,52 @@ export default function App() {
               </details>
             </div>
           </div>
+
+          {/*
+            Beside the event rather than on the tab it feeds, so every input the
+            page has is in one column. The cost is disabled because it is the
+            season's own figure — Wizards sets it per pass, and it has moved
+            before — but it is shown rather than hidden, since it is the thing
+            the Mastery tab prices everything against.
+          */}
+          <div className="card">
+            <div className="card-body">
+              <h2 className="section-title">Mastery</h2>
+
+              <div className="row g-2">
+                <div className="col-7">
+                  <label htmlFor={ids.masterySeason} className="form-label">
+                    Mastery season
+                  </label>
+                  <select
+                    id={ids.masterySeason}
+                    className="form-select"
+                    value={masteryTrack.slug}
+                    onChange={(e) => setMasterySlug(e.target.value)}
+                  >
+                    {MASTERY_TRACKS.map((t) => (
+                      <option key={t.slug} value={t.slug}>
+                        {t.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="col-5">
+                  <label htmlFor={ids.masteryPrice} className="form-label">
+                    Pass cost
+                  </label>
+                  {/* The payout editor's gem field, so a gem amount looks the
+                      same wherever it is entered or shown. */}
+                  <GemInput
+                    id={ids.masteryPrice}
+                    disabled
+                    value={masteryTrack.priceGems}
+                    onChange={() => {}}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="col-lg-8">
@@ -1607,8 +1464,15 @@ export default function App() {
               />
 
               <TabPanel group={ids.resultTabs} active={tab}>
+              {/*
+                The last branch is the per-event panel rather than a
+                `tab === "event"` test, so a tab added above without its own
+                rung here renders that panel silently. Add the rung.
+              */}
               {tab === "about" ? (
                 <About config={config} m={m} />
+              ) : tab === "mastery" ? (
+                <Mastery track={masteryTrack} config={config} m={m} />
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
@@ -2065,6 +1929,171 @@ export default function App() {
                       gemsPerUsd={gemsPerUsd}
                       gemValue={config.collectorBoxValueGems}
                       onChange={(n) => set("collectorBoxValueGems", n)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/*
+                The Mastery tab's rates, which no event ladder pays. Kept in
+                their own group rather than mixed into the reward values above:
+                these price a season's pass, and the four cosmetics are all zero
+                by default, so a reader scanning the group above should not have
+                to wonder why five of its fields do nothing.
+              */}
+              <div className="adv-group mb-3">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <h3 className="section-title mb-0">Mastery rewards</h3>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() =>
+                      update({
+                        ...config,
+                        draftTokenValueGems: 0,
+                        mythicIcrValueGems: 0,
+                        rareCardValueGems: 0,
+                        uncommonIcrValueGems: 0,
+                      })
+                    }
+                  >
+                    Zero these out
+                  </button>
+                </div>
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label htmlFor={ids.draftTokenValue} className="form-label">
+                      Draft token value ({m.label})
+                      <InfoTip
+                        label="About draft token value"
+                        content="A Player Draft token is redeemable for a Premier or Traditional Draft entry, both of which cost 1,500 gems — so it is priced at the entry it replaces. That holds if you would have drafted anyway; if you would not, what the entry returns is the better figure, and at most win rates it is smaller."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.draftTokenValue}
+                      m={m}
+                      gemValue={config.draftTokenValueGems}
+                      onChange={(n) => set("draftTokenValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.mythicIcrValue} className="form-label">
+                      Mythic ICR value ({m.label})
+                      <InfoTip
+                        label="About mythic ICR value"
+                        content="Arena's published duplicate protection: a mythic you already hold four of converts to 40 gems. Higher than a pack because a card reward has no rare slot to lose to a wildcard."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.mythicIcrValue}
+                      m={m}
+                      gemValue={config.mythicIcrValueGems}
+                      onChange={(n) => set("mythicIcrValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.rareCardValue} className="form-label">
+                      Rare card value ({m.label})
+                      <InfoTip
+                        label="About rare card value"
+                        content="The published rare buyout, 20 gems on a complete collection."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.rareCardValue}
+                      m={m}
+                      gemValue={config.rareCardValueGems}
+                      onChange={(n) => set("rareCardValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.uncommonIcrValue} className="form-label">
+                      Uncommon ICR value ({m.label})
+                      <InfoTip
+                        label="About uncommon ICR value"
+                        content="An uncommon has no gem buyout, so this is only its 5% chance of upgrading to a rare — about 1.1 gems. It is what every mastery level past the cap pays."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.uncommonIcrValue}
+                      m={m}
+                      gemValue={config.uncommonIcrValueGems}
+                      onChange={(n) => set("uncommonIcrValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.orbValue} className="form-label">
+                      Mastery Orb value ({m.label})
+                      <InfoTip
+                        label="About Mastery Orb value"
+                        content="Zero by default, for want of anything to derive a figure from: an orb buys a card style or an avatar in the Mastery Emporium, and neither has a gem price."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.orbValue}
+                      m={m}
+                      gemValue={config.orbValueGems}
+                      onChange={(n) => set("orbValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.cardStyleValue} className="form-label">
+                      Card style value ({m.label})
+                      <InfoTip
+                        label="About card style value"
+                        content="Cosmetic, so zero by default. Nothing in Arena converts a style to currency."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.cardStyleValue}
+                      m={m}
+                      gemValue={config.cardStyleValueGems}
+                      onChange={(n) => set("cardStyleValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.sleeveValue} className="form-label">
+                      Card sleeve value ({m.label})
+                      <InfoTip
+                        label="About card sleeve value"
+                        content="Cosmetic, so zero by default."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.sleeveValue}
+                      m={m}
+                      gemValue={config.sleeveValueGems}
+                      onChange={(n) => set("sleeveValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.avatarValue} className="form-label">
+                      Avatar value ({m.label})
+                      <InfoTip
+                        label="About avatar value"
+                        content="Cosmetic, so zero by default."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.avatarValue}
+                      m={m}
+                      gemValue={config.avatarValueGems}
+                      onChange={(n) => set("avatarValueGems", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.companionValue} className="form-label">
+                      Companion value ({m.label})
+                      <InfoTip
+                        label="About companion value"
+                        content="Cosmetic, so zero by default."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.companionValue}
+                      m={m}
+                      gemValue={config.companionValueGems}
+                      onChange={(n) => set("companionValueGems", n)}
                     />
                   </div>
                 </div>

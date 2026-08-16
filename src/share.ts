@@ -20,8 +20,10 @@
 
 import type { Unit } from "./format";
 import {
+  CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
   PRESETS,
+  masteryBySlug,
   configFromPreset,
   defaultConfig,
   maxPossibleWins,
@@ -31,7 +33,7 @@ import {
   type PayoutTier,
 } from "./lib";
 
-export type Tab = "bankroll" | "event" | "about";
+export type Tab = "bankroll" | "event" | "mastery" | "about";
 
 /** Everything a link restores. */
 export type ShareState = {
@@ -48,6 +50,13 @@ export type ShareState = {
   startingGold: number;
   maxEvents: number;
   tab: Tab;
+  /**
+   * Which Set Mastery season the Mastery tab prices, by its stable slug.
+   *
+   * A slug rather than a name because it is the thing that has to survive a
+   * relabelling, and it is what the URL carries either way.
+   */
+  masterySlug: string;
   unit: Unit;
   gemsPerUsd: number;
 };
@@ -117,6 +126,7 @@ export function defaultShareState(): ShareState {
     startingGold: 0,
     maxEvents: 20,
     tab: "bankroll",
+    masterySlug: CURRENT_MASTERY_TRACK.slug,
     unit: "gems",
     gemsPerUsd: 200,
   };
@@ -162,6 +172,7 @@ export function resetAdvanced(state: ShareState): ShareState {
     maxEvents: state.maxEvents,
     // Where the page is pointed, which is not a setting to restore.
     tab: state.tab,
+    masterySlug: state.masterySlug,
     unit: state.unit,
   };
 }
@@ -223,6 +234,21 @@ const CONFIG_NUMBERS = [
   ["playInValue", "playInPointValueGems"],
   ["playBoxValue", "playBoxValueGems"],
   ["collectorBoxValue", "collectorBoxValueGems"],
+  /*
+   * The mastery rates. Nothing but the Mastery tab reads them, but they are
+   * ordinary reward values sitting in Advanced settings beside the rest, and a
+   * link that restored every rate except these would be lying about what it
+   * carries. They only ever appear in a URL once someone has changed one.
+   */
+  ["draftTokenValue", "draftTokenValueGems"],
+  ["mythicIcrValue", "mythicIcrValueGems"],
+  ["rareCardValue", "rareCardValueGems"],
+  ["uncommonIcrValue", "uncommonIcrValueGems"],
+  ["orbValue", "orbValueGems"],
+  ["cardStyleValue", "cardStyleValueGems"],
+  ["sleeveValue", "sleeveValueGems"],
+  ["avatarValue", "avatarValueGems"],
+  ["companionValue", "companionValueGems"],
   // The field became `otherGoldPerDay` when daily-win gold started coming off
   // the ladder instead. The parameter keeps its old spelling deliberately —
   // renaming it would strand every link already written, and the mapping is
@@ -360,6 +386,9 @@ export function encodeShareState(state: ShareState): string {
   }
 
   if (state.tab !== fallback.tab) params.set("tab", state.tab);
+  if (state.masterySlug !== fallback.masterySlug) {
+    params.set("mastery", state.masterySlug);
+  }
   if (state.unit !== fallback.unit) params.set("unit", state.unit);
 
   return params.toString();
@@ -449,7 +478,20 @@ export function decodeShareState(search: string): ShareState {
       max: SIM_LIMITS.maxEvents,
       int: true,
     }),
-    tab: oneOf<Tab>(params, "tab", ["bankroll", "event", "about"], fallback.tab),
+    /*
+     * The allow-list is a runtime one, and TypeScript will not check it against
+     * `Tab`: `oneOf<T>` takes `readonly T[]`, which a subset satisfies. A tab
+     * missing from here compiles cleanly and silently falls back to Bankroll,
+     * so the list and the union have to be kept in step by hand.
+     */
+    tab: oneOf<Tab>(params, "tab", ["bankroll", "event", "mastery", "about"], fallback.tab),
+    /*
+     * Checked against the tracks that exist rather than taken as written, so a
+     * link naming a season this build does not carry falls back to the current
+     * one instead of pricing nothing.
+     */
+    masterySlug:
+      masteryBySlug(params.get("mastery") ?? "")?.slug ?? fallback.masterySlug,
     unit: oneOf<Unit>(params, "unit", ["gems", "usd"], fallback.unit),
     gemsPerUsd: numberFrom(params, "gemsPerUsd", fallback.gemsPerUsd, { min: 1 }),
   };

@@ -1,5 +1,6 @@
 /**
- * Domain types for an MTG Arena limited event.
+ * Domain types for an MTG Arena limited event, and for the Set Mastery track
+ * that runs alongside one.
  *
  * Two event shapes are supported:
  *
@@ -7,6 +8,11 @@
  *    whichever lands first (Premier, Quick, Cube, Pick Two).
  *  - `rounds` — play a fixed number of rounds regardless of record, with no
  *    early exit (Traditional Draft).
+ *
+ * The mastery types at the foot are a season rather than an event: indexed by
+ * level, not by win count, and bought once rather than entered repeatedly. They
+ * live here for the same reason `EventPreset` does — the data modules import the
+ * type and the model imports the data, so a third home would be a cycle.
  */
 
 export type PayoutTier = {
@@ -108,6 +114,31 @@ export type EventConfig = {
   playBoxValueGems: number;
   /** Gem value assigned to one physical Collector Booster box. */
   collectorBoxValueGems: number;
+  /**
+   * Gem value of one Player Draft token — a free Premier Draft entry.
+   *
+   * Only the Mastery Pass pays these; no event ladder does. Kept on the config
+   * with the other rates so it is editable in the same place as the rest.
+   */
+  draftTokenValueGems: number;
+  /** Gem value of one mythic rare individual card reward. */
+  mythicIcrValueGems: number;
+  /** Gem value of one rare card award. */
+  rareCardValueGems: number;
+  /** Gem value of one uncommon individual card reward. */
+  uncommonIcrValueGems: number;
+  /**
+   * Gem value of one Mastery Orb, and of each cosmetic kind below.
+   *
+   * All default to zero, and they are separate fields rather than one because a
+   * single "cosmetics" rate would hide what is being zeroed. Someone who thinks
+   * a sleeve is worth something can say so without also repricing orbs.
+   */
+  orbValueGems: number;
+  cardStyleValueGems: number;
+  sleeveValueGems: number;
+  avatarValueGems: number;
+  companionValueGems: number;
   /** Payout table, one entry per possible win count (0..maxPossibleWins). */
   payouts: PayoutTier[];
 };
@@ -194,4 +225,91 @@ export type SimResult = {
   /** Mean gems actually paid to enter, after gold-funded entries. */
   meanEntryGems: number;
   percentiles: { p5: number; p25: number; p50: number; p75: number; p95: number };
+};
+
+/**
+ * Everything a Set Mastery track can pay.
+ *
+ * A superset of what an event pays, because the pass hands out things no ladder
+ * does — card rewards, an event token, and a great deal of cosmetics. The
+ * cosmetic kinds are listed separately even though all four price at zero by
+ * default: one `cosmetics` kind would fold thirty orbs and fifteen card styles
+ * into a single silent row, and it is seeing them counted that makes the zero
+ * an admission rather than an omission.
+ */
+export const MASTERY_REWARD_KINDS = [
+  "gems",
+  "gold",
+  "packs",
+  "draftToken",
+  "mythicIcr",
+  "rareCard",
+  "uncommonIcr",
+  "orbs",
+  "cardStyles",
+  "sleeves",
+  "avatars",
+  "companions",
+] as const;
+
+export type MasteryRewardKind = (typeof MASTERY_REWARD_KINDS)[number];
+
+/**
+ * What one cell pays, by kind. An absent kind is none of it.
+ *
+ * A record rather than a list of `{ kind, count }` pairs because the track is
+ * hand-maintained: `{ cardStyles: 1, orbs: 1 }` is a row somebody can check
+ * against Wizards' page at a glance, and the pair form of the same thing is
+ * three times as long across forty-five rows.
+ */
+export type MasteryRewards = Partial<Record<MasteryRewardKind, number>>;
+
+/** One column's cell at one level: what Wizards printed, and what it is worth. */
+export type MasteryColumn = {
+  /**
+   * The cell's text, verbatim from Wizards' table.
+   *
+   * Kept beside the parsed rewards for two reasons. It is what the reward table
+   * shows, so a reader sees "Bilbo Baggins, Burglar Card Style, Orb" rather than
+   * a lossy re-rendering of the counts; and it is the provenance, so the whole
+   * track can be diffed against the page when the set turns over. A non-empty
+   * `text` with empty `rewards` is a row somebody copied and forgot to parse,
+   * which is a test rather than a comment.
+   */
+  text: string;
+  rewards: MasteryRewards;
+};
+
+export type MasteryLevel = {
+  level: number;
+  free: MasteryColumn;
+  pass: MasteryColumn;
+};
+
+/** A season's Set Mastery, as stored in src/data/mastery. */
+export type MasteryTrack = {
+  /** What the picker calls it — the set, not the full product name. */
+  name: string;
+  /**
+   * The token that names this track in a URL.
+   *
+   * Written out rather than derived from `name`, so rewording the label cannot
+   * silently retarget every link that already names this season. Once shipped it
+   * is fixed; a season is not renamed, it is superseded.
+   */
+  slug: string;
+  /**
+   * What this pass was sold for.
+   *
+   * On the track rather than as a global constant: the price is a property of a
+   * particular season, and it has moved before.
+   */
+  priceGems: number;
+  /** Last level the free track pays at. */
+  freeCap: number;
+  /** Last level the pass track pays a listed reward at. */
+  passCap: number;
+  levels: MasteryLevel[];
+  /** What each level past `passCap` pays, repeating without end. */
+  beyond: MasteryRewards;
 };

@@ -46,6 +46,23 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   playInPointValueGems: 201,
   playBoxValueGems: 1,
   collectorBoxValueGems: 2,
+  /*
+   * The mastery rates. Nothing the workers simulate reads them — they price a
+   * season's pass, not an event — so they are in the key only because the key is
+   * the whole config, and the cost of that is a cache miss on a change that
+   * could not have moved the result. Cheap next to the alternative, which is a
+   * field silently absent from the key and two different configs sharing an
+   * answer.
+   */
+  draftTokenValueGems: 1501,
+  mythicIcrValueGems: 41,
+  rareCardValueGems: 21,
+  uncommonIcrValueGems: 2,
+  orbValueGems: 1,
+  cardStyleValueGems: 2,
+  sleeveValueGems: 3,
+  avatarValueGems: 4,
+  companionValueGems: 5,
   payouts: [{ wins: 0, gems: 999, packs: 0 }],
 };
 

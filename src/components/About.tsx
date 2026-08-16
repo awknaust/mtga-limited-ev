@@ -78,6 +78,56 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
               <td>No</td>
               <td>{show(m, config.collectorBoxValueGems)} each</td>
             </tr>
+            {/* Below here nothing is paid by an event ladder — these are the
+                Mastery Pass's rewards, and they are priced on the Mastery tab
+                alone. They sit in this table anyway because the heading above
+                promises every rate is here and editable, and a rate that was
+                neither would make that sentence false. */}
+            <tr>
+              <td>Player Draft token</td>
+              <td>No</td>
+              <td>{show(m, config.draftTokenValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Mythic rare ICR</td>
+              <td>No</td>
+              <td>{show(m, config.mythicIcrValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Rare card</td>
+              <td>No</td>
+              <td>{show(m, config.rareCardValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Uncommon ICR</td>
+              <td>No</td>
+              <td>{show(m, config.uncommonIcrValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Mastery Orb</td>
+              <td>No</td>
+              <td>{show(m, config.orbValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Card style</td>
+              <td>No</td>
+              <td>{show(m, config.cardStyleValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Card sleeve</td>
+              <td>No</td>
+              <td>{show(m, config.sleeveValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Avatar</td>
+              <td>No</td>
+              <td>{show(m, config.avatarValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Companion</td>
+              <td>No</td>
+              <td>{show(m, config.companionValueGems)} each</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -218,6 +268,18 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
           understated.
         </li>
         <li>Tax withholding on cash prizes, which Arena Direct's terms mention.</li>
+        <li>
+          Whether you finish a Mastery Pass. The Mastery tab prices the whole
+          track, so it answers what the pass is worth if you complete it. How
+          much experience a season of your play earns is not modelled, because
+          Wizards publishes where experience comes from — quests and weekly wins
+          — but none of the amounts.
+        </li>
+        <li>
+          What a cosmetic is worth. Orbs, card styles, sleeves, avatars and
+          companions are counted and priced at nothing, since nothing in Arena
+          converts one to currency. Each has its own rate if you disagree.
+        </li>
       </ul>
 
     </div>
