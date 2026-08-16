@@ -122,45 +122,34 @@ Styles/cosmetics past the published rows have no printed names — record them
 identity is inferred by elimination (e.g. which of three named companions),
 the *kind* is observed but the *name* is yours: say so in the row's comment.
 
-## 6. Wiring checklist (the code side)
+## 6. Wiring pointers (the code side)
 
-Read `src/data/mastery/the-hobbit.ts` first — it is the template, including
-the provenance doc-comment style (sources, read date, corrections, what is
-inferred vs seen).
+The code moves; the newest season's data module under `src/data/mastery/` is
+the template, and grepping for its identifiers finds everything that has to
+know a season exists. A few principles outlive any layout:
 
-1. **Data module** `src/data/mastery/<slug>.ts`: `name` (display, the set),
-   `slug` (**stable forever** — it is the URL token; never derive it from the
-   name), `priceGems`, `freeCap`, `passCap`, `levels` 1..passCap contiguous,
-   `beyond`.
-2. **Register** in `src/lib/mastery.ts`: add to `MASTERY_TRACKS`, newest
-   first. `CURRENT_MASTERY_TRACK` is `[0]`, so ordering is what makes the new
-   season the default.
-3. **Tests** in `src/lib/mastery.test.ts`: a reconciliation block for the new
-   season pinning the published totals kind-by-kind, contiguity 1..passCap,
-   caps, price, and "non-empty `text` ⇒ non-empty `rewards`" (catches a row
-   pasted but not parsed). Keep the Hobbit's tests — old seasons are
-   regression anchors.
-4. **URL contract**: the share test asserting `MASTERY_TRACKS` has length 1
-   ("keeps the mastery season out of a link while there is only one") **will
-   fail — that is its job**, as a reminder. Replace it with the two-season
-   truth (only a non-default season writes `mastery=`), and add a corpus entry
-   `["mastery <slug>", "?tab=mastery&mastery=<slug>"]` to
-   `share.compat.test.ts`. The snapshot re-record must add entries and move
-   none; if an existing entry moves, find out whose change that is first
-   (CLAUDE.md names this file as a two-agent collision point).
-5. **Default drift**: making the new season the default changes what a bare
-   `?tab=mastery` link shows. That is intended (Arena has moved on too), but
-   the corpus entry for the *old* season is what keeps old links restorable —
-   which is why step 4's corpus entry matters even for the outgoing season.
-6. **New reward kind only** (e.g. a pass that pays wildcards): add to
-   `MASTERY_REWARD_KINDS` (types.ts) → the `masteryRate` switch makes the
-   build fail until a case exists (that is deliberate — no `default:`) → rate
-   field on `EventConfig` → default constant in presets.ts with a derivation
-   comment in the house style (duplicate-protection values are the usual
-   basis; cosmetics default to 0) → `defaultConfig` → Advanced settings input
-   in App.tsx → About rate-table row → `CONFIG_NUMBERS` in share.ts → label in
-   `MASTERY_REWARD_LABELS` → `.slice-<kind>` colour in styles.css (the split
-   bar drops zero-worth slices, but a priced kind must not draw uncoloured).
+- **The season's URL slug is forever.** It is written out on the track rather
+  than derived from the display name, so a relabelling cannot retarget links.
+  Pick it once, never change it.
+- **Old seasons stay.** They are regression anchors for the model and keep old
+  links restorable. Adding a season is adding, not replacing — though the
+  newest one becomes the default the app opens on.
+- **Write the reconciliation tests (§2) before any UI**, pinning the published
+  totals kind-by-kind, plus contiguity of levels, the caps, the price, and
+  "non-empty `text` ⇒ non-empty `rewards`" (a row pasted but never parsed is
+  otherwise invisible).
+- **Expect a share/URL test to fail deliberately.** The link contract pins the
+  set of seasons, so adding one trips a guard — that is the reminder to extend
+  the contract (a corpus entry for the new slug) rather than a bug. Re-record
+  snapshots additively: an *existing* entry moving is someone else's change,
+  per CLAUDE.md.
+- **A genuinely new reward kind** (say, wildcards) is the expensive case: it
+  needs a place in the reward-kind union, a rate the user can edit, a default
+  with a derivation comment in the house style (duplicate-protection values
+  are the usual basis; cosmetics default to 0), and a URL parameter. The kind
+  union is deliberately exhaustive — adding to it makes the build fail at each
+  switch that must handle it, so follow the compiler, then grep an existing
+  kind for the non-compiled stragglers (labels, UI inputs, chart colours).
 
 ## 7. Verify
 
