@@ -12,12 +12,23 @@ import {
   type BankrollResult,
   type EventConfig,
   type HoldingKey,
+  type MasteryRewardKind,
+  type MasteryValue,
   type WinBucket,
 } from "../lib";
 
+/**
+ * What a segment can be.
+ *
+ * Holdings for the two event bars, mastery rewards for the pass's. The union
+ * rather than a bare string because the key names a colour — `.slice-<key>` in
+ * the stylesheet — and a typo would silently draw an uncoloured segment.
+ */
+export type ValueSliceKey = HoldingKey | MasteryRewardKind;
+
 /** One component of a total: what it is, how much of it, and what it came to. */
 export type ValueSlice = {
-  key: HoldingKey;
+  key: ValueSliceKey;
   label: string;
   /** Gem-equivalent value, and what sizes the segment. */
   worth: number;
@@ -66,6 +77,25 @@ export function grossSlices(
 }
 
 /**
+ * What a Mastery Pass pays, as slices of its total value.
+ *
+ * Reads the breakdown rows the tab already builds, so the bar and the table
+ * below it cannot disagree — both are `masteryValue`'s `lines`. Zero-valued
+ * rows drop out, which at the default rates is every cosmetic: they stay
+ * counted in the table and simply have no share of a bar about worth.
+ */
+export function masterySlices(value: MasteryValue): ValueSlice[] {
+  return value.lines
+    .filter((line) => line.gems > 0)
+    .map((line) => ({
+      key: line.kind,
+      label: line.label,
+      worth: line.gems,
+      amount: line.passCount,
+    }));
+}
+
+/**
  * What a total is made of, at the size of a rule under the figure itself.
  *
  * The tile above says what something comes to; this says where that came
@@ -93,7 +123,7 @@ export function grossSlices(
  * `aria-label` for anyone who cannot hover at all.
  */
 export function ValueSplitBar({ slices, m }: { slices: ValueSlice[]; m: Money }) {
-  const [hovered, setHovered] = useState<HoldingKey | null>(null);
+  const [hovered, setHovered] = useState<ValueSliceKey | null>(null);
 
   const total = slices.reduce((acc, s) => acc + s.worth, 0);
   // One segment is a bar of a single colour, which states the obvious.

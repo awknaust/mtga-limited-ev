@@ -2,6 +2,7 @@ import { REAL_GEMS, approx, type Money } from "../format";
 import { masteryValue, type EventConfig, type MasteryTrack } from "../lib";
 import { SectionHeading } from "./SectionHeading";
 import { StatStrip } from "./StatStrip";
+import { ValueSplitBar, masterySlices } from "./ValueSplitBar";
 import type { StatTile } from "./Stat";
 
 /**
@@ -60,6 +61,20 @@ export function Mastery({
       hint: `for ${price}`,
     },
     {
+      key: "pass",
+      label: "Pass value",
+      help: {
+        label: "What the pass value figure means",
+        content:
+          "Everything on the Mastery Pass track, valued at the rates in Advanced settings, over the whole season.",
+      },
+      value: gemsEq(v.pass),
+      // No hint: the bar underneath is what the figure cannot say on its own.
+      // A pass worth mostly gems and one worth mostly packs read alike as a
+      // number, and they are not the same offer.
+      children: <ValueSplitBar slices={masterySlices(v)} m={m} />,
+    },
+    {
       key: "breakEven",
       label: "Break-even level",
       help: {
@@ -73,17 +88,6 @@ export function Mastery({
         v.breakEvenLevel === null
           ? "never, at these values"
           : "where the pass has paid for itself",
-    },
-    {
-      key: "pass",
-      label: "Pass value",
-      help: {
-        label: "What the pass value figure means",
-        content:
-          "Everything on the Mastery Pass track, valued at the rates in Advanced settings, over the whole season.",
-      },
-      value: gemsEq(v.pass),
-      hint: "everything the pass track pays",
     },
     {
       key: "free",

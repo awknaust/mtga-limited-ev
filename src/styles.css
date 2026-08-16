@@ -663,6 +663,51 @@ body {
 }
 
 /*
+ * The Mastery Pass's rewards, which no event pays and which therefore never
+ * share a bar with the holdings above. Hues are reused across the two sets for
+ * that reason — what must stay distinct is the segments within one bar.
+ *
+ * The cosmetics are here despite being worth nothing by default: the bar drops
+ * a zero-valued slice, so these only ever draw for someone who has priced them,
+ * and that someone should not get an uncoloured segment for their trouble.
+ */
+.slice-draftToken {
+  --slice: #a78bfa;
+}
+
+.slice-mythicIcr {
+  --slice: #f472b6;
+}
+
+.slice-rareCard {
+  --slice: #fb923c;
+}
+
+.slice-uncommonIcr {
+  --slice: #94a3b8;
+}
+
+.slice-orbs {
+  --slice: #2dd4bf;
+}
+
+.slice-cardStyles {
+  --slice: #c084fc;
+}
+
+.slice-sleeves {
+  --slice: #f87171;
+}
+
+.slice-avatars {
+  --slice: #38bdf8;
+}
+
+.slice-companions {
+  --slice: #a3e635;
+}
+
+/*
  * Its axis labels. Positioned rather than spaced, because each one has to sit
  * where its value falls along a chart that is stretched to the card's width —
  * a flex row would space them evenly and put every one of them in the wrong
