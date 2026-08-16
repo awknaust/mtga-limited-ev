@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  SIM_LIMITS,
   decodePayouts,
   decodeShareState,
   defaultShareState,
@@ -388,10 +389,18 @@ describe("input from a URL is not trusted", () => {
     expect(decodeShareState("seed=").seed).toBe(fallback.seed);
   });
 
-  it("holds the trial and event ceilings the inputs hold", () => {
-    expect(decodeShareState("trials=99999999").trials).toBe(5_000_000);
+  /*
+   * The same ceilings the Advanced fields clamp to, which is why they are
+   * asserted through `SIM_LIMITS` rather than as literals: a link and the
+   * field it fills disagreeing is the failure worth catching, not the
+   * particular number either of them lands on.
+   */
+  it("holds the ceilings the inputs hold", () => {
+    expect(decodeShareState("trials=999999999").trials).toBe(SIM_LIMITS.trials);
     expect(decodeShareState("trials=0").trials).toBe(1);
-    expect(decodeShareState("maxEvents=99999").maxEvents).toBe(2000);
+    expect(decodeShareState("runs=9999999").bankrollRuns).toBe(SIM_LIMITS.bankrollRuns);
+    expect(decodeShareState("runs=0").bankrollRuns).toBe(1);
+    expect(decodeShareState("maxEvents=99999").maxEvents).toBe(SIM_LIMITS.maxEvents);
   });
 
   it("keeps the preset's ladder when the payout table is malformed", () => {
