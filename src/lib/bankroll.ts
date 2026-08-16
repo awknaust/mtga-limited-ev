@@ -12,7 +12,14 @@
  */
 
 import { exactDistribution } from "./distribution";
-import { BOX_KEYS, HOLDING_KEYS, holding, paysBoxes, type HoldingKey } from "./holdings";
+import { priceTiers, tierBoxesAt } from "./boxes";
+import {
+  HOLDING_KEYS,
+  holding,
+  holdingRate,
+  paysBoxes,
+  type HoldingKey,
+} from "./holdings";
 import { goldPerEvent, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
@@ -87,7 +94,7 @@ export type BankrollResult = {
  * with is whether they get one, which is a probability, and how much that
  * probability leans on a win rate they are guessing at, which is an interval.
  *
- * Both kinds count together here, for the reason `BOX_KEYS` gives. `holdings`
+ * Both kinds count together here, for the reason `boxesWon` gives. `holdings`
  * still reports them apart, and it should — a collector box is worth several
  * play boxes.
  */
@@ -126,10 +133,21 @@ export type HoldingTotals = {
   min: number;
   max: number;
   histogram: Bin[];
+  /**
+   * Mean gem-equivalent value of this holding across runs.
+   *
+   * Reported rather than left to the caller because `mean × rate` is no longer
+   * the answer: a ladder can pay play boxes of two different sets, so there is
+   * no one rate a count multiplies by. Carrying the value each run actually
+   * held is what keeps the breakdown adding up — these sum to
+   * `meanFinalValue` by construction, since `runValue` is the same sum taken
+   * one run at a time.
+   */
+  worth: number;
 };
 
 /** Summarise one holding's run totals. Takes the sample already sorted. */
-function totalsOf(sorted: number[], whole: boolean): HoldingTotals {
+function totalsOf(sorted: number[], whole: boolean, worth: number): HoldingTotals {
   return {
     mean: sorted.length ? sorted.reduce((a, b) => a + b, 0) / sorted.length : 0,
     median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0,
@@ -137,6 +155,7 @@ function totalsOf(sorted: number[], whole: boolean): HoldingTotals {
     min: sorted.length ? sorted[0] : 0,
     max: sorted.length ? sorted[sorted.length - 1] : 0,
     histogram: whole ? binnedWhole(sorted) : binned(sorted, 16),
+    worth,
   };
 }
 
@@ -224,6 +243,17 @@ export type BankrollRun = {
   playInPoints: number;
   playBoxes: number;
   collectorBoxes: number;
+  /**
+   * What those boxes were worth, tallied as they were won.
+   *
+   * Kept beside the counts rather than derived from them, because a count
+   * cannot be priced after the fact: two play boxes might be one set's and one
+   * another's, at different prices. The count is still what the breakdown
+   * shows — nobody wants to read "0.21 boxes" as a sum of gems — so both are
+   * carried.
+   */
+  playBoxGems: number;
+  collectorBoxGems: number;
   /** True if the run was cut short by the cap rather than by going broke. */
   survived: boolean;
   /** Present only when the run was asked to record itself. */
@@ -248,6 +278,12 @@ export function simulateBankroll(
    * single run asked for on its own.
    */
   pMatch = matchWinRate(config),
+  /**
+   * The ladder's boxes counted and priced per win count, where the caller is
+   * playing many runs off one config. Pricing a box is a lookup by set code,
+   * and the loop below runs once per event across every run.
+   */
+  priced = priceTiers(config),
 ): BankrollRun {
   const takesGold = config.entryCostGold > 0;
   /*
@@ -268,6 +304,8 @@ export function simulateBankroll(
   let playInPoints = 0;
   let playBoxes = 0;
   let collectorBoxes = 0;
+  let playBoxGems = 0;
+  let collectorBoxGems = 0;
   const log: EventLog[] = [];
 
   while (events < bankroll.maxEvents) {
@@ -286,8 +324,11 @@ export function simulateBankroll(
     packs += tier.packs;
     draftPacks += config.draftPacks;
     playInPoints += tier.playInPoints ?? 0;
-    playBoxes += tier.playBoxes ?? 0;
-    collectorBoxes += tier.collectorBoxes ?? 0;
+    const boxes = tierBoxesAt(priced, wins);
+    playBoxes += boxes.playBoxes;
+    collectorBoxes += boxes.collectorBoxes;
+    playBoxGems += boxes.playBoxGems;
+    collectorBoxGems += boxes.collectorBoxGems;
     gold += goldEarned;
     events++;
     // After the gold accrual, so a row's balances are what you would hold
@@ -303,8 +344,8 @@ export function simulateBankroll(
         gems: tier.gems,
         packs: tier.packs,
         playInPoints: tier.playInPoints ?? 0,
-        playBoxes: tier.playBoxes ?? 0,
-        collectorBoxes: tier.collectorBoxes ?? 0,
+        playBoxes: boxes.playBoxes,
+        collectorBoxes: boxes.collectorBoxes,
         gemBalance: gems,
         goldBalance: gold,
       });
@@ -322,6 +363,8 @@ export function simulateBankroll(
     playInPoints,
     playBoxes,
     collectorBoxes,
+    playBoxGems,
+    collectorBoxGems,
     survived: events >= bankroll.maxEvents,
     log: record ? log : undefined,
   };
@@ -387,22 +430,36 @@ function heldBy(run: BankrollRun, key: HoldingKey): number {
 }
 
 /**
+ * Gem-equivalent value of one holding at the end of a run.
+ *
+ * Everything but the boxes is an amount times a rate. Boxes were priced as
+ * they were won, because a run can hold two boxes worth different amounts and
+ * there is no rate that makes that a multiplication.
+ */
+export function heldValue(
+  config: EventConfig,
+  run: BankrollRun,
+  key: HoldingKey,
+): number {
+  if (key === "playBoxes") return run.playBoxGems;
+  if (key === "collectorBoxes") return run.collectorBoxGems;
+  return heldBy(run, key) * holdingRate(config, key);
+}
+
+/**
  * Gem-equivalent value of everything a run ends holding.
  *
  * Gems, the leftover gold at the config's exchange rate, and every
- * non-currency reward at the rate the config carries. A rate of 0 — valuing
- * gold at nothing — drops the gold term to zero.
+ * non-currency reward at the rate the config carries — boxes at what each was
+ * worth when it was won. A rate of 0 — valuing gold at nothing — drops the
+ * gold term to zero.
+ *
+ * Written as a fold over the holdings rather than a sum of named terms, so
+ * that the breakdown drawn beneath this total is the same arithmetic rather
+ * than a second copy of it that has to be kept in step.
  */
 export function runValue(config: EventConfig, run: BankrollRun): number {
-  const currency = run.finalGems + (run.finalGold * config.gemsPer10kGold) / 10000;
-  return (
-    currency +
-    run.packs * config.packValueGems +
-    run.draftPacks * config.draftPackValueGems +
-    run.playInPoints * config.playInPointValueGems +
-    run.playBoxes * config.playBoxValueGems +
-    run.collectorBoxes * config.collectorBoxValueGems
-  );
+  return HOLDING_KEYS.reduce((acc, key) => acc + heldValue(config, run, key), 0);
 }
 
 /**
@@ -455,7 +512,15 @@ export function bankrollRoi(meanFinalValue: number, startValue: number): number 
   return (meanFinalValue - startValue) / startValue;
 }
 
-/** Boxes a run came away with, both kinds together. */
+/**
+ * Boxes a run came away with, both kinds together.
+ *
+ * Taken as a pair rather than one at a time because what a player is asking is
+ * whether a box turns up, not which kind: a run that won a collector box and a
+ * run that won a play box both came away with a box. The two are still counted
+ * and priced separately everywhere else, since they are worth very different
+ * amounts.
+ */
 const boxesWon = (run: BankrollRun): number => run.playBoxes + run.collectorBoxes;
 
 /**
@@ -470,7 +535,7 @@ const boxesWon = (run: BankrollRun): number => run.playBoxes + run.collectorBoxe
 export function boxChancePerEvent(config: EventConfig, p = matchWinRate(config)): number {
   const dist = exactDistribution(p, config.structure);
   return config.payouts.reduce(
-    (acc, t) => (BOX_KEYS.some((key) => (t[key] ?? 0) > 0) ? acc + (dist[t.wins] ?? 0) : acc),
+    (acc, t) => (t.boxes?.length ? acc + (dist[t.wins] ?? 0) : acc),
     0,
   );
 }
@@ -503,9 +568,12 @@ function probBoxAt(
   seed: number,
 ): number {
   const rand = seededRandom(seed);
+  const priced = priceTiers(config);
   let hits = 0;
   for (let i = 0; i < trials; i++) {
-    if (boxesWon(simulateBankroll(config, bankroll, rand, false, pMatch)) > 0) hits++;
+    if (boxesWon(simulateBankroll(config, bankroll, rand, false, pMatch, priced)) > 0) {
+      hits++;
+    }
   }
   return trials ? hits / trials : 0;
 }
@@ -602,11 +670,12 @@ export function* simulateBankrollsSteps(
    * Null when the rate is called certain, and every run is then played at it.
    */
   const posterior = winRatePosterior(config);
+  const priced = priceTiers(config);
   const runs: BankrollRun[] = [];
   let eventsSinceYield = 0;
   for (let i = 0; i < trials; i++) {
     const pMatch = drawWinRate(config, posterior, rand());
-    const run = simulateBankroll(config, bankroll, rand, i % stride === 0, pMatch);
+    const run = simulateBankroll(config, bankroll, rand, i % stride === 0, pMatch, priced);
     runs.push(run);
     eventsSinceYield += run.events;
     if (eventsSinceYield >= chunkEvents) {
@@ -646,6 +715,7 @@ export function* simulateBankrollsSteps(
         totalsOf(
           runs.map((r) => heldBy(r, key)).sort((a, b) => a - b),
           holding(key).whole,
+          mean((r) => heldValue(config, r, key)),
         ),
       ]),
     ) as Record<HoldingKey, HoldingTotals>,

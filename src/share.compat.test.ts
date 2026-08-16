@@ -34,9 +34,12 @@ import {
 } from "./share";
 import {
   CURRENT_MASTERY_TRACK,
+  DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+  DEFAULT_PLAY_BOX_VALUE_GEMS,
   PRESETS,
   effectiveEntryGems,
   goldPerEvent,
+  grossValue,
   maxPossibleWins,
 } from "./lib";
 
@@ -110,6 +113,22 @@ const CORPUS: [name: string, search: string][] = [
   ["counts above the ceilings", "?trials=999999999&runs=999999&maxEvents=99999"],
   ["mastery tab", "?tab=mastery"],
   ["mastery rates, cosmetics priced", "?tab=mastery&orbValue=5&mythicIcrValue=60&draftTokenValue=0"],
+  /*
+   * Boxes that name their set, which is what a ladder pays once the live feed
+   * can price one. The set codes are the contract here: a link naming `msh`
+   * has to go on meaning a Marvel Super Heroes box, priced from the feed when
+   * it has one and at the generic rate when it does not.
+   */
+  [
+    "custom ladder naming its boxes",
+    "?preset=custom&maxWins=3&maxLosses=2&payouts=0-0_0-0_0-0-play.msh_0-0-play.latest-collector.spm",
+  ],
+  /*
+   * Boxes valued at nothing, which the generic rate says for named boxes too
+   * — otherwise "zero these out" would leave an Arena Direct still paying for
+   * its boxes at market, and this link would stop meaning what it says.
+   */
+  ["arena direct with boxes valued at nothing", "?preset=arena-direct-play&playBoxValue=0"],
 ];
 
 describe("the parameter names are the contract", () => {
@@ -324,6 +343,65 @@ describe("the captured corpus", () => {
     expect(fingerprint(twice)).toBe(fingerprint(once));
     // And canonical form is a fixed point, so an address bar does not churn.
     expect(encodeShareState(twice)).toBe(encodeShareState(once));
+  });
+
+  /*
+   * The one break this file has had to accept deliberately, pinned by value
+   * rather than by spelling.
+   *
+   * Boxes used to be two counts in fixed positions on a payout row, and are
+   * now a list naming what each box is. The canonical spelling of every old
+   * link with a box in it therefore moved, and the snapshots above were
+   * re-recorded for it. What must *not* have moved is what those links are
+   * worth, and a fingerprint showing the payout string cannot say so — an
+   * old count read as one box instead of two would re-encode differently and
+   * look like the same kind of change.
+   *
+   * So this prices the ladder instead, against figures worked out from the
+   * link's own numbers rather than from the decoder: an old link's boxes name
+   * no set, so they are worth the generic rates the link itself spells out.
+   */
+  it("keeps an old positional box link worth exactly what it was worth", () => {
+    const { config } = decodeShareState(CORPUS[6][1]);
+    // From demo 5's own parameters: 132 a pack, 250 a point, 60,000 a play
+    // box, 250,000 a collector box, and four draft packs at 110.
+    const pool = 4 * 110;
+    expect(grossValue(config, 0)).toBe(10 + 1 * 132 + pool);
+    // `4000-3-0-1` — three packs and one play box.
+    expect(grossValue(config, 3)).toBe(4000 + 3 * 132 + 60_000 + pool);
+    // `5000-4-0-0-2` — four packs and two collector boxes.
+    expect(grossValue(config, 4)).toBe(5000 + 4 * 132 + 2 * 250_000 + pool);
+    // `12000-6-4-0-3` — six packs, four points and three collector boxes.
+    expect(grossValue(config, 5)).toBe(
+      12_000 + 6 * 132 + 4 * 250 + 3 * 250_000 + pool,
+    );
+  });
+
+  it("keeps the Arena Direct ladders worth what they were, absent a feed", () => {
+    /*
+     * The presets moved from counting boxes to naming them, so the same
+     * question applies to a link that names one. With no feed — which is what
+     * a decoded link has, since the table is never carried in a URL — a named
+     * box is worth its kind's generic rate, and these come to what they came
+     * to before.
+     */
+    const play = decodeShareState("?preset=arena-direct-play").config;
+    expect(grossValue(play, 6)).toBe(
+      DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems,
+    );
+    expect(grossValue(play, 7)).toBe(
+      2 * DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems,
+    );
+
+    const collector = decodeShareState("?preset=arena-direct-collector").config;
+    expect(grossValue(collector, 7)).toBe(
+      DEFAULT_COLLECTOR_BOX_VALUE_GEMS + 6 * collector.draftPackValueGems,
+    );
+
+    // The cube is phantom, so nothing but the boxes is in its top two rows.
+    const cube = decodeShareState("?preset=arena-direct-cube").config;
+    expect(grossValue(cube, 6)).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(grossValue(cube, 7)).toBe(2 * DEFAULT_PLAY_BOX_VALUE_GEMS);
   });
 
   it.each(CORPUS)("holds the model's invariants for %s", (_name, search) => {

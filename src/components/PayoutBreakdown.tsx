@@ -13,7 +13,6 @@ import { Stat } from "./Stat";
 import {
   heldKeys,
   holding,
-  holdingRate,
   type Bin,
   type BankrollResult,
   type EventConfig,
@@ -262,16 +261,13 @@ function ValueCard({ bankroll, m }: { bankroll: BankrollResult; m: Money }) {
 function HoldingCard({
   bankrollKey,
   totals,
-  config,
   m,
 }: {
   bankrollKey: HoldingKey;
   totals: BankrollResult["holdings"][HoldingKey];
-  config: EventConfig;
   m: Money;
 }) {
   const { label, whole } = holding(bankrollKey);
-  const rate = holdingRate(config, bankrollKey);
   const text = (n: number, exact = false) => amountText(bankrollKey, n, exact);
 
   return (
@@ -281,14 +277,16 @@ function HoldingCard({
         /*
           An average lands between two boxes; a constant does not.
 
-          The worth beside it is a valuation at the config's rate, hence the ≈,
-          and the only figure on the card that follows the display unit — the
-          amounts here and the ticks below are what a run is holding, so they
-          stay in their own currency.
+          The worth beside it is a valuation, hence the ≈, and the only figure
+          on the card that follows the display unit — the amounts here and the
+          ticks below are what a run is holding, so they stay in their own
+          currency. It is the value the runs actually held rather than the
+          amount at a rate, which is the same thing for everything but boxes,
+          where two of a kind can be worth different amounts.
         */
         value={avg(
           text(totals.mean, totals.min === totals.max),
-          approx(m.fmt(totals.mean * rate)),
+          approx(m.fmt(totals.worth)),
         )}
         hint={`typically ${text(totals.median, true)}`}
       >
@@ -331,13 +329,7 @@ export function PayoutBreakdown({
         {/* First, so the total is read before the parts that make it up. */}
         <ValueCard bankroll={bankroll} m={m} />
         {keys.map((key) => (
-          <HoldingCard
-            key={key}
-            bankrollKey={key}
-            totals={bankroll.holdings[key]}
-            config={config}
-            m={m}
-          />
+          <HoldingCard key={key} bankrollKey={key} totals={bankroll.holdings[key]} m={m} />
         ))}
       </div>
       <div className="form-text">

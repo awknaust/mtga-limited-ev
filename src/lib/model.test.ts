@@ -47,7 +47,10 @@ import {
   PRIOR_ALPHA,
   PRIOR_BETA,
   ARENA_DIRECT_COLLECTOR,
+  ARENA_DIRECT_PLAY,
+  LATEST_SET,
   bankrollRoi,
+  boxValueGems,
   maxPossibleWins,
   maxRounds,
   HOLDING_KEYS,
@@ -615,6 +618,8 @@ describe("holdings", () => {
     expect(holdingRate(config, "gold")).toBe(GEMS_PER_10K_GOLD / 10000);
     expect(holdingRate(config, "packs")).toBe(DEFAULT_PACK_VALUE_GEMS);
     expect(holdingRate(config, "playInPoints")).toBe(DEFAULT_PLAY_IN_POINT_VALUE_GEMS);
+    // The generic rates, which is all a rate can say about boxes: a named one
+    // is worth what its set's box trades at, and `heldValue` is what prices it.
     expect(holdingRate(config, "playBoxes")).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
     expect(holdingRate(config, "collectorBoxes")).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
     expect(holdingRate(config, "draftPacks")).toBe(DEFAULT_DRAFT_PACK_VALUE_GEMS);
@@ -691,18 +696,64 @@ describe("bankroll", () => {
   it("breaks the ending total into what it is made of", () => {
     /*
      * The claim the breakdown rests on: itemising loses nothing. Every
-     * holding valued at its own rate and added up is the gem-equivalent
-     * figure shown beside it, to the last gem.
+     * holding's worth added up is the gem-equivalent figure shown beside it,
+     * to the last gem.
+     *
+     * The cube is in the list twice over now. Its ladder pays two *different*
+     * play boxes, priced apart by the feed below, which is exactly the case a
+     * mean count times one rate gets wrong — the identity holds because each
+     * holding carries the value the runs actually held.
      */
+    const boxPrices = {
+      sets: [
+        { code: "spm", name: "Marvel's Spider-Man", releasedAt: "2025-09-26", boxes: { play: 25_538 } },
+        { code: "msh", name: "Marvel Super Heroes", releasedAt: "2026-06-26", boxes: { play: 23_444 } },
+      ],
+      latest: { play: "msh" },
+      generatedAt: "2026-08-16T00:00:00.000Z",
+    };
     for (const preset of [PREMIER_DRAFT, TRADITIONAL_DRAFT, ARENA_DIRECT, SEALED]) {
-      const config = configFromPreset(preset, defaultConfig());
-      const res = simulateBankrolls(config, { ...roll, startingGems: 20_000 }, 200, 23);
-      const summed = HOLDING_KEYS.reduce(
-        (acc, key) => acc + res.holdings[key].mean * holdingRate(config, key),
-        0,
-      );
-      expect(summed).toBeCloseTo(res.meanFinalValue, 6);
+      for (const prices of [defaultConfig().boxPrices, boxPrices]) {
+        const config = { ...configFromPreset(preset, defaultConfig()), boxPrices: prices };
+        const res = simulateBankrolls(config, { ...roll, startingGems: 20_000 }, 200, 23);
+        const summed = HOLDING_KEYS.reduce((acc, key) => acc + res.holdings[key].worth, 0);
+        expect(summed).toBeCloseTo(res.meanFinalValue, 6);
+      }
     }
+  });
+
+  it("values a mixed-set ladder above what one rate would say", () => {
+    /*
+     * The cube's seven-win row pays a Spider-Man box and a Marvel Super
+     * Heroes box. Priced apart they come to their two market prices; the
+     * count-times-a-rate reading this replaced would have valued both at
+     * whichever rate the config carried, and been wrong by the difference.
+     */
+    const config = {
+      ...configFromPreset(ARENA_DIRECT, defaultConfig()),
+      boxPrices: {
+        sets: [
+          { code: "spm", name: "Marvel's Spider-Man", releasedAt: "2025-09-26", boxes: { play: 25_538 } },
+          { code: "msh", name: "Marvel Super Heroes", releasedAt: "2026-06-26", boxes: { play: 23_444 } },
+        ],
+        latest: { play: "msh" },
+        generatedAt: "2026-08-16T00:00:00.000Z",
+      },
+    };
+    const res = simulate(config, 20_000, 7);
+    const split = grossSplit(config, res.buckets);
+    // The split still adds up to the gross it decomposes, boxes and all.
+    expect(HOLDING_KEYS.reduce((acc, key) => acc + split[key], 0)).toBeCloseTo(
+      res.meanGross,
+      6,
+    );
+    // And the box term is the two prices weighted by how often each row lands,
+    // not a count at either one of them.
+    const p = res.buckets;
+    expect(split.playBoxes).toBeCloseTo(
+      p[6].probability * 25_538 + p[7].probability * (25_538 + 23_444),
+      6,
+    );
   });
 
   it("holds gems and gold as balances, not as counts", () => {
@@ -889,6 +940,8 @@ describe("bankroll", () => {
       playInPoints: 0,
       playBoxes: 0,
       collectorBoxes: 0,
+      playBoxGems: 0,
+      collectorBoxGems: 0,
       survived: false,
     };
     expect(runValue(config, run)).toBe(1000 + 1500);
@@ -981,7 +1034,7 @@ describe("the chance of a box", () => {
     expect(paysBoxes(ARENA_DIRECT_COLLECTOR.payouts)).toBe(true);
     expect(paysBoxes(PREMIER_DRAFT.payouts)).toBe(false);
     // Zeroing the tiers retires the reward, the way paidRewards reads it too.
-    const noBoxes = ARENA_DIRECT.payouts.map((t) => ({ ...t, playBoxes: 0 }));
+    const noBoxes = ARENA_DIRECT.payouts.map((t) => ({ ...t, boxes: undefined }));
     expect(paysBoxes(noBoxes)).toBe(false);
   });
 
@@ -1007,7 +1060,7 @@ describe("the chance of a box", () => {
     const config = {
       ...base,
       payouts: base.payouts.map((t) =>
-        t.wins === 5 ? { ...t, collectorBoxes: 1 } : t,
+        t.wins === 5 ? { ...t, boxes: [{ kind: "collector" as const }] } : t,
       ),
     };
     // 12/256 at five, on top of the 16/256 already at six and seven.
@@ -1045,7 +1098,7 @@ describe("the chance of a box", () => {
     const config = {
       ...base,
       payouts: base.payouts.map((t) =>
-        t.wins === 5 ? { ...t, collectorBoxes: 1 } : t,
+        t.wins === 5 ? { ...t, boxes: [{ kind: "collector" as const }] } : t,
       ),
     };
     const res = simulateBankrolls(config, several, 500, 17);
@@ -1383,25 +1436,88 @@ describe("presets", () => {
       maxLosses: 2,
     });
     expect(ARENA_DIRECT.entryCostGems).toBe(8000);
-    // Gems and packs stop entirely once the prize becomes a box.
+    // Gems and packs stop entirely once the prize becomes a box. The cube
+    // names its sets, since its August 2026 run paid a Spider-Man box at six
+    // and a Spider-Man and a Marvel Super Heroes box at seven.
     expect(ARENA_DIRECT.payouts[6]).toEqual({
       wins: 6,
       gems: 0,
       packs: 0,
-      playBoxes: 1,
+      boxes: [{ kind: "play", set: "spm" }],
     });
-    expect(ARENA_DIRECT.payouts[7].playBoxes).toBe(2);
+    expect(ARENA_DIRECT.payouts[7].boxes).toEqual([
+      { kind: "play", set: "spm" },
+      { kind: "play", set: "msh" },
+    ]);
   });
 
   it("prices boxes into the gross", () => {
     const config = configFromPreset(ARENA_DIRECT, defaultConfig());
     expect(config.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    // No feed in a fresh config, so both named boxes price generically.
     expect(grossValue(config, 7)).toBe(2 * config.playBoxValueGems);
     expect(grossValue(config, 6)).toBe(config.playBoxValueGems);
-    // Valuing boxes at nothing strips the top two tiers back to zero.
+    // Valuing boxes at nothing strips the top two tiers back to zero, and it
+    // has to do so for a box that names a set as much as for one that does not
+    // — otherwise "zero these out" would leave an Arena Direct priced.
     const worthless = { ...config, playBoxValueGems: 0 };
     expect(grossValue(worthless, 6)).toBe(0);
     expect(grossValue(worthless, 7)).toBe(0);
+  });
+
+  it("prices a named box at its own set's market price", () => {
+    const config = {
+      ...configFromPreset(ARENA_DIRECT, defaultConfig()),
+      boxPrices: {
+        sets: [
+          { code: "spm", name: "Marvel's Spider-Man", releasedAt: "2025-09-26", boxes: { play: 25_538 } },
+          { code: "msh", name: "Marvel Super Heroes", releasedAt: "2026-06-26", boxes: { play: 23_444 } },
+        ],
+        latest: { play: "msh" },
+        generatedAt: "2026-08-16T00:00:00.000Z",
+      },
+    };
+    // Six wins is one Spider-Man box; seven is that and a Marvel Super Heroes
+    // box, which are different prices — the thing a count times a rate cannot
+    // express.
+    expect(grossValue(config, 6)).toBe(25_538);
+    expect(grossValue(config, 7)).toBe(25_538 + 23_444);
+    // A set the feed does not carry falls back to the generic rate rather
+    // than to nothing.
+    const thin = { ...config, boxPrices: { ...config.boxPrices, sets: [config.boxPrices.sets[0]] } };
+    expect(grossValue(thin, 7)).toBe(25_538 + DEFAULT_PLAY_BOX_VALUE_GEMS);
+  });
+
+  it("resolves the newest-set boxes the sealed Arena Directs pay", () => {
+    const boxPrices = {
+      sets: [
+        { code: "hob", name: "The Hobbit", releasedAt: "2026-08-14", boxes: { play: 38_658, collector: 164_554 } },
+        { code: "msh", name: "Marvel Super Heroes", releasedAt: "2026-06-26", boxes: { play: 23_444 } },
+      ],
+      latest: { play: "hob", collector: "hob" },
+      generatedAt: "2026-08-16T00:00:00.000Z",
+    };
+    const play = { ...configFromPreset(ARENA_DIRECT_PLAY, defaultConfig()), boxPrices };
+    expect(grossValue(play, 6) - grossValue(play, 5) + 10_800 + 24 * play.packValueGems).toBe(
+      38_658,
+    );
+    expect(boxValueGems(play, { kind: "play", set: LATEST_SET })).toBe(38_658);
+
+    const collector = {
+      ...configFromPreset(ARENA_DIRECT_COLLECTOR, defaultConfig()),
+      boxPrices,
+    };
+    expect(boxValueGems(collector, { kind: "collector", set: LATEST_SET })).toBe(164_554);
+
+    // Nothing newest to resolve to — the feed has no collector price at all —
+    // and the generic rate stands in.
+    const noCollector = {
+      ...collector,
+      boxPrices: { ...boxPrices, latest: { play: "hob" } },
+    };
+    expect(boxValueGems(noCollector, { kind: "collector", set: LATEST_SET })).toBe(
+      DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+    );
   });
 
   it("converts physical prizes at 200 gems to the dollar", () => {

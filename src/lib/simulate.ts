@@ -1,5 +1,6 @@
 /** Monte Carlo simulation and the expected-value figures derived from it. */
 
+import { boxCount } from "./boxes";
 import { exactDistribution, exactRecordDistribution } from "./distribution";
 import { goldPerEvent, grossValue, netValue, payoutFor } from "./payouts";
 import { seededRandom } from "./rng";
@@ -136,8 +137,8 @@ export function* simulateSteps(
       netGems: netValue(config, wins),
       packs: tier.packs,
       playInPoints: tier.playInPoints ?? 0,
-      playBoxes: tier.playBoxes ?? 0,
-      collectorBoxes: tier.collectorBoxes ?? 0,
+      playBoxes: boxCount(tier, "play"),
+      collectorBoxes: boxCount(tier, "collector"),
     };
   });
 

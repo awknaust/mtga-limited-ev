@@ -80,6 +80,18 @@ export function matchWinRate(config: EventConfig): number {
 export function resizePayouts(payouts: PayoutTier[], maxWins: number): PayoutTier[] {
   return Array.from({ length: maxWins + 1 }, (_, wins) => {
     const existing = payouts.find((t) => t.wins === wins);
-    return existing ? { ...existing } : { wins, gems: 0, packs: 0 };
+    return existing ? copyTier(existing) : { wins, gems: 0, packs: 0 };
   });
 }
+
+/**
+ * A tier copied deeply enough to be edited.
+ *
+ * The box list is the reason this is not a spread: a preset is a module-level
+ * object, and a shallow copy would leave every config derived from it sharing
+ * one array, so editing a copied ladder would reach back into the preset.
+ */
+export const copyTier = (tier: PayoutTier): PayoutTier => ({
+  ...tier,
+  ...(tier.boxes ? { boxes: tier.boxes.map((b) => ({ ...b })) } : {}),
+});

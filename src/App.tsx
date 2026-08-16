@@ -12,6 +12,7 @@ import {
 } from "./format";
 import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
+import { BoxCell } from "./components/BoxCell";
 import { BoxPrices } from "./components/BoxPrices";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
@@ -49,6 +50,7 @@ import {
   MASTERY_TRACKS,
   PRESETS,
   bankrollRoi,
+  boxPriceTable,
   masteryBySlug,
   breakEvenWinRate,
   configFromPreset,
@@ -69,6 +71,7 @@ import {
   type BoxPriceFeed,
   type EventConfig,
   type EventStructure,
+  type PayoutBox,
   type PayoutTier,
 } from "./lib";
 import { fetchBoxPriceFeed } from "./liveBoxPrices";
@@ -269,33 +272,43 @@ export default function App() {
    * defaults simply stand — nothing here may ever make the app worse than it
    * was without a network.
    *
-   * A field is only overwritten while it still holds its baked default. That
-   * one rule covers every case at once: a link that spelled out a box value
-   * keeps it (decode gave a non-default), a user who edited before the fetch
-   * resolved keeps their number, and a fresh load gets today's prices. The
-   * update flows into the next URL write like any edit, so a copied link
-   * carries the live values explicitly — links stay self-contained, and
-   * decoding never depends on what the feed said the day one was opened.
+   * Two different things land here. The per-set table is installed outright:
+   * it is not a setting anybody chose, it is what the boxes named by the
+   * payouts cost today, and it is never written to a link — a link names the
+   * product and this prices it on the day it is opened.
+   *
+   * The two generic averages are settings, so they follow the older rule: a
+   * field is only overwritten while it still holds its baked default. That
+   * covers every case at once — a link that spelled out a box value keeps it
+   * (decode gave a non-default), a user who edited before the fetch resolved
+   * keeps their number, and a fresh load gets today's prices. The update
+   * flows into the next URL write like any edit, so a copied link carries the
+   * generic values explicitly and an old link still means what it said.
    */
   useEffect(() => {
     const controller = new AbortController();
     void fetchBoxPriceFeed(controller.signal).then((feed) => {
       if (!feed) return;
-      // Kept whether or not the rule below could be applied: a feed too thin
-      // to average is still the answer to why the values did not move.
+      // Kept whether or not the averages below could be derived: a feed too
+      // thin to average is still the answer to why the values did not move.
       setBoxFeed(feed);
-      const live = liveBoxDefaults(feed, new Date());
-      if (!live) return;
+      const now = new Date();
+      const table = boxPriceTable(feed, now);
+      const live = liveBoxDefaults(feed, now);
       setConfig((prev) => {
-        const play = prev.playBoxValueGems === DEFAULT_PLAY_BOX_VALUE_GEMS;
-        const collector = prev.collectorBoxValueGems === DEFAULT_COLLECTOR_BOX_VALUE_GEMS;
-        if (!play && !collector) return prev;
+        const untouched = <K extends "playBoxValueGems" | "collectorBoxValueGems">(
+          key: K,
+          baked: number,
+        ): number =>
+          live !== null && prev[key] === baked ? live[key] : prev[key];
         return {
           ...prev,
-          playBoxValueGems: play ? live.playBoxValueGems : prev.playBoxValueGems,
-          collectorBoxValueGems: collector
-            ? live.collectorBoxValueGems
-            : prev.collectorBoxValueGems,
+          boxPrices: table,
+          playBoxValueGems: untouched("playBoxValueGems", DEFAULT_PLAY_BOX_VALUE_GEMS),
+          collectorBoxValueGems: untouched(
+            "collectorBoxValueGems",
+            DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+          ),
         };
       });
     });
@@ -556,6 +569,16 @@ export default function App() {
     });
 
   /**
+   * Replace one row's boxes, dropping the field when none are left.
+   *
+   * Absent rather than empty, so an edited row serialises the way the presets
+   * are written and a row that had its last box removed is indistinguishable
+   * from one that never had any.
+   */
+  const setBoxes = (wins: number, boxes: PayoutBox[]) =>
+    setTier(wins, boxes.length ? { boxes } : { boxes: undefined });
+
+  /**
    * Changing the structure changes how many win counts are reachable, so the
    * payout table has to be resized to match — rows that still exist keep their
    * values.
@@ -643,10 +666,13 @@ export default function App() {
    */
   const showPlayInPoints =
     isCustom || config.payouts.some((t) => (t.playInPoints ?? 0) > 0);
-  const showPlayBoxes =
-    isCustom || config.payouts.some((t) => (t.playBoxes ?? 0) > 0);
-  const showCollectorBoxes =
-    isCustom || config.payouts.some((t) => (t.collectorBoxes ?? 0) > 0);
+  /*
+   * One column for both kinds, since a row names the boxes it pays rather than
+   * counting them in two places. Shown for the same reason points are: always
+   * on Custom, so a ladder that pays none can grow one, and otherwise only
+   * where the event actually ships something.
+   */
+  const showBoxes = isCustom || paysBoxes(config.payouts);
   const viewItems = [
     { key: "value" as const, label: valueName },
     { key: "breakdown" as const, label: "Payout breakdown" },
@@ -1398,16 +1424,14 @@ export default function App() {
                           Points
                         </th>
                       )}
-                      {showPlayBoxes && (
-                        <th scope="col" className="text-end">
+                      {showBoxes && (
+                        <th scope="col">
                           <i className="bi bi-box-seam me-1" aria-hidden="true" />
-                          Play box
-                        </th>
-                      )}
-                      {showCollectorBoxes && (
-                        <th scope="col" className="text-end">
-                          <i className="bi bi-boxes me-1" aria-hidden="true" />
-                          Coll. box
+                          Boxes
+                          <InfoTip
+                            label="About box payouts"
+                            content="The physical booster boxes this row ships. Each is priced at its own set's market price where the live feed knows it, and at the generic box value in Advanced settings otherwise."
+                          />
                         </th>
                       )}
                     </tr>
@@ -1444,25 +1468,13 @@ export default function App() {
                             />
                           </td>
                         )}
-                        {showPlayBoxes && (
+                        {showBoxes && (
                           <td>
-                            <AddonInput
-                              compact
-                              addon={<i className="bi bi-box-seam" aria-hidden="true" />}
-                              disabled={locked}
-                              value={t.playBoxes ?? 0}
-                              onChange={(n) => setTier(t.wins, { playBoxes: n })}
-                            />
-                          </td>
-                        )}
-                        {showCollectorBoxes && (
-                          <td>
-                            <AddonInput
-                              compact
-                              addon={<i className="bi bi-boxes" aria-hidden="true" />}
-                              disabled={locked}
-                              value={t.collectorBoxes ?? 0}
-                              onChange={(n) => setTier(t.wins, { collectorBoxes: n })}
+                            <BoxCell
+                              boxes={t.boxes ?? []}
+                              table={config.boxPrices}
+                              locked={locked}
+                              onChange={(boxes) => setBoxes(t.wins, boxes)}
                             />
                           </td>
                         )}
@@ -1989,10 +2001,10 @@ export default function App() {
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.playBoxValue} className="form-label">
-                      Play box value (USD)
+                      Generic play box value (USD)
                       <InfoTip
-                        label="About play box value"
-                        content="Average street price across three recent Standard sets. Wizards' published cash substitution is $209.70 a box, before withholding."
+                        label="About generic play box value"
+                        content="What a Play Booster box is worth when no set is named — an average street price across three recent Standard sets. A payout naming a set is priced at that set's own market price instead. Zero here values every box at nothing, named or not."
                       />
                     </label>
                     <UsdInput
@@ -2004,10 +2016,10 @@ export default function App() {
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.collectorBoxValue} className="form-label">
-                      Collector box value (USD)
+                      Generic collector box value (USD)
                       <InfoTip
-                        label="About collector box value"
-                        content="Average street price across three recent Standard sets. These trade well above the $479.88 MSRP of a 12-pack display."
+                        label="About generic collector box value"
+                        content="What a Collector Booster box is worth when no set is named. These trade well above the $479.88 MSRP of a 12-pack display, and vary widely by set — a named payout uses that set's own price."
                       />
                     </label>
                     <UsdInput

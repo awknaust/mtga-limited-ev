@@ -20,6 +20,7 @@
 
 import type { Unit } from "./format";
 import {
+  BOX_KINDS,
   CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
   PRESETS,
@@ -28,8 +29,10 @@ import {
   defaultConfig,
   maxPossibleWins,
   resizePayouts,
+  type BoxKind,
   type EventConfig,
   type EventStructure,
+  type PayoutBox,
   type PayoutTier,
 } from "./lib";
 
@@ -165,6 +168,14 @@ export function resetAdvanced(state: ShareState): ShareState {
       entryCostGold: state.config.entryCostGold,
       draftPacks: state.config.draftPacks,
       payouts: state.config.payouts,
+      /*
+       * Not a setting at all: it is what the feed said, fetched once on load
+       * and never edited. Dropping it here would quietly return every named
+       * box to its generic average — a reset that changed the answer without
+       * changing any field, and one no parameter would record, since the
+       * table is never written to a link.
+       */
+      boxPrices: state.config.boxPrices,
     },
     // The Bankroll card's.
     startingGems: state.startingGems,
@@ -283,29 +294,42 @@ const UI_NUMBERS = [
 ] as const satisfies readonly (readonly [string, keyof ShareState])[];
 
 /**
- * A payout table as `gems-packs[-points[-playBoxes[-collectorBoxes]]]` per row,
- * rows in win order joined by `_`. The win count is the row's position, so it
- * is not repeated.
+ * A payout table as `gems-packs[-points][-box]…` per row, rows in win order
+ * joined by `_`. The win count is the row's position, so it is not repeated.
  *
- * `-` and `_` are used because form encoding leaves them alone: a separator of
- * `,` or `:` would come back as `%2C` or `%3A` and cost the table its
- * readability. No field can be negative, so `-` is unambiguous.
+ * A box is `kind` or `kind.set` — `play`, `collector.latest`,
+ * `collector.msh` — one token per box, since a row can pay two boxes of
+ * different sets. What a link carries is which *product* was won, never what
+ * it was worth: the price comes from the feed on the day the link is opened,
+ * and from the generic rate when the feed has nothing to say. The generic
+ * rates themselves are ordinary parameters, so a link that spells one out
+ * still means exactly what it said.
+ *
+ * `-`, `_` and `.` are used because form encoding leaves them alone: a
+ * separator of `,` or `:` would come back as `%2C` or `%3A` and cost the
+ * table its readability. No number can be negative, so `-` is unambiguous,
+ * and a kind is always alphabetic, so a box token can never be read as one of
+ * the numbers.
+ *
+ * Links written before boxes named their sets spelled two counts positionally,
+ * `gems-packs-points-playBoxes-collectorBoxes`. Those still decode, as that
+ * many generic boxes — see `decodePayouts`.
  */
 export function encodePayouts(payouts: PayoutTier[]): string {
   return payouts
     .map((t) => {
-      const fields = [
-        t.gems,
-        t.packs,
-        t.playInPoints ?? 0,
-        t.playBoxes ?? 0,
-        t.collectorBoxes ?? 0,
-      ];
+      const boxes = (t.boxes ?? []).map((b) => (b.set ? `${b.kind}.${b.set}` : b.kind));
+      const fields = [t.gems, t.packs, t.playInPoints ?? 0];
+      // The points slot goes when it is zero, boxes or no boxes: the tokens
+      // that follow are named, so nothing is counting places.
       while (fields.length > 2 && fields[fields.length - 1] === 0) fields.pop();
-      return fields.map(num).join("-");
+      return [...fields.map(num), ...boxes].join("-");
     })
     .join("_");
 }
+
+/** The box kinds a link may name, as they are spelled in one. */
+const BOX_KIND_TOKENS = new Set<string>(BOX_KINDS);
 
 /** Inverse of `encodePayouts`. Null on anything malformed, never a partial table. */
 export function decodePayouts(raw: string): PayoutTier[] | null {
@@ -313,22 +337,42 @@ export function decodePayouts(raw: string): PayoutTier[] | null {
   const out: PayoutTier[] = [];
   for (const [wins, row] of rows.entries()) {
     const parts = row.split("-");
-    if (parts.length < 2 || parts.length > 5) return null;
     /*
      * Matched rather than handed to `Number`, which is far too willing: it
      * reads "" as 0, so `50--1` would parse as a well-formed 50/0/1 row
      * instead of the malformed thing it is, and it also takes "0x10" and
      * " 7 ". Only what `encodePayouts` writes is accepted back.
      */
-    if (!parts.every((p) => /^\d+(\.\d+)?$/.test(p))) return null;
-    const fields = parts.map(Number);
+    const isNumber = (p: string): boolean => /^\d+(\.\d+)?$/.test(p);
+    // The leading run of numbers, which is where the old positional box
+    // counts live; everything after it names a box, and a number turning up
+    // again past that point is malformed rather than a sixth field.
+    const lead = parts.findIndex((p) => !isNumber(p));
+    const count = lead === -1 ? parts.length : lead;
+    if (count < 2 || count > 5) return null;
+    if (parts.slice(count).some(isNumber)) return null;
+
+    const fields = parts.slice(0, count).map(Number);
     if (fields.some((n) => !Number.isFinite(n))) return null;
     const [gems, packs, playInPoints = 0, playBoxes = 0, collectorBoxes = 0] = fields;
+
+    const boxes: PayoutBox[] = [];
+    // A count of anonymous boxes is what old links carry, and repeating the
+    // box that many times says the same thing in the shape used now.
+    for (let i = 0; i < playBoxes; i++) boxes.push({ kind: "play" });
+    for (let i = 0; i < collectorBoxes; i++) boxes.push({ kind: "collector" });
+    for (const token of parts.slice(count)) {
+      const [kind, set, ...rest] = token.split(".");
+      if (rest.length || !BOX_KIND_TOKENS.has(kind)) return null;
+      // Scryfall codes are lowercase alphanumeric, and so is LATEST_SET.
+      if (set !== undefined && !/^[a-z0-9]+$/.test(set)) return null;
+      boxes.push(set === undefined ? { kind: kind as BoxKind } : { kind: kind as BoxKind, set });
+    }
+
     const tier: PayoutTier = { wins, gems, packs };
-    // Left off entirely when zero, matching how the presets are written.
+    // Left off entirely when empty, matching how the presets are written.
     if (playInPoints) tier.playInPoints = playInPoints;
-    if (playBoxes) tier.playBoxes = playBoxes;
-    if (collectorBoxes) tier.collectorBoxes = collectorBoxes;
+    if (boxes.length) tier.boxes = boxes;
     out.push(tier);
   }
   return out.length ? out : null;

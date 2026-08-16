@@ -1,5 +1,6 @@
 /** Turning a win count into gems, via the config's payout table. */
 
+import { boxValueGems, tierBoxGems } from "./boxes";
 import { exactDistribution } from "./distribution";
 import { DAILY_WIN_CAP, DAILY_WIN_GOLD } from "./presets";
 import { matchWinRate } from "./structure";
@@ -25,13 +26,18 @@ export function playInPointsFor(config: EventConfig, wins: number): number {
  */
 export function grossValue(config: EventConfig, wins: number): number {
   const tier = payoutFor(config, wins);
+  // Boxes are summed one at a time rather than counted and multiplied: a row
+  // can pay two boxes of different sets, worth different amounts.
+  const boxes = (tier.boxes ?? []).reduce(
+    (acc, box) => acc + boxValueGems(config, box),
+    0,
+  );
   return (
     config.draftPacks * config.draftPackValueGems +
     tier.gems +
     tier.packs * config.packValueGems +
     (tier.playInPoints ?? 0) * config.playInPointValueGems +
-    (tier.playBoxes ?? 0) * config.playBoxValueGems +
-    (tier.collectorBoxes ?? 0) * config.collectorBoxValueGems
+    boxes
   );
 }
 
@@ -67,8 +73,16 @@ export function grossSplit(
     gold: 0,
     packs: mean((b) => b.packs) * config.packValueGems,
     playInPoints: mean((b) => b.playInPoints) * config.playInPointValueGems,
-    playBoxes: mean((b) => b.playBoxes) * config.playBoxValueGems,
-    collectorBoxes: mean((b) => b.collectorBoxes) * config.collectorBoxValueGems,
+    /*
+     * Priced per bucket rather than as a mean count times a rate, since two
+     * win counts can pay play boxes of different sets. Weighting the gems
+     * each row actually pays is the only version that adds back up to
+     * `meanGross`.
+     */
+    playBoxes: mean((b) => tierBoxGems(config, payoutFor(config, b.wins), "play")),
+    collectorBoxes: mean((b) =>
+      tierBoxGems(config, payoutFor(config, b.wins), "collector"),
+    ),
     // Flat across win counts: the pool is kept for entering, however it goes.
     draftPacks: config.draftPacks * config.draftPackValueGems,
   };

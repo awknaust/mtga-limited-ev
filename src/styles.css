@@ -1108,3 +1108,96 @@ body {
     transition: none;
   }
 }
+
+/*
+ * The boxes a payout row ships, one chip each.
+ *
+ * Set codes rather than product names, because these sit in a column an inch
+ * wide beside three number fields. On a custom ladder the chip is also the
+ * delete control, so it is a `button` there and a `span` on a preset — the
+ * shared class is what keeps the two looking identical, since the difference
+ * is what you can do to it rather than what it is.
+ */
+.box-chip {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  font-size: 0.75em;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  background-color: #2a323d;
+  color: var(--bs-body-color);
+}
+
+button.box-chip {
+  cursor: pointer;
+}
+
+button.box-chip:hover,
+button.box-chip:focus-visible {
+  /* The chip deletes itself, so hover reads as a warning rather than a lift. */
+  background-color: rgba(var(--bs-danger-rgb), 0.85);
+  color: #10131a;
+}
+
+/*
+ * Collector boxes wear foil, which is what the product does. It separates the
+ * two kinds at a glance on a row paying one of each, where a suffix has to be
+ * read. Nothing depends on seeing it — every chip carries the full product
+ * name as its title and its accessible name.
+ */
+.box-chip-collector {
+  color: #10131a;
+  background-image: linear-gradient(
+    100deg,
+    #f0abfc,
+    #a5b4fc,
+    #67e8f9,
+    #86efac,
+    #fde68a,
+    #f0abfc
+  );
+  background-size: 300% 100%;
+  animation: box-foil 8s linear infinite;
+}
+
+button.box-chip-collector:hover,
+button.box-chip-collector:focus-visible {
+  /* The gradient would otherwise sit on top of the danger colour. */
+  background-image: none;
+}
+
+@keyframes box-foil {
+  from {
+    background-position: 0 0;
+  }
+
+  to {
+    background-position: -300% 0;
+  }
+}
+
+/* The `+` that opens the box picker, sized to sit level with the chips. */
+.box-add {
+  padding: 0.2em 0.45em;
+  background-color: transparent;
+  border: 1px dashed var(--bs-border-color);
+  color: var(--bs-secondary-color);
+}
+
+button.box-add:hover,
+button.box-add:focus-visible {
+  /* Adding is not deleting, so it must not borrow the chips' red hover. */
+  background-color: rgba(var(--bs-primary-rgb), 0.2);
+  border-style: solid;
+  color: var(--bs-body-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .box-chip-collector {
+    animation: none;
+  }
+}

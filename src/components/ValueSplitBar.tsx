@@ -8,7 +8,6 @@ import {
   grossSplit,
   heldKeys,
   holding,
-  holdingRate,
   type BankrollResult,
   type EventConfig,
   type HoldingKey,
@@ -51,7 +50,10 @@ export function holdingSlices(
     .map((key) => ({
       key,
       label: holding(key).label,
-      worth: bankroll.holdings[key].mean * holdingRate(config, key),
+      // The value each run actually held, averaged — not the mean count at a
+      // rate, which no longer describes boxes: two play boxes of different
+      // sets are worth different amounts, so there is no one rate to apply.
+      worth: bankroll.holdings[key].worth,
       amount: bankroll.holdings[key].mean,
     }))
     .filter((s) => s.worth > 0);

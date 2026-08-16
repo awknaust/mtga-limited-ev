@@ -13,15 +13,20 @@
  * back up to the total it is breaking down.
  */
 
+import { boxCount } from "./boxes";
 import { goldPerEvent } from "./payouts";
 import type { EventConfig, PayoutTier } from "./types";
 
 /**
- * Payout-tier fields paid as a count rather than as gems.
+ * Rewards a payout tier pays as a count rather than as gems.
  *
- * Kept apart from the table below because these, and only these, index a
+ * Kept apart from the table below because these, and only these, come off a
  * `PayoutTier` — gold is not a payout at all, and draft packs come with the
  * entry rather than the result.
+ *
+ * Two of them are no longer fields on the tier: a row lists the boxes it pays
+ * and they are counted per kind, which `tierCount` hides so everything that
+ * walks this list can go on treating a reward as a name and a number.
  */
 export const TIER_REWARD_KEYS = [
   "packs",
@@ -32,6 +37,13 @@ export const TIER_REWARD_KEYS = [
 
 export type TierRewardKey = (typeof TIER_REWARD_KEYS)[number];
 
+/** How many of one reward a tier pays. */
+export function tierCount(tier: PayoutTier, key: TierRewardKey): number {
+  if (key === "playBoxes") return boxCount(tier, "play");
+  if (key === "collectorBoxes") return boxCount(tier, "collector");
+  return tier[key] ?? 0;
+}
+
 /**
  * Which rewards a ladder actually pays.
  *
@@ -40,25 +52,12 @@ export type TierRewardKey = (typeof TIER_REWARD_KEYS)[number];
  * still counts, and a rate of zero gems does not hide one.
  */
 export function paidRewards(payouts: PayoutTier[]): TierRewardKey[] {
-  return TIER_REWARD_KEYS.filter((key) => payouts.some((t) => (t[key] ?? 0) > 0));
+  return TIER_REWARD_KEYS.filter((key) => payouts.some((t) => tierCount(t, key) > 0));
 }
-
-/**
- * The rewards that arrive as physical product.
- *
- * Taken as a pair rather than one at a time because what a player is asking is
- * whether a box turns up, not which kind: a run that won a collector box and a
- * run that won a play box both came away with a box. The two are still counted
- * separately everywhere else, since they are worth very different amounts.
- */
-export const BOX_KEYS = [
-  "playBoxes",
-  "collectorBoxes",
-] as const satisfies readonly TierRewardKey[];
 
 /** Whether a ladder pays a box at any win count. */
 export function paysBoxes(payouts: PayoutTier[]): boolean {
-  return payouts.some((t) => BOX_KEYS.some((key) => (t[key] ?? 0) > 0));
+  return payouts.some((t) => (t.boxes?.length ?? 0) > 0);
 }
 
 export const HOLDINGS = [
@@ -111,6 +110,13 @@ export function holding(key: HoldingKey): Holding {
  * Gems are worth themselves. Gold converts at the rate every dual-priced event
  * charges, and a rate of 0 — set by valuing gold at nothing — drops it to
  * zero, the same way `runValue` treats it.
+ *
+ * The box keys are the one place this is an approximation rather than the
+ * price: it returns the *generic* rate, and a ladder paying a named set's box
+ * is worth what that box trades at instead. Nothing values a run through this
+ * — `heldValue` prices boxes one at a time and `HoldingTotals.worth` carries
+ * the result — so this is left as the plain answer to "what is a box worth
+ * around here", which is what a caller asking for a rate wants.
  */
 export function holdingRate(config: EventConfig, key: HoldingKey): number {
   if (key === "gems") return 1;

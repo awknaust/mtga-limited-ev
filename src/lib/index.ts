@@ -4,6 +4,7 @@
  *
  *   types.ts         domain types
  *   structure.ts     event shape helpers, payout resizing
+ *   boxes.ts         the boxes a payout names, and what each is worth
  *   payouts.ts       win count → gems
  *   holdings.ts      what a run ends up holding, and what it is worth
  *   distribution.ts  closed-form outcome distributions
@@ -18,6 +19,7 @@
 
 export * from "./types";
 export * from "./structure";
+export * from "./boxes";
 export * from "./payouts";
 export * from "./holdings";
 export * from "./distribution";

@@ -21,6 +21,8 @@ import { SEALED } from "../data/presets/sealed";
 import { TRADITIONAL_CUBE_DRAFT } from "../data/presets/traditional-cube-draft";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
 import { TRADITIONAL_SEALED } from "../data/presets/traditional-sealed";
+import { EMPTY_BOX_PRICES } from "./boxes";
+import { copyTier } from "./structure";
 import type { EventConfig, EventPreset } from "./types";
 
 export {
@@ -389,7 +391,7 @@ export function configFromPreset(preset: EventPreset, base: EventConfig): EventC
     entryCostGold: preset.entryCostGold ?? 0,
     draftPacks: preset.draftPacks ?? 0,
     structure: { ...preset.structure },
-    payouts: preset.payouts.map((t) => ({ ...t })),
+    payouts: preset.payouts.map(copyTier),
   };
 }
 
@@ -405,6 +407,9 @@ export function defaultConfig(): EventConfig {
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+    // Filled in if and when the live feed lands; until then every box, named
+    // or not, prices at the two averages above.
+    boxPrices: EMPTY_BOX_PRICES,
     draftTokenValueGems: DEFAULT_DRAFT_TOKEN_VALUE_GEMS,
     mythicIcrValueGems: DEFAULT_MYTHIC_ICR_VALUE_GEMS,
     rareCardValueGems: DEFAULT_RARE_CARD_VALUE_GEMS,

@@ -164,8 +164,13 @@ describe("round trips", () => {
           { wins: 0, gems: 10, packs: 1 },
           { wins: 1, gems: 20, packs: 1 },
           { wins: 2, gems: 30, packs: 2, playInPoints: 1 },
-          { wins: 3, gems: 40, packs: 3, playBoxes: 1 },
-          { wins: 4, gems: 50, packs: 4, collectorBoxes: 2 },
+          { wins: 3, gems: 40, packs: 3, boxes: [{ kind: "play", set: "latest" }] },
+          {
+            wins: 4,
+            gems: 50,
+            packs: 4,
+            boxes: [{ kind: "collector", set: "msh" }, { kind: "collector" }],
+          },
         ],
       },
       trials: 25_000,
@@ -239,8 +244,13 @@ describe("resetting advanced settings", () => {
           { wins: 0, gems: 10, packs: 1 },
           { wins: 1, gems: 20, packs: 1 },
           { wins: 2, gems: 30, packs: 2, playInPoints: 1 },
-          { wins: 3, gems: 40, packs: 3, playBoxes: 1 },
-          { wins: 4, gems: 50, packs: 4, collectorBoxes: 2 },
+          { wins: 3, gems: 40, packs: 3, boxes: [{ kind: "play", set: "latest" }] },
+          {
+            wins: 4,
+            gems: 50,
+            packs: 4,
+            boxes: [{ kind: "collector", set: "msh" }, { kind: "collector" }],
+          },
         ],
       },
       trials: 25_000,
@@ -363,6 +373,30 @@ describe("resetting advanced settings", () => {
     expect(reset.unit).toBe(touched.unit);
   });
 
+  /*
+   * The live box prices are not a setting — nobody typed them, and they are
+   * never written to a link. Dropping them here would return every named box
+   * to its generic average, changing the numbers on screen without changing
+   * any field, and `isAdvancedDefault` could not report it: what it compares
+   * is the two links, and neither carries the table.
+   */
+  it("keeps the live box prices, which are not a setting to reset", () => {
+    const feed = {
+      sets: [
+        {
+          code: "msh",
+          name: "Marvel Super Heroes",
+          releasedAt: "2026-06-26",
+          boxes: { play: 23_444 },
+        },
+      ],
+      latest: { play: "msh" },
+      generatedAt: "2026-08-16T00:00:00.000Z",
+    };
+    const state = withState({ config: { ...defaultShareState().config, boxPrices: feed } });
+    expect(resetAdvanced(state).config.boxPrices).toEqual(feed);
+  });
+
   it("has nothing left to do once it has run", () => {
     expect(isAdvancedDefault(resetAdvanced(fullyEdited()))).toBe(true);
     expect(isAdvancedDefault(fullyEdited())).toBe(false);
@@ -400,10 +434,23 @@ describe("payout table codec", () => {
     expect(encodePayouts([{ wins: 0, gems: 50, packs: 1 }])).toBe("50-1");
   });
 
-  it("keeps a zero that sits before a column that is used", () => {
+  it("names the boxes a row pays, and drops the empty points slot before them", () => {
     expect(
-      encodePayouts([{ wins: 0, gems: 0, packs: 0, collectorBoxes: 2 }]),
-    ).toBe("0-0-0-0-2");
+      encodePayouts([
+        {
+          wins: 0,
+          gems: 0,
+          packs: 0,
+          boxes: [{ kind: "collector", set: "msh" }, { kind: "collector" }],
+        },
+      ]),
+    ).toBe("0-0-collector.msh-collector");
+  });
+
+  it("keeps a zero that sits before a slot that is used", () => {
+    expect(
+      encodePayouts([{ wins: 0, gems: 0, packs: 0, playInPoints: 2 }]),
+    ).toBe("0-0-2");
   });
 
   it("round-trips a ladder with points and boxes", () => {
@@ -411,9 +458,67 @@ describe("payout table codec", () => {
       { wins: 0, gems: 0, packs: 1 },
       { wins: 1, gems: 250, packs: 1 },
       { wins: 2, gems: 1000, packs: 3, playInPoints: 2 },
-      { wins: 3, gems: 2500, packs: 6, playBoxes: 1, collectorBoxes: 3 },
+      {
+        wins: 3,
+        gems: 2500,
+        packs: 6,
+        boxes: [
+          { kind: "play" as const, set: "latest" },
+          { kind: "collector" as const, set: "spm" },
+          { kind: "collector" as const },
+        ],
+      },
     ];
     expect(decodePayouts(encodePayouts(payouts))).toEqual(payouts);
+  });
+
+  /*
+   * Links written before a box could name its set spelled two counts in fixed
+   * positions. They still have to mean what they meant, which is that many
+   * boxes of no particular set — the same thing the generic rate prices today.
+   */
+  it("reads the old positional box counts as generic boxes", () => {
+    expect(decodePayouts("0-0-0-1-2")).toEqual([
+      {
+        wins: 0,
+        gems: 0,
+        packs: 0,
+        boxes: [{ kind: "play" }, { kind: "collector" }, { kind: "collector" }],
+      },
+    ]);
+    // And a row that spelled points as well keeps them.
+    expect(decodePayouts("5000-4-3-2")).toEqual([
+      {
+        wins: 0,
+        gems: 5000,
+        packs: 4,
+        playInPoints: 3,
+        boxes: [{ kind: "play" }, { kind: "play" }],
+      },
+    ]);
+  });
+
+  it("refuses a malformed box rather than guessing at it", () => {
+    // A kind nothing pays.
+    expect(decodePayouts("0-0-jumpstart.msh")).toBeNull();
+    // A set code that is not one.
+    expect(decodePayouts("0-0-play.MSH")).toBeNull();
+    expect(decodePayouts("0-0-play.")).toBeNull();
+    // Too many dots to be a kind and a set.
+    expect(decodePayouts("0-0-play.msh.foil")).toBeNull();
+    // A number after a box is not a sixth field.
+    expect(decodePayouts("0-0-play-3")).toBeNull();
+    // And the old limits still hold on the numbers themselves.
+    expect(decodePayouts("0-0-0-0-0-0")).toBeNull();
+  });
+
+  it("survives form encoding with a set code in it", () => {
+    const encoded = encodePayouts([
+      { wins: 0, gems: 0, packs: 0, boxes: [{ kind: "play", set: "msh" }] },
+    ]);
+    expect(new URLSearchParams({ payouts: encoded }).toString()).toBe(
+      `payouts=${encoded}`,
+    );
   });
 
   it("survives form encoding untouched", () => {
