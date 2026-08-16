@@ -12,6 +12,7 @@
  *   uncertainty.ts   the win rate as a posterior, not a point
  *   bankroll.ts      how far a starting balance goes
  *   presets.ts       named events, loaded from src/data/presets
+ *   boxPrices.ts     the live box-price feed, and defaults derived from it
  *   mastery.ts       what a Set Mastery Pass returns against what it costs
  */
 
@@ -25,4 +26,5 @@ export * from "./simulate";
 export * from "./uncertainty";
 export * from "./bankroll";
 export * from "./presets";
+export * from "./boxPrices";
 export * from "./mastery";

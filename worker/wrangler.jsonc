@@ -1,0 +1,50 @@
+/**
+ * The box-price feed: a scheduled Worker that publishes TCGplayer market
+ * prices (via tcgcsv.com) for the newest twenty draftable paper sets, joined
+ * to Scryfall's set metadata, into KV — and serves them at /api/box-prices on
+ * the app's own origin.
+ *
+ * The route is the load-bearing choice. The app's CSP (public/_headers) says
+ * `connect-src 'self'` and that policy is deliberately hard to amend, so the
+ * feed has to be same-origin. A Workers route on the custom domain takes
+ * precedence over the Pages project for matching paths, which puts this
+ * Worker on /api/* while Pages keeps everything else. Preview deployments
+ * (*.pages.dev) have no such route, so they fall back to the constants baked
+ * into the app — that is by design, not a gap.
+ *
+ * Deployed by .github/workflows/deploy.yml on pushes to main, with the same
+ * account credentials as the Pages upload. The KV namespace was created once
+ * by hand; its id below is not a secret.
+ */
+{
+  "name": "mtga-limited-ev-box-prices",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-01",
+
+  // Route-only on purpose: a workers.dev origin would be a second URL serving
+  // the same data with no CSP story. The one origin that matters is the app's.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "routes": [
+    { "pattern": "mtga-limited-ev.awknaust.me/api/*", "zone_name": "awknaust.me" }
+  ],
+
+  // Daily, at a deliberately odd minute, and after 20:00 UTC because that is
+  // when tcgcsv refreshes its mirror of TCGplayer's data — running earlier
+  // would fetch the same numbers a day late forever. Prices move on the order
+  // of weeks; a polite once-a-day read is plenty. A failed run leaves the
+  // previous KV value serving, so a source outage degrades to yesterday's
+  // prices rather than to an error.
+  //
+  // The refresh makes 1 Scryfall + 1 group-list + 2-per-set requests, and the
+  // set count is capped in scripts/refresh-constants/sources.mjs to keep a
+  // run inside the free plan's 50 subrequests.
+  "triggers": { "crons": ["23 21 * * *"] },
+
+  "kv_namespaces": [
+    { "binding": "BOX_PRICES", "id": "3613fd85a00e4ab3ad5f8fda0bdbc7ff" }
+  ],
+
+  "observability": { "enabled": true }
+}

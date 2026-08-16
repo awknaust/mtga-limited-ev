@@ -279,7 +279,7 @@ describe("the defaults are the contract", () => {
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23
-      values     pack=22 playIn=200 playBox=30933 collBox=126067
+      values     pack=22 playIn=200 playBox=24288 collBox=91691
       gold       other=600/day over 1 events, goldPer10k=1500
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6

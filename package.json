@@ -6,9 +6,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && tsc -p scripts && tsc -p worker && vite build",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "refresh:constants": "node scripts/constants/main.ts",
+    "box:prices": "node scripts/box-prices/main.ts"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -29,14 +31,17 @@
     "@babel/core": "^7.29.7",
     "@babel/plugin-syntax-jsx": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",
+    "@cloudflare/workers-types": "^5.20260811.1",
     "@rolldown/plugin-babel": "^0.2.3",
     "@types/babel__core": "^7.20.5",
     "@types/bootstrap": "^5.2.11",
     "@types/d3": "^7.4.3",
+    "@types/node": "^26.2.0",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^6.0.5",
     "babel-plugin-react-compiler": "^1.0.0",
+    "commander": "^15.0.0",
     "typescript": "^7.0.2",
     "vite": "^8.2.1",
     "vitest": "^4.1.10"

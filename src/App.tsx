@@ -43,6 +43,8 @@ import {
 import {
   CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
+  DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+  DEFAULT_PLAY_BOX_VALUE_GEMS,
   MASTERY_TRACKS,
   PRESETS,
   bankrollRoi,
@@ -51,6 +53,7 @@ import {
   configFromPreset,
   expectedNetAt,
   goldPerEvent,
+  liveBoxDefaults,
   matchWinRate,
   netInterval,
   CREDIBLE_LEVEL,
@@ -66,6 +69,7 @@ import {
   type EventStructure,
   type PayoutTier,
 } from "./lib";
+import { fetchBoxPriceFeed } from "./liveBoxPrices";
 import {
   SIM_LIMITS,
   STARTING_ENTRIES,
@@ -247,6 +251,41 @@ export default function App() {
     unit,
     gemsPerUsd,
   ]);
+
+  /*
+   * Live box prices, applied once if they arrive. The fetch resolves to null
+   * on previews, in dev without the proxy, and during outages, and the baked
+   * defaults simply stand — nothing here may ever make the app worse than it
+   * was without a network.
+   *
+   * A field is only overwritten while it still holds its baked default. That
+   * one rule covers every case at once: a link that spelled out a box value
+   * keeps it (decode gave a non-default), a user who edited before the fetch
+   * resolved keeps their number, and a fresh load gets today's prices. The
+   * update flows into the next URL write like any edit, so a copied link
+   * carries the live values explicitly — links stay self-contained, and
+   * decoding never depends on what the feed said the day one was opened.
+   */
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetchBoxPriceFeed(controller.signal).then((feed) => {
+      const live = feed && liveBoxDefaults(feed, new Date());
+      if (!live) return;
+      setConfig((prev) => {
+        const play = prev.playBoxValueGems === DEFAULT_PLAY_BOX_VALUE_GEMS;
+        const collector = prev.collectorBoxValueGems === DEFAULT_COLLECTOR_BOX_VALUE_GEMS;
+        if (!play && !collector) return prev;
+        return {
+          ...prev,
+          playBoxValueGems: play ? live.playBoxValueGems : prev.playBoxValueGems,
+          collectorBoxValueGems: collector
+            ? live.collectorBoxValueGems
+            : prev.collectorBoxValueGems,
+        };
+      });
+    });
+    return () => controller.abort();
+  }, []);
 
   const copyTimer = useRef<number | null>(null);
   useEffect(

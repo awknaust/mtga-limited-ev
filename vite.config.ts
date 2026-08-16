@@ -25,6 +25,28 @@ import babel from "@rolldown/plugin-babel";
  * defaults out of their destructuring patterns, does satisfy Babel 8 but
  * spreads a workaround across five components to save one line here.
  */
+/*
+ * /api is the box-price feed, served in production by the Worker in `worker/`
+ * on the app's own origin (the CSP allows nothing else). Dev has no Worker,
+ * so by default the fetch fails and the app stands on its baked-in fallback
+ * values — the same behaviour as a preview deploy, and dev never requires the
+ * network.
+ *
+ * To exercise the live feed path, name a proxy target explicitly:
+ *
+ *     MTGA_EV_API_PROXY=http://localhost:8787 npm run dev   # wrangler dev
+ *
+ * Deliberately not defaulted to the production origin: a config that quietly
+ * points every dev loop at the live site couples development to production —
+ * and its request volume to however many dev servers happen to be running.
+ * Reaching for prod data should be a choice made per-shell, not a side effect
+ * of `npm run dev`.
+ */
+const apiProxy = process.env.MTGA_EV_API_PROXY;
+
 export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
+  server: apiProxy
+    ? { proxy: { "/api": { target: apiProxy, changeOrigin: true } } }
+    : undefined,
 });

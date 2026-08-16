@@ -1,0 +1,31 @@
+{
+  // The tools: scripts/constants and scripts/box-prices, plus their shared
+  // plumbing. These run directly under Node's type stripping (Node 23.6+;
+  // `node scripts/constants/main.ts`), which is why `erasableSyntaxOnly` is
+  // on and every import names its `.ts` extension — Node strips types, it
+  // does not rewrite import paths.
+  //
+  // `lib` includes DOM for the fetch/Response/AbortSignal globals, the same
+  // trade the app's tsconfig makes for vite.config.ts; `types: ["node"]` adds
+  // process. Checked in CI via the build script.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "erasableSyntaxOnly": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["shared", "constants", "box-prices"]
+}

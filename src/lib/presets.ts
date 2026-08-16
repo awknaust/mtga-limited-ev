@@ -120,16 +120,31 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 /**
  * Gems per US dollar, for pricing physical prizes.
  *
- * From the largest gem bundle: 20,000 gems for $99.99, so 200 gems a dollar.
- * Smaller bundles are worse — 7,000 for $39.99 is 175 a dollar, 3,400 for
- * $19.99 is 170, 750 for $4.99 is 150 — which makes this the most generous
- * conversion and therefore the most conservative way to value a physical prize
- * in gems.
+ * The best rate on the store's ladder, which is 20,000 gems for $99.99 — 200.02
+ * a dollar. The whole ladder, largest first:
  *
- * The rest of the ladder is written out because this constant was wrong once,
- * at 400 from a misremembered $49.99, and nothing flagged it: a rate double
- * every other bundle's should not have survived a reading. Anyone changing it
- * should check the new figure sits above the neighbours and not far above.
+ *     40,000  $199.99   200.01
+ *     20,000   $99.99   200.02
+ *      9,200   $49.99   184.04
+ *      3,400   $19.99   170.09
+ *      1,600    $9.99   160.16
+ *        750    $4.99   150.30
+ *
+ * The best rate is *not* the largest bundle. The top two are the same price per
+ * gem to within a rounding error, and the 40,000 is fractionally the worse of
+ * them, so buying bigger stops paying at $99.99. Taking the best rate is what
+ * makes this the most conservative way to value a physical prize in gems: it
+ * assumes the cheapest gems you could have bought instead.
+ *
+ * The ladder is written out because this constant was wrong once, at 400 from a
+ * misremembered $49.99, and nothing flagged it: a rate double every other
+ * bundle's should not have survived a reading. Anyone changing it should check
+ * the new figure sits at or above the neighbours and not far above.
+ *
+ * The ladder itself is only in the client, so `npm run refresh:constants`
+ * cannot fetch it — the script prints these rungs from its own copy and asks
+ * for a look at the store. That copy went stale unnoticed, carrying a 7,000 for
+ * $39.99 bundle that had been replaced by the 9,200 and 1,600 tiers.
  */
 export const GEMS_PER_USD = 200;
 
@@ -228,30 +243,44 @@ export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
 export const DEFAULT_EVENTS_PER_DAY = 1;
 
 /**
- * Street prices in USD from MTGGoldfish's sealed product list, averaged over
- * three released, Standard-legal sets:
+ * TCGplayer market prices in USD (read via tcgcsv.com), averaged over the
+ * three newest released, Standard-legal sets as of 2026-08-10.
  *
- *     Marvel Super Heroes   play $147   collector $599
- *     Edge of Eternities    play $187   collector $914
- *     Aetherdrift           play $130   collector $378
+ * These are the *fallback* behind the two box constants below. On the
+ * production origin the app fetches `/api/box-prices` — a Worker-published
+ * feed of the newest twenty draftable paper sets (see `worker/`) — and
+ * derives the same average from live prices in `src/lib/boxPrices.ts`; these
+ * figures only govern when that feed is unreachable: preview deployments,
+ * dev without the proxy, or an outage. To refresh the snapshot, run
+ * `npm run box:prices` and copy the newest three released expansions' play
+ * and collector market prices into the two arrays below, newest first —
+ * skipping any set the twice-the-median outlier rule would drop.
  *
- * Only released sets are used — the newest entries on that page are preorders,
- * whose prices are speculative. Final Fantasy is excluded as an outlier: at
- * $260 a play box and $2,399 a collector box it would roughly double the
- * collector average on its own.
+ * The three sets used:
  *
- * One caveat on the source: for older sets it prints two columns, EV and
- * Retail, while recent sets show a single figure. These are the single values.
+ *     Marvel Super Heroes    play $116.26   collector $440.45
+ *     Secrets of Strixhaven  play $135.34   collector $494.36
+ *     TMNT                   play $112.72   collector $440.56
  *
- * @see https://www.mtggoldfish.com/prices/paper/boosters
+ * Market price is derived from actual sales on TCGplayer — the same
+ * marketplace Scryfall's USD card prices come from — and runs 15–25% under
+ * the listing-style figures these constants once carried; the change of
+ * basis was deliberate. Only released sets are used: presale boxes trade
+ * too, but at hype prices that settle after release. Final Fantasy is
+ * excluded as an outlier by the twice-the-pool-median rule: $1,728 a
+ * collector box at market against a median near $450.
+ *
+ * @see https://tcgcsv.com — a public JSON mirror of TCGplayer's API
  */
-const PLAY_BOX_USD = [147, 187, 130];
-const COLLECTOR_BOX_USD = [599, 914, 378];
+const PLAY_BOX_USD = [116.26, 135.34, 112.72];
+const COLLECTOR_BOX_USD = [440.45, 494.36, 440.56];
 
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 /**
- * Default gem value of a physical Play Booster box, converted at GEMS_PER_USD.
+ * Fallback gem value of a physical Play Booster box, converted at
+ * GEMS_PER_USD. Live prices normally replace it — see the note on
+ * PLAY_BOX_USD above.
  *
  * Street price rather than sticker. Wizards' own figure is higher — the Arena
  * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
@@ -263,11 +292,13 @@ export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(
 );
 
 /**
- * Default gem value of a physical Collector Booster box, same basis.
+ * Fallback gem value of a physical Collector Booster box, same basis.
  *
  * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88
  * — because the price tracks the singles inside. It is also the most volatile
- * number here: recent sets have ranged from under $400 to over $900.
+ * number here — recent sets have ranged from under $400 to over $900 — which
+ * is exactly why the live feed exists: this snapshot is the figure that goes
+ * stale fastest.
  */
 export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
   mean(COLLECTOR_BOX_USD) * GEMS_PER_USD,

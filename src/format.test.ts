@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { GEM_SIGN, approx, gemTick, money, otherUnit, tickAmount } from "./format";
 
-// The default rate: 20,000 gems for $99.99, the largest bundle.
+// The default rate: 20,000 gems for $99.99, the best rung on the store ladder.
 const RATE = 200;
 
 describe("money", () => {
