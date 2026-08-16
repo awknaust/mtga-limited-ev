@@ -168,7 +168,7 @@ export function Mastery({
             </tr>
             <tr>
               <th scope="row" colSpan={4} className="text-end fw-normal">
-                Free track, for comparison
+                Free track
               </th>
               <td className="text-end">{gemsEq(v.free)}</td>
             </tr>
