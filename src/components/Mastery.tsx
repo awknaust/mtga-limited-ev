@@ -175,14 +175,6 @@ export function Mastery({
           </tfoot>
         </table>
       </div>
-      <p className="form-text">
-        Orbs, card styles, sleeves, avatars and companions count for nothing by
-        default, and are listed rather than dropped so it is visible what is
-        being ignored. Nothing prices them: an orb buys a card style or an avatar
-        in the Mastery Emporium, and neither has a gem price or a
-        duplicate-protection value. Each has its own rate in Advanced settings if
-        you disagree.
-      </p>
 
       <SectionHeading
         className="mt-4"
