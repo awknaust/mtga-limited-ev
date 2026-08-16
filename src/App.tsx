@@ -12,6 +12,7 @@ import {
 } from "./format";
 import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
+import { BoxPrices } from "./components/BoxPrices";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventsHistogram } from "./components/EventsHistogram";
@@ -65,6 +66,7 @@ import {
   paysBoxes,
   resizePayouts,
   startingValue,
+  type BoxPriceFeed,
   type EventConfig,
   type EventStructure,
   type PayoutTier,
@@ -253,6 +255,15 @@ export default function App() {
   ]);
 
   /*
+   * The feed as fetched, kept for the dialog that shows it — the payload
+   * itself, not the two defaults derived from it, since the table quotes
+   * prices and says nothing about which of them were averaged. Null covers
+   * both "not back yet" and "there is none", which is what the dialog says:
+   * the page never waits on this and never changes shape when it lands.
+   */
+  const [boxFeed, setBoxFeed] = useState<BoxPriceFeed | null>(null);
+
+  /*
    * Live box prices, applied once if they arrive. The fetch resolves to null
    * on previews, in dev without the proxy, and during outages, and the baked
    * defaults simply stand — nothing here may ever make the app worse than it
@@ -269,7 +280,11 @@ export default function App() {
   useEffect(() => {
     const controller = new AbortController();
     void fetchBoxPriceFeed(controller.signal).then((feed) => {
-      const live = feed && liveBoxDefaults(feed, new Date());
+      if (!feed) return;
+      // Kept whether or not the rule below could be applied: a feed too thin
+      // to average is still the answer to why the values did not move.
+      setBoxFeed(feed);
+      const live = liveBoxDefaults(feed, new Date());
       if (!live) return;
       setConfig((prev) => {
         const play = prev.playBoxValueGems === DEFAULT_PLAY_BOX_VALUE_GEMS;
@@ -385,6 +400,33 @@ export default function App() {
     };
   }, []);
 
+  /*
+   * The box-price table, opened from the About tab — from the page rather
+   * than from inside another dialog, which is what keeps it a plain `show()`.
+   * Bootstrap supports one dialog at a time, and a second raised over the
+   * first stacks two backdrops that outlive them both.
+   */
+  const boxPricesEl = useRef<HTMLDivElement>(null);
+  const boxPricesModal = useRef<Modal | null>(null);
+  /*
+   * Stamped when the dialog opens rather than read while rendering: "4 hours
+   * ago" is a fact about the moment it was asked, and the React Compiler is
+   * free to memoise a render that read the clock itself.
+   */
+  const [boxPricesAt, setBoxPricesAt] = useState(() => new Date());
+  useEffect(() => {
+    const el = boxPricesEl.current;
+    if (!el) return;
+    boxPricesModal.current = new Modal(el);
+    const onShow = () => setBoxPricesAt(new Date());
+    el.addEventListener("show.bs.modal", onShow);
+    return () => {
+      el.removeEventListener("show.bs.modal", onShow);
+      boxPricesModal.current?.dispose();
+      boxPricesModal.current = null;
+    };
+  }, []);
+
   const topUpEl = useRef<HTMLDivElement>(null);
   const topUpModal = useRef<Modal | null>(null);
   useEffect(() => {
@@ -449,6 +491,7 @@ export default function App() {
     resultTabs: `${uid}-results`,
     viewTabs: `${uid}-view`,
     topUpTitle: `${uid}-top-up-title`,
+    boxPricesTitle: `${uid}-box-prices-title`,
   };
 
   /*
@@ -1509,7 +1552,11 @@ export default function App() {
                 rung here renders that panel silently. Add the rung.
               */}
               {tab === "about" ? (
-                <About config={config} m={m} />
+                <About
+                  config={config}
+                  m={m}
+                  onShowBoxPrices={() => boxPricesModal.current?.show()}
+                />
               ) : tab === "mastery" ? (
                 <Mastery track={masteryTrack} config={config} m={m} />
               ) : tab === "bankroll" ? (
@@ -2284,6 +2331,51 @@ export default function App() {
                 {advancedReset}
               </span>
               <button type="button" className="btn btn-primary" data-bs-dismiss="modal">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Where the two box values come from, reached from beside them in
+          Advanced settings. Scrollable and wide: it is twenty rows of six
+          columns, and a dialog that grew to fit them would run off a laptop
+          screen. */}
+      <div
+        className="modal fade"
+        tabIndex={-1}
+        ref={boxPricesEl}
+        aria-labelledby={ids.boxPricesTitle}
+      >
+        <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title h6 mb-0" id={ids.boxPricesTitle}>
+                Box prices by set
+              </h2>
+              <button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              />
+            </div>
+            <div className="modal-body">
+              <BoxPrices
+                feed={boxFeed}
+                playBoxValueGems={config.playBoxValueGems}
+                collectorBoxValueGems={config.collectorBoxValueGems}
+                gemsPerUsd={gemsPerUsd}
+                now={boxPricesAt}
+              />
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-primary"
+                data-bs-dismiss="modal"
+              >
                 Done
               </button>
             </div>

@@ -169,8 +169,13 @@ const usdFormat = (digits: number): Intl.NumberFormat =>
  * Intl rather than `toFixed`, which printed no thousands separator: at a low
  * gems-per-dollar rate a collector box read `$6303.33` while every gem figure
  * beside it was grouped.
+ *
+ * Exported for the figures that are dollars to begin with — the box-price
+ * feed quotes TCGplayer in USD — where `money("usd", …)` would be wrong,
+ * since it converts a gem amount at the reader's rate. Same formatter either
+ * way, so a market price and a converted one round the same.
  */
-const usd = (value: number): string => {
+export const usdAmount = (value: number): string => {
   const a = Math.abs(value);
   // Zero takes the ordinary two places rather than falling through to the
   // small-amount branch. It has no significant digits to preserve, and an
@@ -224,8 +229,8 @@ export function money(unit: Unit, gemsPerUsd: number): Money {
     unit,
     label: "USD",
     symbol: "$",
-    fmt: (g) => usd(g / rate),
-    fmt1: (g) => usd(g / rate),
+    fmt: (g) => usdAmount(g / rate),
+    fmt1: (g) => usdAmount(g / rate),
     toInput: cents,
     /*
      * Always two places, so $8.50 does not display as $8.5. A price with a

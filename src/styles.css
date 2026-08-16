@@ -965,6 +965,34 @@ body {
 }
 
 /*
+ * The box-price table scrolls at about ten sets rather than growing.
+ *
+ * Twenty is what the feed carries today, and that is a subrequest budget
+ * rather than a promise — the dialog should not get taller every time the
+ * budget does. The header rows stay put while the body scrolls, since a
+ * price column read at the bottom of the scroll is otherwise unlabelled;
+ * they need a solid background of their own, the table's being transparent
+ * by the rule above, and it is the modal's rather than a panel's because
+ * that is what sits behind them.
+ */
+.box-price-scroll {
+  max-height: 24rem;
+  overflow-y: auto;
+}
+
+.box-price-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bs-modal-bg, var(--bs-body-bg));
+}
+
+/* The model's own figure, ruled off from the sets it was averaged from. */
+.box-price-custom > * {
+  border-bottom-width: 2px;
+}
+
+/*
  * Sits outside the panels rather than inside one, so it needs its own rule
  * from them. Matches .about's type: both are prose about the model rather
  * than part of it.
