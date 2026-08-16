@@ -7,6 +7,21 @@ const show = (m: Money, n: number): string =>
   Number.isFinite(n) ? approx(m.fmt(n)) : "—";
 
 /**
+ * What a box is valued at, in the one form that is true of both boxes: it
+ * depends on the set, and here are the sets. Sized and aligned to sit in a
+ * cell of figures without shouldering the rows apart.
+ */
+const BoxPricesLink = ({ onClick }: { onClick: () => void }) => (
+  <button
+    type="button"
+    className="btn btn-link btn-sm p-0 align-baseline"
+    onClick={onClick}
+  >
+    varies by set
+  </button>
+);
+
+/**
  * The two things a reader cannot get from a tooltip: what a reward counts as,
  * and what the plain words on the tiles mean precisely.
  *
@@ -35,8 +50,29 @@ const show = (m: Money, n: number): string =>
  * publishing where experience comes from but none of the amounts. And cosmetics
  * are counted but priced at nothing, which the rates below state as a figure:
  * an orb reading 0 needs no paragraph explaining that it is worth nothing.
+ *
+ * The two box rows are the exception to the table's own form: their cell is a
+ * way through to the prices rather than a figure. Every other rate here is one
+ * number arrived at by reasoning — 40 gems for a mythic, because that is what
+ * duplicate protection pays — while a box is worth whatever boxes are going
+ * for, which is a different answer every set and a table of its own. The
+ * number the model uses is still one number, and still sits in Advanced
+ * settings where it can be edited; this row says where it came from.
  */
-export function About({ config, m }: { config: EventConfig; m: Money }) {
+export function About({
+  config,
+  m,
+  onShowBoxPrices,
+}: {
+  config: EventConfig;
+  m: Money;
+  /**
+   * Opens the box-price table. The two box rows are the only ones here whose
+   * rate is fetched rather than reasoned out, so they are the only ones where
+   * "valued at" has a source worth showing.
+   */
+  onShowBoxPrices: () => void;
+}) {
   return (
     <div className="about">
       {/* Follows the display toggle, as the rates in the table below it do —
@@ -86,11 +122,15 @@ export function About({ config, m }: { config: EventConfig; m: Money }) {
             </tr>
             <tr>
               <td>Play Booster box</td>
-              <td>{show(m, config.playBoxValueGems)} each</td>
+              <td>
+                <BoxPricesLink onClick={onShowBoxPrices} />
+              </td>
             </tr>
             <tr>
               <td>Collector Booster box</td>
-              <td>{show(m, config.collectorBoxValueGems)} each</td>
+              <td>
+                <BoxPricesLink onClick={onShowBoxPrices} />
+              </td>
             </tr>
             {/* Below here nothing is paid by an event ladder — these are the
                 Mastery Pass's rewards, and they are priced on the Mastery tab
