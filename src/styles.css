@@ -663,6 +663,51 @@ body {
 }
 
 /*
+ * The Mastery Pass's rewards, which no event pays and which therefore never
+ * share a bar with the holdings above. Hues are reused across the two sets for
+ * that reason — what must stay distinct is the segments within one bar.
+ *
+ * The cosmetics are here despite being worth nothing by default: the bar drops
+ * a zero-valued slice, so these only ever draw for someone who has priced them,
+ * and that someone should not get an uncoloured segment for their trouble.
+ */
+.slice-draftToken {
+  --slice: #a78bfa;
+}
+
+.slice-mythicIcr {
+  --slice: #f472b6;
+}
+
+.slice-rareCard {
+  --slice: #fb923c;
+}
+
+.slice-uncommonIcr {
+  --slice: #94a3b8;
+}
+
+.slice-orbs {
+  --slice: #2dd4bf;
+}
+
+.slice-cardStyles {
+  --slice: #c084fc;
+}
+
+.slice-sleeves {
+  --slice: #f87171;
+}
+
+.slice-avatars {
+  --slice: #38bdf8;
+}
+
+.slice-companions {
+  --slice: #a3e635;
+}
+
+/*
  * Its axis labels. Positioned rather than spaced, because each one has to sit
  * where its value falls along a chart that is stretched to the card's width —
  * a flex row would space them evenly and put every one of them in the wrong
@@ -945,4 +990,93 @@ body {
 .chart-band {
   fill: var(--bs-primary);
   opacity: 0.1;
+}
+
+/*
+ * Loading states for the worker-run simulations.
+ *
+ * Two shapes share one sweep animation. `.shimmer` blocks are the first-load
+ * skeleton, standing in for tiles and charts that have never rendered.
+ * `.sim-results` wraps settled results: while a recompute is pending the
+ * stale numbers dim — still legible, usually close to right — under the same
+ * sweep run as an overlay. The 0.15 s delay before the dim is what keeps
+ * fast resolutions (cache hits, small runs) from flashing.
+ */
+.shimmer {
+  background-color: var(--app-raised);
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(230, 234, 240, 0.06) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  border-radius: var(--bs-border-radius);
+  animation: shimmer-sweep 1.2s linear infinite;
+}
+
+.shimmer-tile {
+  height: 6rem;
+}
+
+.shimmer-chart {
+  height: 240px;
+}
+
+.shimmer-table {
+  height: 18rem;
+}
+
+@keyframes shimmer-sweep {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.sim-results {
+  position: relative;
+  transition: opacity 0.2s ease 0.15s;
+}
+
+.sim-results.is-pending {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: progress;
+}
+
+/* Stale results dimmed under an animated sweep, not behind a blank. */
+.sim-results::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(230, 234, 240, 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+}
+
+.sim-results.is-pending::after {
+  opacity: 1;
+  animation: shimmer-sweep 1.2s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shimmer,
+  .sim-results.is-pending::after {
+    animation: none;
+  }
+
+  .sim-results {
+    transition: none;
+  }
 }

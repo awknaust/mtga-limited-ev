@@ -304,6 +304,83 @@ export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
   mean(COLLECTOR_BOX_USD) * GEMS_PER_USD,
 );
 
+/**
+ * Default gem value of one Player Draft token.
+ *
+ * Wizards describes it as "redeemable for a Premier or Traditional Draft entry",
+ * and both of those cost 1,500 gems — so the token is priced at the entry it
+ * replaces, and derived from the preset rather than written out, so it follows
+ * the ladder data if that entry ever moves.
+ *
+ * Replacement cost, on the same footing as DEFAULT_PLAY_IN_POINT_VALUE_GEMS and
+ * with the same caveat: it holds only for someone who would have paid 1,500 for
+ * a draft anyway. A player who would not is better served by what the entry
+ * *returns*, which at most win rates is the smaller figure — draft is EV-negative
+ * below break-even, and a free entry into a losing proposition is not worth its
+ * sticker. This takes the larger, simpler reading, and it is the reason nothing
+ * on the Mastery tab moves with the win rate.
+ */
+export const DEFAULT_DRAFT_TOKEN_VALUE_GEMS = PREMIER_DRAFT.entryCostGems;
+
+/**
+ * Default gem value of one mythic rare individual card reward.
+ *
+ * The published duplicate-protection figure, unmodified: on a complete
+ * collection a mythic you already hold four of converts to 40 gems.
+ *
+ * Flat 40 where DEFAULT_PACK_VALUE_GEMS is 22, and the gap is not an
+ * inconsistency. A booster's rare slot is sometimes a wildcard instead, which
+ * costs it the gems; an ICR is a card award with no slot to lose, so nothing
+ * displaces it.
+ *
+ * A floor rather than a fair value — a mythic you actually want to play is worth
+ * more than its buyout, and this model has no way to know which those are.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DEFAULT_MYTHIC_ICR_VALUE_GEMS = 40;
+
+/** Default gem value of one rare card award. The published rare buyout. */
+export const DEFAULT_RARE_CARD_VALUE_GEMS = 20;
+
+/**
+ * Default gem value of one uncommon individual card reward — the reward every
+ * mastery level past the cap repeats.
+ *
+ * Almost nothing, and deliberately so. An uncommon has no duplicate-protection
+ * gem value at all; it feeds vault progress, which DEFAULT_PACK_VALUE_GEMS
+ * already excludes on purpose. All that is left is the 5% chance it upgrades to
+ * a rare, and an upgraded card is worth the rare/mythic mix at the usual ~1:8:
+ *
+ *     0.05 × ((7/8 × 20) + (1/8 × 40)) = 0.05 × 22.5 = 1.125 gems
+ *
+ * Left unrounded, against the `Math.round(160/7)` precedent. Rounding 22.9 to 23
+ * is a 0.4% error; rounding 1.125 to 1 is 11%, and unlike the pack figure this
+ * is never a number anyone types into a field.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DEFAULT_UNCOMMON_ICR_VALUE_GEMS = 0.05 * ((7 / 8) * 20 + (1 / 8) * 40);
+
+/**
+ * Default gem value of a Mastery Orb, and of the cosmetics it buys.
+ *
+ * Zero, for want of anything to derive a figure from. Orbs redeem in the Mastery
+ * Emporium for card styles, sleeves and avatars — one orb a style, two an avatar
+ * — and none of those has a gem price, a duplicate-protection value or any other
+ * conversion Arena will perform. There is no number here to be wrong about, and
+ * inventing one would be the thing this repo has spent its whole design refusing
+ * to do; the settled "fun is inert" decision is the same call.
+ *
+ * Zero is the default, not a claim. Each cosmetic gets its own field so anyone
+ * who values a sleeve can say so without also repricing orbs, and the Mastery
+ * tab counts them all whatever they are priced at, so what is being ignored
+ * stays on screen.
+ *
+ * @see https://magic.wizards.com/en/news/mtg-arena/the-hobbit-mastery-details
+ */
+export const DEFAULT_COSMETIC_VALUE_GEMS = 0;
+
 /** Config built from a preset, leaving win rate and pack value untouched. */
 export function configFromPreset(preset: EventPreset, base: EventConfig): EventConfig {
   return {
@@ -328,5 +405,14 @@ export function defaultConfig(): EventConfig {
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+    draftTokenValueGems: DEFAULT_DRAFT_TOKEN_VALUE_GEMS,
+    mythicIcrValueGems: DEFAULT_MYTHIC_ICR_VALUE_GEMS,
+    rareCardValueGems: DEFAULT_RARE_CARD_VALUE_GEMS,
+    uncommonIcrValueGems: DEFAULT_UNCOMMON_ICR_VALUE_GEMS,
+    orbValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
+    cardStyleValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
+    sleeveValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
+    avatarValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
+    companionValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
   } as EventConfig);
 }

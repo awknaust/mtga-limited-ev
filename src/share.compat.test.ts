@@ -32,7 +32,13 @@ import {
   presetSlug,
   type ShareState,
 } from "./share";
-import { PRESETS, effectiveEntryGems, goldPerEvent, maxPossibleWins } from "./lib";
+import {
+  CURRENT_MASTERY_TRACK,
+  PRESETS,
+  effectiveEntryGems,
+  goldPerEvent,
+  maxPossibleWins,
+} from "./lib";
 
 /**
  * Everything a link resolves to, rendered compactly.
@@ -94,6 +100,16 @@ const CORPUS: [name: string, search: string][] = [
   ["display only", "?tab=about&unit=usd&gemsPerUsd=350"],
   ["bankroll only", "?startGems=20000&startGold=15000&maxEvents=200&spendWinnings=1"],
   ["custom elimination shape", "?preset=custom&maxWins=5&maxLosses=2&payouts=0-0_100-1_200-2_400-3_800-4_1600-5"],
+  /*
+   * Counts past the ceilings, where raising a cap changes what an old link
+   * says: `runs=999999` resolved to 200,000 before the simulations moved off
+   * the main thread and resolves to itself after. Nothing else in the corpus
+   * exceeds a cap, so without this row that break happens silently — which is
+   * the one thing this file exists to prevent.
+   */
+  ["counts above the ceilings", "?trials=999999999&runs=999999&maxEvents=99999"],
+  ["mastery tab", "?tab=mastery"],
+  ["mastery rates, cosmetics priced", "?tab=mastery&orbValue=5&mythicIcrValue=60&draftTokenValue=0"],
 ];
 
 describe("the parameter names are the contract", () => {
@@ -125,6 +141,15 @@ describe("the parameter names are the contract", () => {
         playInPointValueGems: 9,
         playBoxValueGems: 10,
         collectorBoxValueGems: 11,
+        draftTokenValueGems: 18,
+        mythicIcrValueGems: 19,
+        rareCardValueGems: 20,
+        uncommonIcrValueGems: 21,
+        orbValueGems: 22,
+        cardStyleValueGems: 23,
+        sleeveValueGems: 24,
+        avatarValueGems: 25,
+        companionValueGems: 26,
         payouts: [
           { wins: 0, gems: 1, packs: 1 },
           { wins: 1, gems: 2, packs: 2 },
@@ -140,6 +165,9 @@ describe("the parameter names are the contract", () => {
       startingGold: 15,
       maxEvents: 16,
       tab: "about",
+      // The only season there is, so it cannot differ from the default and
+      // cannot appear in the link. The names list below says as much.
+      masterySlug: CURRENT_MASTERY_TRACK.slug,
       unit: "usd",
       gemsPerUsd: 17,
     };
@@ -155,10 +183,14 @@ describe("the parameter names are the contract", () => {
       ...new URLSearchParams(encodeShareState(elimination)).keys(),
     ]);
     expect([...names].sort()).toEqual([
+      "avatarValue",
+      "cardStyleValue",
       "collectorBoxValue",
+      "companionValue",
       "confMatches",
       "draftPackValue",
       "draftPacks",
+      "draftTokenValue",
       "entry",
       "entryGold",
       "eventsPerDay",
@@ -168,6 +200,8 @@ describe("the parameter names are the contract", () => {
       "maxEvents",
       "maxLosses",
       "maxWins",
+      "mythicIcrValue",
+      "orbValue",
       "packValue",
       "payouts",
       "playBoxValue",
@@ -176,10 +210,12 @@ describe("the parameter names are the contract", () => {
       "rounds",
       "runs",
       "seed",
+      "sleeveValue",
       "startGems",
       "startGold",
       "tab",
       "trials",
+      "uncommonIcrValue",
       "unit",
       "wr",
     ]);

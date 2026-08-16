@@ -45,6 +45,21 @@ sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
 
+exports[`the captured corpus > pins everything counts above the ceilings resolves to 1`] = `
+"preset     Premier Draft
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
+entry      1500 gems / 10000 gold
+draft      3 packs @ 23
+values     pack=22 playIn=200 playBox=24288 collBox=91691
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    1336.7 gems (1088.8 gold/event)
+payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
+bankroll   gems=3000 gold=0 maxEvents=2000
+sim        trials=25000000 runs=999999 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200"
+`;
+
 exports[`the captured corpus > pins everything custom elimination shape resolves to 1`] = `
 "preset     Custom
 winRate    0.55 over 100 matches
@@ -133,6 +148,36 @@ payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 maxEvents=20
 sim        trials=100000 runs=10000 seed=1
 display    tab=about unit=usd gemsPerUsd=350"
+`;
+
+exports[`the captured corpus > pins everything mastery rates, cosmetics priced resolves to 1`] = `
+"preset     Premier Draft
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
+entry      1500 gems / 10000 gold
+draft      3 packs @ 23
+values     pack=22 playIn=200 playBox=24288 collBox=91691
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    1336.7 gems (1088.8 gold/event)
+payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
+bankroll   gems=3000 gold=0 maxEvents=20
+sim        trials=100000 runs=10000 seed=1
+display    tab=mastery unit=gems gemsPerUsd=200"
+`;
+
+exports[`the captured corpus > pins everything mastery tab resolves to 1`] = `
+"preset     Premier Draft
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
+entry      1500 gems / 10000 gold
+draft      3 packs @ 23
+values     pack=22 playIn=200 playBox=24288 collBox=91691
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    1336.7 gems (1088.8 gold/event)
+payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
+bankroll   gems=3000 gold=0 maxEvents=20
+sim        trials=100000 runs=10000 seed=1
+display    tab=mastery unit=gems gemsPerUsd=200"
 `;
 
 exports[`the captured corpus > pins everything one slider moved resolves to 1`] = `

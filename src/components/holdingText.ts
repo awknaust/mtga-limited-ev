@@ -1,5 +1,5 @@
 import { REAL_GEMS } from "../format";
-import type { HoldingKey } from "../lib";
+import type { HoldingKey, MasteryRewardKind } from "../lib";
 
 /**
  * How much of a holding there is, printed in that holding's own terms.
@@ -19,8 +19,16 @@ import type { HoldingKey } from "../lib";
  * Shared rather than local because two places print these amounts and they
  * have to agree: the holding cards, and the hover label on the bar that
  * decomposes the ending value.
+ *
+ * Mastery rewards go through the same rule and need no case of their own: the
+ * two currencies are spelled the same wherever they turn up, and every other
+ * mastery reward is a count of things, which is what the fallthrough prints.
  */
-export const amountText = (key: HoldingKey, n: number, exact = false): string => {
+export const amountText = (
+  key: HoldingKey | MasteryRewardKind,
+  n: number,
+  exact = false,
+): string => {
   if (key === "gems") return REAL_GEMS.fmt(n);
   if (key === "gold") return Math.round(n).toLocaleString();
   if (exact) return n.toLocaleString();

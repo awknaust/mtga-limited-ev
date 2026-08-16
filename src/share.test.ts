@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  SIM_LIMITS,
   decodePayouts,
   decodeShareState,
   defaultShareState,
@@ -13,6 +14,7 @@ import {
 } from "./share";
 import {
   CUSTOM_PRESET,
+  MASTERY_TRACKS,
   PRESETS,
   QUICK_DRAFT,
   SEALED,
@@ -87,6 +89,41 @@ describe("encoding only what was touched", () => {
     expect(encodeShareState(withState({ tab: "event", unit: "usd" }))).toBe(
       "tab=event&unit=usd",
     );
+  });
+
+  /*
+   * There is one mastery season, so the picker cannot be off its default and
+   * `mastery=` cannot appear in a link yet. Both halves are asserted: the second
+   * is what will start failing the day a second season lands, which is the point
+   * — it is a reminder to add a corpus entry for the new slug, not a bug.
+   */
+  it("keeps the mastery season out of a link while there is only one", () => {
+    for (const track of MASTERY_TRACKS) {
+      expect(encodeShareState(withState({ masterySlug: track.slug }))).toBe("");
+    }
+    expect(MASTERY_TRACKS).toHaveLength(1);
+  });
+});
+
+describe("the mastery season", () => {
+  it("round-trips every season by its slug", () => {
+    for (const track of MASTERY_TRACKS) {
+      const state = withState({ masterySlug: track.slug });
+      expect(roundTrip(state).masterySlug).toBe(track.slug);
+    }
+  });
+
+  /*
+   * A slug this build does not carry — an older link, or a newer one — falls
+   * back to the current season rather than leaving the tab pricing nothing.
+   * Slugs are written out on the track for exactly this reason: relabelling a
+   * season must not quietly turn every link naming it into this case.
+   */
+  it("falls back to the current season on a slug it does not know", () => {
+    const fallback = defaultShareState().masterySlug;
+    expect(decodeShareState("?mastery=some-future-set").masterySlug).toBe(fallback);
+    expect(decodeShareState("?mastery=").masterySlug).toBe(fallback);
+    expect(decodeShareState("").masterySlug).toBe(fallback);
   });
 });
 
@@ -189,6 +226,15 @@ describe("resetting advanced settings", () => {
         otherGoldPerDay: 900,
         eventsPerDay: 2,
         gemsPer10kGold: 2000,
+        draftTokenValueGems: 900,
+        mythicIcrValueGems: 60,
+        rareCardValueGems: 30,
+        uncommonIcrValueGems: 3,
+        orbValueGems: 1,
+        cardStyleValueGems: 2,
+        sleeveValueGems: 25,
+        avatarValueGems: 100,
+        companionValueGems: 7,
         payouts: [
           { wins: 0, gems: 10, packs: 1 },
           { wins: 1, gems: 20, packs: 1 },
@@ -229,19 +275,28 @@ describe("resetting advanced settings", () => {
     const after = new URLSearchParams(encodeShareState(resetAdvanced(touched)));
 
     expect([...before.keys()].filter((k) => !after.has(k)).sort()).toEqual([
+      "avatarValue",
+      "cardStyleValue",
       "collectorBoxValue",
+      "companionValue",
       "confMatches",
       "draftPackValue",
+      "draftTokenValue",
       "eventsPerDay",
       "gemsPerUsd",
       "goldPer10k",
       "goldPerDay",
+      "mythicIcrValue",
+      "orbValue",
       "packValue",
       "playBoxValue",
       "playInValue",
+      "rareCardValue",
       "runs",
       "seed",
+      "sleeveValue",
       "trials",
+      "uncommonIcrValue",
     ]);
     // The event on screen, the balance it is played from, and where the page
     // is pointed — none of which the dialog shows.
@@ -270,6 +325,18 @@ describe("resetting advanced settings", () => {
     expect(reset.config.playInPointValueGems).toBe(config.playInPointValueGems);
     expect(reset.config.playBoxValueGems).toBe(config.playBoxValueGems);
     expect(reset.config.collectorBoxValueGems).toBe(config.collectorBoxValueGems);
+    // The Mastery rewards group, which the reset reaches for the same reason it
+    // reaches the rest: `resetAdvanced` names what it keeps, not what it clears,
+    // so a rate added to the dialog is restored without anyone editing it.
+    expect(reset.config.draftTokenValueGems).toBe(config.draftTokenValueGems);
+    expect(reset.config.mythicIcrValueGems).toBe(config.mythicIcrValueGems);
+    expect(reset.config.rareCardValueGems).toBe(config.rareCardValueGems);
+    expect(reset.config.uncommonIcrValueGems).toBe(config.uncommonIcrValueGems);
+    expect(reset.config.orbValueGems).toBe(config.orbValueGems);
+    expect(reset.config.cardStyleValueGems).toBe(config.cardStyleValueGems);
+    expect(reset.config.sleeveValueGems).toBe(config.sleeveValueGems);
+    expect(reset.config.avatarValueGems).toBe(config.avatarValueGems);
+    expect(reset.config.companionValueGems).toBe(config.companionValueGems);
     expect(reset.config.otherGoldPerDay).toBe(config.otherGoldPerDay);
     expect(reset.config.eventsPerDay).toBe(config.eventsPerDay);
     expect(reset.config.gemsPer10kGold).toBe(config.gemsPer10kGold);
@@ -388,10 +455,18 @@ describe("input from a URL is not trusted", () => {
     expect(decodeShareState("seed=").seed).toBe(fallback.seed);
   });
 
-  it("holds the trial and event ceilings the inputs hold", () => {
-    expect(decodeShareState("trials=99999999").trials).toBe(5_000_000);
+  /*
+   * The same ceilings the Advanced fields clamp to, which is why they are
+   * asserted through `SIM_LIMITS` rather than as literals: a link and the
+   * field it fills disagreeing is the failure worth catching, not the
+   * particular number either of them lands on.
+   */
+  it("holds the ceilings the inputs hold", () => {
+    expect(decodeShareState("trials=999999999").trials).toBe(SIM_LIMITS.trials);
     expect(decodeShareState("trials=0").trials).toBe(1);
-    expect(decodeShareState("maxEvents=99999").maxEvents).toBe(2000);
+    expect(decodeShareState("runs=9999999").bankrollRuns).toBe(SIM_LIMITS.bankrollRuns);
+    expect(decodeShareState("runs=0").bankrollRuns).toBe(1);
+    expect(decodeShareState("maxEvents=99999").maxEvents).toBe(SIM_LIMITS.maxEvents);
   });
 
   it("keeps the preset's ladder when the payout table is malformed", () => {

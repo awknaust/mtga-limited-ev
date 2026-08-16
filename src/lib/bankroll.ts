@@ -22,7 +22,7 @@ import {
   winRateInterval,
   winRatePosterior,
 } from "./uncertainty";
-import { simulateEvent } from "./simulate";
+import { CHUNK_EVENTS, simulateEvent } from "./simulate";
 import type { EventConfig } from "./types";
 
 export type BankrollConfig = {
@@ -563,12 +563,26 @@ function boxChanceOf(
   };
 }
 
-export function simulateBankrolls(
+/**
+ * `simulateBankrolls`, resumable: yields the completed-run count roughly
+ * every `chunkEvents` simulated events, then returns the full result.
+ *
+ * Chunking counts events rather than runs because a run's length is a
+ * setting — one run can play a single event or two thousand — and the point
+ * of a chunk is a roughly even slice of work. A run is atomic: the yield
+ * lands between runs, never inside one.
+ *
+ * As with `simulateSteps`, the yield points touch no RNG or accumulator
+ * state, so a drain in chunks of any size is bit-identical to
+ * `simulateBankrolls`.
+ */
+export function* simulateBankrollsSteps(
   config: EventConfig,
   bankroll: BankrollConfig,
   trials: number,
   seed = 1,
-): BankrollResult {
+  chunkEvents = CHUNK_EVENTS,
+): Generator<number, BankrollResult> {
   const rand = seededRandom(seed);
   /*
    * Which runs to keep, spread across the whole sequence rather than taken off
@@ -589,9 +603,16 @@ export function simulateBankrolls(
    */
   const posterior = winRatePosterior(config);
   const runs: BankrollRun[] = [];
+  let eventsSinceYield = 0;
   for (let i = 0; i < trials; i++) {
     const pMatch = drawWinRate(config, posterior, rand());
-    runs.push(simulateBankroll(config, bankroll, rand, i % stride === 0, pMatch));
+    const run = simulateBankroll(config, bankroll, rand, i % stride === 0, pMatch);
+    runs.push(run);
+    eventsSinceYield += run.events;
+    if (eventsSinceYield >= chunkEvents) {
+      eventsSinceYield = 0;
+      yield i + 1;
+    }
   }
 
   const mean = (pick: (r: BankrollRun) => number): number =>
@@ -638,4 +659,18 @@ export function simulateBankrolls(
     valueHistogram: binned(sortedValue),
     samples: labelSamples(config, runs.filter((r) => r.log !== undefined)),
   };
+}
+
+/** Monte Carlo bankroll results: `simulateBankrollsSteps` drained in one go. */
+export function simulateBankrolls(
+  config: EventConfig,
+  bankroll: BankrollConfig,
+  trials: number,
+  seed = 1,
+): BankrollResult {
+  const gen = simulateBankrollsSteps(config, bankroll, trials, seed);
+  for (;;) {
+    const r = gen.next();
+    if (r.done) return r.value;
+  }
 }
