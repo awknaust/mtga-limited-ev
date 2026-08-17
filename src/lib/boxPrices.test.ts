@@ -9,8 +9,10 @@ import {
   FALLBACK_BOX_PRICES,
   GEMS_PER_USD,
   boxPriceTable,
+  defaultConfig,
   liveBoxDefaults,
   parseBoxPriceFeed,
+  withLiveBoxPrices,
   type BoxPriceFeed,
   type BoxPriceRow,
   type BoxPriceStats,
@@ -325,6 +327,63 @@ describe("boxPriceTable", () => {
     );
     // And not by accident of the shipped table happening to be empty.
     expect(FALLBACK_BOX_PRICES.sets.length).toBeGreaterThan(0);
+  });
+});
+
+/*
+ * The feed applied to a config — what App does to the decoded link before its
+ * first render, and what used to happen inside a state update after it. Two
+ * things land under two rules: the table outright, the two generic values only
+ * where they still sit at the shipped default.
+ */
+describe("withLiveBoxPrices", () => {
+  const live = feed([
+    row({ code: "aaa", releasedAt: "2026-03-01", playUsd: 100, collectorUsd: 400 }),
+    row({ code: "bbb", releasedAt: "2026-02-01", playUsd: 200, collectorUsd: 500 }),
+    row({ code: "ccc", releasedAt: "2026-01-01", playUsd: 300, collectorUsd: 600 }),
+  ]);
+
+  it("installs the feed's table and moves values still at the shipped default", () => {
+    const fresh = defaultConfig();
+    expect(fresh.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    const applied = withLiveBoxPrices(fresh, live, NOW);
+    expect(applied.boxPrices).toEqual(boxPriceTable(live, NOW));
+    expect(applied.playBoxValueGems).toBe(200 * 200);
+    expect(applied.collectorBoxValueGems).toBe(500 * 200);
+    // Nothing else on the config is touched.
+    expect({ ...applied, boxPrices: fresh.boxPrices, playBoxValueGems: fresh.playBoxValueGems, collectorBoxValueGems: fresh.collectorBoxValueGems }).toEqual(fresh);
+  });
+
+  it("keeps a value the link spelled out or the reader typed, per field", () => {
+    // A link that fixed one box value and left the other to the market: the
+    // fixed one survives, the other follows the feed. Zero included — valuing
+    // boxes at nothing is a thing people do, and it has to survive the feed.
+    const config = { ...defaultConfig(), playBoxValueGems: 0 };
+    const applied = withLiveBoxPrices(config, live, NOW);
+    expect(applied.playBoxValueGems).toBe(0);
+    expect(applied.collectorBoxValueGems).toBe(500 * 200);
+    const typed = { ...defaultConfig(), collectorBoxValueGems: 123_456 };
+    expect(withLiveBoxPrices(typed, live, NOW).collectorBoxValueGems).toBe(123_456);
+    expect(withLiveBoxPrices(typed, live, NOW).playBoxValueGems).toBe(200 * 200);
+  });
+
+  it("still installs the table when the feed is too thin to average", () => {
+    // Two released expansions: enough to price a named box, not enough for the
+    // rule that sets the generic values, which therefore stay where they were.
+    const thin = feed(live.boxes.slice(0, BOX_SAMPLE_SIZE - 1));
+    expect(liveBoxDefaults(thin, NOW)).toBeNull();
+    const applied = withLiveBoxPrices(defaultConfig(), thin, NOW);
+    expect(applied.boxPrices.sets.map((s) => s.code)).toEqual(["aaa", "bbb"]);
+    expect(applied.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(applied.collectorBoxValueGems).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
+  });
+
+  it("is what a fresh load already holds when the feed is the shipped copy", () => {
+    // Applying the shipped feed on its own day changes nothing: the defaults
+    // are that very derivation, so a preview and production on deploy day
+    // open on the same numbers.
+    const fresh = defaultConfig();
+    expect(withLiveBoxPrices(fresh, BAKED_BOX_PRICES.feed, BAKED_BOX_PRICES.day)).toEqual(fresh);
   });
 });
 

@@ -47,7 +47,7 @@
 
 import baked from "../data/box-prices.json";
 import { GEMS_PER_USD } from "./boxes";
-import type { BoxKind, BoxPriceSet, BoxPriceTable } from "./types";
+import type { BoxKind, BoxPriceSet, BoxPriceTable, EventConfig } from "./types";
 
 /**
  * TCGplayer's price statistics for one box, in USD. Any may be null — a box
@@ -398,3 +398,36 @@ export const DEFAULT_PLAY_BOX_VALUE_GEMS: number = BAKED_BOX_PRICES.defaults.pla
  */
 export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS: number =
   BAKED_BOX_PRICES.defaults.collectorBoxValueGems;
+
+/**
+ * A config with the live feed applied.
+ *
+ * Two different things land, under two different rules. The per-set table is
+ * installed outright: it is not a setting anybody chose, it is what the boxes
+ * named by the payouts cost today, and it is never written to a link — a link
+ * names the product and this prices it on the day it is opened.
+ *
+ * The two generic averages are settings, so a field is only overwritten while
+ * it still holds its shipped default. That one check covers every case: a
+ * link that spelled out a box value keeps it (decode gave a non-default), a
+ * value the reader typed keeps, and a fresh load gets today's average. A feed
+ * too thin to average leaves both where they were, and still installs its
+ * table — the table is the answer to why the values did not move.
+ *
+ * Pure, so the app can apply it while building its first state rather than
+ * after the first render: what the page paints is then the live answer, not
+ * the shipped copy corrected a moment later.
+ */
+export function withLiveBoxPrices(config: EventConfig, feed: BoxPriceFeed, now: Date): EventConfig {
+  const live = liveBoxDefaults(feed, now);
+  const untouched = <K extends "playBoxValueGems" | "collectorBoxValueGems">(
+    key: K,
+    shipped: number,
+  ): number => (live !== null && config[key] === shipped ? live[key] : config[key]);
+  return {
+    ...config,
+    boxPrices: boxPriceTable(feed, now),
+    playBoxValueGems: untouched("playBoxValueGems", DEFAULT_PLAY_BOX_VALUE_GEMS),
+    collectorBoxValueGems: untouched("collectorBoxValueGems", DEFAULT_COLLECTOR_BOX_VALUE_GEMS),
+  };
+}

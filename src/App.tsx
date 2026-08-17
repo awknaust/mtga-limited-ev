@@ -47,18 +47,14 @@ import {
   BAKED_BOX_PRICES,
   CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
-  DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
-  DEFAULT_PLAY_BOX_VALUE_GEMS,
   MASTERY_TRACKS,
   PRESETS,
   bankrollRoi,
-  boxPriceTable,
   masteryBySlug,
   breakEvenWinRate,
   configFromPreset,
   expectedNetAt,
   goldPerEvent,
-  liveBoxDefaults,
   matchWinRate,
   netInterval,
   CREDIBLE_LEVEL,
@@ -71,13 +67,13 @@ import {
   paysBoxes,
   resizePayouts,
   startingValue,
+  withLiveBoxPrices,
   type BoxPriceFeed,
   type EventConfig,
   type EventStructure,
   type PayoutBox,
   type PayoutTier,
 } from "./lib";
-import { fetchBoxPriceFeed } from "./liveBoxPrices";
 import {
   SIM_LIMITS,
   STARTING_ENTRIES,
@@ -139,17 +135,37 @@ const WIN_RATE_STEPS = [
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
 
-
-
-export default function App() {
+export default function App({
+  boxFeed,
+}: {
+  /**
+   * The live box-price feed, or null where there is none — previews, dev
+   * without the proxy, an outage. Fetched once by main.tsx before the first
+   * render, which is what lets the page open on today's prices rather than
+   * paint the shipped copy and correct it a moment later.
+   */
+  boxFeed: BoxPriceFeed | null;
+}) {
   /*
    * The query string is the only place state persists. It is read once here
    * and written back on every change, so the address bar always describes what
    * is on screen and is shareable as it stands. Defaults live in share.ts
    * rather than in these initialisers: a default that disagreed with the one
    * the encoder measures against would be written into every link.
+   *
+   * The live feed is applied here, to the decoded state, so the first state is
+   * the priced one. The rule is `withLiveBoxPrices`'s: the table is installed
+   * outright, and the two generic values move only where the link left them at
+   * the shipped default — a link that spelled one out keeps it. The result
+   * flows into the next URL write like any edit, so a copied link carries the
+   * generic values explicitly and an old link still means what it said.
    */
-  const [initial] = useState(() => decodeShareState(window.location.search));
+  const [initial] = useState(() => {
+    const decoded = decodeShareState(window.location.search);
+    return boxFeed === null
+      ? decoded
+      : { ...decoded, config: withLiveBoxPrices(decoded.config, boxFeed, new Date()) };
+  });
   const [config, setConfig] = useState<EventConfig>(initial.config);
   const [trials, setTrials] = useState(initial.trials);
   /*
@@ -262,66 +278,15 @@ export default function App() {
   ]);
 
   /*
-   * The feed, kept for the dialog that shows it — the payload itself, not the
-   * two defaults derived from it, since the table quotes prices and says
-   * nothing about which of them were averaged. It starts as the copy the app
-   * shipped with and is replaced if the live one arrives, so the dialog always
-   * has a table to show and only the note above it changes: the page never
-   * waits on the fetch and never changes shape when it lands.
+   * The feed the dialog shows — the payload itself, not the two defaults
+   * derived from it, since the table quotes prices and says nothing about
+   * which of them were averaged. Fetched in main.tsx before this component
+   * ever rendered, so it is a prop rather than state: the live one where the
+   * feed could be reached, else the copy the app shipped with, and only the
+   * note above the table says which. Nothing arrives later, and nothing here
+   * changes shape after first paint.
    */
-  const [boxFeed, setBoxFeed] = useState<{ feed: BoxPriceFeed; live: boolean }>({
-    feed: BAKED_BOX_PRICES.feed,
-    live: false,
-  });
-
-  /*
-   * Live box prices, applied once if they arrive. The fetch resolves to null
-   * on previews, in dev without the proxy, and during outages, and the shipped
-   * copy simply stands — nothing here may ever make the app worse than it was
-   * without a network.
-   *
-   * Two different things land here. The per-set table is installed outright:
-   * it is not a setting anybody chose, it is what the boxes named by the
-   * payouts cost today, and it is never written to a link — a link names the
-   * product and this prices it on the day it is opened.
-   *
-   * The two generic averages are settings, so they follow the older rule: a
-   * field is only overwritten while it still holds its baked default. That
-   * covers every case at once — a link that spelled out a box value keeps it
-   * (decode gave a non-default), a user who edited before the fetch resolved
-   * keeps their number, and a fresh load gets today's prices. The update
-   * flows into the next URL write like any edit, so a copied link carries the
-   * generic values explicitly and an old link still means what it said.
-   */
-  useEffect(() => {
-    const controller = new AbortController();
-    void fetchBoxPriceFeed(controller.signal).then((feed) => {
-      if (!feed) return;
-      // Kept whether or not the averages below could be derived: a feed too
-      // thin to average is still the answer to why the values did not move.
-      setBoxFeed({ feed, live: true });
-      const now = new Date();
-      const table = boxPriceTable(feed, now);
-      const live = liveBoxDefaults(feed, now);
-      setConfig((prev) => {
-        const untouched = <K extends "playBoxValueGems" | "collectorBoxValueGems">(
-          key: K,
-          baked: number,
-        ): number =>
-          live !== null && prev[key] === baked ? live[key] : prev[key];
-        return {
-          ...prev,
-          boxPrices: table,
-          playBoxValueGems: untouched("playBoxValueGems", DEFAULT_PLAY_BOX_VALUE_GEMS),
-          collectorBoxValueGems: untouched(
-            "collectorBoxValueGems",
-            DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
-          ),
-        };
-      });
-    });
-    return () => controller.abort();
-  }, []);
+  const shownFeed = boxFeed ?? BAKED_BOX_PRICES.feed;
 
   const copyTimer = useRef<number | null>(null);
   useEffect(
@@ -2404,8 +2369,8 @@ export default function App() {
             </div>
             <div className="modal-body">
               <BoxPrices
-                feed={boxFeed.feed}
-                live={boxFeed.live}
+                feed={shownFeed}
+                live={boxFeed !== null}
                 playBoxValueGems={config.playBoxValueGems}
                 collectorBoxValueGems={config.collectorBoxValueGems}
                 gemsPerUsd={gemsPerUsd}

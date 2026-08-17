@@ -164,12 +164,26 @@ Boundaries that should outlive any refactor:
   what an omitted box value *means* is "whatever boxes trade at", and the
   number that resolves to is not the link's meaning. That file re-recorded
   once, for the fingerprint change, and must not need to again for a refresh.
+- **The feed is fetched before the first render, not after it.** `index.html`
+  preloads `/api/box-prices` (`as="fetch" crossorigin` — without `crossorigin`
+  the browser will not hand the response to `fetch()`), so the request leaves
+  with the HTML and rides alongside the bundle; `main.tsx` awaits that same
+  request, bounded by `BOX_FEED_BUDGET_MS`, and hands the result to `<App>` as
+  a prop. App applies it to the decoded link *inside its state initialiser*
+  (`withLiveBoxPrices`, a pure function in `src/lib/boxPrices.ts` with its own
+  tests) — so the first paint is the live table, and there is no effect that
+  corrects the shipped copy a moment later and no second simulation run. Where
+  there is no feed the await resolves null at once and the app mounts on the
+  shipped copy; if the budget elapses it mounts on the shipped copy and does
+  not go back for the feed, since a late correction is exactly the re-render
+  this exists to avoid. Do not move the fetch back into a `useEffect`.
 - **Decoding a link never *requires* the feed.** Encode measures against the
   derived defaults and decode falls back to them, so the generic rates are
   always written into links explicitly and a link that spelled one out means
   what it meant the day it was written. The app only overwrites a box value
-  that still sits at its derived default — a link's explicit value and a
-  user's edit both survive the fetch resolving late. A link never carries the
+  that still sits at its derived default — a link's explicit value survives
+  the feed being applied, and so does a user's edit, since the feed is applied
+  once, before anyone can edit. A link never carries the
   price table; what it carries is which *product* was won, and the feed
   prices that on the day the link is opened. So a link naming a set does move
   with the market, deliberately — with no live feed it prices from the
