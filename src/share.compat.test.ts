@@ -50,12 +50,11 @@ import {
  *
  * The two box values are the one pair of defaults that are not a fixed
  * number. Left out of a link, a box value means "whatever boxes trade at" —
- * the app derives it from the feed it shipped with and overwrites it with the
- * live feed's figure the moment that lands, and every build refreshes the
- * shipped copy. So the resolved number moves with the market by design, and
- * printing it here would make this file fire on every price move while
- * saying nothing about the link. What *is* the link's meaning — that it left
- * the value to the market, or that it fixed one — is what this prints.
+ * the app derives it from the feed it ships a copy of, and every build
+ * refreshes that copy. So the resolved number moves with the market by
+ * design, and printing it here would make this file fire on every build
+ * while saying nothing about the link. What *is* the link's meaning — that it
+ * left the value to the market, or that it fixed one — is what this prints.
  */
 const boxValue = (gems: number, baked: number): string =>
   gems === baked ? "market" : String(gems);

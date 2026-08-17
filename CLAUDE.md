@@ -74,8 +74,8 @@ and have burned us. Three things to hold to:
 
 ### Live box prices
 
-The two box values are the one input that goes stale in weeks, so they do not
-ride on deploys: a scheduled Worker (`worker/`) reads TCGplayer market prices
+Box prices are the one input that goes stale in weeks, so the per-set table
+does not ride on deploys: a scheduled Worker (`worker/`) reads TCGplayer market prices
 (via tcgcsv.com, a public JSON mirror of TCGplayer's API — the same
 marketplace Scryfall's USD card prices come from) and Scryfall daily,
 publishes the newest twenty draftable paper sets — Modern Horizons and
@@ -106,7 +106,12 @@ so it keeps the narrow rule: market price (sales-derived, 15–25% under
 listings; the basis change from MTGGoldfish's listing figures was
 deliberate), released sets only (presales trade at hype prices that settle
 later), newest three Standard-legal expansions, outliers past twice the pool
-median set aside.
+median set aside. It runs once per build, against the copy of the feed the
+app ships, and its two answers *are* the build's defaults: the live feed
+never moves them, only the reader does. Every preset box names a set (or
+`latest`), so they are read by a custom ladder's boxes and as the stand-in
+for a named set the table cannot price — and a build's staleness there is a
+deploy away from fixed.
 
 Two consequences worth holding on to. A generic rate of **0 zeroes named
 boxes too** — otherwise "zero these out" would leave an Arena Direct still
@@ -177,13 +182,18 @@ Boundaries that should outlive any refactor:
   shipped copy; if the budget elapses it mounts on the shipped copy and does
   not go back for the feed, since a late correction is exactly the re-render
   this exists to avoid. Do not move the fetch back into a `useEffect`.
+- **The live feed supplies the per-set table and nothing else.** The two
+  generic box values — what a box naming no set is worth, which only a custom
+  ladder pays — are the build's own, derived once from the shipped copy, and
+  only the reader moves them. They used to follow the live feed while they
+  still sat at their default, and that made a fresh load read as edited: the
+  reset button lit and the values were written into the link, for a number
+  nothing on a preset ladder reads. Do not reintroduce that; if the generic
+  values look stale, the answer is a deploy, which refreshes the shipped copy.
 - **Decoding a link never *requires* the feed.** Encode measures against the
-  derived defaults and decode falls back to them, so the generic rates are
-  always written into links explicitly and a link that spelled one out means
-  what it meant the day it was written. The app only overwrites a box value
-  that still sits at its derived default — a link's explicit value survives
-  the feed being applied, and so does a user's edit, since the feed is applied
-  once, before anyone can edit. A link never carries the
+  derived defaults and decode falls back to them, so a generic rate is written
+  into a link only when someone changed it, and a link that spelled one out
+  means what it meant the day it was written. A link never carries the
   price table; what it carries is which *product* was won, and the feed
   prices that on the day the link is opened. So a link naming a set does move
   with the market, deliberately — with no live feed it prices from the

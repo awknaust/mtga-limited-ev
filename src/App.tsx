@@ -154,11 +154,9 @@ export default function App({
    * the encoder measures against would be written into every link.
    *
    * The live feed is applied here, to the decoded state, so the first state is
-   * the priced one. The rule is `withLiveBoxPrices`'s: the table is installed
-   * outright, and the two generic values move only where the link left them at
-   * the shipped default — a link that spelled one out keeps it. The result
-   * flows into the next URL write like any edit, so a copied link carries the
-   * generic values explicitly and an old link still means what it said.
+   * the priced one. It supplies the per-set table and nothing else: the two
+   * generic box values are the build's own and only the reader moves them, so
+   * a fresh load reads as untouched and writes nothing into the link.
    */
   const [initial] = useState(() => {
     const decoded = decodeShareState(window.location.search);

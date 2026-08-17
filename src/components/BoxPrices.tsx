@@ -76,10 +76,11 @@ export function BoxPrices({
   /** Whether `feed` came from the network, or is the copy the app shipped. */
   live: boolean;
   /**
-   * What the model actually prices a box at — the average of the newest
-   * released expansions, or the baked fallback, or whatever the reader typed
-   * over it. The top row of the table, since it is the figure every payout in
-   * the app is settled at and the rows below it are only its working.
+   * What the model prices a box at when the payout names no set — the average
+   * of the newest released expansions as of the build, or whatever the reader
+   * typed over it. The top row of the table, since it is the figure a custom
+   * ladder's boxes settle at and the rows below it are its working; a payout
+   * that names a set is priced from those rows directly.
    */
   playBoxValueGems: number;
   collectorBoxValueGems: number;
@@ -102,8 +103,7 @@ export function BoxPrices({
       {!live && (
         <p>
           No live prices here — they are served from the production site.
-          These are the prices this build shipped with, and the two box values
-          in Advanced settings are their averages.
+          These are the prices this build shipped with.
         </p>
       )}
       {/* Both credited, because the price and the route to it are two
@@ -149,7 +149,7 @@ export function BoxPrices({
                 Custom
                 <InfoTip
                   label="About the custom box value"
-                  content="What the model prices every box payout at, from Advanced settings. It follows the average of the sets below until you edit it."
+                  content="What the model prices a box at when the payout names no set, from Advanced settings: the average of the three newest sets when this build was made, until you edit it. A payout naming a set is priced from that set's row below."
                 />
               </td>
               <td className="text-end">

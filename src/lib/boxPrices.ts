@@ -17,8 +17,10 @@
  *
  * **`liveBoxDefaults`** answers "what does a box cost, roughly", for the
  * generic rates that price a custom ladder and stand in whenever a named set
- * cannot be priced. That one is an average and wants a representative sample,
- * so it is narrower:
+ * cannot be priced. The app runs it once, at build time, against the copy of
+ * the feed it ships, and the two answers are the defaults for the build — the
+ * live feed prices named sets and never moves them, so only the reader does.
+ * It is an average and wants a representative sample, so it is narrower:
  *
  *   - **market price**, not a listing — `market` is derived from actual
  *     sales, `low`/`mid`/`high` are the current ask spread, and a listing is
@@ -311,8 +313,9 @@ function readBoxPriceTable(feed: BoxPriceFeed, now: Date): BoxPriceTable {
  * — the payload the Worker publishes, taken when the build was made — and it
  * has to sit at the bottom of the module because it runs at load, after every
  * rule and constant it uses is defined. The three named exports at the end are
- * what the rest of the app reads: `defaultConfig` seeds a config from them and
- * App compares a field against them to know whether the reader typed over it.
+ * what the rest of the app reads: `defaultConfig` seeds a config from them,
+ * and the two values are the build's answer for a box naming no set until the
+ * reader types over one.
  */
 
 /**
@@ -376,9 +379,12 @@ export const BAKED_BOX_PRICES: {
 export const FALLBACK_BOX_PRICES: BoxPriceTable = BAKED_BOX_PRICES.table;
 
 /**
- * Fallback gem value of a physical Play Booster box: the average the shipped
- * copy implies under `liveBoxDefaults`, converted at GEMS_PER_USD. Live prices
- * replace it wherever the feed can be reached.
+ * Gem value of a generic Play Booster box — one a payout names no set for, or
+ * names a set the table cannot price: the average the shipped copy implies
+ * under `liveBoxDefaults`, converted at GEMS_PER_USD. Fixed for the build. The
+ * live feed prices named sets and does not touch this; a case for moving it
+ * at runtime never really existed once boxes could name their set, and doing
+ * so made a fresh load look edited.
  *
  * Street price rather than sticker. Wizards' own figure is higher — the Arena
  * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
@@ -388,7 +394,7 @@ export const FALLBACK_BOX_PRICES: BoxPriceTable = BAKED_BOX_PRICES.table;
 export const DEFAULT_PLAY_BOX_VALUE_GEMS: number = BAKED_BOX_PRICES.defaults.playBoxValueGems;
 
 /**
- * Fallback gem value of a physical Collector Booster box, same basis.
+ * Gem value of a generic Collector Booster box, same basis.
  *
  * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88
  * — because the price tracks the singles inside. It is also the most volatile
@@ -400,34 +406,22 @@ export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS: number =
   BAKED_BOX_PRICES.defaults.collectorBoxValueGems;
 
 /**
- * A config with the live feed applied.
+ * A config with the live feed applied — which is the per-set table, and only
+ * that.
  *
- * Two different things land, under two different rules. The per-set table is
- * installed outright: it is not a setting anybody chose, it is what the boxes
- * named by the payouts cost today, and it is never written to a link — a link
- * names the product and this prices it on the day it is opened.
- *
- * The two generic averages are settings, so a field is only overwritten while
- * it still holds its shipped default. That one check covers every case: a
- * link that spelled out a box value keeps it (decode gave a non-default), a
- * value the reader typed keeps, and a fresh load gets today's average. A feed
- * too thin to average leaves both where they were, and still installs its
- * table — the table is the answer to why the values did not move.
+ * The table is installed outright: it is not a setting anybody chose, it is
+ * what the boxes named by the payouts cost today, and it is never written to
+ * a link — a link names the product and this prices it on the day it is
+ * opened. The two generic values are left exactly as they are. They are
+ * settings with a shipped default, and the feed used to move them while they
+ * still sat at it; that made a fresh load read as edited (the reset button
+ * lit, the values written into the link) for the sake of a number nothing but
+ * a custom ladder reads. Now only the reader moves them.
  *
  * Pure, so the app can apply it while building its first state rather than
  * after the first render: what the page paints is then the live answer, not
  * the shipped copy corrected a moment later.
  */
 export function withLiveBoxPrices(config: EventConfig, feed: BoxPriceFeed, now: Date): EventConfig {
-  const live = liveBoxDefaults(feed, now);
-  const untouched = <K extends "playBoxValueGems" | "collectorBoxValueGems">(
-    key: K,
-    shipped: number,
-  ): number => (live !== null && config[key] === shipped ? live[key] : config[key]);
-  return {
-    ...config,
-    boxPrices: boxPriceTable(feed, now),
-    playBoxValueGems: untouched("playBoxValueGems", DEFAULT_PLAY_BOX_VALUE_GEMS),
-    collectorBoxValueGems: untouched("collectorBoxValueGems", DEFAULT_COLLECTOR_BOX_VALUE_GEMS),
-  };
+  return { ...config, boxPrices: boxPriceTable(feed, now) };
 }
