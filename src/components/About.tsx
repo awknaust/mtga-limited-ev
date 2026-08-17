@@ -221,8 +221,8 @@ export function About({
         <dd className="col-sm-8">
           How much your own win rate is in doubt, given how many matches you
           have played — the middle 90% of the rates that record supports. It is
-          uncertainty about you, not about the simulation: playing more matches
-          narrows it, running more simulations does not.
+          uncertainty about you, not about the model: playing more matches
+          narrows it, and no setting here does.
         </dd>
 
         <dt className="col-sm-4">Give or take</dt>

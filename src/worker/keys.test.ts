@@ -57,7 +57,7 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
     generatedAt: "2026-08-16T00:00:00.000Z",
   },
   /*
-   * The mastery rates. Nothing the workers simulate reads them — they price a
+   * The mastery rates. Nothing the worker simulates reads them — they price a
    * season's pass, not an event — so they are in the key only because the key is
    * the whole config, and the cost of that is a cache miss on a change that
    * could not have moved the result. Cheap next to the alternative, which is a

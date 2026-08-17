@@ -16,8 +16,8 @@ const STEPS = 120;
  * Expected net against win rate for the current event.
  *
  * Answers what the headline figures cannot: how much a change in skill is
- * worth. The curve is the closed-form expectation, not the simulation, so it
- * is smooth and exact.
+ * worth. The curve is the closed-form expectation at each rate, so it is
+ * smooth and exact.
  *
  * Sampled and plotted on the match win rate, which is the unit `expectedNetAt`
  * takes and the one the slider sets, so the axis needs no conversion.

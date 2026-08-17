@@ -704,7 +704,7 @@ function boxChanceOf(
  * touches no simulation state — and how often a yield actually reaches the
  * event loop is the worker's decision, not this one.
  */
-export const CHUNK_EVENTS = 1000;
+const CHUNK_EVENTS = 1000;
 
 /**
  * `simulateBankrolls`, resumable: yields the completed-run count roughly

@@ -105,10 +105,8 @@ function bracePath(x: number, y0: number, y1: number): string {
  * ceiling and totals it, which is the number the old chart showed. The trophy
  * marks it either way.
  *
- * The bars are the closed-form probabilities. They used to be a simulation's
- * frequencies with a tick marking the exact figure against each, which was a
- * chart drawing the same number twice and inviting a comparison it could not
- * settle; the exact figure is the only one there is now.
+ * The bars are the closed-form probabilities, like every other figure on the
+ * tab.
  *
  * D3 supplies the scales and ticks; React renders the SVG. Keeping the DOM
  * under React avoids the two libraries both trying to own these nodes.

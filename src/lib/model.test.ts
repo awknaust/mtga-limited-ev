@@ -410,9 +410,7 @@ describe("eventExpectation", () => {
      * `simulateEvent` is the bankroll's kernel and the one place an event is
      * played by chance. Its mean length has to be the closed-form one, which
      * is the check that keeps the two halves of the model honest with each
-     * other now that nothing on screen draws them side by side. (The retired
-     * per-event Monte Carlo was checked the same way before it went: a
-     * million trials at three seeds over eleven configs, all within noise.)
+     * other, nothing on screen drawing them side by side.
      */
     for (const config of [
       { ...defaultConfig(), winRate: 0.58 },

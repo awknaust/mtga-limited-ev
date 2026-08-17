@@ -1,5 +1,5 @@
 /**
- * The contract between the app and the simulation workers.
+ * The contract between the app and the simulation worker.
  *
  * Requests are plain data — a kind tag and the numbers the model needs — so
  * they survive the structured clone across the worker boundary unchanged.
@@ -7,8 +7,8 @@
  * by id, REST-style, and the id lives on the handle so cancelling needs no
  * round trip.
  *
- * One kind today. The per-event figures went closed form and left the
- * workers, so the bankroll is the only simulation there is; the tag stays on
+ * One kind: the bankroll is the only simulation there is, since the per-event
+ * figures are closed form and never leave the main thread. The tag stays on
  * the request because it costs nothing, keeps a cache key self-describing,
  * and is where a second kind would announce itself.
  */

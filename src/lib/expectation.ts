@@ -10,10 +10,7 @@
  * The bankroll is the one thing that does. A run is a stopped random walk
  * whose length has no PMF in a library, so `bankroll.ts` simulates it, and
  * `simulateEvent` there is the only place an event is ever played out by
- * chance. The per-event Monte Carlo that used to sit beside these figures
- * answered, to two decimal places at a hundred thousand trials, the question
- * these answer exactly, and carried a trial count and a sampling error that
- * said nothing about the event.
+ * chance.
  */
 
 import { exactDistribution, exactRecordDistribution } from "./distribution";

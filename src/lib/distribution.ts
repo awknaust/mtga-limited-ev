@@ -1,4 +1,9 @@
-/** Closed-form outcome distributions, used to check the simulation. */
+/**
+ * Closed-form outcome distributions: what one event's win count and finishing
+ * record are, exactly, at a given match win rate. Everything the Per event
+ * tab shows is a sum over one of these; the bankroll simulation is held to
+ * them in its tests.
+ */
 
 import binomialPMF from "@stdlib/stats-base-dists-binomial-pmf";
 import negativeBinomialPMF from "@stdlib/stats-base-dists-negative-binomial-pmf";

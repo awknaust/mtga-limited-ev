@@ -839,8 +839,8 @@ export default function App() {
            * between a plan and a hope. Falls back to the sampling error of the
            * simulated proportion when the rate is called certain, since there
            * is then nothing else for a ± to describe — the one place the app
-           * still quotes a sampling error, this being the one simulated tile
-           * with a figure the reader is asked to trust to a point.
+           * quotes a sampling error, this being the one simulated tile with a
+           * figure the reader is asked to trust to a point.
            */
           hint: box.interval
             ? `plausibly ${pct(box.interval[0])} to ${pct(box.interval[1])}`
@@ -1731,13 +1731,10 @@ export default function App() {
               <div className="table-responsive">
                 <table className="table table-sm align-middle mb-0">
                   {/*
-                    Closed form, like everything else on the tab. It once
-                    carried an "Events" count and a "Simulated" percentage
-                    beside an "Exact" one, the Monte Carlo answering to two
-                    decimal places the question the column beside it answered
-                    exactly; those went, and then the simulation did. `Chance`
-                    reads as itself — `Exact` only ever earned that name
-                    against the column it sat beside.
+                    Closed form, like everything else on the tab: one row per
+                    win count, its exact chance, what the rung pays and what
+                    that comes to. The pool is stated once beneath rather than
+                    repeated down the rows.
                   */}
                   <thead>
                     <tr>
