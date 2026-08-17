@@ -3,10 +3,12 @@
  *
  * Pure: everything here takes parsed data and returns numbers. Which constant
  * uses which derivation is `registry.ts`; where the data came from is
- * `sources.ts`. Nothing about box prices lives here — that is its own module,
- * `scripts/box-prices/`, and its modelling lives in the app.
+ * `sources.ts`. The box-price *feed* is its own module, `scripts/box-prices/`,
+ * and how a named set is priced lives in the app; what lives here is the one
+ * rule that turns that feed into the two generic box constants.
  */
 
+import type { BoxPriceFeed, FeedSet } from "../box-prices/feed.ts";
 import { isoDate } from "../shared/dates.ts";
 import { SourceError } from "../shared/http.ts";
 import type { ScryfallSet } from "../shared/scryfall.ts";
@@ -183,4 +185,124 @@ export function gemsPer10kGold(
   const rates = events.map((e) => ({ ...e, per10k: (e.gems * 10_000) / e.gold }));
   const distinct = [...new Set(rates.map((r) => r.per10k.toFixed(6)))];
   return { rates, agrees: distinct.length === 1, value: rates[0]?.per10k ?? null };
+}
+
+/** How many sets each generic box value averages over. */
+export const BOX_SAMPLE_SIZE = 3;
+
+/**
+ * The outlier rule: a box priced past this multiple of the median across the
+ * newest BOX_OUTLIER_POOL candidates is set aside rather than averaged.
+ */
+export const BOX_OUTLIER_FACTOR = 2;
+export const BOX_OUTLIER_POOL = 8;
+
+/** A set with both boxes at a market price, which is what the average wants. */
+export type PricedSet = FeedSet & { releasedAt: string; playUsd: number; collectorUsd: number };
+
+export type GenericBoxValues = {
+  /** Mean market price in USD, per kind. */
+  playUsd: number;
+  collectorUsd: number;
+  /** The same at the given rate, rounded — the two constants as presets.ts holds them. */
+  playGems: number;
+  collectorGems: number;
+  /** The sets averaged, newest first. */
+  sets: PricedSet[];
+  /** Newer sets that would have been used but were priced out by the outlier rule. */
+  outliers: PricedSet[];
+  /** The medians the outlier limits were taken from, and how many sets they cover. */
+  medians: { playUsd: number; collectorUsd: number; over: number };
+};
+
+const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+const median = (xs: number[]): number => {
+  const sorted = [...xs].sort((a, b) => a - b);
+  const mid = sorted.length >> 1;
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+};
+
+/**
+ * What a box naming no set is worth, from the feed: the two generic constants
+ * in presets.ts, and the working behind them.
+ *
+ * The rule the doc comment on PLAY_BOX_USD states, so that a person refreshing
+ * the constants reads the same numbers off this that they would work out by
+ * hand from `npm run box:prices`:
+ *
+ *   - **market price**, never the listing spread — `market` is derived from
+ *     completed sales; `low`/`mid`/`high` are current asks, and an ask is a
+ *     hope rather than a price;
+ *   - **released as of `now`** — presale boxes trade, and even carry market
+ *     prices, but at preorder hype that settles after release, and a default
+ *     should rest on settled prices;
+ *   - **Standard-legal expansions only** (`setType === "expansion"`, which is
+ *     also what keeps Masters and Remastered sets out), paper, both boxes
+ *     priced;
+ *   - **the newest BOX_SAMPLE_SIZE**, walking down from the newest and setting
+ *     aside anything past BOX_OUTLIER_FACTOR times the median of the newest
+ *     BOX_OUTLIER_POOL — the rule that kept Final Fantasy's $1,700 collector
+ *     box out of an average of sets near $450.
+ *
+ * Throws when the feed cannot support that — fewer than BOX_SAMPLE_SIZE usable
+ * sets — because a thinner average is a different number, not this one.
+ */
+export function genericBoxValues(feed: BoxPriceFeed, now: Date, gemsPerUsd: number): GenericBoxValues {
+  const today = isoDate(now);
+  const candidates: PricedSet[] = [];
+  for (const set of feed.boxes) {
+    const playUsd = set.boxes.play?.market;
+    const collectorUsd = set.boxes.collector?.market;
+    if (playUsd == null || collectorUsd == null) continue;
+    if (set.releasedAt === null || set.releasedAt > today) continue;
+    if (set.setType !== "expansion" || set.digital) continue;
+    candidates.push({ ...set, releasedAt: set.releasedAt, playUsd, collectorUsd });
+  }
+  candidates.sort((a, b) => (a.releasedAt < b.releasedAt ? 1 : -1));
+
+  const pool = candidates.slice(0, BOX_OUTLIER_POOL);
+  if (pool.length < BOX_SAMPLE_SIZE) {
+    throw new SourceError(
+      `box prices: only ${pool.length} released expansions with both boxes priced; ` +
+        `the generic values want ${BOX_SAMPLE_SIZE}`,
+    );
+  }
+  const medians = {
+    playUsd: median(pool.map((c) => c.playUsd)),
+    collectorUsd: median(pool.map((c) => c.collectorUsd)),
+    over: pool.length,
+  };
+
+  const sets: PricedSet[] = [];
+  const outliers: PricedSet[] = [];
+  for (const candidate of candidates) {
+    if (sets.length === BOX_SAMPLE_SIZE) break;
+    if (
+      candidate.playUsd > medians.playUsd * BOX_OUTLIER_FACTOR ||
+      candidate.collectorUsd > medians.collectorUsd * BOX_OUTLIER_FACTOR
+    ) {
+      outliers.push(candidate);
+    } else {
+      sets.push(candidate);
+    }
+  }
+  if (sets.length < BOX_SAMPLE_SIZE) {
+    throw new SourceError(
+      `box prices: only ${sets.length} of the newest expansions survive the outlier rule; ` +
+        `the generic values want ${BOX_SAMPLE_SIZE}`,
+    );
+  }
+
+  const playUsd = mean(sets.map((s) => s.playUsd));
+  const collectorUsd = mean(sets.map((s) => s.collectorUsd));
+  return {
+    playUsd,
+    collectorUsd,
+    playGems: Math.round(playUsd * gemsPerUsd),
+    collectorGems: Math.round(collectorUsd * gemsPerUsd),
+    sets,
+    outliers,
+    medians,
+  };
 }

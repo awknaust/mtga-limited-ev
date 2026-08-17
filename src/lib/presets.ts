@@ -21,8 +21,10 @@ import { SEALED } from "../data/presets/sealed";
 import { TRADITIONAL_CUBE_DRAFT } from "../data/presets/traditional-cube-draft";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
 import { TRADITIONAL_SEALED } from "../data/presets/traditional-sealed";
+import { GEMS_PER_USD } from "./boxes";
+import { FALLBACK_BOX_PRICES } from "./boxPrices";
 import { copyTier } from "./structure";
-import type { BoxPriceTable, EventConfig, EventPreset } from "./types";
+import type { EventConfig, EventPreset } from "./types";
 
 export {
   ARENA_DIRECT,
@@ -119,37 +121,6 @@ export const DEFAULT_PACK_VALUE_GEMS = 22;
 export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
 
 /**
- * Gems per US dollar, for pricing physical prizes.
- *
- * The best rate on the store's ladder, which is 20,000 gems for $99.99 — 200.02
- * a dollar. The whole ladder, largest first:
- *
- *     40,000  $199.99   200.01
- *     20,000   $99.99   200.02
- *      9,200   $49.99   184.04
- *      3,400   $19.99   170.09
- *      1,600    $9.99   160.16
- *        750    $4.99   150.30
- *
- * The best rate is *not* the largest bundle. The top two are the same price per
- * gem to within a rounding error, and the 40,000 is fractionally the worse of
- * them, so buying bigger stops paying at $99.99. Taking the best rate is what
- * makes this the most conservative way to value a physical prize in gems: it
- * assumes the cheapest gems you could have bought instead.
- *
- * The ladder is written out because this constant was wrong once, at 400 from a
- * misremembered $49.99, and nothing flagged it: a rate double every other
- * bundle's should not have survived a reading. Anyone changing it should check
- * the new figure sits at or above the neighbours and not far above.
- *
- * The ladder itself is only in the client, so `npm run refresh:constants`
- * cannot fetch it — the script prints these rungs from its own copy and asks
- * for a look at the store. That copy went stale unnoticed, carrying a 7,000 for
- * $39.99 bundle that had been replaced by the 9,200 and 1,600 tiers.
- */
-export const GEMS_PER_USD = 200;
-
-/**
  * Gems 10,000 gold is worth, for valuing a leftover gold balance.
  *
  * Every event that prices both ways uses the same ratio — Premier 10,000 gold
@@ -244,93 +215,62 @@ export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
 export const DEFAULT_EVENTS_PER_DAY = 1;
 
 /**
- * TCGplayer market prices in USD (read via tcgcsv.com), averaged over the
- * three newest released, Standard-legal sets as of 2026-08-10.
+ * TCGplayer market prices in USD (read via tcgcsv.com) of the three newest
+ * released, Standard-legal sets as of 2026-08-17, newest first:
  *
- * These are the *fallback* behind the two box constants below. On the
- * production origin the app fetches `/api/box-prices` — a Worker-published
- * feed of the newest twenty draftable paper sets (see `worker/`) — and
- * derives the same average from live prices in `src/lib/boxPrices.ts`; these
- * figures only govern when that feed is unreachable: preview deployments,
- * dev without the proxy, or an outage. To refresh the snapshot, run
- * `npm run box:prices` and copy the newest three released expansions' play
- * and collector market prices into the two arrays below, newest first —
- * skipping any set the twice-the-median outlier rule would drop.
+ *     The Hobbit             play $193.29   collector $822.77
+ *     Marvel Super Heroes    play $117.22   collector $474.56
+ *     Secrets of Strixhaven  play $137.48   collector $504.41
  *
- * The three sets used:
+ * These set the two *generic* box values below — what a box is worth when a
+ * payout names no set, which only a custom ladder does, and what a named set
+ * falls back to when the price table cannot price it. Every preset box names
+ * a set or `latest` and is priced from the table, so these are constants in
+ * the plain sense: typed here, never recomputed by the app, and moved only
+ * by a person editing this file or by the reader in Advanced settings.
  *
- *     Marvel Super Heroes    play $116.26   collector $440.45
- *     Secrets of Strixhaven  play $135.34   collector $494.36
- *     TMNT                   play $112.72   collector $440.56
+ * The rule they follow: market price (derived from actual sales; the listing
+ * spread runs 15–25% higher and is a hope rather than a price), released sets
+ * only (presale boxes trade at hype prices that settle after release),
+ * Standard-legal expansions only, the newest three, with anything priced past
+ * twice the median of the newest eight set aside — the rule that kept Final
+ * Fantasy's $1,700 collector box out. It is written down in
+ * `scripts/constants/derive.ts` (`genericBoxValues`), so refreshing these is
+ * the same motion as any other constant:
  *
- * Market price is derived from actual sales on TCGplayer — the same
- * marketplace Scryfall's USD card prices come from — and runs 15–25% under
- * the listing-style figures these constants once carried; the change of
- * basis was deliberate. Only released sets are used: presale boxes trade
- * too, but at hype prices that settle after release. Final Fantasy is
- * excluded as an outlier by the twice-the-pool-median rule: $1,728 a
- * collector box at market against a median near $450.
+ *     npm run refresh:constants -- DEFAULT_PLAY_BOX_VALUE_GEMS DEFAULT_COLLECTOR_BOX_VALUE_GEMS --verbose
+ *
+ * prints today's two values, the sets behind them, and the two arrays below
+ * ready to paste. Whether to paste them is the usual judgement. The per-set
+ * price table is *not* refreshed this way — the app ships a copy of the feed
+ * for that, and CI refreshes it on every build; see `boxPrices.ts`.
  *
  * @see https://tcgcsv.com — a public JSON mirror of TCGplayer's API
  */
-const PLAY_BOX_USD = [116.26, 135.34, 112.72];
-const COLLECTOR_BOX_USD = [440.45, 494.36, 440.56];
+const PLAY_BOX_USD = [193.29, 117.22, 137.48];
+const COLLECTOR_BOX_USD = [822.77, 474.56, 504.41];
 
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 /**
- * The newest released paper expansion, as of 2026-08-17: The Hobbit.
- *
- * What `LATEST_SET` resolves to when the feed is unreachable — the same
- * fallback the two box values above are, and refreshed the same way: run
- * `npm run box:prices` and take the code of the topmost released `expansion`
- * row. Being a set behind is the cost of a stale snapshot, and it is the same
- * cost as the prices being a month old.
- *
- * Without this the sealed Arena Directs read "Any box" on every preview, in
- * dev without the proxy and through any outage — which understates what they
- * pay, since the event ships a box of the set it runs alongside and the app
- * knows which set that is even when it cannot price it. The price still falls
- * back to the generic average: naming the set and pricing it are separate
- * questions, and only the second one needs the feed.
- */
-export const DEFAULT_LATEST_SET = "hob";
-
-/**
- * The price table the app holds before — or instead of — the live feed.
- *
- * No prices, because those come from the feed and there is a baked average
- * for their absence; but it still names the newest set, so a payout that
- * says "the set this event runs alongside" can say which set that is.
- */
-export const FALLBACK_BOX_PRICES: BoxPriceTable = {
-  sets: [],
-  latest: { play: DEFAULT_LATEST_SET, collector: DEFAULT_LATEST_SET },
-  generatedAt: null,
-};
-
-/**
- * Fallback gem value of a physical Play Booster box, converted at
- * GEMS_PER_USD. Live prices normally replace it — see the note on
- * PLAY_BOX_USD above.
+ * Gem value of a generic Play Booster box, converted at GEMS_PER_USD.
  *
  * Street price rather than sticker. Wizards' own figure is higher — the Arena
  * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
  * supplies run out — but that cash is taxed (the terms mention 30% withholding
  * in most cases), and what a box is worth to you is what you could get for it.
  */
-export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(
-  mean(PLAY_BOX_USD) * GEMS_PER_USD,
-);
+export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(mean(PLAY_BOX_USD) * GEMS_PER_USD);
 
 /**
- * Fallback gem value of a physical Collector Booster box, same basis.
+ * Gem value of a generic Collector Booster box, same basis.
  *
  * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88
  * — because the price tracks the singles inside. It is also the most volatile
- * number here — recent sets have ranged from under $400 to over $900 — which
- * is exactly why the live feed exists: this snapshot is the figure that goes
- * stale fastest.
+ * number here: the feed has carried collector boxes from $328 to $1,682. A
+ * payout that names its set is priced from the live table and never sees
+ * this; it is what a custom ladder's unnamed box is worth, and a round
+ * figure a few months old is fine for that.
  */
 export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
   mean(COLLECTOR_BOX_USD) * GEMS_PER_USD,
@@ -437,8 +377,9 @@ export function defaultConfig(): EventConfig {
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
-    // Replaced when the live feed lands. Until then every box prices at the
-    // two averages above, while still naming the set it ships.
+    // Replaced when the live feed lands. Until then the boxes are named and
+    // priced from the feed the app shipped with, which is the same answer,
+    // older.
     boxPrices: FALLBACK_BOX_PRICES,
     draftTokenValueGems: DEFAULT_DRAFT_TOKEN_VALUE_GEMS,
     mythicIcrValueGems: DEFAULT_MYTHIC_ICR_VALUE_GEMS,

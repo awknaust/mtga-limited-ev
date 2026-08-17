@@ -70,9 +70,11 @@ export type BoxPriceSet = {
  * link: a link names a *product*, and the feed prices it on the day it is
  * opened.
  *
- * The empty table is the honest state, not a broken one. Previews, dev without
- * the proxy and outages all land there, and every box then prices at its
- * kind's generic average — exactly what the app did before the feed existed.
+ * There is always one: the app ships a copy of the feed and reads its table
+ * from that, so previews, dev without the proxy and outages hold the build's
+ * table rather than an empty one. The empty table still exists as the honest
+ * state for a config with no feed at all, and every box then prices at its
+ * kind's generic value — exactly what the app did before the feed existed.
  */
 export type BoxPriceTable = {
   /** Priced sets, newest first. */

@@ -74,8 +74,8 @@ and have burned us. Three things to hold to:
 
 ### Live box prices
 
-The two box values are the one input that goes stale in weeks, so they do not
-ride on deploys: a scheduled Worker (`worker/`) reads TCGplayer market prices
+Box prices are the one input that goes stale in weeks, so the per-set table
+does not ride on deploys: a scheduled Worker (`worker/`) reads TCGplayer market prices
 (via tcgcsv.com, a public JSON mirror of TCGplayer's API — the same
 marketplace Scryfall's USD card prices come from) and Scryfall daily,
 publishes the newest twenty draftable paper sets — Modern Horizons and
@@ -87,9 +87,8 @@ directLow — and the feed chooses among none of them: **the worker publishes
 data, and every modelling question lives in the app.** The twenty-set cap is
 what keeps a refresh inside the Workers free plan's 50 subrequests — the
 arithmetic is in `scripts/box-prices/select.ts` — and it is a
-budget, not a model. The app fetches the feed once at load and makes its
-choices in `src/lib/boxPrices.ts`, and it makes two of them, because two
-different questions are being asked.
+budget, not a model. The app fetches the feed once at load and makes one
+choice from it in `src/lib/boxPrices.ts`.
 
 **What is *this* box worth** — `boxPriceTable`, for a payout that names its
 set. A payout row lists the boxes it ships (`PayoutBox`, a kind and a set
@@ -99,14 +98,23 @@ set is saying which box, and the answer is its price however startling. This
 is what the "a box of set X" shape was reserved for, and `src/lib/boxes.ts`
 is where a box becomes a number.
 
-**What is a box worth, roughly** — `liveBoxDefaults`, for the two *generic*
-rates that price a ladder naming no set and stand in wherever a named set
-cannot be priced. That one is an average and wants a representative sample,
-so it keeps the narrow rule: market price (sales-derived, 15–25% under
-listings; the basis change from MTGGoldfish's listing figures was
-deliberate), released sets only (presales trade at hype prices that settle
-later), newest three Standard-legal expansions, outliers past twice the pool
-median set aside.
+**What is a box worth, roughly** — the two *generic* values,
+`DEFAULT_PLAY_BOX_VALUE_GEMS` and `DEFAULT_COLLECTOR_BOX_VALUE_GEMS`, for a
+ladder naming no set and as the stand-in for a named set the table cannot
+price. These are **constants in `presets.ts`**, like every other default:
+typed by a person, never recomputed by the app, never moved by the feed.
+Every preset box names a set or `latest`, so only a custom ladder reads them,
+and a figure a few months old is fine for that. They are in the constants
+registry like the rest — `npm run refresh:constants -- DEFAULT_PLAY_BOX_VALUE_GEMS
+DEFAULT_COLLECTOR_BOX_VALUE_GEMS --verbose` prints today's values, the sets
+behind them and the two arrays to paste — and the rule lives in
+`scripts/constants/derive.ts` (`genericBoxValues`): market price
+(sales-derived, 15–25% under listings; the basis change from MTGGoldfish's
+listing figures was deliberate), released sets only (presales trade at hype
+prices that settle later), the newest three Standard-legal expansions,
+anything past twice the median of the newest eight set aside. Moving them is
+a deliberate change to a default, and `share.compat.test.ts` fires for it as
+for any other.
 
 Two consequences worth holding on to. A generic rate of **0 zeroes named
 boxes too** — otherwise "zero these out" would leave an Arena Direct still
@@ -131,30 +139,68 @@ Boundaries that should outlive any refactor:
   is not to be amended for this; the Worker's route on
   `mtga-limited-ev.awknaust.me/api/*` is what makes the fetch legal. Preview
   deploys and offline dev are on other hostnames, match no route, and *fall
-  back* to `DEFAULT_PLAY_BOX_VALUE_GEMS` /
-  `DEFAULT_COLLECTOR_BOX_VALUE_GEMS` — the baked snapshot of the same rule.
-  A missing feed must never be worse than the constants were alone. Note the
-  shape of the miss on Pages: `/api/box-prices` there returns **200 with the
-  SPA's HTML**, not a 404, so the fetch fails at `res.json()` rather than at
-  `res.ok`. `fetchBoxPriceFeed` catches both and returns null, which is why
-  the two cases need no telling apart.
-  `DEFAULT_LATEST_SET` is baked for the same reason and refreshed the same
-  way: which set an event ships is knowable without the feed, so a preview
-  still says "HOB" and only the *price* falls back to the average. Dev behaves like a preview by default; to
+  back* to the copy of the feed the app ships — see the next bullet. A missing
+  feed must never be worse than an old one. Note the shape of the miss on
+  Pages: `/api/box-prices` there returns **200 with the SPA's HTML**, not a
+  404, so the fetch fails at `res.json()` rather than at `res.ok`.
+  `fetchBoxPriceFeed` catches both and returns null, which is why the two
+  cases need no telling apart. Dev behaves like a preview by default; to
   exercise the live path, name a proxy target per shell —
   `MTGA_EV_API_PROXY=http://localhost:8787 npm run dev` against `wrangler
   dev` — rather than baking the production origin into the build config.
+- **The fallback is a copy of the feed, not a transcription of it.**
+  `src/data/box-prices.json` is the Worker's payload, byte for byte, and the
+  bottom of `src/lib/boxPrices.ts` reads it through the same validator and
+  the same two rules as the live one — as of the day the copy was taken, so
+  a presale then stays a presale and the copy means one thing wherever it is
+  read. `FALLBACK_BOX_PRICES` is *derived* from it, and there is no separate
+  "latest set" constant: the copy names the newest set and prices it, so a
+  preview says "HOB" and prices a Hobbit box at what one cost when the build
+  was made. It is written by
+  `npm run box:prices -- --write`; CI runs that once at the top of every
+  build, before the tests, so a deploy ships the newest feed it could reach
+  and the tests, the typecheck and the bundle all see the same copy. A source
+  being down is not a red build — the step is `continue-on-error` and a
+  warning says the checked-in copy shipped instead — which is why the
+  checked-in copy still gets refreshed by hand now and then: it is what a
+  build without network gets. One rule follows. **No test may pin a number,
+  a set code or a date from the copy** — it moves on every build, and the
+  tests were mutation-checked against a copy with every price up 37% and a
+  new newest set. `share.compat.test.ts` reads nothing from it: the two box
+  values it prints are the constants in `presets.ts`, and the table is never
+  in a link.
+- **The feed is fetched before the first render, not after it.** `index.html`
+  preloads `/api/box-prices` (`as="fetch" crossorigin` — without `crossorigin`
+  the browser will not hand the response to `fetch()`), so the request leaves
+  with the HTML and rides alongside the bundle; `main.tsx` awaits that same
+  request, bounded by `BOX_FEED_BUDGET_MS`, and hands the result to `<App>` as
+  a prop. App applies it to the decoded link *inside its state initialiser*
+  (`withLiveBoxPrices`, a pure function in `src/lib/boxPrices.ts` with its own
+  tests) — so the first paint is the live table, and there is no effect that
+  corrects the shipped copy a moment later and no second simulation run. Where
+  there is no feed the await resolves null at once and the app mounts on the
+  shipped copy; if the budget elapses it mounts on the shipped copy and does
+  not go back for the feed, since a late correction is exactly the re-render
+  this exists to avoid. Do not move the fetch back into a `useEffect`.
+- **The live feed supplies the per-set table and nothing else.** The two
+  generic box values — what a box naming no set is worth, which only a custom
+  ladder pays — are constants in `presets.ts`, and only the reader moves
+  them. They used to follow the live feed while they still sat at their
+  default, and that made a fresh load read as edited: the reset button lit
+  and the values were written into the link, for a number nothing on a preset
+  ladder reads. Do not reintroduce that, and do not derive them from the
+  shipped copy either — that was tried and made a build's defaults move on
+  every deploy for the sake of a custom-ladder input.
 - **Decoding a link never *requires* the feed.** Encode measures against the
-  fixed constants and decode falls back to them, so the generic rates are
-  always written into links explicitly and a link that spelled one out means
-  what it meant the day it was written. The app only overwrites a box value
-  that still sits at its baked default — a link's explicit value and a user's
-  edit both survive the fetch resolving late. A link never carries the price
-  table; what it carries is which *product* was won, and the feed prices that
-  on the day the link is opened. So a link naming a set does move with the
-  market, deliberately — and with no feed it falls back to the generic rate,
-  which is the pre-feed answer. The rule underneath both is the one above: a
-  missing feed must never be worse than the constants were alone.
+  constants and decode falls back to them, so a generic rate is written into
+  a link only when someone changed it, and a link that spelled one out means
+  what it meant the day it was written. A link never carries the
+  price table; what it carries is which *product* was won, and the feed
+  prices that on the day the link is opened. So a link naming a set does move
+  with the market, deliberately — with no live feed it prices from the
+  shipped copy, and a set the copy does not carry prices at the generic rate,
+  which is the pre-feed answer. The rule underneath all of it is the one
+  above: a missing feed must never be worse than an old one.
   `share.compat.test.ts` pins the old positional box counts (`0-0-0-1-2`) as
   generic boxes and prices them, so the spelling could change and the meaning
   could not.
@@ -180,8 +226,9 @@ inspection, standing on a thin `scripts/shared/` floor (http, Scryfall,
 dates):
 
 ```bash
-npm run refresh:constants   # scripts/constants/  — every constant except boxes
-npm run box:prices          # scripts/box-prices/ — the feed the Worker publishes
+npm run refresh:constants        # scripts/constants/  — every sourced constant, box values included
+npm run box:prices               # scripts/box-prices/ — the feed the Worker publishes
+npm run box:prices -- --write    # ...and write it to src/data/box-prices.json, the app's copy
 ```
 
 **`scripts/constants/`** prints what the sourced constants in
@@ -193,8 +240,10 @@ value here should replace the one in `presets.ts` is a person's job**, along
 with the doc comment that has to change with it — so there is no drift check
 and no exit code for "a number moved": 0 means it printed, 2 means it could
 not, kept apart so an outage never reads as a price crash. Sources are
-Wizards' drop-rates page and Scryfall; fetching is lazy and memoised, so
-`GEMS_PER_USD` alone touches the network not at all. A constant is one entry
+Wizards' drop-rates page, Scryfall, and — for the two box constants only —
+the box-price feed, built by `scripts/box-prices/` in full; fetching is lazy
+and memoised, so `GEMS_PER_USD` alone touches the network not at all and the
+feed is only fetched when a box constant was asked for. A constant is one entry
 in `registry.ts` carrying its own `compute` and its own explanation, and every
 output mode is a fold over that list — adding one means adding an entry and
 nothing else. Figures only in the client live in `by-hand.ts` with the date
@@ -206,11 +255,15 @@ ever on screen.
 **`scripts/box-prices/`** is the feed: `tcgcsv.ts` reads TCGplayer's mirror,
 `select.ts` picks which sets are worth two requests (a budget, never a
 model), `feed.ts` joins and refuses to publish stumps, `fetch.ts` is the
-front door the Worker and the driver both call. The box constants are *not*
-in the constants registry — their data is this feed and their modelling is
-the app's (`src/lib/boxPrices.ts`). To refresh the baked fallbacks in
-`presets.ts`, read the newest three released expansions' market prices off
-`npm run box:prices` and follow the doc comment on `PLAY_BOX_USD`.
+front door the Worker and the driver both call. The two generic box constants
+read this feed too, through the constants registry (`sources.ts` calls the
+same `fetchBoxPriceFeed`), so `refresh:constants` and `box:prices` never
+disagree about the data. The driver's `--write` is the one thing under
+`scripts/` that writes into the repository: it replaces
+`src/data/box-prices.json`, the copy of the feed the app ships its per-set
+price table from, and it is how that copy is refreshed — by CI before every
+build, and by hand when the checked-in copy is wanted current. Nothing is
+derived in the script; a source being down writes nothing and exits 2.
 
 ## Conventions
 
@@ -287,6 +340,8 @@ from that happening.
   attention. `src/__snapshots__/share.compat.test.ts.snap`, `src/lib/presets.ts`
   and `src/App.tsx` are where two agents collide, and two sessions re-recording
   the same snapshot against different bases will conflict every time.
+  `src/data/box-prices.json` moves wholesale on a refresh, so refresh it only
+  in a change that is about it — CI refreshes the shipped artifact anyway.
 
 One thing that already works, worth not weakening: `share.compat.test.ts` fails
 loudly when a link's meaning moves. That guard is how a starting-gems change

@@ -4,6 +4,18 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <!--
+      The live box-price feed, requested here so it leaves with the HTML and
+      rides alongside the bundle download rather than waiting for the script
+      to ask for it. main.tsx awaits this same request before the first render,
+      so what it paints is the live table and not the shipped copy that gets
+      corrected a moment later. `crossorigin` is what makes the browser hand
+      this response to fetch() — without it the two requests' credential modes
+      differ and the preload is silently ignored. Same-origin, so connect-src
+      'self' covers it. On a preview there is no route and this fetches the
+      SPA's own HTML: a few kilobytes, discarded, harmless.
+    -->
+    <link rel="preload" href="/api/box-prices" as="fetch" crossorigin />
     <meta
       name="description"
       content="What draft and sealed events really pay at your win rate — and where the break-even sits."

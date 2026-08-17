@@ -39,7 +39,7 @@ const byRelease = (a: BoxPriceRow, b: BoxPriceRow): number =>
   (b.releasedAt ?? "").localeCompare(a.releasedAt ?? "");
 
 /**
- * What the two box values are standing on: every set the live feed carries,
+ * What the two box values are standing on: every set the feed carries,
  * priced.
  *
  * The values themselves are two fields in Advanced settings, which is a fine
@@ -48,11 +48,18 @@ const byRelease = (a: BoxPriceRow, b: BoxPriceRow): number =>
  * they are not a tooltip's worth of text. Hence a table, reached from the
  * About tab, where the two boxes are already named as rewards.
  *
- * It shows the feed and not the derivation. Which three sets were averaged is
- * `liveBoxDefaults`'s business and was marked here once; the marks said more
- * about the rule than a reader of a price table wants, and the prices are the
- * thing being looked up. A set with neither box priced still gets its row —
- * the feed carries it, and a gap in the data is data.
+ * It shows the feed, and above it the two generic values from Advanced
+ * settings — constants a person set from three recent sets, not something
+ * derived from the rows below. Which sets those were was marked here once;
+ * the marks said more about the recipe than a reader of a price table wants,
+ * and the prices are the thing being looked up. A set with neither box priced
+ * still gets its row — the feed carries it, and a gap in the data is data.
+ *
+ * There is always a feed to show: the app ships a copy of it, and the live
+ * one replaces that when it arrives. Where it has not — previews, dev
+ * without the proxy, an outage — the table is the shipped copy, and the note
+ * above it says so, because "last updated three weeks ago" would otherwise
+ * read as a Worker that has stopped rather than a build that never had one.
  *
  * `now` is passed rather than read, so the age is a value the caller decides
  * — App stamps it when the dialog opens. Reading the clock during a render
@@ -60,18 +67,20 @@ const byRelease = (a: BoxPriceRow, b: BoxPriceRow): number =>
  */
 export function BoxPrices({
   feed,
+  live,
   playBoxValueGems,
   collectorBoxValueGems,
   gemsPerUsd,
   now,
 }: {
-  /** Null on previews, in dev without the proxy, and during an outage. */
-  feed: BoxPriceFeed | null;
+  feed: BoxPriceFeed;
+  /** Whether `feed` came from the network, or is the copy the app shipped. */
+  live: boolean;
   /**
-   * What the model actually prices a box at — the average of the newest
-   * released expansions, or the baked fallback, or whatever the reader typed
-   * over it. The top row of the table, since it is the figure every payout in
-   * the app is settled at and the rows below it are only its working.
+   * What the model prices a box at when the payout names no set — the constant
+   * in Advanced settings, or whatever the reader typed over it. The top row of
+   * the table, since it is the figure a custom ladder's boxes settle at; a
+   * payout that names a set is priced from the rows below it directly.
    */
   playBoxValueGems: number;
   collectorBoxValueGems: number;
@@ -79,16 +88,6 @@ export function BoxPrices({
   gemsPerUsd: number;
   now: Date;
 }) {
-  if (!feed) {
-    return (
-      <p className="mb-0">
-        No live prices here. They are served from the production site, so this
-        build is using the box values baked in when it was built, both of them
-        editable in Advanced settings.
-      </p>
-    );
-  }
-
   const age = feedAgeText(feed.generatedAt, now);
   const stamp = feedStampText(feed.generatedAt);
   /* Sorted here rather than trusted from the feed: the order is the only
@@ -101,6 +100,12 @@ export function BoxPrices({
 
   return (
     <>
+      {!live && (
+        <p>
+          No live prices here — they are served from the production site.
+          These are the prices this build shipped with.
+        </p>
+      )}
       {/* Both credited, because the price and the route to it are two
           different claims: the market figures are TCGplayer's, and tcgcsv is
           the public mirror of their API the Worker actually reads. Same
@@ -131,11 +136,11 @@ export function BoxPrices({
             </tr>
           </thead>
           <tbody>
-            {/* The figure the model settles every box payout at, above the
-                prices it was averaged from. It is not a set and takes no set
-                code; the rows below are its working. The popover is what
-                keeps it from reading as one — a row of prices in a table of
-                sets, that is not a set and can be typed over. */}
+            {/* The figure the model settles an unnamed box at, above the
+                per-set prices. It is not a set and takes no set code, and it
+                is not derived from the rows below — it is a constant, set from
+                three recent sets and editable in Advanced settings. The
+                popover is what keeps it from reading as one more set. */}
             <tr className="box-price-custom">
               <th scope="row" className="fw-normal">
                 —
@@ -144,7 +149,7 @@ export function BoxPrices({
                 Custom
                 <InfoTip
                   label="About the custom box value"
-                  content="What the model prices every box payout at, from Advanced settings. It follows the average of the sets below until you edit it."
+                  content="What the model prices a box at when the payout names no set, from Advanced settings: an average street price across three recent Standard sets, until you edit it. A payout naming a set is priced from that set's row below."
                 />
               </td>
               <td className="text-end">

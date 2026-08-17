@@ -11,6 +11,7 @@ import {
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+  EMPTY_BOX_PRICES,
   GEMS_PER_USD,
   GEMS_PER_10K_GOLD,
   PICK_TWO_DRAFT,
@@ -1543,9 +1544,17 @@ describe("presets", () => {
   it("prices boxes into the gross", () => {
     const config = configFromPreset(ARENA_DIRECT, defaultConfig());
     expect(config.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
-    // No feed in a fresh config, so both named boxes price generically.
-    expect(grossValue(config, 7)).toBe(2 * config.playBoxValueGems);
-    expect(grossValue(config, 6)).toBe(config.playBoxValueGems);
+    // A fresh config carries the feed the app shipped with, so the two boxes
+    // on the seven-win row are each priced as the product they name — the sum
+    // of two prices, not a count times a rate.
+    const spm = boxValueGems(config, { kind: "play", set: "spm" });
+    const msh = boxValueGems(config, { kind: "play", set: "msh" });
+    expect(grossValue(config, 7)).toBe(spm + msh);
+    expect(grossValue(config, 6)).toBe(spm);
+    // With no table at all, both fall back to the generic rate.
+    const bare = { ...config, boxPrices: EMPTY_BOX_PRICES };
+    expect(grossValue(bare, 7)).toBe(2 * config.playBoxValueGems);
+    expect(grossValue(bare, 6)).toBe(config.playBoxValueGems);
     // Valuing boxes at nothing strips the top two tiers back to zero, and it
     // has to do so for a box that names a set as much as for one that does not
     // — otherwise "zero these out" would leave an Arena Direct priced.
@@ -1614,13 +1623,13 @@ describe("presets", () => {
     // 20,000 gems for $99.99 is the best rung on the store ladder, and so the
     // most generous rate — not the largest bundle, which is the 40,000 and is
     // fractionally worse per gem.
-    // TCGplayer market prices averaged over Marvel Super Heroes, Secrets of
-    // Strixhaven and Teenage Mutant Ninja Turtles, as of 2026-08-10.
+    // TCGplayer market prices averaged over The Hobbit, Marvel Super Heroes
+    // and Secrets of Strixhaven, as of 2026-08-17.
     expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(
-      Math.round(((116.26 + 135.34 + 112.72) / 3) * 200),
+      Math.round(((193.29 + 117.22 + 137.48) / 3) * 200),
     );
     expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(
-      Math.round(((440.45 + 494.36 + 440.56) / 3) * 200),
+      Math.round(((822.77 + 474.56 + 504.41) / 3) * 200),
     );
     /*
      * Pinned outright as well, because the two lines above re-derive the value
@@ -1629,8 +1638,8 @@ describe("presets", () => {
      * — double every other bundle on the ladder — and it is the hole these two
      * literals close.
      */
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(24_288);
-    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(91_691);
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(29_866);
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(120_116);
   });
 
   it("models Contender Draft as paying nothing below three wins", () => {

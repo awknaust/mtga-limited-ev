@@ -1,0 +1,467 @@
+{
+  "version": 1,
+  "generatedAt": "2026-08-17T04:59:01.803Z",
+  "boxes": [
+    {
+      "code": "hob",
+      "name": "The Hobbit",
+      "releasedAt": "2026-08-14",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 193.29,
+          "low": 176.37,
+          "mid": 199.99,
+          "high": 9999,
+          "directLow": null
+        },
+        "collector": {
+          "market": 822.77,
+          "low": 800,
+          "mid": 900,
+          "high": 2300,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "msh",
+      "name": "Marvel Super Heroes",
+      "releasedAt": "2026-06-26",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 117.22,
+          "low": 108.89,
+          "mid": 140,
+          "high": 315,
+          "directLow": null
+        },
+        "collector": {
+          "market": 474.56,
+          "low": 458.99,
+          "mid": 600,
+          "high": 1500,
+          "directLow": null
+        },
+        "jumpstart": {
+          "market": 110.98,
+          "low": 111.19,
+          "mid": 138.14,
+          "high": 249.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "sos",
+      "name": "Secrets of Strixhaven",
+      "releasedAt": "2026-04-24",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 137.48,
+          "low": 129.99,
+          "mid": 150,
+          "high": 250,
+          "directLow": null
+        },
+        "collector": {
+          "market": 504.41,
+          "low": 493.73,
+          "mid": 599.91,
+          "high": 9999,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "tmt",
+      "name": "Teenage Mutant Ninja Turtles",
+      "releasedAt": "2026-03-06",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 113.72,
+          "low": 110,
+          "mid": 149.47,
+          "high": 9999,
+          "directLow": null
+        },
+        "collector": {
+          "market": 442.59,
+          "low": 431.96,
+          "mid": 500,
+          "high": 1599.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "ecl",
+      "name": "Lorwyn Eclipsed",
+      "releasedAt": "2026-01-23",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 122.33,
+          "low": 109.99,
+          "mid": 150,
+          "high": 500,
+          "directLow": null
+        },
+        "collector": {
+          "market": 416.94,
+          "low": 405.01,
+          "mid": 499,
+          "high": 1500,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "tla",
+      "name": "Avatar: The Last Airbender",
+      "releasedAt": "2025-11-21",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 126.26,
+          "low": 119.99,
+          "mid": 152.04,
+          "high": 999,
+          "directLow": null
+        },
+        "collector": {
+          "market": 473.88,
+          "low": 479.01,
+          "mid": 599.25,
+          "high": 1500,
+          "directLow": null
+        },
+        "jumpstart": {
+          "market": 88.53,
+          "low": 79.99,
+          "mid": 119.99,
+          "high": 244.52,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "spm",
+      "name": "Marvel's Spider-Man",
+      "releasedAt": "2025-09-26",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 127.69,
+          "low": 125,
+          "mid": 159.99,
+          "high": 999,
+          "directLow": null
+        },
+        "collector": {
+          "market": 417.87,
+          "low": 415,
+          "mid": 600,
+          "high": 1499.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "eoe",
+      "name": "Edge of Eternities",
+      "releasedAt": "2025-08-01",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "collector": {
+          "market": 743.54,
+          "low": 724.99,
+          "mid": 799.99,
+          "high": 1499.95,
+          "directLow": null
+        },
+        "play": {
+          "market": 176.37,
+          "low": 164.99,
+          "mid": 189.99,
+          "high": 279.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "fin",
+      "name": "Final Fantasy",
+      "releasedAt": "2025-06-13",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 223.49,
+          "low": 220,
+          "mid": 249.97,
+          "high": 499.99,
+          "directLow": null
+        },
+        "collector": {
+          "market": 1682.25,
+          "low": 1650,
+          "mid": 2422.22,
+          "high": 169420.69,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "tdm",
+      "name": "Tarkir: Dragonstorm",
+      "releasedAt": "2025-04-11",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 145.1,
+          "low": 139.99,
+          "mid": 157.49,
+          "high": 300,
+          "directLow": null
+        },
+        "collector": {
+          "market": 488.06,
+          "low": 499.85,
+          "mid": 599.99,
+          "high": 1499,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "dft",
+      "name": "Aetherdrift",
+      "releasedAt": "2025-02-14",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 106.5,
+          "low": 100,
+          "mid": 129.99,
+          "high": 250,
+          "directLow": null
+        },
+        "collector": {
+          "market": 328.08,
+          "low": 313.99,
+          "mid": 366.5,
+          "high": 1100,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "inr",
+      "name": "Innistrad Remastered",
+      "releasedAt": "2025-01-24",
+      "setType": "masters",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 281.96,
+          "low": 282.87,
+          "mid": 294.5,
+          "high": 500,
+          "directLow": null
+        },
+        "collector": {
+          "market": 491.49,
+          "low": 485.99,
+          "mid": 599.48,
+          "high": 1299.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "fdn",
+      "name": "Foundations",
+      "releasedAt": "2024-11-15",
+      "setType": "core",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 162.3,
+          "low": 159.99,
+          "mid": 180,
+          "high": 239.99,
+          "directLow": null
+        },
+        "collector": {
+          "market": 829.62,
+          "low": 894.99,
+          "mid": 962.49,
+          "high": 1799.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "j25",
+      "name": "Foundations Jumpstart",
+      "releasedAt": "2024-11-15",
+      "setType": "draft_innovation",
+      "digital": false,
+      "boxes": {
+        "jumpstart": {
+          "market": 93.07,
+          "low": 90,
+          "mid": 121.6,
+          "high": 250,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "dsk",
+      "name": "Duskmourn: House of Horror",
+      "releasedAt": "2024-09-27",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 178.62,
+          "low": 178.04,
+          "mid": 199.99,
+          "high": 310.82,
+          "directLow": null
+        },
+        "collector": {
+          "market": 702.26,
+          "low": 716,
+          "mid": 768.47,
+          "high": 899.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "blb",
+      "name": "Bloomburrow",
+      "releasedAt": "2024-08-02",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 188.94,
+          "low": 185,
+          "mid": 199.99,
+          "high": 400,
+          "directLow": null
+        },
+        "collector": {
+          "market": 1189.09,
+          "low": 1143.99,
+          "mid": 1499,
+          "high": 2989,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "mb2",
+      "name": "Mystery Booster 2",
+      "releasedAt": "2024-08-02",
+      "setType": "masters",
+      "digital": false,
+      "boxes": {
+        "booster": {
+          "market": 275.52,
+          "low": 270,
+          "mid": 324.95,
+          "high": 549.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "acr",
+      "name": "Assassin's Creed",
+      "releasedAt": "2024-07-05",
+      "setType": "draft_innovation",
+      "digital": false,
+      "boxes": {
+        "beyond": {
+          "market": 135.77,
+          "low": 139.98,
+          "mid": 166.71,
+          "high": 300,
+          "directLow": null
+        },
+        "collector": {
+          "market": 551.3,
+          "low": 565,
+          "mid": 648.33,
+          "high": 1050,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "mh3",
+      "name": "Modern Horizons 3",
+      "releasedAt": "2024-06-14",
+      "setType": "draft_innovation",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 293.84,
+          "low": 294.85,
+          "mid": 350,
+          "high": 604.19,
+          "directLow": null
+        },
+        "collector": {
+          "market": 852.7,
+          "low": 750,
+          "mid": 893.07,
+          "high": 1499.99,
+          "directLow": null
+        }
+      }
+    },
+    {
+      "code": "otj",
+      "name": "Outlaws of Thunder Junction",
+      "releasedAt": "2024-04-19",
+      "setType": "expansion",
+      "digital": false,
+      "boxes": {
+        "play": {
+          "market": 185.03,
+          "low": 183.27,
+          "mid": 209.75,
+          "high": 326.89,
+          "directLow": null
+        },
+        "collector": {
+          "market": 441.82,
+          "low": 453,
+          "mid": 499.99,
+          "high": 1000,
+          "directLow": null
+        }
+      }
+    }
+  ],
+  "unmatched": []
+}

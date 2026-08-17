@@ -36,6 +36,7 @@ import {
   CURRENT_MASTERY_TRACK,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
+  EMPTY_BOX_PRICES,
   PRESETS,
   effectiveEntryGems,
   goldPerEvent,
@@ -298,7 +299,7 @@ describe("the defaults are the contract", () => {
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23
-      values     pack=22 playIn=200 playBox=24288 collBox=91691
+      values     pack=22 playIn=200 playBox=29866 collBox=120116
       gold       other=600/day over 1 events, goldPer10k=1500
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
@@ -380,12 +381,17 @@ describe("the captured corpus", () => {
   it("keeps the Arena Direct ladders worth what they were, absent a feed", () => {
     /*
      * The presets moved from counting boxes to naming them, so the same
-     * question applies to a link that names one. With no feed — which is what
-     * a decoded link has, since the table is never carried in a URL — a named
-     * box is worth its kind's generic rate, and these come to what they came
-     * to before.
+     * question applies to a link that names one. The table is never carried
+     * in a URL, so what a decoded link prices its boxes from is whatever the
+     * app holds when it is opened — the shipped copy of the feed, then the
+     * live one. With neither, a named box is worth its kind's generic rate,
+     * and these come to what they came to before boxes had names at all.
      */
-    const play = decodeShareState("?preset=arena-direct-play").config;
+    const bare = (search: string) => ({
+      ...decodeShareState(search).config,
+      boxPrices: EMPTY_BOX_PRICES,
+    });
+    const play = bare("?preset=arena-direct-play");
     expect(grossValue(play, 6)).toBe(
       DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems,
     );
@@ -393,13 +399,13 @@ describe("the captured corpus", () => {
       2 * DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems,
     );
 
-    const collector = decodeShareState("?preset=arena-direct-collector").config;
+    const collector = bare("?preset=arena-direct-collector");
     expect(grossValue(collector, 7)).toBe(
       DEFAULT_COLLECTOR_BOX_VALUE_GEMS + 6 * collector.draftPackValueGems,
     );
 
     // The cube is phantom, so nothing but the boxes is in its top two rows.
-    const cube = decodeShareState("?preset=arena-direct-cube").config;
+    const cube = bare("?preset=arena-direct-cube");
     expect(grossValue(cube, 6)).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
     expect(grossValue(cube, 7)).toBe(2 * DEFAULT_PLAY_BOX_VALUE_GEMS);
   });
