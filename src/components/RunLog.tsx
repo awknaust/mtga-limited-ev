@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 
 import { REAL_GEMS, approx, pct, type Money } from "../format";
 import {
@@ -46,11 +46,11 @@ const REWARDS: { key: keyof EventLog; one: string; many: string }[] = [
   { key: "playInPoints", one: "point", many: "points" },
 ];
 
-/** What a tier paid beyond the gems, other than boxes. */
-const rewardText = (row: EventLog): string =>
-  REWARDS.filter((r) => (row[r.key] as number) > 0)
-    .map((r) => counted(row[r.key] as number, r.one, r.many))
-    .join(" · ");
+/** What a tier paid beyond the gems, other than boxes — one part each. */
+const rewardParts = (row: EventLog): string[] =>
+  REWARDS.filter((r) => (row[r.key] as number) > 0).map((r) =>
+    counted(row[r.key] as number, r.one, r.many),
+  );
 
 /**
  * The same rewards for the run summary, where a sentence has room for the
@@ -249,7 +249,26 @@ export function RunLog({
           </thead>
           <tbody>
             {rows.map((row) => {
-              const rewards = rewardText(row);
+              /*
+                Everything the row paid, in the order the ladder lists it:
+                the gems it always pays, then the counted rewards, then a
+                chip per box.
+              */
+              const rewards: ReactNode[] = [
+                REAL_GEMS.fmt(row.gems),
+                ...rewardParts(row).map((text) => (
+                  <span className="text-body-secondary">{text}</span>
+                )),
+                ...row.boxes.map((box, i) => (
+                  <span
+                    className={`box-chip box-chip-${box.kind}`}
+                    title={boxFullName(config.boxPrices, box)}
+                    key={`${boxId(box)}-${i}`}
+                  >
+                    {boxChip(config.boxPrices, box)}
+                  </span>
+                )),
+              ];
               return (
                 <tr key={row.event}>
                   <td className="text-body-secondary">{row.event}</td>
@@ -261,22 +280,19 @@ export function RunLog({
                       ? `${config.entryCostGold.toLocaleString()} gold`
                       : REAL_GEMS.fmt(config.entryCostGems)}
                   </td>
+                  {/*
+                    One list, one separator. The boxes are chips rather than
+                    words — drawn as the payout editor draws them, so the row
+                    that shipped a box and the ladder that promised it read the
+                    same — but they are still items in the same list as the
+                    packs, including between two boxes.
+                  */}
                   <td>
-                    {REAL_GEMS.fmt(row.gems)}
-                    {rewards ? (
-                      <span className="text-body-secondary"> · {rewards}</span>
-                    ) : null}
-                    {/* The boxes as the payout editor draws them, so the row
-                        that shipped them and the ladder that promised them
-                        read the same. */}
-                    {row.boxes.map((box, i) => (
-                      <span
-                        className={`box-chip box-chip-${box.kind} ms-1`}
-                        title={boxFullName(config.boxPrices, box)}
-                        key={`${boxId(box)}-${i}`}
-                      >
-                        {boxChip(config.boxPrices, box)}
-                      </span>
+                    {rewards.map((part, i) => (
+                      <Fragment key={i}>
+                        {i > 0 ? <span className="text-body-secondary"> · </span> : null}
+                        {part}
+                      </Fragment>
                     ))}
                   </td>
                   <td className="text-end">{REAL_GEMS.fmt(row.gemBalance)}</td>
