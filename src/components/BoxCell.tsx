@@ -1,5 +1,4 @@
-import { useRef, useState } from "react";
-
+import { PickerDialog } from "./PickerDialog";
 import {
   BOX_KINDS,
   boxChip,
@@ -170,18 +169,13 @@ export function BoxCell({
 }
 
 /**
- * The `+` that adds a box, and the small dialog it opens.
+ * The `+` that adds a box, and the picker it opens.
  *
  * A dialog rather than a control in the cell, because there is no room for
  * one: the column is a chip wide inside a table that scrolls horizontally, so
  * anything that expands in place either overflows the cell or is clipped by
- * that scroller. Lifting the choice out of the table sidesteps both.
- *
- * A native `<dialog>` rather than a Bootstrap modal, for two reasons. It
- * draws in the browser's top layer, which is what puts it beyond the reach of
- * the scroller; and there is one of these per payout row, where a Bootstrap
- * modal would mean an instance to construct and dispose for each. Escape and
- * the focus trap come with the element.
+ * that scroller. Lifting the choice out of the table sidesteps both — see
+ * `PickerDialog` for the rest of why it is a native one.
  */
 function AddBox({
   table,
@@ -192,82 +186,34 @@ function AddBox({
   boxes: PayoutBox[];
   onAdd: (token: string) => void;
 }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  const [open, setOpen] = useState(false);
-
-  const show = () => {
-    setOpen(true);
-    ref.current?.showModal();
-  };
-  const close = () => {
-    setOpen(false);
-    ref.current?.close();
-  };
-
   return (
-    <>
-      <button
-        type="button"
-        className="box-chip box-add"
-        aria-label="Add a box"
-        title="Add a box"
-        onClick={show}
-      >
-        +
-      </button>
-      <dialog
-        ref={ref}
-        className="box-dialog"
-        aria-label="Add a box"
-        // `close` fires for Escape too, which the element handles itself —
-        // this is what keeps React's idea of open in step with the DOM's.
-        onClose={() => setOpen(false)}
-        // The dialog fills its own backdrop, so a click landing on the
-        // element itself rather than on its contents is a click outside.
-        onClick={(e) => {
-          if (e.target === ref.current) close();
-        }}
-      >
-        {/* Built only while open, so a table of eight rows is not eight
-            copies of the set list sitting in the DOM. */}
-        {open && (
-          <div className="box-dialog-body">
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <h2 className="section-title mb-0">Add a box</h2>
-              <button
-                type="button"
-                className="btn-close btn-sm"
-                aria-label="Close"
-                onClick={close}
-              />
+    <PickerDialog label="Add a box" triggerClassName="box-chip box-add" trigger="+">
+      {(close) =>
+        /* The same chips the row shows, a size up: what you pick is what
+           lands in the cell, and a collector box is foil in both places. */
+        optionGroups(table, boxes).map((g) => (
+          <div className="mb-2" key={g.label}>
+            <div className="form-label mb-1">{g.label}</div>
+            <div className="d-flex flex-wrap gap-2">
+              {g.options.map((o) => (
+                <button
+                  type="button"
+                  className={`box-chip box-chip-lg box-chip-${o.box.kind}`}
+                  title={boxFullName(table, o.box)}
+                  aria-label={`Add ${boxFullName(table, o.box)}`}
+                  key={o.token}
+                  onClick={() => {
+                    onAdd(o.token);
+                    close();
+                  }}
+                >
+                  {boxChip(table, o.box)}
+                </button>
+              ))}
             </div>
-            {/* The same chips the row shows, a size up: what you pick is what
-                lands in the cell, and a collector box is foil in both places. */}
-            {optionGroups(table, boxes).map((g) => (
-              <div className="mb-2" key={g.label}>
-                <div className="form-label mb-1">{g.label}</div>
-                <div className="d-flex flex-wrap gap-2">
-                  {g.options.map((o) => (
-                    <button
-                      type="button"
-                      className={`box-chip box-chip-lg box-chip-${o.box.kind}`}
-                      title={boxFullName(table, o.box)}
-                      aria-label={`Add ${boxFullName(table, o.box)}`}
-                      key={o.token}
-                      onClick={() => {
-                        onAdd(o.token);
-                        close();
-                      }}
-                    >
-                      {boxChip(table, o.box)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
           </div>
-        )}
-      </dialog>
-    </>
+        ))
+      }
+    </PickerDialog>
   );
 }

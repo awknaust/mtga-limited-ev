@@ -1215,15 +1215,16 @@ button.box-chip {
 }
 
 /*
- * The box picker, as a native dialog rather than a Bootstrap modal — see
- * `AddBox`. That means it inherits none of `.modal-content`'s styling and
- * states it here instead, which is the whole of the cost.
+ * The pickers — a box for a row, a column for the table — as native dialogs
+ * rather than Bootstrap modals; see `PickerDialog`. That means they inherit
+ * none of `.modal-content`'s styling and state it here instead, which is the
+ * whole of the cost.
  *
  * `color` is set because a dialog is a top-layer element and does not inherit
  * from the page: left alone it draws the browser's default black on the dark
  * card beneath it.
  */
-.box-dialog {
+.picker-dialog {
   width: min(22rem, calc(100vw - 2rem));
   padding: 0;
   border: 1px solid var(--bs-border-color);
@@ -1232,11 +1233,11 @@ button.box-chip {
   color: var(--bs-body-color);
 }
 
-.box-dialog::backdrop {
+.picker-dialog::backdrop {
   background-color: rgba(0, 0, 0, 0.5);
 }
 
-.box-dialog-body {
+.picker-dialog-body {
   padding: 0.875rem;
 }
 
@@ -1246,6 +1247,66 @@ button.box-add:focus-visible {
   background-color: rgba(var(--bs-primary-rgb), 0.2);
   border-style: solid;
   color: var(--bs-body-color);
+}
+
+/*
+ * The × that deletes a payout column, sitting in that column's heading.
+ *
+ * Quieter than the heading it follows, and only up to full strength on the
+ * way to being pressed: it is a destructive control living in a row of
+ * labels, so it should be findable rather than prominent. Red on hover, as
+ * the box chips are, since it is the same act on a larger scale.
+ */
+.payout-col-remove {
+  margin-left: 0.35rem;
+  padding: 0 0.2rem;
+  border: 0;
+  border-radius: var(--bs-border-radius);
+  background: transparent;
+  color: var(--bs-secondary-color);
+  /*
+   * Larger than the uppercased heading beside it, which is 0.8125rem at
+   * tracking — a × drawn at the label's own size reads as punctuation rather
+   * than as the control it is, and gives a pointer almost nothing to hit.
+   */
+  font-size: 1.15rem;
+  line-height: 1;
+  vertical-align: -0.1em;
+  opacity: 0.7;
+}
+
+.payout-col-remove:hover,
+.payout-col-remove:focus-visible {
+  background-color: rgba(var(--bs-danger-rgb), 0.85);
+  color: #10131a;
+  opacity: 1;
+}
+
+/*
+ * The heading that adds one, in the column past the last payout. Dashed like
+ * the box cell's `+`, which is the other control here that makes a column
+ * hold something it did not before.
+ */
+.payout-add {
+  padding: 0.1em 0.45em;
+  border: 1px dashed var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background-color: transparent;
+  color: var(--bs-secondary-color);
+  font: inherit;
+  white-space: nowrap;
+}
+
+.payout-add:hover,
+.payout-add:focus-visible {
+  background-color: rgba(var(--bs-primary-rgb), 0.2);
+  border-style: solid;
+  color: var(--bs-body-color);
+}
+
+/* The column exists for its heading, so it takes no more width than that. */
+.payout-add-head {
+  width: 1%;
 }
 
 @media (prefers-reduced-motion: reduce) {
