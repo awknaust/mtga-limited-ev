@@ -21,9 +21,10 @@ import type { EventConfig, PayoutTier } from "./types";
  * Rewards a payout tier pays as a count, other than boxes.
  *
  * Kept apart from the table below because these, and only these, come off a
- * `PayoutTier` as a number — gold is not a payout at all, and draft packs come
- * with the entry rather than the result. Boxes are absent because there is no
- * fixed list of them: which exist depends on which the ladder names.
+ * `PayoutTier` as a number — gold is credited to the entry off the daily
+ * ladder rather than paid by a row, and draft packs come with the entry
+ * rather than the result. Boxes are absent because there is no fixed list of
+ * them: which exist depends on which the ladder names.
  */
 export const TIER_REWARD_KEYS = [
   "packs",
@@ -168,9 +169,11 @@ export function holdingLabel(config: EventConfig, key: HoldingKey): string {
  * Gems one of them is worth.
  *
  * Gems are worth themselves. Gold converts at the rate every dual-priced event
- * charges, and a rate of 0 — set by valuing gold at nothing — drops it to
- * zero, the same way `runValue` treats it. A box is worth whatever that box
- * trades at, which `boxValueGems` answers and `heldValue` applies.
+ * charges — the same rate `goldValueGems` credits an event's gold at, so the
+ * per-event gross and a run's ending value price gold alike — and a rate of 0,
+ * set by valuing gold at nothing, drops it to zero in both. A box is worth
+ * whatever that box trades at, which `boxValueGems` answers and `heldValue`
+ * applies.
  */
 export function holdingRate(config: EventConfig, key: HoldingKey): number {
   if (key === "gems") return 1;

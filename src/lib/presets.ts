@@ -254,13 +254,17 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS =
 export const DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS = 0;
 
 /**
- * Gems 10,000 gold is worth, for valuing a leftover gold balance.
+ * Gems 10,000 gold is worth — the rate the gold an event is credited converts
+ * at in the per-event gross, and the rate a leftover balance is priced at on
+ * the Bankroll tab.
  *
  * Nearly every event that prices both ways uses the same ratio — Premier
  * 10,000 gold against 1,500 gems, Quick 5,000 against 750, Pick Two 6,000
  * against 900, Contender 20,000 against 3,000, Constructed 2,500 against 375 —
  * all exactly 1,500 per 10,000. Arena sets the rate by what it charges, so this
- * is read off rather than invented.
+ * is read off rather than invented, and at this rate the gold credited to a
+ * Premier entry is worth exactly the share of the gem price it would have
+ * paid.
  *
  * The Qualifier Play-Ins are the one exception: 20,000 gold against 4,000 gems
  * implies 2,000 per 10,000, so gold buys more entry there than it does
@@ -268,14 +272,16 @@ export const DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS = 0;
  * a 4,000-gem price, which makes gold the cheaper door by a quarter. The
  * figure stays at what every other event charges — one competitive entry does
  * not reprice a rate the whole draft queue agrees on — but it is no longer
- * universal, and a reader pricing a Play-In in gold should know the model is
- * charging them more for it than Arena does. The test that holds every preset
- * to this ratio names that exemption, so a *new* event breaking it stays loud.
+ * universal, and a reader pricing a Play-In in gold should know the model
+ * values the gold it credits them, and any balance they hold, at less than
+ * Arena lets it buy there. The test that holds every preset to this ratio
+ * names that exemption, so a *new* event breaking it stays loud.
  *
  * It only holds while you have something to spend gold on. Gold you never use
  * is worth nothing, and it cannot be bought or sold, so this overstates a
  * balance you are sitting on; a rate of 0 is the honest price for that case,
- * and the model reads 0 as exactly that.
+ * and the model reads 0 as exactly that — everywhere, so an event's gold
+ * credit goes to nothing along with the balance.
  */
 export const GEMS_PER_10K_GOLD = 1500;
 

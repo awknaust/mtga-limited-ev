@@ -14,14 +14,7 @@
  */
 
 import { exactDistribution, exactRecordDistribution } from "./distribution";
-import {
-  effectiveEntryGems,
-  goldFundedFraction,
-  grossValue,
-  meanWinsPerEvent,
-  netValue,
-  payoutFor,
-} from "./payouts";
+import { grossValue, meanWinsPerEvent, netValue, payoutFor } from "./payouts";
 import { matchWinRate } from "./structure";
 import type { EventConfig, PayoutTier, RecordProbability } from "./types";
 
@@ -60,7 +53,7 @@ export type EventExpectation = {
    * so. Group it by wins and it collapses back to `outcomes`.
    */
   records: RecordProbability[];
-  /** Expected net gems per event, after the effective entry. */
+  /** Expected net gems per event: the gross less the gem price of the entry. */
   meanNet: number;
   /** Expected gross gems per event: everything an entry brings back. */
   meanGross: number;
@@ -70,12 +63,8 @@ export type EventExpectation = {
   meanRounds: number;
   /** Chance one event ends net positive. */
   probProfit: number;
-  /** Mean net over the gems actually paid to enter. */
+  /** Mean net over the gem price of the entry; 0 for a free event. */
   roi: number;
-  /** Long-run share of entries gold covers. */
-  goldEntryFraction: number;
-  /** Gems paid per entry on average, once gold has covered its share. */
-  entryGems: number;
 };
 
 /**
@@ -110,7 +99,6 @@ export function eventExpectation(config: EventConfig): EventExpectation {
     outcomes.reduce((acc, o) => acc + o.probability * of(o), 0);
 
   const meanNet = mean((o) => o.netGems);
-  const entryGems = effectiveEntryGems(config);
 
   return {
     outcomes,
@@ -120,9 +108,9 @@ export function eventExpectation(config: EventConfig): EventExpectation {
     meanBoxes: mean((o) => o.boxes),
     meanRounds: meanRoundsPerEvent(config),
     probProfit: mean((o) => (o.netGems > 0 ? 1 : 0)),
-    roi: entryGems > 0 ? meanNet / entryGems : 0,
-    goldEntryFraction: goldFundedFraction(config),
-    entryGems,
+    // Against the gem price as quoted: gold is on the other side of the
+    // ledger, in the numerator with the packs.
+    roi: config.entryCostGems > 0 ? meanNet / config.entryCostGems : 0,
   };
 }
 
@@ -166,9 +154,9 @@ export function expectedNet(config: EventConfig): number {
  * Expected net gems per event at a given match win rate.
  *
  * Substitutes the rate into the config rather than only into the outcome
- * distribution. Gold comes off the daily-win ladder now, so it moves with the
- * win rate too — sweeping the curve without carrying the rate through would
- * price every point on it at the gold the *configured* rate happens to earn.
+ * distribution. Gold comes off the daily-win ladder, so it moves with the win
+ * rate too — sweeping the curve without carrying the rate through would price
+ * every point on it at the gold the *configured* rate happens to earn.
  */
 export function expectedNetAt(config: EventConfig, winRate: number): number {
   return expectedNet({ ...config, winRate });
@@ -227,9 +215,9 @@ export function tokenChancePerEvent(
  * sane (non-decreasing) payout table.
  *
  * Gold moving with the win rate does not threaten that: winning more climbs
- * the daily ladder, which lowers the effective entry, which raises net. Both
- * terms push the same way, so the function stays monotonic and the bisection
- * stays well founded.
+ * the daily ladder, which adds to the gross, which raises net. Both terms
+ * push the same way, so the function stays monotonic and the bisection stays
+ * well founded.
  */
 export function breakEvenWinRate(config: EventConfig): number | null {
   const lo0 = expectedNetAt(config, 0);

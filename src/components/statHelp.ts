@@ -18,17 +18,17 @@ export const STAT_HELP = {
   net: {
     label: "What expected net means",
     content:
-      "What one entry wins or loses on average, after the entry fee. Marked ≈ because packs and other rewards are priced at your rates, not paid as gems.",
+      "What one entry wins or loses on average: the expected gross, less the gem entry fee. Marked ≈ because packs, gold and other rewards are priced at your rates, not paid as gems.",
   },
   gross: {
     label: "What expected gross means",
     content:
-      "What one event pays back on average, before the entry fee. Packs and other rewards are counted at your rates.",
+      "What one event pays back on average, before the entry fee: the ladder's rewards, the cards kept from the pool, and the gold a day's play earns, all counted at your rates. The cards and the gold come with the entry rather than the finish, so every outcome row carries the same amount of each.",
   },
   roi: {
     label: "What ROI means",
     content:
-      "Expected net as a share of the entry fee. At −10%, an average entry gives back 90 for every 100 paid; positive means it more than pays for itself.",
+      "Expected net as a share of the gem entry fee. At −10%, an average entry gives back 90 for every 100 paid; positive means it more than pays for itself. Gold earned counts toward the return, not as a discount on the fee.",
   },
   breakEven: {
     label: "What break-even win rate means",

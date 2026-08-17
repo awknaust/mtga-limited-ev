@@ -208,8 +208,8 @@ export type EventConfig = {
    * nothing else in Arena — which is why the bankroll spends these first. It
    * is a stock rather than a flow: no event here pays points *and* charges
    * them, so a balance drains and never refills. That is the reason it moves
-   * the bankroll simulation and leaves `effectiveEntryGems` alone; see the
-   * note there.
+   * the bankroll simulation and leaves the per-event `netValue` alone; see
+   * the note there.
    */
   entryCostPlayInPoints: number;
   /**
@@ -233,7 +233,14 @@ export type EventConfig = {
    * alone.
    */
   eventsPerDay: number;
-  /** Gems 10,000 gold is worth, for valuing a leftover balance; 0 counts unspent gold as worthless. */
+  /**
+   * Gems 10,000 gold is worth.
+   *
+   * One rate for gold wherever it turns up: the gold a day's play credits an
+   * event, which goes into the per-event gross, and the balance a bankroll
+   * run is left holding. Zero counts gold as worthless in both places, the
+   * same reading `playBoxValueGems: 0` has for boxes.
+   */
   gemsPer10kGold: number;
   /** Packs' worth of cards kept per entry; 0 for phantom events. */
   draftPacks: number;
@@ -281,7 +288,7 @@ export type EventConfig = {
    *
    * Zero means boxes are worth nothing, and it says so for *every* box
    * including named ones — the same reading `gemsPer10kGold: 0` has for
-   * leftover gold. Without that, "zero these out" would leave an Arena Direct
+   * gold. Without that, "zero these out" would leave an Arena Direct
    * still paying for its boxes at market.
    */
   playBoxValueGems: number;

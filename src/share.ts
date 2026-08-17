@@ -350,7 +350,8 @@ const CONFIG_NUMBERS = [
   // here precisely so a field can be renamed without one.
   ["goldPerDay", "otherGoldPerDay"],
   ["eventsPerDay", "eventsPerDay"],
-  // 0 means unspent gold counts for nothing.
+  // 0 means gold counts for nothing — the credit an event earns and a
+  // balance a run is left with alike.
   ["goldPer10k", "gemsPer10kGold"],
   // 0 means "certain", which is how a URL spells the absence of uncertainty —
   // the same trick `goldPer10k` uses for gold that is worth nothing.
