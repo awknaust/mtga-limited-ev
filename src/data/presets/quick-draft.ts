@@ -11,7 +11,7 @@ import type { EventPreset } from "../../lib/types";
  * the client, which can only show what it hands you, says "1".
  *
  * Carrying the expectation is what makes every figure downstream correct —
- * expected gross, the outcome table's contribution column, mean packs over a
+ * expected gross, the outcome table's gross and net, mean packs over a
  * bankroll run — since all of them integrate over outcomes anyway. What it
  * costs is that the payout editor shows 1.2 against a client that shows 1, and
  * that no single run can ever return 1.2 packs. The alternative was to write 1

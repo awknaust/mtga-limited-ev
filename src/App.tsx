@@ -28,6 +28,7 @@ import {
 } from "./components/Inputs";
 import { Mastery } from "./components/Mastery";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
+import { PayoutParts } from "./components/PayoutParts";
 import { PercentileSummary } from "./components/PercentileSummary";
 import { ResultsPlaceholder } from "./components/ResultsPlaceholder";
 import { RunLog } from "./components/RunLog";
@@ -65,6 +66,7 @@ import {
   winRatePosterior,
   maxPossibleWins,
   maxRounds,
+  payoutFor,
   paysBoxes,
   resizePayouts,
   startingValue,
@@ -135,6 +137,7 @@ const WIN_RATE_STEPS = [
 
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
+
 
 
 export default function App() {
@@ -1016,8 +1019,6 @@ export default function App() {
       key: "matches",
       label: "Matches",
       value: result.meanRounds.toFixed(2),
-      // The σ of net that used to share this hint lives in the spread section
-      // now, where percentiles say the same thing in plainer words.
       hint: `max ${maxRounds(structure)}`,
       help: {
         label: "What matches per event means",
@@ -1741,21 +1742,29 @@ export default function App() {
               />
               <div className="table-responsive">
                 <table className="table table-sm align-middle mb-0">
+                  {/*
+                    Closed form throughout, the simulated columns having been
+                    dropped: an "Events" count and a "Simulated" percentage
+                    were the Monte Carlo answering, to two decimal places, the
+                    question the column beside them answered exactly. `Chance`
+                    therefore reads as itself — `Exact` only ever earned that
+                    name against the column it sat beside.
+
+                    So the table no longer carries its own check on the
+                    simulation, and where that check lives is worth knowing
+                    before anyone puts a figure back: `model.test.ts` pins
+                    every bucket to within half a point of the closed form,
+                    and the distribution chart above draws both and names
+                    them. Nothing here is a sampled figure to be checked
+                    anyway — the tiles above are, and they carry the interval.
+                  */}
                   <thead>
                     <tr>
                       <th scope="col">Wins</th>
                       <th scope="col" className="text-end">
-                        Events
+                        Chance
                       </th>
-                      <th scope="col" className="text-end">
-                        Simulated
-                      </th>
-                      <th scope="col" className="text-end">
-                        Exact
-                      </th>
-                      <th scope="col" className="text-end">
-                        Packs
-                      </th>
+                      <th scope="col">Pays</th>
                       {/*
                         The ≈ is declared once, on the column, rather than on
                         every signed cell below it — the same way an axis names
@@ -1768,69 +1777,82 @@ export default function App() {
                       <th scope="col" className="text-end">
                         Net ≈
                       </th>
-                      <th scope="col" className="text-end">
-                        Contribution to EV ≈
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
-                    {result.buckets.map((b) => (
-                      <tr key={b.wins}>
-                        <td className="fw-semibold text-primary">{b.wins}</td>
-                        <td className="text-end">{b.count.toLocaleString()}</td>
-                        <td className="text-end">{pct(b.probability, 2)}</td>
-                        <td className="text-end text-body-secondary">
-                          {pct(b.exactProbability, 2)}
-                        </td>
-                        <td className="text-end">{b.packs}</td>
-                        <td className="text-end">{eq(b.grossGems)}</td>
-                        <td className={`text-end ${signClass(b.netGems)}`}>
-                          {eq(b.netGems)}
-                        </td>
-                        <td
-                          className={`text-end ${signClass(b.probability * b.netGems)}`}
-                        >
-                          {eq2(b.probability * b.netGems)}
-                        </td>
-                      </tr>
-                    ))}
+                    {result.buckets.map((b) => {
+                      const tier = payoutFor(config, b.wins);
+                      return (
+                        <tr key={b.wins}>
+                          <td className="fw-semibold text-primary">{b.wins}</td>
+                          <td className="text-end">{pct(b.exactProbability, 2)}</td>
+                          {/*
+                            What the finish awards, itemised as the run log
+                            itemises an event that paid it. The pool is not
+                            here — it comes with entering rather than with a
+                            finish, so it is flat down the column and would be
+                            eight repetitions of one fact. The note says it
+                            once instead.
+                          */}
+                          <td>
+                            <PayoutParts
+                              prices={config.boxPrices}
+                              payout={{
+                                gems: tier.gems,
+                                packs: b.packs,
+                                playInPoints: b.playInPoints,
+                                boxes: tier.boxes ?? [],
+                              }}
+                            />
+                          </td>
+                          <td className="text-end">{eq(b.grossGems)}</td>
+                          <td className={`text-end ${signClass(b.netGems)}`}>
+                            {eq(b.netGems)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="border-top">
-                      <td colSpan={7} className="fw-semibold">
+                      <td colSpan={4} className="fw-semibold">
                         Expected net per event
                       </td>
-                      <td className={`text-end fw-semibold ${signClass(result.meanNet)}`}>
-                        {gemsEq2(result.meanNet)}
+                      {/*
+                        Under Net, which is the column it is the mean of:
+                        every row's net weighted by the chance beside it. The
+                        per-row products used to be a column of their own and
+                        are a multiplication instead, on the two columns above.
+
+                        Closed form, because those two columns are — so the
+                        arithmetic closes on what is shown. It is the simulated
+                        mean that the "Expected net" tile carries, with the
+                        interval that belongs to a sampled figure.
+                      */}
+                      <td
+                        className={`text-end fw-semibold ${signClass(result.exactMeanNet)}`}
+                      >
+                        {gemsEq2(result.exactMeanNet)}
                       </td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
-
-              <SectionHeading
-                className="mt-4"
-                title="Spread of a single event"
-                subtitle="Net gems from one entry, from an unlucky one to a lucky one."
-              >
-                <InfoTip
-                  label="What the spread figures mean"
-                  content="Every simulated event, sorted from worst net result to best. Half the events paid at least the median; p5 is an unlucky one-in-twenty result, p95 a lucky one-in-twenty."
-                />
-              </SectionHeading>
-              <PercentileSummary
-                percentiles={result.percentiles}
-                fmt={gemsEq}
-                tone={signClass}
-                noun="entries"
-              />
-              <div className="form-text">
-                Over {result.trials.toLocaleString()} events, total net ={" "}
-                <span className={`fw-semibold ${signClass(result.totalNet)}`}>
-                  {gemsEq(result.totalNet)}
-                </span>
-                .
-              </div>
+              {/*
+                The pool, said once. It is in every row's gross and in none of
+                their Pays, being what entering buys rather than what finishing
+                pays — and printing it on all eight rows would be eight
+                statements of one flat figure. A phantom event keeps no pool
+                and gets no line, rather than an empty one.
+              */}
+              {config.draftPacks > 0 ? (
+                <div className="form-text">
+                  Every gross also carries the pool you keep — {config.draftPacks}{" "}
+                  {config.draftPacks === 1 ? "pack" : "packs"}&rsquo; worth of cards,{" "}
+                  {gemsEq(config.draftPacks * config.draftPackValueGems)} — which
+                  entering pays for however the event goes.
+                </div>
+              ) : null}
               </SimPending>
               )}
                 </>
@@ -2282,7 +2304,7 @@ export default function App() {
                       Simulated events (Per event)
                       <InfoTip
                         label="About simulated events"
-                        content="How many single events the Per event tab simulates; it does not touch the Bankroll tab. More of them narrow the confidence interval on the mean, and the exact column beside it is closed form rather than simulated."
+                        content="How many single events the Per event tab simulates; it does not touch the Bankroll tab. More of them narrow the confidence interval on the mean, and bring the simulation closer to the closed-form figures in the outcome table."
                       />
                     </label>
                     <NumberInput
