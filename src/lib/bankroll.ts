@@ -264,6 +264,8 @@ export type EventLog = {
   /** What the tier paid. */
   gems: number;
   packs: number;
+  mythicPacks: number;
+  cubePacks: number;
   playInPoints: number;
   /**
    * The boxes it paid, named — the tier's own list, not a copy.
@@ -287,6 +289,8 @@ export type BankrollRun = {
   finalGems: number;
   finalGold: number;
   packs: number;
+  mythicPacks: number;
+  cubePacks: number;
   draftPacks: number;
   playInPoints: number;
   /**
@@ -346,6 +350,8 @@ export function simulateBankroll(
   let totalWins = 0;
   let totalRounds = 0;
   let packs = 0;
+  let mythicPacks = 0;
+  let cubePacks = 0;
   let draftPacks = 0;
   let playInPoints = 0;
   // One running count per box the ladder pays, in the order `priceTiers` put
@@ -367,6 +373,8 @@ export function simulateBankroll(
     // Tallied but never spent: none of these buys an entry in Arena, so they
     // count toward the ending value without extending the run.
     packs += tier.packs;
+    mythicPacks += tier.mythicPacks ?? 0;
+    cubePacks += tier.cubePacks ?? 0;
     draftPacks += config.draftPacks;
     playInPoints += tier.playInPoints ?? 0;
     const won = tierBoxesAt(priced, wins);
@@ -385,6 +393,8 @@ export function simulateBankroll(
         paidWithGold: payWithGold,
         gems: tier.gems,
         packs: tier.packs,
+        mythicPacks: tier.mythicPacks ?? 0,
+        cubePacks: tier.cubePacks ?? 0,
         playInPoints: tier.playInPoints ?? 0,
         boxes: tier.boxes ?? NO_BOXES,
         gemBalance: gems,
@@ -400,6 +410,8 @@ export function simulateBankroll(
     finalGems: gems,
     finalGold: gold,
     packs,
+    mythicPacks,
+    cubePacks,
     draftPacks,
     playInPoints,
     boxes,
@@ -495,7 +507,9 @@ export function heldBy(
     const at = priced.products.findIndex((box) => boxHoldingKey(box) === key);
     return at === -1 ? 0 : (run.boxes[at] ?? 0);
   }
-  return run[key as "packs" | "draftPacks" | "playInPoints"];
+  return run[
+    key as "packs" | "mythicPacks" | "cubePacks" | "draftPacks" | "playInPoints"
+  ];
 }
 
 /**

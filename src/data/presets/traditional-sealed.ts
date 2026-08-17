@@ -6,8 +6,7 @@ import type { EventPreset } from "../../lib/types";
  * The same pool and the same price as SEALED, played as best-of-three and cut
  * to a far shorter run. Where the best-of-one event pays a flat 3 packs and
  * moves only the gems, this one climbs both together — one pack at no wins up
- * to five at four — so the top of the ladder is worth much more than its gem
- * column alone suggests.
+ * to five at four.
  *
  * The only preset pairing best-of-three with elimination. Every other BO3 event
  * here is fixed rounds, and every other elimination event is best-of-one, so

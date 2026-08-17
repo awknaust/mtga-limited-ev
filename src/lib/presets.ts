@@ -116,6 +116,83 @@ export const CUSTOM_PRESET = "Custom";
 export const DEFAULT_PACK_VALUE_GEMS = 22;
 
 /**
+ * Default gem value of one mythic pack.
+ *
+ * A mythic pack is an ordinary booster in every slot but one: "Each Mythic
+ * Booster always has a Mythic Rare in the Rare slot, unless it's replaced with
+ * a Rare Wildcard." So the whole difference from DEFAULT_PACK_VALUE_GEMS is
+ * that the rare/mythic slot stops being a 6:1 mix and becomes a certainty.
+ *
+ * On a complete collection that slot converts to 40 gems rather than the 22.9
+ * a regular booster's does. It is displaced by a wildcard at the same rate as
+ * any other pack's — roughly 1:30 rare and 1:30 mythic, so ~6.7% — which
+ * leaves
+ *
+ *     40 × (1 − 2/30) ≈ 37.3 gems
+ *
+ * and 37 is that rounded. The regular pack figure is rounded the other way,
+ * 21.3 up to 22, because the mythic upgrade rate moves set to set and the raw
+ * slot spans 22.1 to 23.5 across the rates Arena has shipped. There is no such
+ * band here: a mythic pack pays a mythic whatever the set's upgrade rate is,
+ * so the only adjustment left is the wildcard one and it is taken in full.
+ *
+ * Everything DEFAULT_PACK_VALUE_GEMS excludes is excluded here for the same
+ * reasons — vault progress from the commons and uncommons, which are identical
+ * in both packs, and bonus sheets. The displaced wildcard is valued at nothing,
+ * which is the same convention and, if anything, understates a mythic pack: a
+ * wildcard from this slot is worth rather more than the 40 gems it costs you.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DEFAULT_MYTHIC_PACK_VALUE_GEMS = Math.round(40 * (1 - 2 / 30));
+
+/**
+ * Default gem value of one Cube Prize Pack — what the cube drafts pay instead
+ * of ordinary packs.
+ *
+ * The one pack here whose contents Wizards publishes in full, so this is
+ * summed slot by slot off the drop-rates page rather than reasoned from a
+ * single rate. A Cube Prize Pack holds nine cards:
+ *
+ *     1 Timeless rare or mythic       mythic ~1:6.5
+ *     1 Cube bonus sheet rare/mythic  mythic ~1:5
+ *     1 flex card                     Timeless rare 20%, uncommon 30%,
+ *                                     a bonus sheet card 50%
+ *     2 uncommons
+ *     4 commons
+ *
+ * Priced on the same footing as DEFAULT_PACK_VALUE_GEMS — a complete
+ * collection, where a duplicate rare converts to 20 gems and a mythic to 40,
+ * and the commons and uncommons are worth nothing because all they feed is
+ * vault progress. Three slots pay, and the first two are the bulk of it:
+ *
+ *     (5.5/6.5 × 20) + (1/6.5 × 40) = 150/6.5 ≈ 23.1   Timeless slot
+ *     (4/5   × 20) + (1/5   × 40) =              24     bonus sheet slot
+ *      0.2 × 20                    =               4     flex, rare part only
+ *
+ * for ≈ 51. Two known omissions, and they pull opposite ways, which is why
+ * the figure is left where the arithmetic puts it rather than nudged:
+ *
+ *  - **The flex slot's bonus-sheet half is counted as nothing.** Half of that
+ *    slot is "a card from the bonus sheet", every card equally likely, and the
+ *    sheet's rarity mix is not published. Guessing it would be inventing a
+ *    number; leaving it at zero makes 51 a floor.
+ *  - **No wildcard displacement is deducted.** An ordinary pack loses its rare
+ *    slot to a wildcard about 1:30 of the time, which is what takes
+ *    DEFAULT_PACK_VALUE_GEMS from 22.9 down toward 21.3. Whether these packs
+ *    feed the wildcard tracks at all is not published, so nothing is taken off
+ *    — which overstates by a little where the bullet above understates.
+ *
+ * Worth checking against Wizards' own claim for these, that they carry "over
+ * twice the value of a normal Store pack": 51 against 22 is 2.3×, arrived at
+ * from the contents alone and agreeing with a sentence that had no part in
+ * the sum.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DEFAULT_CUBE_PACK_VALUE_GEMS = Math.round(150 / 6.5 + 24 + 0.2 * 20);
+
+/**
  * Default gem value of one play-in point.
  *
  * Priced off what the points are for: 20 of them buy an Arena Open play-in,
@@ -205,11 +282,11 @@ export const DAILY_WIN_CAP = DAILY_WIN_GOLD.length;
  * of playing get me", which is the question someone deciding what to queue is
  * actually asking.
  *
- * Worth knowing what it costs, because it is not neutral between events. At
- * 10,000 gold for Premier against 5,000 for Quick, a flat daily credit covers
- * twice as much of the cheaper event, so raising it moves Quick's break-even
- * further than Premier's and shifts where the two cross. Set it to 0 for the
- * attribution reading.
+ * Worth knowing what it costs, because it is not neutral between events: a
+ * flat daily credit covers a larger share of a cheaper entry than of a dearer
+ * one, and the gold prices here run from 5,000 to 20,000. So this field is an
+ * input every comparison rests on rather than a constant beside them. Set it
+ * to 0 for the attribution reading.
  *
  * The quest figure is not on Wizards' drop-rates page, unlike DAILY_WIN_GOLD,
  * and it varies with which quest you draw — it is the softer number of the two.
@@ -382,6 +459,8 @@ export function defaultConfig(): EventConfig {
     winRate: 0.55,
     winRateMatches: DEFAULT_WIN_RATE_MATCHES,
     packValueGems: DEFAULT_PACK_VALUE_GEMS,
+    mythicPackValueGems: DEFAULT_MYTHIC_PACK_VALUE_GEMS,
+    cubePackValueGems: DEFAULT_CUBE_PACK_VALUE_GEMS,
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
     otherGoldPerDay: DEFAULT_OTHER_GOLD_PER_DAY,
     eventsPerDay: DEFAULT_EVENTS_PER_DAY,

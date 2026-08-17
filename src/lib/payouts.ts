@@ -23,6 +23,16 @@ export function playInPointsFor(config: EventConfig, wins: number): number {
   return payoutFor(config, wins).playInPoints ?? 0;
 }
 
+/** Mythic packs awarded at a win count; absent means none. */
+export function mythicPacksFor(config: EventConfig, wins: number): number {
+  return payoutFor(config, wins).mythicPacks ?? 0;
+}
+
+/** Cube Prize Packs awarded at a win count; absent means none. */
+export function cubePacksFor(config: EventConfig, wins: number): number {
+  return payoutFor(config, wins).cubePacks ?? 0;
+}
+
 /**
  * Gross value in gems for a given win count.
  *
@@ -42,6 +52,8 @@ export function grossValue(config: EventConfig, wins: number): number {
     config.draftPacks * config.draftPackValueGems +
     tier.gems +
     tier.packs * config.packValueGems +
+    (tier.mythicPacks ?? 0) * config.mythicPackValueGems +
+    (tier.cubePacks ?? 0) * config.cubePackValueGems +
     (tier.playInPoints ?? 0) * config.playInPointValueGems +
     boxes
   );
@@ -60,11 +72,11 @@ function meanOverWins(config: EventConfig): (of: (wins: number) => number) => nu
 /**
  * Expected gross per event, split into what it is made of.
  *
- * `grossValue` folds six terms into one number, and by the time it reaches the
+ * `grossValue` folds its terms into one number, and by the time it reaches the
  * screen there is no telling whether a gross of 1,128 is mostly gems or mostly
  * packs — outcomes that feel nothing alike to whoever has to open the packs to
- * realise the value. This takes the same six terms and reports them
- * separately, weighted by how often each win count happens.
+ * realise the value. This takes the same terms and reports them separately,
+ * weighted by how often each win count happens.
  *
  * Keyed by holding so it lines up with the bankroll breakdown, which means
  * gold appears and is always zero: gold accrues daily rather than being paid
@@ -86,6 +98,9 @@ export function grossSplit(config: EventConfig): Record<HoldingKey, number> {
     // Never part of a gross: nothing on a payout ladder pays gold.
     gold: 0,
     packs: mean((wins) => payoutFor(config, wins).packs) * config.packValueGems,
+    mythicPacks:
+      mean((wins) => mythicPacksFor(config, wins)) * config.mythicPackValueGems,
+    cubePacks: mean((wins) => cubePacksFor(config, wins)) * config.cubePackValueGems,
     playInPoints:
       mean((wins) => playInPointsFor(config, wins)) * config.playInPointValueGems,
     // One entry per box the ladder pays, each at its own price — two play
@@ -118,6 +133,8 @@ export function grossCounts(config: EventConfig): Record<HoldingKey, number> {
     gems: mean((wins) => payoutFor(config, wins).gems),
     gold: 0,
     packs: mean((wins) => payoutFor(config, wins).packs),
+    mythicPacks: mean((wins) => mythicPacksFor(config, wins)),
+    cubePacks: mean((wins) => cubePacksFor(config, wins)),
     playInPoints: mean((wins) => playInPointsFor(config, wins)),
     ...boxSplit(priced, (i) => mean((wins) => tierBoxesAt(priced, wins)[i] ?? 0)),
     draftPacks: config.draftPacks,

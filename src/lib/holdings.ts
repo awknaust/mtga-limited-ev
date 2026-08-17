@@ -25,7 +25,12 @@ import type { EventConfig, PayoutTier } from "./types";
  * with the entry rather than the result. Boxes are absent because there is no
  * fixed list of them: which exist depends on which the ladder names.
  */
-export const TIER_REWARD_KEYS = ["packs", "playInPoints"] as const;
+export const TIER_REWARD_KEYS = [
+  "packs",
+  "mythicPacks",
+  "cubePacks",
+  "playInPoints",
+] as const;
 
 export type TierRewardKey = (typeof TIER_REWARD_KEYS)[number];
 
@@ -56,6 +61,23 @@ export const HOLDINGS = [
   { key: "gems", label: "Gems", whole: false },
   { key: "gold", label: "Gold", whole: false },
   { key: "packs", label: "Packs", whole: true, rateKey: "packValueGems" },
+  {
+    // Beside the packs rather than folded into them: they are a different
+    // product at a different price, and a ladder paying both pays two rows.
+    key: "mythicPacks",
+    label: "Mythic packs",
+    whole: true,
+    rateKey: "mythicPackValueGems",
+  },
+  {
+    // Wizards' own name for them. "Cube packs" is what everyone says, but the
+    // product is a Cube Prize Pack, and this table is what the About tab
+    // prints as the thing being priced.
+    key: "cubePacks",
+    label: "Cube prize packs",
+    whole: true,
+    rateKey: "cubePackValueGems",
+  },
   {
     key: "playInPoints",
     label: "Play-in points",

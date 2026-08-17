@@ -275,6 +275,20 @@ derived in the script; a source being down writes nothing and exits 2.
   `pure-rand`), not hand-rolled maths.
 - Tooltips state what a field does and stop. Caveats and derivations belong in
   doc comments, where length is free.
+- **Nothing written here ranks the events, or prices one reward against
+  another.** A preset comment says what the ladder pays and where that came
+  from; it does not say which event is the better deal, which rung is richer,
+  which reward is worth some multiple of another, or what an expected net came
+  to. The same goes for tests — no assertion that one event beats another — and
+  for tooltips, which must not quote a ratio the reader can edit. Every such
+  claim is a function of rates the reader owns (the pack values, the gold rate,
+  the win rate, the live box prices), so it is stale the moment one is changed,
+  and answering it is the app's entire job. This has already gone wrong: two
+  cube presets called their ladder the poorer one for paying fewer packs, and
+  both readings inverted the day those packs turned out to be Cube Prize Packs.
+  Derivations of a *default* are the exception and belong on the constant —
+  that is sourcing, not a verdict. State the counts, cite the source, and let
+  the model do the comparing.
 - React Compiler memoises the components, so nothing reaches for `React.memo`.
   Existing `useMemo` and `useCallback` calls stay where they are — React's
   guidance is to leave manual memoisation alone in code that already has it. Two

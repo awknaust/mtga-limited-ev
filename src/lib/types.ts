@@ -40,6 +40,23 @@ export type PayoutTier = {
   gems: number;
   packs: number;
   /**
+   * Mythic packs, whose rare slot is always a mythic rare. Only Contender
+   * Draft's top two tiers pay them, so this is optional and absent means none.
+   *
+   * A field of its own rather than a count folded into `packs`, which is what
+   * it was: the two are different products on different rates, and a count
+   * that added them could be priced only by picking one of the two.
+   */
+  mythicPacks?: number;
+  /**
+   * Cube Prize Packs, which the cube drafts pay in place of ordinary packs
+   * rather than alongside them — so a cube ladder's `packs` is zero and this
+   * carries the whole count.
+   *
+   * Absent means none, and that is every event but the two cube drafts.
+   */
+  cubePacks?: number;
+  /**
    * Play-in points toward an Arena Open. Only the traditional events award
    * them, so this is optional and absent means none.
    */
@@ -162,6 +179,22 @@ export type EventConfig = {
   draftPackValueGems: number;
   /** Gem value assigned to one booster pack (0 = packs counted but valued at nothing). */
   packValueGems: number;
+  /**
+   * Gem value assigned to one mythic pack — a booster whose rare slot is
+   * always a mythic rare.
+   *
+   * Its own rate rather than a multiple of `packValueGems`, so someone who
+   * reprices ordinary packs is not silently repricing these too. The two
+   * differ in one slot and nothing else, which is what the default says.
+   */
+  mythicPackValueGems: number;
+  /**
+   * Gem value assigned to one Cube Prize Pack.
+   *
+   * Its own rate for the same reason the mythic one is: these are a different
+   * product at a different price, and the cube drafts pay nothing else.
+   */
+  cubePackValueGems: number;
   /** Gem value assigned to one play-in point. */
   playInPointValueGems: number;
   /**

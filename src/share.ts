@@ -234,6 +234,8 @@ const CONFIG_NUMBERS = [
   ["draftPacks", "draftPacks"],
   ["draftPackValue", "draftPackValueGems"],
   ["packValue", "packValueGems"],
+  ["mythicPackValue", "mythicPackValueGems"],
+  ["cubePackValue", "cubePackValueGems"],
   ["playInValue", "playInPointValueGems"],
   ["playBoxValue", "playBoxValueGems"],
   ["collectorBoxValue", "collectorBoxValueGems"],
@@ -289,8 +291,9 @@ const UI_NUMBERS = [
 ] as const satisfies readonly (readonly [string, keyof ShareState])[];
 
 /**
- * A payout table as `gems-packs[-points][-box]…` per row, rows in win order
- * joined by `_`. The win count is the row's position, so it is not repeated.
+ * A payout table as `gems-packs[-points][-count.n…][-box…]` per row, rows in
+ * win order joined by `_`. The win count is the row's position, so it is not
+ * repeated.
  *
  * A box is `kind` or `kind.set` — `play`, `collector.latest`,
  * `collector.msh` — one token per box, since a row can pay two boxes of
@@ -300,10 +303,18 @@ const UI_NUMBERS = [
  * rates themselves are ordinary parameters, so a link that spells one out
  * still means exactly what it said.
  *
+ * The counted rewards past the first three are named tokens — `mythic.4`,
+ * `cube.7` — at most one of each a row, and named rather than positional for
+ * a reason worth recording. The natural place for a fourth count is a fourth
+ * number, and that place is taken: `4000-3-0-1` is a link written before boxes
+ * named their sets, and it means one play box. A named token cannot collide
+ * with it, so old links go on meaning exactly what they meant, every reward
+ * added after this one costs no position, and the row stays legible besides.
+ *
  * `-`, `_` and `.` are used because form encoding leaves them alone: a
  * separator of `,` or `:` would come back as `%2C` or `%3A` and cost the
  * table its readability. No number can be negative, so `-` is unambiguous,
- * and a kind is always alphabetic, so a box token can never be read as one of
+ * and every named token starts with a letter, so none can be read as one of
  * the numbers.
  *
  * Links written before boxes named their sets spelled two counts positionally,
@@ -314,17 +325,43 @@ export function encodePayouts(payouts: PayoutTier[]): string {
   return payouts
     .map((t) => {
       const boxes = (t.boxes ?? []).map((b) => (b.set ? `${b.kind}.${b.set}` : b.kind));
+      // Written only when there are some, like the boxes: a row paying none
+      // says nothing about them, so no existing link's spelling moves.
+      const counts = COUNT_TOKENS.filter(([, field]) => t[field]).map(
+        ([token, field]) => `${token}.${num(t[field] as number)}`,
+      );
       const fields = [t.gems, t.packs, t.playInPoints ?? 0];
-      // The points slot goes when it is zero, boxes or no boxes: the tokens
-      // that follow are named, so nothing is counting places.
+      // The points slot goes when it is zero, tokens or no tokens: what
+      // follows is named, so nothing is counting places.
       while (fields.length > 2 && fields[fields.length - 1] === 0) fields.pop();
-      return [...fields.map(num), ...boxes].join("-");
+      return [...fields.map(num), ...counts, ...boxes].join("-");
     })
     .join("_");
 }
 
 /** The box kinds a link may name, as they are spelled in one. */
 const BOX_KIND_TOKENS = new Set<string>(BOX_KINDS);
+
+/**
+ * The counted rewards a row names rather than counts into a position, and the
+ * token each is spelled with.
+ *
+ * None of these is a box kind, so this and `BOX_KIND_TOKENS` partition the
+ * named tokens between them — a token is one or the other, and anything in
+ * neither is malformed. Adding a reward is adding a line here; nothing else
+ * in the codec knows how many there are.
+ *
+ * A token, once shipped, is fixed: it is what links already written say.
+ */
+const COUNT_TOKENS = [
+  ["mythic", "mythicPacks"],
+  ["cube", "cubePacks"],
+] as const satisfies readonly (readonly [string, keyof PayoutTier])[];
+
+/** The tier fields those tokens write, which are all optional counts. */
+type CountField = (typeof COUNT_TOKENS)[number][1];
+
+const COUNT_FIELDS = new Map<string, CountField>(COUNT_TOKENS);
 
 /** Inverse of `encodePayouts`. Null on anything malformed, never a partial table. */
 export function decodePayouts(raw: string): PayoutTier[] | null {
@@ -356,16 +393,31 @@ export function decodePayouts(raw: string): PayoutTier[] | null {
     // box that many times says the same thing in the shape used now.
     for (let i = 0; i < playBoxes; i++) boxes.push({ kind: "play" });
     for (let i = 0; i < collectorBoxes; i++) boxes.push({ kind: "collector" });
+    const counts = new Map<CountField, number>();
     for (const token of parts.slice(count)) {
-      const [kind, set, ...rest] = token.split(".");
-      if (rest.length || !BOX_KIND_TOKENS.has(kind)) return null;
+      const [name, tail, ...rest] = token.split(".");
+      const field = COUNT_FIELDS.get(name);
+      if (field) {
+        // A count, where a box token is a product — so it takes a whole
+        // number and a row may carry only one of each. Two would be a row
+        // saying the same count twice, which is malformed rather than a sum.
+        if (counts.has(field) || rest.length || tail === undefined || !/^\d+$/.test(tail)) {
+          return null;
+        }
+        counts.set(field, Number(tail));
+        continue;
+      }
+      if (rest.length || !BOX_KIND_TOKENS.has(name)) return null;
       // Scryfall codes are lowercase alphanumeric, and so is LATEST_SET.
-      if (set !== undefined && !/^[a-z0-9]+$/.test(set)) return null;
-      boxes.push(set === undefined ? { kind: kind as BoxKind } : { kind: kind as BoxKind, set });
+      if (tail !== undefined && !/^[a-z0-9]+$/.test(tail)) return null;
+      boxes.push(
+        tail === undefined ? { kind: name as BoxKind } : { kind: name as BoxKind, set: tail },
+      );
     }
 
     const tier: PayoutTier = { wins, gems, packs };
     // Left off entirely when empty, matching how the presets are written.
+    for (const [field, n] of counts) if (n) tier[field] = n;
     if (playInPoints) tier.playInPoints = playInPoints;
     if (boxes.length) tier.boxes = boxes;
     out.push(tier);

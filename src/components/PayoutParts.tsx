@@ -33,12 +33,21 @@ const counted = (n: number, one: string, many: string): string =>
  */
 const REWARDS = [
   { key: "packs", one: "pack", many: "packs" },
+  // "mythic pack" in full even here, where room is short: "10 mythic" would
+  // read as ten mythic cards, and the whole point of the column is that these
+  // are not the packs beside them.
+  { key: "mythicPacks", one: "mythic pack", many: "mythic packs" },
+  // "cube pack" rather than the product's full "Cube Prize Pack": the cards
+  // are as cramped as they get here, and nobody calls them that.
+  { key: "cubePacks", one: "cube pack", many: "cube packs" },
   { key: "playInPoints", one: "point", many: "points" },
 ] as const;
 
 export type PayoutContents = {
   gems: number;
   packs: number;
+  mythicPacks: number;
+  cubePacks: number;
   playInPoints: number;
   boxes: readonly PayoutBox[];
 };

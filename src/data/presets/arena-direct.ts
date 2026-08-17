@@ -3,14 +3,23 @@ import type { EventPreset } from "../../lib/types";
 /**
  * Arena Direct (Powered Cube): 8,000 gems, best-of-one, to 7 wins or 2 losses.
  *
- * The tightest leash of any event here — two losses ends it, against a seven
- * win track — and the only one paying physical product. Gems and packs stop
- * entirely at six wins, where the prize becomes a Play Booster box, and seven
- * pays a second box.
+ * Two losses ends it, against a seven win track. Gems and packs stop entirely
+ * at six wins, where the prize becomes a Play Booster box, and seven pays a
+ * second box.
  *
  * Structure is quoted from the Arena Direct terms: "Entry is valid until 7
  * wins or 2 losses, whichever comes first." The ladder is from the event
  * announcement, both on magic.wizards.com.
+ *
+ * The packs are ordinary ones, and that is a decision rather than an
+ * oversight. This event drafts the same Powered Cube as the cube drafts, which
+ * pay Cube Prize Packs, so the obvious guess is that these are those. The
+ * terms say otherwise, and they are the complete quoted table for this ladder:
+ * "8 *MTG Arena* packs", "16 *MTG Arena* packs", "24 *MTG Arena* packs", with
+ * no mention of a Cube Prize Pack anywhere on the page. Wizards names them
+ * where it means them — the set event schedules say "Cube Prize Pack rewards"
+ * for the cube drafts — so the wording here is taken at face value. Settle it
+ * from a drop rather than from prose.
  *
  * Alone among the three, this one names its sets rather than saying "newest".
  * The August 4–8 2026 run paid a *Marvel's Spider-Man* box at six wins, and a

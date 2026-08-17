@@ -32,6 +32,8 @@ export type WinOutcome = {
   grossGems: number;
   netGems: number;
   packs: number;
+  mythicPacks: number;
+  cubePacks: number;
   playInPoints: number;
   /**
    * Boxes paid at this win count, all products together.
@@ -94,6 +96,8 @@ export function eventExpectation(config: EventConfig): EventExpectation {
       grossGems: grossValue(config, wins),
       netGems: netValue(config, wins),
       packs: tier.packs,
+      mythicPacks: tier.mythicPacks ?? 0,
+      cubePacks: tier.cubePacks ?? 0,
       playInPoints: tier.playInPoints ?? 0,
       boxes: tier.boxes?.length ?? 0,
     };

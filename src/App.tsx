@@ -66,6 +66,7 @@ import {
   maxRounds,
   boxChancePerEvent,
   payoutFor,
+  paidRewards,
   paysBoxes,
   resizePayouts,
   startingValue,
@@ -135,6 +136,72 @@ const WIN_RATE_STEPS = [
 
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
+
+/**
+ * The payout editor's columns, in the order a row lists what it pays.
+ *
+ * Every one of them is a count in a box, which is what lets them share a
+ * component and a rule. The boxes are not here: a row *names* the boxes it
+ * pays, so that column is a cell of chips rather than a number, and it carries
+ * its own condition beside this list.
+ *
+ * `key` is the `PayoutTier` field, so adding a reward to the model is adding a
+ * line here and nothing else — and a field spelled wrong is a compile error
+ * rather than a column of zeroes.
+ */
+const PAYOUT_COLUMNS = [
+  { key: "gems", label: "Gems", icon: "bi-gem" },
+  { key: "packs", label: "Packs", icon: "bi-stack" },
+  { key: "mythicPacks", label: "Mythic", icon: "bi-stars" },
+  { key: "cubePacks", label: "Cube", icon: "bi-box" },
+  { key: "playInPoints", label: "Points", icon: "bi-ticket-perforated" },
+] as const satisfies readonly {
+  key: keyof PayoutTier;
+  label: string;
+  icon: string;
+}[];
+
+/**
+ * A tile per kind of pack, drawn only for the kinds the ladder actually pays.
+ *
+ * Three kinds and never three tiles: an event pays ordinary packs, or mythic
+ * packs beside them, or Cube Prize Packs instead of them, and no ladder has
+ * ever paid all three. Contender is the most this reaches — packs and mythic
+ * packs — which is what keeps the strip at the six it is designed around,
+ * since that ladder pays no boxes and so has no box tile to displace.
+ *
+ * Folding any two of them into one figure is the thing this change undid: the
+ * three carry separate rates, so a single "packs won" would be a count of
+ * things that are not the same thing and could be priced only by picking one.
+ */
+const PACK_TILES = [
+  {
+    key: "packs",
+    label: "Avg packs won",
+    help: {
+      label: "What average packs won means",
+      content: "Packs a run holds when it stops, averaged over all simulated runs.",
+    },
+  },
+  {
+    key: "mythicPacks",
+    label: "Avg mythic packs won",
+    help: {
+      label: "What average mythic packs won means",
+      content:
+        "Mythic packs a run holds when it stops, averaged over all simulated runs. Counted and priced apart from ordinary packs.",
+    },
+  },
+  {
+    key: "cubePacks",
+    label: "Avg cube packs won",
+    help: {
+      label: "What average cube packs won means",
+      content:
+        "Cube Prize Packs a run holds when it stops, averaged over all simulated runs. The cube drafts pay these instead of ordinary packs, at their own rate.",
+    },
+  },
+] as const;
 
 export default function App({
   boxFeed,
@@ -442,6 +509,8 @@ export default function App({
     eventsPerDay: `${uid}-events-per-day`,
     goldRate: `${uid}-gold-rate`,
     packValue: `${uid}-pack-value`,
+    mythicPackValue: `${uid}-mythic-pack-value`,
+    cubePackValue: `${uid}-cube-pack-value`,
     funValue: `${uid}-fun-value`,
     playInValue: `${uid}-play-in-value`,
     playBoxValue: `${uid}-play-box-value`,
@@ -638,17 +707,30 @@ export default function App({
     if (isCustom) setEventDetailsOpen(true);
   }, [isCustom]);
   /*
-   * Most events award no play-in points, so the column is hidden for them. It
-   * is always shown on Custom — otherwise a schedule that started at zero
-   * could never grow one.
+   * Which reward columns the payout editor draws.
+   *
+   * A column appears when the ladder pays that reward at some win count, and
+   * on Custom it always appears — otherwise a schedule that started at zero
+   * could never grow one. Every column follows this rule, gems and packs
+   * included: the cube drafts pay Cube Prize Packs *instead of* ordinary ones,
+   * so their packs column is zeroes from top to bottom, and Arena Direct's top
+   * two rungs pay boxes and nothing else. A column of zeroes is a fact about
+   * nothing, and with five of them the table read as mostly empty for every
+   * event.
    */
-  const showPlayInPoints =
-    isCustom || config.payouts.some((t) => (t.playInPoints ?? 0) > 0);
+  const shownColumns = PAYOUT_COLUMNS.filter(
+    (c) => isCustom || config.payouts.some((t) => (t[c.key] ?? 0) > 0),
+  );
   /*
-   * One column for both kinds, since a row names the boxes it pays rather than
-   * counting them in two places. Shown for the same reason points are: always
-   * on Custom, so a ladder that pays none can grow one, and otherwise only
-   * where the event actually ships something.
+   * The tiles ask a narrower question than the editor: `paidRewards` alone,
+   * with no Custom exception. An empty column is an invitation to fill it; an
+   * "Avg packs won 0.0" tile is only noise.
+   */
+  const paidPacks: string[] = paidRewards(config.payouts);
+  /*
+   * One column for both kinds of box, since a row names the boxes it pays
+   * rather than counting them in two places — which is why it is not one of
+   * the columns above, whose cells are all a number in a box.
    */
   const showBoxes = isCustom || paysBoxes(config.payouts);
   const viewItems = [
@@ -700,19 +782,15 @@ export default function App({
   const packsTiles: StatTile[] =
     bankroll === null
       ? []
-      : [
-          {
-            key: "packs",
-            label: "Avg packs won",
-            value: bankroll.holdings.packs.mean.toFixed(1),
+      : PACK_TILES.filter(({ key }) => paidPacks.includes(key)).map(
+          ({ key, label, help }) => ({
+            key,
+            label,
+            value: bankroll.holdings[key].mean.toFixed(1),
             hint: "over the whole run",
-            help: {
-              label: "What average packs won means",
-              content:
-                "Packs a run holds when it stops, averaged over all simulated runs.",
-            },
-          },
-        ];
+            help,
+          }),
+        );
   const runTiles: StatTile[] = bankroll === null ? [] : [
     {
       key: "events",
@@ -1391,20 +1469,21 @@ export default function App({
                   <thead>
                     <tr>
                       <th scope="col">Wins</th>
-                      <th scope="col" className="text-end">
-                        <i className="bi bi-gem me-1" aria-hidden="true" />
-                        Gems
-                      </th>
-                      <th scope="col" className="text-end">
-                        <i className="bi bi-stack me-1" aria-hidden="true" />
-                        Packs
-                      </th>
-                      {showPlayInPoints && (
-                        <th scope="col" className="text-end">
-                          <i className="bi bi-ticket-perforated me-1" aria-hidden="true" />
-                          Points
+                      {/*
+                        Every column is optional and none is drawn for a ladder
+                        paying it nothing — a column of zeroes states a fact
+                        about nothing, and there are now enough of them that
+                        always showing all five would leave most events reading
+                        as mostly empty. Held to one line apiece: each is as
+                        narrow as its input, so a two-word heading wraps and
+                        doubles the height of the whole header row.
+                      */}
+                      {shownColumns.map((c) => (
+                        <th key={c.key} scope="col" className="text-end text-nowrap">
+                          <i className={`bi ${c.icon} me-1`} aria-hidden="true" />
+                          {c.label}
                         </th>
-                      )}
+                      ))}
                       {showBoxes && (
                         /*
                           Held to one line. This column is as narrow as its
@@ -1423,34 +1502,17 @@ export default function App({
                     {config.payouts.map((t) => (
                       <tr key={t.wins}>
                         <td className="fw-semibold text-primary">{t.wins}</td>
-                        <td>
-                          <GemInput
-                            compact
-                            disabled={locked}
-                            value={t.gems}
-                            onChange={(n) => setTier(t.wins, { gems: n })}
-                          />
-                        </td>
-                        <td>
-                          <AddonInput
-                            compact
-                            addon={<i className="bi bi-stack" aria-hidden="true" />}
-                            disabled={locked}
-                            value={t.packs}
-                            onChange={(n) => setTier(t.wins, { packs: n })}
-                          />
-                        </td>
-                        {showPlayInPoints && (
-                          <td>
+                        {shownColumns.map((c) => (
+                          <td key={c.key}>
                             <AddonInput
                               compact
-                              addon={<i className="bi bi-ticket-perforated" aria-hidden="true" />}
+                              addon={<i className={`bi ${c.icon}`} aria-hidden="true" />}
                               disabled={locked}
-                              value={t.playInPoints ?? 0}
-                              onChange={(n) => setTier(t.wins, { playInPoints: n })}
+                              value={t[c.key] ?? 0}
+                              onChange={(n) => setTier(t.wins, { [c.key]: n })}
                             />
                           </td>
-                        )}
+                        ))}
                         {showBoxes && (
                           <td>
                             <BoxCell
@@ -1765,6 +1827,8 @@ export default function App({
                               payout={{
                                 gems: tier.gems,
                                 packs: b.packs,
+                                mythicPacks: b.mythicPacks,
+                                cubePacks: b.cubePacks,
                                 playInPoints: b.playInPoints,
                                 boxes: tier.boxes ?? [],
                               }}
@@ -1920,6 +1984,8 @@ export default function App({
                         ...config,
                         draftPackValueGems: 0,
                         packValueGems: 0,
+                        mythicPackValueGems: 0,
+                        cubePackValueGems: 0,
                         playInPointValueGems: 0,
                         playBoxValueGems: 0,
                         collectorBoxValueGems: 0,
@@ -1967,6 +2033,36 @@ export default function App({
                     m={m}
                     gemValue={config.packValueGems}
                     onChange={(n) => set("packValueGems", n)}
+                  />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.mythicPackValue} className="form-label">
+                      Mythic pack value ({m.label})
+                      <InfoTip
+                        label="About mythic pack value"
+                        content="What one mythic pack is worth to you. Its rare slot is always a mythic rare rather than the usual rare-or-mythic mix."
+                      />
+                    </label>
+                    <MoneyInput
+                    id={ids.mythicPackValue}
+                    m={m}
+                    gemValue={config.mythicPackValueGems}
+                    onChange={(n) => set("mythicPackValueGems", n)}
+                  />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.cubePackValue} className="form-label">
+                      Cube pack value ({m.label})
+                      <InfoTip
+                        label="About cube pack value"
+                        content="What one Cube Prize Pack is worth to you. Three of its nine cards are rare or better, one of them from the cube bonus sheet. The cube drafts pay these instead of packs."
+                      />
+                    </label>
+                    <MoneyInput
+                    id={ids.cubePackValue}
+                    m={m}
+                    gemValue={config.cubePackValueGems}
+                    onChange={(n) => set("cubePackValueGems", n)}
                   />
                   </div>
                   <div className="col-6">
