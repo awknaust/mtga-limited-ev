@@ -1490,11 +1490,24 @@ describe("presets", () => {
     );
   });
 
-  it("awards play-in points only on the traditional events", () => {
+  it("names every event that awards play-in points", () => {
+    // Three, and only at the top of each ladder. Traditional Draft pays 2 at
+    // 3-0; both constructed events pay theirs at the ceiling too, 1 at 7-0
+    // and 4 at 5-0. The cubes pay none despite being traditional, which is
+    // why this is a list rather than a rule about the name.
     const awarding = PRESETS.filter((p) =>
       p.payouts.some((t) => (t.playInPoints ?? 0) > 0),
     ).map((p) => p.name);
-    expect(awarding).toEqual(["Traditional Draft"]);
+    expect(awarding).toEqual([
+      "Traditional Draft",
+      "Constructed Event",
+      "Traditional Constructed Event",
+    ]);
+    for (const name of awarding) {
+      const preset = PRESETS.find((p) => p.name === name)!;
+      const paying = preset.payouts.filter((t) => (t.playInPoints ?? 0) > 0);
+      expect(paying).toEqual([preset.payouts[preset.payouts.length - 1]]);
+    }
   });
 
   it("prices play-in points into the gross", () => {
@@ -1556,7 +1569,7 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
-  it("exposes all twelve presets", () => {
+  it("exposes all fourteen presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
@@ -1570,7 +1583,20 @@ describe("presets", () => {
       "Arena Direct (Cube)",
       "Arena Direct (Play)",
       "Arena Direct (Collector)",
+      "Constructed Event",
+      "Traditional Constructed Event",
     ]);
+  });
+
+  it("charges the same gold-to-gem rate everywhere both are priced", () => {
+    // Arena sets GEMS_PER_10K_GOLD by what it charges, so an event that broke
+    // the rate would make the constant a fiction. Constructed prices both
+    // ways, at 2,500 gold against 375 gems, and lands on it exactly.
+    const dual = PRESETS.filter((p) => (p.entryCostGold ?? 0) > 0);
+    expect(dual.map((p) => p.name)).toContain("Constructed Event");
+    for (const p of dual) {
+      expect((p.entryCostGems / p.entryCostGold!) * 10_000).toBe(GEMS_PER_10K_GOLD);
+    }
   });
 
   it("models Arena Direct as a two-loss run paying physical product", () => {

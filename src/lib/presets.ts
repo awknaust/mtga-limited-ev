@@ -12,12 +12,14 @@
 import { ARENA_DIRECT } from "../data/presets/arena-direct";
 import { ARENA_DIRECT_COLLECTOR } from "../data/presets/arena-direct-collector";
 import { ARENA_DIRECT_PLAY } from "../data/presets/arena-direct-play";
+import { CONSTRUCTED_EVENT } from "../data/presets/constructed-event";
 import { CONTENDER_DRAFT } from "../data/presets/contender-draft";
 import { PICK_TWO_DRAFT } from "../data/presets/pick-two-draft";
 import { PREMIER_CUBE_DRAFT } from "../data/presets/premier-cube-draft";
 import { PREMIER_DRAFT } from "../data/presets/premier-draft";
 import { QUICK_DRAFT } from "../data/presets/quick-draft";
 import { SEALED } from "../data/presets/sealed";
+import { TRADITIONAL_CONSTRUCTED_EVENT } from "../data/presets/traditional-constructed-event";
 import { TRADITIONAL_CUBE_DRAFT } from "../data/presets/traditional-cube-draft";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
 import { TRADITIONAL_SEALED } from "../data/presets/traditional-sealed";
@@ -30,12 +32,14 @@ export {
   ARENA_DIRECT,
   ARENA_DIRECT_COLLECTOR,
   ARENA_DIRECT_PLAY,
+  CONSTRUCTED_EVENT,
   CONTENDER_DRAFT,
   PICK_TWO_DRAFT,
   PREMIER_CUBE_DRAFT,
   PREMIER_DRAFT,
   QUICK_DRAFT,
   SEALED,
+  TRADITIONAL_CONSTRUCTED_EVENT,
   TRADITIONAL_CUBE_DRAFT,
   TRADITIONAL_DRAFT,
   TRADITIONAL_SEALED,
@@ -51,13 +55,20 @@ export const PRESETS: EventPreset[] = [
   SEALED,
   TRADITIONAL_SEALED,
   CONTENDER_DRAFT,
-  // The Arena Directs sit together at the end: same entry and same structure,
-  // differing only in pool and prize. The cube is the phantom one, so it is
-  // named for its pool; the other two are both sealed, so they are named for
-  // what the top of the ladder pays.
+  // The Arena Directs sit together: same entry and same structure, differing
+  // only in pool and prize. The cube is the phantom one, so it is named for
+  // its pool; the other two are both sealed, so they are named for what the
+  // top of the ladder pays.
   ARENA_DIRECT,
   ARENA_DIRECT_PLAY,
   ARENA_DIRECT_COLLECTOR,
+  // And the two constructed events last, because they are the only entries
+  // that are not limited at all — you bring a deck rather than build one, so
+  // there is no pool to keep and `draftPacks` is 0. They are here because
+  // they are what the same gems buy instead, which is the comparison someone
+  // deciding what to queue is making.
+  CONSTRUCTED_EVENT,
+  TRADITIONAL_CONSTRUCTED_EVENT,
 ];
 
 /**
@@ -125,8 +136,9 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS = 200;
  *
  * Every event that prices both ways uses the same ratio — Premier 10,000 gold
  * against 1,500 gems, Quick 5,000 against 750, Pick Two 6,000 against 900,
- * Contender 20,000 against 3,000 — all exactly 1,500 per 10,000. Arena sets
- * the rate by what it charges, so this is read off rather than invented.
+ * Contender 20,000 against 3,000, Constructed 2,500 against 375 — all exactly
+ * 1,500 per 10,000. Arena sets the rate by what it charges, so this is read
+ * off rather than invented, and a test holds every preset to it.
  *
  * It only holds while you have something to spend gold on. Gold you never use
  * is worth nothing, and it cannot be bought or sold, so this overstates a
