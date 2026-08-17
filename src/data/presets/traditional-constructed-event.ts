@@ -12,8 +12,7 @@ import type { EventPreset } from "../../lib/types";
  * here. It runs five rounds rather than three, so the ladder has six rows and
  * the record at every one of them is fixed — 0-5 through 5-0, with nothing to
  * split. And 5-0 pays 4 play-in points where Traditional Draft's 3-0 pays 2,
- * which at the default 200 gems a point is 800 gems: more than the entry back
- * in points alone, and the largest points award any preset carries.
+ * the largest points award any preset carries.
  *
  * Wizards' Streets of New Capenna State of the Game prints this one alongside
  * the best-of-one table — "Entry fee: 5,000 gold or 750 gems", "Event length:

@@ -396,7 +396,7 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      375 gems / 2500 gold
 draft      0 packs @ 23
-values     pack=22 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    211.7 gems (1088.8 gold/event)
 payouts    25-0_50-0_75-1_200-1_300-1_400-2_450-2_500-3-1
@@ -501,7 +501,7 @@ winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":5}
 entry      750 gems / 5000 gold
 draft      0 packs @ 23
-values     pack=22 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    596.3 gems (1025.0 gold/event)
 payouts    50-1_100-1_150-2_600-2_800-2_1000-3-4
