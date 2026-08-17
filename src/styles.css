@@ -1021,10 +1021,15 @@ body {
  *
  * Two shapes share one sweep animation. `.shimmer` blocks are the first-load
  * skeleton, standing in for tiles and charts that have never rendered.
- * `.sim-results` wraps settled results: while a recompute is pending the
- * stale numbers dim — still legible, usually close to right — under the same
- * sweep run as an overlay. The 0.15 s delay before the dim is what keeps
- * fast resolutions (cache hits, small runs) from flashing.
+ * `.sim-results` wraps settled results: while they are stale — from the
+ * keystroke that made them so, through the debounce, until the recompute
+ * lands — the numbers dim, still legible, usually close to right, under the
+ * same sweep run as an overlay. The 0.15 s delay before the dim is what
+ * keeps fast resolutions from flashing, and it earns its keep on the changes
+ * that skip the debounce: a preset pick answering from cache is pending for
+ * a few dozen milliseconds, and the dim has barely begun before it is
+ * reversed. The spinner in the tab strip carries no such delay and shows at
+ * once, which is what makes a debounced keystroke feel answered.
  */
 .shimmer {
   background-color: var(--app-raised);
