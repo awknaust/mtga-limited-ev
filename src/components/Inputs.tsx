@@ -11,6 +11,16 @@ import { money } from "../format";
  * being that a gem amount looks the same wherever it is entered or shown.
  */
 /**
+ * A typed number held to a whole one inside a range.
+ *
+ * `|| lo` catches the empty field as well as NaN: a field cleared to type a
+ * new value reads as 0, which for a range starting at 1 is a value the model
+ * cannot use.
+ */
+export const clampInt = (n: number, lo: number, hi: number): number =>
+  Math.max(lo, Math.min(hi, Math.round(n) || lo));
+
+/**
  * Number input for whole-number amounts.
  *
  * Drops focus on wheel events — otherwise scrolling the page with the cursor

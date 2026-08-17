@@ -12,20 +12,20 @@ import {
 } from "./format";
 import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
-import { BoxCell } from "./components/BoxCell";
 import { BoxPrices } from "./components/BoxPrices";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
+import { EventFields } from "./components/EventFields";
 import { EventsHistogram } from "./components/EventsHistogram";
 import { InfoTip } from "./components/InfoTip";
 import {
-  AddonInput,
   GemInput,
   GoldInput,
   MoneyInput,
   PointsInput,
   NumberInput,
   UsdInput,
+  clampInt,
 } from "./components/Inputs";
 import { Mastery } from "./components/Mastery";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
@@ -63,20 +63,15 @@ import {
   probProfitable,
   winRateInterval,
   winRatePosterior,
-  maxPossibleWins,
   maxRounds,
   boxChancePerEvent,
   payoutFor,
   paidRewards,
   paysBoxes,
-  resizePayouts,
   startingValue,
   withLiveBoxPrices,
   type BoxPriceFeed,
   type EventConfig,
-  type EventStructure,
-  type PayoutBox,
-  type PayoutTier,
 } from "./lib";
 import {
   SIM_LIMITS,
@@ -123,9 +118,6 @@ const RESULT_TABS = [
   { key: "about" as const, label: "About" },
 ];
 
-const clampInt = (n: number, lo: number, hi: number): number =>
-  Math.max(lo, Math.min(hi, Math.round(n) || lo));
-
 /*
  * What the win rate's step buttons move by, in percentage points, grouped as
  * the two pairs they render in. The fine step is the slider's own — 0.005 of a
@@ -139,31 +131,6 @@ const WIN_RATE_STEPS = [
 
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
-
-/**
- * The payout editor's columns, in the order a row lists what it pays.
- *
- * Every one of them is a count in a box, which is what lets them share a
- * component and a rule. The boxes are not here: a row *names* the boxes it
- * pays, so that column is a cell of chips rather than a number, and it carries
- * its own condition beside this list.
- *
- * `key` is the `PayoutTier` field, so adding a reward to the model is adding a
- * line here and nothing else — and a field spelled wrong is a compile error
- * rather than a column of zeroes.
- */
-const PAYOUT_COLUMNS = [
-  { key: "gems", label: "Gems", icon: "bi-gem" },
-  { key: "packs", label: "Packs", icon: "bi-stack" },
-  { key: "mythicPacks", label: "Mythic", icon: "bi-stars" },
-  { key: "cubePacks", label: "Cube", icon: "bi-box" },
-  { key: "playInPoints", label: "Points", icon: "bi-ticket-perforated" },
-  { key: "qualifierTokens", label: "Tokens", icon: "bi-trophy" },
-] as const satisfies readonly {
-  key: keyof PayoutTier;
-  label: string;
-  icon: string;
-}[];
 
 /**
  * A tile per kind of pack, drawn only for the kinds the ladder actually pays.
@@ -481,6 +448,49 @@ export default function App({
     };
   }, []);
 
+  /*
+   * The custom event's editor, and whether it is open — which holds the
+   * bankroll simulation for the same reason the Advanced dialog does: its
+   * edits are meant to apply together, and a ladder is edited a row at a
+   * time. Nothing behind the backdrop is legible while it is up, so the run
+   * it would have made is one nobody could read.
+   *
+   * Opened from the page rather than from inside another dialog, like the
+   * box-price table, which is what keeps it a plain `show()` — Bootstrap
+   * stacks backdrops that outlive them both if two are raised at once. The
+   * box picker inside it is a native `<dialog>` and not subject to that; see
+   * `AddBox`.
+   */
+  const editorEl = useRef<HTMLDivElement>(null);
+  const editorModal = useRef<Modal | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  /*
+   * Bumped when the editor's "Copy values from" loads another event, and used
+   * as the editor's `key`, which is React's way of saying "this is a
+   * different thing now, start it over". What starts over is which payout
+   * columns are on screen: those are the editor's own state rather than the
+   * config's, and copying an Arena Direct should bring its boxes column along
+   * while copying a draft leaves it behind. Nothing about the model, so it is
+   * not in the share state — two links that copied different events and
+   * ended up at the same ladder are the same link.
+   */
+  const [copyGeneration, setCopyGeneration] = useState(0);
+  useEffect(() => {
+    const el = editorEl.current;
+    if (!el) return;
+    editorModal.current = new Modal(el);
+    const onShow = () => setEditorOpen(true);
+    const onHide = () => setEditorOpen(false);
+    el.addEventListener("show.bs.modal", onShow);
+    el.addEventListener("hide.bs.modal", onHide);
+    return () => {
+      el.removeEventListener("show.bs.modal", onShow);
+      el.removeEventListener("hide.bs.modal", onHide);
+      editorModal.current?.dispose();
+      editorModal.current = null;
+    };
+  }, []);
+
   const topUpEl = useRef<HTMLDivElement>(null);
   const topUpModal = useRef<Modal | null>(null);
   useEffect(() => {
@@ -506,15 +516,8 @@ export default function App({
   const uid = useId();
   const ids = {
     preset: `${uid}-preset`,
-    structure: `${uid}-structure`,
-    maxWins: `${uid}-max-wins`,
-    maxLosses: `${uid}-max-losses`,
-    rounds: `${uid}-rounds`,
+    copyFrom: `${uid}-copy-from`,
     winRate: `${uid}-win-rate`,
-    entry: `${uid}-entry`,
-    entryGold: `${uid}-entry-gold`,
-    entryPoints: `${uid}-entry-points`,
-    draftPacks: `${uid}-draft-packs`,
     draftPackValue: `${uid}-draft-pack-value`,
     goldPerDay: `${uid}-gold-per-day`,
     eventsPerDay: `${uid}-events-per-day`,
@@ -550,6 +553,7 @@ export default function App({
     viewTabs: `${uid}-view`,
     topUpTitle: `${uid}-top-up-title`,
     boxPricesTitle: `${uid}-box-prices-title`,
+    editorTitle: `${uid}-editor-title`,
   };
 
   /*
@@ -566,14 +570,16 @@ export default function App({
    * is what made this feel jarring: nothing happened for 300 ms, and then
    * everything did at once.
    *
-   * Two changes do not wait. The Advanced dialog is a hold — its edits apply
-   * together, and the run goes the moment it closes. And a preset pick runs
-   * at once: one deliberate choice with no run of repeats behind it, for
-   * which the delay would be latency for nothing. The preset's name is what
-   * says one was picked — it moves then and only then — so it is handed over
-   * as the thing to flush on rather than a flag the handler would have to
-   * set and something else reset. Only the main selector: the "Copy from…"
-   * select on Custom changes the config under the same name and debounces.
+   * Two changes do not wait. Either dialog being open is a hold — the
+   * Advanced settings and the custom event's editor both apply their edits
+   * together, and the run goes the moment the dialog closes. And a preset
+   * pick runs at once: one deliberate choice with no run of repeats behind
+   * it, for which the delay would be latency for nothing. The preset's name
+   * is what says one was picked — it moves then and only then — so it is
+   * handed over as the thing to flush on rather than a flag the handler
+   * would have to set and something else reset. Only the main selector: the
+   * editor's "Copy from…" changes the config under the same name, and is
+   * held with the rest of that dialog's edits.
    */
   const bankrollParams = useMemo(
     () => ({
@@ -599,7 +605,10 @@ export default function App({
     result: bankroll,
     pending: bankrollPending,
     error: bankrollError,
-  } = useSimulateBankrolls(bankrollParams, { hold: advancedOpen, flushOn: presetName });
+  } = useSimulateBankrolls(bankrollParams, {
+    hold: advancedOpen || editorOpen,
+    flushOn: presetName,
+  });
   /*
    * What one entry is worth, exactly. A sum over the outcome distribution
    * rather than a simulation, so it needs no worker, no debounce, no
@@ -643,34 +652,6 @@ export default function App({
 
   const set = <K extends keyof EventConfig>(key: K, value: EventConfig[K]) =>
     update({ ...config, [key]: value });
-
-  const setTier = (wins: number, patch: Partial<PayoutTier>) =>
-    update({
-      ...config,
-      payouts: config.payouts.map((t) => (t.wins === wins ? { ...t, ...patch } : t)),
-    });
-
-  /**
-   * Replace one row's boxes, dropping the field when none are left.
-   *
-   * Absent rather than empty, so an edited row serialises the way the presets
-   * are written and a row that had its last box removed is indistinguishable
-   * from one that never had any.
-   */
-  const setBoxes = (wins: number, boxes: PayoutBox[]) =>
-    setTier(wins, boxes.length ? { boxes } : { boxes: undefined });
-
-  /**
-   * Changing the structure changes how many win counts are reachable, so the
-   * payout table has to be resized to match — rows that still exist keep their
-   * values.
-   */
-  const setStructure = (structure: EventStructure) =>
-    update({
-      ...config,
-      structure,
-      payouts: resizePayouts(config.payouts, maxPossibleWins(structure)),
-    });
 
   /** Presets load their own values; "Custom" keeps whatever is on screen. */
   const applyPreset = (name: string) => {
@@ -731,48 +712,30 @@ export default function App({
   };
 
   /*
-   * A preset describes a real event, so its definition is read-only; "Copy to
-   * Custom" takes the values and unlocks them. Only editing an event you own
-   * avoids the question of what a half-edited "Premier Draft" means.
+   * A preset describes a real event, so its definition is read-only wherever
+   * it is shown; Custom is the one you own, and the dialog is where it is
+   * edited. The panel in the column is a record either way, which is what
+   * spares this the "half-edited Premier Draft" question entirely.
    */
   const isCustom = presetName === CUSTOM_PRESET;
-  const locked = !isCustom;
   /*
-   * Switching to Custom opens the panel, because on Custom the panel is the
-   * editor and an empty card would look like the app had lost its inputs.
-   * Switching back does not close it: having opened the schedule to read it,
-   * you probably want it open for the next preset too.
+   * Switching to Custom opens the panel. Not because it is the editor — that
+   * moved into a dialog — but because it is the record of the one ladder you
+   * are about to change, and seeing an edit land in it is what makes the
+   * dialog worth trusting. Switching back does not close it: having opened
+   * the schedule to read it, you probably want it open for the next preset
+   * too.
    */
   useEffect(() => {
     if (isCustom) setEventDetailsOpen(true);
   }, [isCustom]);
   /*
-   * Which reward columns the payout editor draws.
-   *
-   * A column appears when the ladder pays that reward at some win count, and
-   * on Custom it always appears — otherwise a schedule that started at zero
-   * could never grow one. Every column follows this rule, gems and packs
-   * included: the cube drafts pay Cube Prize Packs *instead of* ordinary ones,
-   * so their packs column is zeroes from top to bottom, and Arena Direct's top
-   * two rungs pay boxes and nothing else. A column of zeroes is a fact about
-   * nothing, and with five of them the table read as mostly empty for every
-   * event.
-   */
-  const shownColumns = PAYOUT_COLUMNS.filter(
-    (c) => isCustom || config.payouts.some((t) => (t[c.key] ?? 0) > 0),
-  );
-  /*
-   * The tiles ask a narrower question than the editor: `paidRewards` alone,
-   * with no Custom exception. An empty column is an invitation to fill it; an
-   * "Avg packs won 0.0" tile is only noise.
+   * Which pack tiles the bankroll strip draws. A narrower question than the
+   * editor's columns, which live with the table in `EventFields`: an empty
+   * column is an invitation to fill it, where an "Avg packs won 0.0" tile is
+   * only noise.
    */
   const paidPacks: string[] = paidRewards(config.payouts);
-  /*
-   * One column for both kinds of box, since a row names the boxes it pays
-   * rather than counting them in two places — which is why it is not one of
-   * the columns above, whose cells are all a number in a box.
-   */
-  const showBoxes = isCustom || paysBoxes(config.payouts);
   const viewItems = [
     { key: "value" as const, label: valueName },
     { key: "breakdown" as const, label: "Payout breakdown" },
@@ -1412,37 +1375,27 @@ export default function App({
                   {/* Ellipsis by convention: picking it puts you in an editor. */}
                   <option value={CUSTOM_PRESET}>{CUSTOM_PRESET}…</option>
                 </select>
-                {!locked && (
-                  /*
-                   * Loading a preset's numbers into a custom schedule is a rare
-                   * enough move to keep quiet. The select resets to its
-                   * placeholder after each use, and PRESETS never contains
-                   * Custom, so it cannot copy from itself.
-                   */
-                  <select
-                    className="form-select form-select-sm mt-2"
-                    aria-label="Copy values from an event"
-                    value=""
-                    onChange={(e) => {
-                      const preset = PRESETS.find((p) => p.name === e.target.value);
-                      if (preset) setConfig(configFromPreset(preset, config));
-                    }}
+                {/* The only way into the editor, and shown only where there
+                    is something to edit: a preset's numbers are the event's
+                    own, and the panel below reads the same either way. */}
+                {isCustom && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary w-100 mt-2"
+                    onClick={() => editorModal.current?.show()}
                   >
-                    <option value="">Copy from…</option>
-                    {PRESETS.map((p) => (
-                      <option key={p.name} value={p.name}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </select>
+                    <i className="bi bi-pencil me-1" aria-hidden="true" />
+                    Edit custom event
+                  </button>
                 )}
               </div>
 
               {/*
-               * Collapsed by default: on a preset every field here is
-               * read-only reference, and the payout table is the tallest
-               * thing in the column. Custom opens it unprompted, since
-               * there the panel is the editor rather than a record.
+               * Collapsed by default: every field in here is read-only
+               * reference, on Custom as much as on a preset, and the payout
+               * table is the tallest thing in the column. Custom opens it
+               * unprompted, since there it is the record of a ladder that is
+               * about to be edited.
                */}
               <details
                 className="event-details"
@@ -1452,211 +1405,9 @@ export default function App({
                 <summary className="event-details-summary">
                   Entry cost and payout schedule
                 </summary>
-                <div className="row g-2 mb-3">
-                  <div className="col-6">
-                    <label htmlFor={ids.structure} className="form-label">
-                      Structure
-                    </label>
-                    <select
-                      id={ids.structure}
-                      className="form-select"
-                      disabled={locked}
-                      value={structure.kind}
-                      onChange={(e) =>
-                        setStructure(
-                          e.target.value === "rounds"
-                            ? { kind: "rounds", rounds: 3 }
-                            : { kind: "elimination", maxWins: 7, maxLosses: 3 },
-                        )
-                      }
-                    >
-                      <option value="elimination">Wins / losses</option>
-                      <option value="rounds">Fixed rounds</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="row g-2 mb-3">
-                  {structure.kind === "elimination" ? (
-                    <>
-                      <div className="col-6">
-                        <label htmlFor={ids.maxWins} className="form-label">
-                          Wins to finish
-                        </label>
-                        <NumberInput
-                          id={ids.maxWins}
-                          disabled={locked}
-                          min={1}
-                          value={structure.maxWins}
-                          onChange={(n) =>
-                            setStructure({ ...structure, maxWins: clampInt(n, 1, 20) })
-                          }
-                        />
-                      </div>
-                      <div className="col-6">
-                        <label htmlFor={ids.maxLosses} className="form-label">
-                          Losses to bust
-                        </label>
-                        <NumberInput
-                          id={ids.maxLosses}
-                          disabled={locked}
-                          min={1}
-                          value={structure.maxLosses}
-                          onChange={(n) =>
-                            setStructure({ ...structure, maxLosses: clampInt(n, 1, 20) })
-                          }
-                        />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="col-6">
-                      <label htmlFor={ids.rounds} className="form-label">
-                        Rounds
-                      </label>
-                      <NumberInput
-                        id={ids.rounds}
-                        disabled={locked}
-                        min={1}
-                        value={structure.rounds}
-                        onChange={(n) =>
-                          setStructure({ kind: "rounds", rounds: clampInt(n, 1, 20) })
-                        }
-                      />
-                    </div>
-                  )}
-                </div>
-
-                <div className="row g-2 mb-3">
-                  <div className="col-6">
-                    <label htmlFor={ids.entry} className="form-label">
-                      Entry cost (gems)
-                    </label>
-                    <GemInput
-                      id={ids.entry}
-                      disabled={locked}
-                      value={config.entryCostGems}
-                      onChange={(n) => set("entryCostGems", n)}
-                    />
-                  </div>
-                  <div className="col-6">
-                    <label htmlFor={ids.entryGold} className="form-label">
-                      Entry cost (gold)
-                      <InfoTip
-                        label="About the gold entry"
-                        content="The entry price in gold, for events that take it. Set 0 for events that do not. Gold builds up as you play and pays the entry whenever there is enough."
-                      />
-                    </label>
-                    <GoldInput
-                      id={ids.entryGold}
-                      disabled={locked}
-                      value={config.entryCostGold}
-                      onChange={(n) => set("entryCostGold", n)}
-                    />
-                  </div>
-                  <div className="col-6">
-                    <label htmlFor={ids.entryPoints} className="form-label">
-                      Entry cost (points)
-                      <InfoTip
-                        label="About the points entry"
-                        content="The entry price in play-in points, for the Qualifier Play-Ins. Set 0 for events that do not take them. Banked points are spent before gold or gems, since nothing else in Arena takes them."
-                      />
-                    </label>
-                    <PointsInput
-                      id={ids.entryPoints}
-                      disabled={locked}
-                      value={config.entryCostPlayInPoints}
-                      onChange={(n) => set("entryCostPlayInPoints", n)}
-                    />
-                  </div>
-                  <div className="col-6">
-                    <label htmlFor={ids.draftPacks} className="form-label">
-                      Draft packs kept
-                      <InfoTip
-                        label="About draft packs kept"
-                        content="How many packs' worth of cards you keep from the pool you played: three for a draft, six for sealed, zero for phantom events like cube."
-                      />
-                    </label>
-                    <AddonInput
-                      addon={<i className="bi bi-stack" aria-hidden="true" />}
-                      id={ids.draftPacks}
-                      disabled={locked}
-                      value={config.draftPacks}
-                      onChange={(n) => set("draftPacks", n)}
-                    />
-                  </div>
-                </div>
-
-                <h3 className="section-title mt-4">
-                  Payout schedule
-                  <InfoTip
-                    label="About the payout schedule"
-                    content="What the event pays for finishing on each win count. You get one row, not the rows below it. On Custom the rows follow the win ceiling, so lowering it drops the top ones."
-                  />
-                </h3>
-                <div className="table-responsive">
-                  <table className="table table-sm align-middle mb-0">
-                  <thead>
-                    <tr>
-                      <th scope="col">Wins</th>
-                      {/*
-                        Every column is optional and none is drawn for a ladder
-                        paying it nothing — a column of zeroes states a fact
-                        about nothing, and there are now enough of them that
-                        always showing all five would leave most events reading
-                        as mostly empty. Held to one line apiece: each is as
-                        narrow as its input, so a two-word heading wraps and
-                        doubles the height of the whole header row.
-                      */}
-                      {shownColumns.map((c) => (
-                        <th key={c.key} scope="col" className="text-end text-nowrap">
-                          <i className={`bi ${c.icon} me-1`} aria-hidden="true" />
-                          {c.label}
-                        </th>
-                      ))}
-                      {showBoxes && (
-                        /*
-                          Held to one line. This column is as narrow as its
-                          chips, which is narrower than "Boxes" plus its icon,
-                          so the two wrap and the header row grows to twice
-                          the height of every other column's.
-                        */
-                        <th scope="col" className="text-nowrap">
-                          <i className="bi bi-box-seam me-1" aria-hidden="true" />
-                          Boxes
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {config.payouts.map((t) => (
-                      <tr key={t.wins}>
-                        <td className="fw-semibold text-primary">{t.wins}</td>
-                        {shownColumns.map((c) => (
-                          <td key={c.key}>
-                            <AddonInput
-                              compact
-                              addon={<i className={`bi ${c.icon}`} aria-hidden="true" />}
-                              disabled={locked}
-                              value={t[c.key] ?? 0}
-                              onChange={(n) => setTier(t.wins, { [c.key]: n })}
-                            />
-                          </td>
-                        ))}
-                        {showBoxes && (
-                          <td>
-                            <BoxCell
-                              boxes={t.boxes ?? []}
-                              table={config.boxPrices}
-                              locked={locked}
-                              onChange={(boxes) => setBoxes(t.wins, boxes)}
-                            />
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                  </table>
-                </div>
+                {/* Locked whichever event is chosen. The editor is the dialog
+                    the button above opens, and this is what it wrote. */}
+                <EventFields config={config} locked onChange={setConfig} />
               </details>
             </div>
           </div>
@@ -2544,6 +2295,95 @@ export default function App({
                 {advancedReset}
               </span>
               <button type="button" className="btn btn-primary" data-bs-dismiss="modal">
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/*
+        The custom event's editor: the same fields the column shows, with the
+        locks off. It is here rather than in the sidebar because the payout
+        table is a table — up to twenty rows of five columns, three of them
+        number fields — and a third of a page is not where that is legible.
+        Scrollable and wide for the same reason the box-price table is.
+      */}
+      <div
+        className="modal fade"
+        tabIndex={-1}
+        ref={editorEl}
+        aria-labelledby={ids.editorTitle}
+      >
+        <div className="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+          <div className="modal-content">
+            <div className="modal-header">
+              <h2 className="modal-title h6 mb-0" id={ids.editorTitle}>
+                Custom event
+              </h2>
+              <button
+                type="button"
+                className="btn-close"
+                data-bs-dismiss="modal"
+                aria-label="Close"
+              />
+            </div>
+            <div className="modal-body">
+              {/*
+                Built only on Custom, so the app never holds a second,
+                editable copy of a preset's own numbers in the document. The
+                button that opens this appears on exactly the same condition,
+                so there is no state in which it is reachable and empty.
+              */}
+              {isCustom && (
+                <>
+                  <div className="mb-3">
+                    <label htmlFor={ids.copyFrom} className="form-label">
+                      Copy values from
+                      <InfoTip
+                        label="About copying values"
+                        content="Loads a real event's entry cost and payout schedule into this one, as a starting point to edit."
+                      />
+                    </label>
+                    {/*
+                     * The select resets to its placeholder after each use, and
+                     * PRESETS never contains Custom, so it cannot copy from
+                     * itself.
+                     */}
+                    <select
+                      id={ids.copyFrom}
+                      className="form-select"
+                      value=""
+                      onChange={(e) => {
+                        const preset = PRESETS.find((p) => p.name === e.target.value);
+                        if (!preset) return;
+                        setConfig(configFromPreset(preset, config));
+                        setCopyGeneration(copyGeneration + 1);
+                      }}
+                    >
+                      <option value="">Choose an event…</option>
+                      {PRESETS.map((p) => (
+                        <option key={p.name} value={p.name}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <EventFields
+                    key={copyGeneration}
+                    config={config}
+                    locked={false}
+                    onChange={setConfig}
+                  />
+                </>
+              )}
+            </div>
+            <div className="modal-footer">
+              <button
+                type="button"
+                className="btn btn-primary"
+                data-bs-dismiss="modal"
+              >
                 Done
               </button>
             </div>
