@@ -9,9 +9,9 @@
  *   holdings.ts      what a run ends up holding, and what it is worth
  *   distribution.ts  closed-form outcome distributions
  *   rng.ts           seeded PRNG
- *   simulate.ts      Monte Carlo run, expected value, break-even
+ *   expectation.ts   what one entry is worth: expected value, break-even, the outcome table
  *   uncertainty.ts   the win rate as a posterior, not a point
- *   bankroll.ts      how far a starting balance goes
+ *   bankroll.ts      how far a starting balance goes, simulated
  *   presets.ts       named events, loaded from src/data/presets
  *   boxPrices.ts     the box-price feed, the copy the app ships, and the
  *                    price table read from either
@@ -25,7 +25,7 @@ export * from "./payouts";
 export * from "./holdings";
 export * from "./distribution";
 export * from "./rng";
-export * from "./simulate";
+export * from "./expectation";
 export * from "./uncertainty";
 export * from "./bankroll";
 export * from "./presets";

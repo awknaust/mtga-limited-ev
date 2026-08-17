@@ -16,9 +16,9 @@ export function maxPossibleWins(structure: EventStructure): number {
  * Every record the structure can finish on, ordered by wins ascending and then
  * by losses ascending.
  *
- * One place decides that order, because three others depend on it: the exact
- * distribution and the simulation both return rows in it, and the chart draws
- * them top to bottom in it.
+ * One place decides that order, because two others depend on it: the exact
+ * record distribution returns rows in it, and the chart draws them top to
+ * bottom in it.
  *
  * A `rounds` event has one record per win count. An elimination event has one
  * per win count below the ceiling — reaching `k < maxWins` wins means being

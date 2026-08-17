@@ -1,26 +1,23 @@
 /**
- * The simulations as hooks: submit to the worker on parameter change, cancel
- * the superseded run, and report what settled.
+ * The bankroll simulation as a hook: submit to the worker on parameter
+ * change, cancel the superseded run, and report what settled.
  *
- * Each hook takes one params object. The caller builds it with `useMemo`
+ * The hook takes one params object. The caller builds it with `useMemo`
  * from the live pieces and debounces the object itself, so a flush is
- * atomic — no render can pair this keystroke's trials with the last one's
+ * atomic — no render can pair this keystroke's runs with the last one's
  * seed — and the effect needs exactly one dependency.
+ *
+ * Only the bankroll goes through here. The per-event figures are closed
+ * form and computed in render.
  */
 
 import { useEffect, useState } from "react";
 
 import type { BankrollResult } from "../lib/bankroll";
-import type { EventConfig, SimResult } from "../lib/types";
+import type { EventConfig } from "../lib/types";
 import { simulationClient } from "../worker/client";
 import { isAbortError } from "../worker/protocol";
 import type { SimulationHandle } from "../worker/protocol";
-
-export type EventSimParams = {
-  config: EventConfig;
-  trials: number;
-  seed: number;
-};
 
 export type BankrollSimParams = {
   config: EventConfig;
@@ -39,9 +36,6 @@ export type SimulationState<T> = {
   /** The last failure, kept beside the stale result; cleared by a success. */
   error: unknown;
 };
-
-const submitEvent = (p: EventSimParams): SimulationHandle<SimResult> =>
-  simulationClient.simulate(p.config, p.trials, p.seed);
 
 const submitBankrolls = (p: BankrollSimParams): SimulationHandle<BankrollResult> =>
   simulationClient.simulateBankrolls(
@@ -75,10 +69,6 @@ function useSimulation<P, T>(params: P, submit: (p: P) => SimulationHandle<T>): 
     pending: settled.params !== params,
     error: settled.error,
   };
-}
-
-export function useSimulate(params: EventSimParams): SimulationState<SimResult> {
-  return useSimulation(params, submitEvent);
 }
 
 export function useSimulateBankrolls(params: BankrollSimParams): SimulationState<BankrollResult> {

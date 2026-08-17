@@ -221,14 +221,16 @@ export function About({
         <dd className="col-sm-8">
           How much your own win rate is in doubt, given how many matches you
           have played — the middle 90% of the rates that record supports. It is
-          uncertainty about you, not about the simulation: playing more matches
-          narrows it, running more simulations does not.
+          uncertainty about you, not about the model: playing more matches
+          narrows it, and no setting here does.
         </dd>
 
         <dt className="col-sm-4">Give or take</dt>
         <dd className="col-sm-8">
-          Shown instead when your win rate is set to exactly known: the
-          simulation's own wobble, which more simulated events do narrow.
+          Shown on the bankroll's box chance instead, when your win rate is set
+          to exactly known: the simulation's own wobble, which more bankroll
+          runs do narrow. The Per event tab needs no such figure — everything
+          on it is exact for the win rate you set.
         </dd>
 
         <dt className="col-sm-4">One in twenty</dt>

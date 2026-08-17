@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 /**
- * How long after the last input the simulations wait before recomputing.
- * The closed-form figures never wait — they are cheap and answer live.
+ * How long after the last input the bankroll simulation waits before
+ * recomputing. The closed-form figures never wait — they are cheap and
+ * answer live.
  */
 export const SIM_DEBOUNCE_MS = 300;
 
@@ -15,9 +16,9 @@ export const SIM_DEBOUNCE_MS = 300;
  * than waiting out the delay again. An unchanged value never schedules
  * anything (`Object.is`), so an untouched open-and-close is free.
  *
- * No `maxWait` on purpose: scrubbing a slider defers the simulations for as
+ * No `maxWait` on purpose: scrubbing a slider defers the simulation for as
  * long as the scrubbing lasts, which is fine because every closed-form
- * figure keeps answering live while they wait.
+ * figure keeps answering live while it waits.
  */
 export function useDebouncedValue<T>(value: T, delayMs: number, hold = false): T {
   const [debounced, setDebounced] = useState(value);

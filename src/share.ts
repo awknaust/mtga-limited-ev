@@ -14,8 +14,8 @@
  * so switching to Quick Draft does not spell out its whole ladder.
  *
  * **Nothing is compressed.** A shared link should be readable and editable by
- * hand, for the same reason the closed-form column sits beside the simulated
- * one: a number you cannot check is a number you have to trust.
+ * hand, for the same reason every figure on the Per event tab is closed form:
+ * a number you cannot check is a number you have to trust.
  */
 
 import type { Unit } from "./format";
@@ -42,11 +42,7 @@ export type Tab = "bankroll" | "event" | "mastery" | "about";
 export type ShareState = {
   presetName: string;
   config: EventConfig;
-  trials: number;
-  /**
-   * Bankroll runs, which are counted separately from `trials` because they
-   * cost far more: one is a whole sequence of events rather than a single one.
-   */
+  /** How many runs the Bankroll tab plays, each a whole sequence of events. */
   bankrollRuns: number;
   seed: number;
   startingGems: number;
@@ -92,26 +88,23 @@ export const STARTING_ENTRIES = 2;
  *
  * What the numbers answer has changed. They were picked when every simulation
  * ran synchronously during render, so a cap was really a budget for how long
- * the page was allowed to freeze. Simulations run in workers now, cancelled
- * within about ten milliseconds by a superseding edit, so nothing here blocks
- * paint and the question is only how long someone is willing to wait for a
- * number that keeps getting better.
+ * the page was allowed to freeze. The simulation runs in a worker now,
+ * cancelled within about ten milliseconds by a superseding edit, so nothing
+ * here blocks paint and the question is only how long someone is willing to
+ * wait for a number that keeps getting better.
  *
- * Measured at roughly 56–66 ns per trial, which puts `trials` at its ceiling
- * near six seconds for a standard error under half what five million gave —
- * cheap, and the result stays a few kB whatever the count. `bankrollRuns`
- * costs in proportion to *events played*, so it multiplies with `maxEvents`,
- * and the two maxed together is a wait of minutes. That corner is left
- * reachable rather than designed away: capping the product instead would say
- * what actually costs time, but it is a different shape of control than a
- * number in a box, and this change is only the ceilings.
+ * Measured at roughly 56–66 ns per simulated event. `bankrollRuns` costs in
+ * proportion to *events played*, so it multiplies with `maxEvents`, and the
+ * two maxed together is a wait of minutes. That corner is left reachable
+ * rather than designed away: capping the product instead would say what
+ * actually costs time, but it is a different shape of control than a number
+ * in a box, and this change is only the ceilings.
  *
- * Memory is not what bounds any of these. A `BankrollResult` is summary
- * statistics plus a fixed hundred recorded runs, so its size tracks
- * `maxEvents` and not the run count at all.
+ * Memory is not what bounds either. A `BankrollResult` is summary statistics
+ * plus a fixed hundred recorded runs, so its size tracks `maxEvents` and not
+ * the run count at all.
  */
 export const SIM_LIMITS = {
-  trials: 25_000_000,
   bankrollRuns: 1_000_000,
   maxEvents: 2_000,
 } as const;
@@ -122,7 +115,6 @@ export function defaultShareState(): ShareState {
   return {
     presetName: opening.name,
     config: defaultConfig(),
-    trials: 100_000,
     bankrollRuns: 10_000,
     seed: 1,
     startingGems: STARTING_ENTRIES * opening.entryCostGems,
@@ -276,19 +268,22 @@ const CONFIG_NUMBERS = [
 /**
  * Bankroll and display fields, which sit outside the config.
  *
- * `spendWinnings` was one of these and is retired: it let packs, points and
- * boxes fund further entries, which nothing in Arena does. A link still
- * carrying it decodes to a run that holds its winnings instead of spending
- * them, and that is the intended reading rather than an oversight. The name
- * must not be given a new meaning — an old link would then say something its
- * author never chose.
+ * Two of these are retired, and neither name may be given a new meaning — an
+ * old link would then say something its author never chose:
+ *
+ *  - `spendWinnings` let packs, points and boxes fund further entries, which
+ *    nothing in Arena does. A link still carrying it decodes to a run that
+ *    holds its winnings instead of spending them, and that is the intended
+ *    reading rather than an oversight.
+ *  - `trials` was the Per event tab's Monte Carlo count. Every figure on that
+ *    tab is closed form now, so there is nothing for the number to size; a
+ *    link carrying it decodes to the same event it always did, exactly.
  */
 const UI_NUMBERS = [
   ["startGems", "startingGems"],
   ["startGold", "startingGold"],
   ["maxEvents", "maxEvents"],
   ["gemsPerUsd", "gemsPerUsd"],
-  ["trials", "trials"],
   ["runs", "bankrollRuns"],
   ["seed", "seed"],
 ] as const satisfies readonly (readonly [string, keyof ShareState])[];
@@ -504,11 +499,6 @@ export function decodeShareState(search: string): ShareState {
   return {
     presetName,
     config,
-    trials: numberFrom(params, "trials", fallback.trials, {
-      min: 1,
-      max: SIM_LIMITS.trials,
-      int: true,
-    }),
     bankrollRuns: numberFrom(params, "runs", fallback.bankrollRuns, {
       min: 1,
       max: SIM_LIMITS.bankrollRuns,

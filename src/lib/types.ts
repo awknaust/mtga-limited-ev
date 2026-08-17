@@ -223,27 +223,6 @@ export type EventConfig = {
   payouts: PayoutTier[];
 };
 
-export type WinBucket = {
-  wins: number;
-  count: number;
-  /** Empirical frequency from the simulation. */
-  probability: number;
-  /** Closed-form probability, for comparison. */
-  exactProbability: number;
-  grossGems: number;
-  netGems: number;
-  packs: number;
-  playInPoints: number;
-  /**
-   * Boxes paid at this win count, all products together.
-   *
-   * A total rather than a count per product, because what a bucket is asked is
-   * how often a box turns up at all — the breakdown that cares *which* box
-   * prices them one at a time, off the ladder rather than off a bucket.
-   */
-  boxes: number;
-};
-
 /**
  * A finishing record — the wins and losses an event ended on.
  *
@@ -264,54 +243,6 @@ export type OutcomeRecord = {
 
 /** A closed-form probability attached to the record it belongs to. */
 export type RecordProbability = OutcomeRecord & { probability: number };
-
-/** One finishing record, and how often the simulation landed on it. */
-export type RecordBucket = OutcomeRecord & {
-  count: number;
-  /** Empirical frequency from the simulation. */
-  probability: number;
-  /** Closed-form probability, for comparison. */
-  exactProbability: number;
-};
-
-export type SimResult = {
-  trials: number;
-  buckets: WinBucket[];
-  /**
-   * The same events split by record rather than by win count, ordered by wins
-   * ascending and then losses ascending.
-   *
-   * Payouts read off the win count alone, so this carries no money — it exists
-   * because "7 wins" hides how the run got there, and the chart says so. Group
-   * it by wins and it collapses back to `buckets`.
-   */
-  records: RecordBucket[];
-  /** Mean net gems per event (simulated). */
-  meanNet: number;
-  /** Mean net gems per event (closed form). */
-  exactMeanNet: number;
-  meanGross: number;
-  meanPacks: number;
-  /** Mean boxes per event, both kinds together; a double-box finish counts as two. */
-  meanBoxes: number;
-  /** Mean rounds (matches) played per event. */
-  meanRounds: number;
-  /** Standard deviation of net gems across events. */
-  stdDevNet: number;
-  /** Standard error of meanNet. */
-  stdErrNet: number;
-  /** Fraction of events with a positive net result. */
-  probProfit: number;
-  /** Mean net / entry cost. */
-  roi: number;
-  /** Total net gems across all simulated events. */
-  totalNet: number;
-  /** Share of entries the simulated gold balance covered. */
-  goldEntryFraction: number;
-  /** Mean gems actually paid to enter, after gold-funded entries. */
-  meanEntryGems: number;
-  percentiles: { p5: number; p25: number; p50: number; p75: number; p95: number };
-};
 
 /**
  * Everything a Set Mastery track can pay.

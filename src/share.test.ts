@@ -173,7 +173,6 @@ describe("round trips", () => {
           },
         ],
       },
-      trials: 25_000,
       seed: 7,
       startingGems: 12_000,
       startingGold: 5_000,
@@ -253,7 +252,6 @@ describe("resetting advanced settings", () => {
           },
         ],
       },
-      trials: 25_000,
       bankrollRuns: 2_500,
       seed: 7,
       startingGems: 12_000,
@@ -305,7 +303,6 @@ describe("resetting advanced settings", () => {
       "runs",
       "seed",
       "sleeveValue",
-      "trials",
       "uncommonIcrValue",
     ]);
     // The event on screen, the balance it is played from, and where the page
@@ -351,7 +348,6 @@ describe("resetting advanced settings", () => {
     expect(reset.config.eventsPerDay).toBe(config.eventsPerDay);
     expect(reset.config.gemsPer10kGold).toBe(config.gemsPer10kGold);
     expect(reset.gemsPerUsd).toBe(ui.gemsPerUsd);
-    expect(reset.trials).toBe(ui.trials);
     expect(reset.bankrollRuns).toBe(ui.bankrollRuns);
     expect(reset.seed).toBe(ui.seed);
   });
@@ -556,7 +552,7 @@ describe("input from a URL is not trusted", () => {
   it("drops values that are not numbers", () => {
     const fallback = defaultShareState();
     expect(decodeShareState("wr=banana").config.winRate).toBe(fallback.config.winRate);
-    expect(decodeShareState("trials=NaN").trials).toBe(fallback.trials);
+    expect(decodeShareState("runs=NaN").bankrollRuns).toBe(fallback.bankrollRuns);
     expect(decodeShareState("seed=").seed).toBe(fallback.seed);
   });
 
@@ -567,8 +563,6 @@ describe("input from a URL is not trusted", () => {
    * particular number either of them lands on.
    */
   it("holds the ceilings the inputs hold", () => {
-    expect(decodeShareState("trials=999999999").trials).toBe(SIM_LIMITS.trials);
-    expect(decodeShareState("trials=0").trials).toBe(1);
     expect(decodeShareState("runs=9999999").bankrollRuns).toBe(SIM_LIMITS.bankrollRuns);
     expect(decodeShareState("runs=0").bankrollRuns).toBe(1);
     expect(decodeShareState("maxEvents=99999").maxEvents).toBe(SIM_LIMITS.maxEvents);

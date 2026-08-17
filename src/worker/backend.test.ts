@@ -12,24 +12,18 @@ import { describe, expect, it } from "vitest";
 
 import { simulateBankrolls } from "../lib/bankroll";
 import { defaultConfig } from "../lib/presets";
-import { simulate } from "../lib/simulate";
+import type { PayoutTier } from "../lib/types";
 import { SimulationBackend } from "./backend";
 import { isAbortError } from "./protocol";
-import type { BankrollsRequest, SimulateRequest } from "./protocol";
+import type { BankrollsRequest } from "./protocol";
 
 const config = defaultConfig();
-
-const sim = (trials: number, seed = 1): SimulateRequest => ({
-  kind: "simulate",
-  config,
-  trials,
-  seed,
-});
+const roll = { startingGems: 3000, startingGold: 0, maxEvents: 20 };
 
 const bank = (runs: number, seed = 1): BankrollsRequest => ({
   kind: "bankrolls",
   config,
-  bankroll: { startingGems: 3000, startingGold: 0, maxEvents: 20 },
+  bankroll: roll,
   runs,
   seed,
 });
@@ -51,9 +45,8 @@ function testBackend(onPing?: (pings: number, backend: SimulationBackend) => voi
 describe("SimulationBackend", () => {
   it("resolves to exactly what the model computes", async () => {
     const { backend } = testBackend();
-    await expect(backend.run("a", sim(2000, 7))).resolves.toEqual(simulate(config, 2000, 7));
-    await expect(backend.run("b", bank(200, 7))).resolves.toEqual(
-      simulateBankrolls(config, { startingGems: 3000, startingGold: 0, maxEvents: 20 }, 200, 7),
+    await expect(backend.run("a", bank(200, 7))).resolves.toEqual(
+      simulateBankrolls(config, roll, 200, 7),
     );
   });
 
@@ -61,40 +54,47 @@ describe("SimulationBackend", () => {
     const { backend, pings } = testBackend((n, b) => {
       if (n === 2) b.cancel("a");
     });
-    await expect(backend.run("a", sim(5000))).rejects.toSatisfy(isAbortError);
+    // Enough runs to cross several chunk boundaries before it could finish.
+    await expect(backend.run("a", bank(5000))).rejects.toSatisfy(isAbortError);
     expect(pings()).toBe(2);
     // The worker stays warm and healthy after a cancellation.
-    await expect(backend.run("b", sim(1000, 2))).resolves.toEqual(simulate(config, 1000, 2));
+    await expect(backend.run("b", bank(200, 2))).resolves.toEqual(
+      simulateBankrolls(config, roll, 200, 2),
+    );
   });
 
   it("ignores a cancel for an unknown or finished id", async () => {
     const { backend } = testBackend();
     backend.cancel("never-submitted");
-    await expect(backend.run("a", sim(1000))).resolves.toEqual(simulate(config, 1000));
+    await expect(backend.run("a", bank(200))).resolves.toEqual(
+      simulateBankrolls(config, roll, 200),
+    );
     backend.cancel("a");
-    await expect(backend.run("b", sim(1000, 2))).resolves.toEqual(simulate(config, 1000, 2));
+    await expect(backend.run("b", bank(200, 2))).resolves.toEqual(
+      simulateBankrolls(config, roll, 200, 2),
+    );
   });
 
   it("rejects a model error and stays healthy", async () => {
     const { backend } = testBackend();
-    // Keys fine, model not: an elimination event to zero wins or losses has
-    // no records, and the trial loop throws on its first step.
+    // A ladder that is not a list: the generator throws pricing it, on its
+    // first step, before a single run is played.
     await expect(
       backend.run("a", {
-        kind: "simulate",
-        config: { ...config, structure: { kind: "elimination", maxWins: 0, maxLosses: 0 } },
-        trials: 1000,
-        seed: 1,
+        ...bank(200),
+        config: { ...config, payouts: null as unknown as PayoutTier[] },
       }),
     ).rejects.toThrow();
-    await expect(backend.run("b", sim(1000))).resolves.toEqual(simulate(config, 1000));
+    await expect(backend.run("b", bank(200))).resolves.toEqual(
+      simulateBankrolls(config, roll, 200),
+    );
   });
 
   it("rejects a second concurrent run instead of interleaving it", async () => {
     const { backend } = testBackend();
-    const first = backend.run("a", sim(3000));
-    await expect(backend.run("b", sim(1000))).rejects.toThrow(/already running/);
+    const first = backend.run("a", bank(3000));
+    await expect(backend.run("b", bank(200))).rejects.toThrow(/already running/);
     // The dispatcher bug is reported without harming the job in flight.
-    await expect(first).resolves.toEqual(simulate(config, 3000));
+    await expect(first).resolves.toEqual(simulateBankrolls(config, roll, 3000));
   });
 });

@@ -736,12 +736,6 @@ body {
   fill: transparent;
 }
 
-/* Where the closed-form probability falls, against the simulated bar. */
-.chart-exact-tick {
-  stroke: #fbbf24;
-  stroke-width: 2;
-}
-
 .chart-gridline {
   stroke: var(--bs-border-color);
   stroke-width: 1;
@@ -1023,7 +1017,7 @@ body {
 }
 
 /*
- * Loading states for the worker-run simulations.
+ * Loading states for the worker-run bankroll simulation.
  *
  * Two shapes share one sweep animation. `.shimmer` blocks are the first-load
  * skeleton, standing in for tiles and charts that have never rendered.
@@ -1052,10 +1046,6 @@ body {
 
 .shimmer-chart {
   height: 240px;
-}
-
-.shimmer-table {
-  height: 18rem;
 }
 
 @keyframes shimmer-sweep {

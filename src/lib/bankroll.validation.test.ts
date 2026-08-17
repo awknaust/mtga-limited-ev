@@ -1,12 +1,12 @@
 /**
  * Closed-form checks on the bankroll simulation.
  *
- * The per-event simulation is easy to keep honest: `simulate` already carries
- * `exactProbability` and `exactMeanNet` beside its sampled figures, because one
- * event's outcome distribution is a named distribution with a PMF you can look
- * up. The bankroll is harder. It is a stopped random walk — the entry comes out
- * of a real balance, the payout goes back in, and the run ends when the balance
- * cannot cover another entry — so its run length has no PMF in a library.
+ * The per-event figures need no such thing: one event's outcome distribution
+ * is a named distribution with a PMF you can look up, so `expectation.ts` sums
+ * over it and simulates nothing. The bankroll is harder. It is a stopped random
+ * walk — the entry comes out of a real balance, the payout goes back in, and
+ * the run ends when the balance cannot cover another entry — so its run length
+ * has no PMF in a library.
  *
  * It does have closed forms, though, and this file is six of them. The trick
  * throughout is to *design an event* whose walk is analysable rather than to

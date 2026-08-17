@@ -11,7 +11,7 @@
 
 import betaQuantile from "@stdlib/stats-base-dists-beta-quantile";
 
-import { expectedNetAt } from "./simulate";
+import { expectedNetAt } from "./expectation";
 import type { EventConfig } from "./types";
 
 /**

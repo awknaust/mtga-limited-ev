@@ -11,7 +11,6 @@
  * money and gold cannot, so gold is the cheaper currency to burn.
  */
 
-import { exactDistribution } from "./distribution";
 import {
   boxHoldingKey,
   isBoxHolding,
@@ -37,8 +36,41 @@ import {
   winRateInterval,
   winRatePosterior,
 } from "./uncertainty";
-import { CHUNK_EVENTS, simulateEvent } from "./simulate";
-import type { EventConfig, PayoutBox } from "./types";
+import type { EventConfig, EventStructure, PayoutBox } from "./types";
+
+/**
+ * Play one event. `pMatch` is the per-round win probability, and a round is a
+ * match whether it is one game or up to three.
+ *
+ * The one place an event is played out by chance. Everything the Per event
+ * tab shows is a sum over the exact outcome distribution instead
+ * (`expectation.ts`); this exists because a bankroll is a *sequence* of
+ * events whose entries come out of a real balance, and that walk has no
+ * closed form to sum over.
+ */
+export function simulateEvent(
+  structure: EventStructure,
+  pMatch: number,
+  rand: () => number,
+): { wins: number; rounds: number } {
+  if (structure.kind === "rounds") {
+    let wins = 0;
+    for (let i = 0; i < structure.rounds; i++) {
+      if (rand() < pMatch) wins++;
+    }
+    return { wins, rounds: structure.rounds };
+  }
+
+  let wins = 0;
+  let losses = 0;
+  let rounds = 0;
+  while (wins < structure.maxWins && losses < structure.maxLosses) {
+    rounds++;
+    if (rand() < pMatch) wins++;
+    else losses++;
+  }
+  return { wins, rounds };
+}
 
 export type BankrollConfig = {
   startingGems: number;
@@ -574,23 +606,6 @@ const boxesWon = (run: BankrollRun): number =>
   run.boxes.reduce((acc, n) => acc + n, 0);
 
 /**
- * Chance that a single event pays at least one box, at a given win rate.
- *
- * Closed form, off the exact win-count distribution: a win count either pays a
- * box or it does not, so the answer is the weight the distribution puts on the
- * counts that do. No runs, no seed and no bankroll, which is what makes it
- * worth carrying beside the simulated figure — a run of one event has to agree
- * with it, and that is a check the simulation cannot perform on itself.
- */
-export function boxChancePerEvent(config: EventConfig, p = matchWinRate(config)): number {
-  const dist = exactDistribution(p, config.structure);
-  return config.payouts.reduce(
-    (acc, t) => (t.boxes?.length ? acc + (dist[t.wins] ?? 0) : acc),
-    0,
-  );
-}
-
-/**
  * How many runs each end of the box interval is read off.
  *
  * Capped rather than matched to the main sample, because these are two extra
@@ -682,6 +697,16 @@ function boxChanceOf(
 }
 
 /**
+ * How many events the resumable simulation plays between yields.
+ *
+ * Small enough that a cancel lands within a chunk, large enough that the
+ * yield itself is noise. The exact figure is not load-bearing — a yield
+ * touches no simulation state — and how often a yield actually reaches the
+ * event loop is the worker's decision, not this one.
+ */
+const CHUNK_EVENTS = 1000;
+
+/**
  * `simulateBankrolls`, resumable: yields the completed-run count roughly
  * every `chunkEvents` simulated events, then returns the full result.
  *
@@ -690,9 +715,10 @@ function boxChanceOf(
  * of a chunk is a roughly even slice of work. A run is atomic: the yield
  * lands between runs, never inside one.
  *
- * As with `simulateSteps`, the yield points touch no RNG or accumulator
- * state, so a drain in chunks of any size is bit-identical to
- * `simulateBankrolls`.
+ * The yield points touch no RNG or accumulator state, so a drain in chunks
+ * of any size is bit-identical to `simulateBankrolls` — the contract that
+ * lets the worker pause for cancellation without the sync tests noticing a
+ * thing.
  */
 export function* simulateBankrollsSteps(
   config: EventConfig,

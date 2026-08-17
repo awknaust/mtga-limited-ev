@@ -1,6 +1,6 @@
 import { scaleBand, scaleLinear } from "d3";
 
-import type { RecordBucket } from "../lib";
+import type { RecordProbability } from "../lib";
 
 const WIDTH = 560;
 const ROW = 26;
@@ -40,10 +40,9 @@ const TROPHY = "🏆";
 /**
  * Shares are shown to the percent and no further.
  *
- * A bar you are reading off a 400-unit axis cannot support two decimal places,
- * and printing them invited a comparison the chart could not settle. The
- * closed-form figure in each row's tooltip keeps its precision, because that is
- * the one number here whose whole job is to be more exact than the bar.
+ * A bar you are reading off a 400-unit axis cannot support two decimal places.
+ * The tooltip on each row keeps them, for anyone who wants the figure the
+ * label had to round.
  */
 const pct = (p: number) => `${Math.round(p * 100)}%`;
 
@@ -55,25 +54,17 @@ type WinGroup = {
   from: number;
   to: number;
   probability: number;
-  exactProbability: number;
 };
 
-function groupByWins(records: RecordBucket[]): WinGroup[] {
+function groupByWins(records: RecordProbability[]): WinGroup[] {
   const groups: WinGroup[] = [];
   for (const [i, r] of records.entries()) {
     const open = groups[groups.length - 1];
     if (open?.wins === r.wins) {
       open.to = i;
       open.probability += r.probability;
-      open.exactProbability += r.exactProbability;
     } else {
-      groups.push({
-        wins: r.wins,
-        from: i,
-        to: i,
-        probability: r.probability,
-        exactProbability: r.exactProbability,
-      });
+      groups.push({ wins: r.wins, from: i, to: i, probability: r.probability });
     }
   }
   return groups;
@@ -105,8 +96,7 @@ function bracePath(x: number, y0: number, y1: number): string {
 }
 
 /**
- * Outcome distribution as horizontal bars, one per finishing record, with a
- * tick marking the closed-form probability against the simulated bar.
+ * Outcome distribution as horizontal bars, one per finishing record.
  *
  * By record rather than by win count, because the two differ exactly where it
  * matters: 7-0, 7-1 and 7-2 are one row of the payout table but three quite
@@ -115,10 +105,13 @@ function bracePath(x: number, y0: number, y1: number): string {
  * ceiling and totals it, which is the number the old chart showed. The trophy
  * marks it either way.
  *
+ * The bars are the closed-form probabilities, like every other figure on the
+ * tab.
+ *
  * D3 supplies the scales and ticks; React renders the SVG. Keeping the DOM
  * under React avoids the two libraries both trying to own these nodes.
  */
-export function DistributionChart({ records }: { records: RecordBucket[] }) {
+export function DistributionChart({ records }: { records: RecordProbability[] }) {
   /*
    * The ceiling is the last group, since the records arrive in win order. It
    * is braced only when it holds more than one record: a fixed-rounds event
@@ -134,7 +127,7 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
   const height = MARGIN.top + rows + MARGIN.bottom;
   const inner = WIDTH - MARGIN.left - MARGIN.right - (braced ? BRACED_EXTRA : 0);
 
-  const maxP = Math.max(...records.map((r) => Math.max(r.probability, r.exactProbability)));
+  const maxP = Math.max(...records.map((r) => r.probability));
   const x = scaleLinear().domain([0, maxP || 1]).nice().range([0, inner]);
   const y = scaleBand<string>()
     .domain(records.map(rowKey))
@@ -185,10 +178,7 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
                 printed on the same line an inch to the left.
               */}
               {braced ? ` ${pct(trophy.probability)}` : null}
-              <title>
-                {`${trophy.wins}W — ${(trophy.probability * 100).toFixed(2)}% simulated, ` +
-                  `${(trophy.exactProbability * 100).toFixed(2)}% exact`}
-              </title>
+              <title>{`${trophy.wins}W — ${(trophy.probability * 100).toFixed(2)}%`}</title>
             </text>
           </g>
         ) : null}
@@ -198,16 +188,12 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
           return (
             <g key={rowKey(r)}>
               {/*
-                The unrounded pair, for anyone who wants the figure the label
+                The unrounded figure, for anyone who wants the one the label
                 had to round. A `<title>` is the browser's own tooltip: no
-                library, no state, and it needs no JS at all — the same
-                mechanism the exact tick used to carry on its own. As the
-                group's first child it answers for every mark in the row.
+                library, no state, and it needs no JS at all. As the group's
+                first child it answers for every mark in the row.
               */}
-              <title>
-                {`${rowKey(r)} — ${(r.probability * 100).toFixed(2)}% simulated, ` +
-                  `${(r.exactProbability * 100).toFixed(2)}% exact`}
-              </title>
+              <title>{`${rowKey(r)} — ${(r.probability * 100).toFixed(2)}%`}</title>
               {/*
                 And something to hover. Without this the tooltip is only on the
                 marks themselves, so a 1% bar offers a few pixels of target and
@@ -230,14 +216,6 @@ export function DistributionChart({ records }: { records: RecordBucket[] }) {
                 height={y.bandwidth()}
                 rx={3}
                 className="chart-bar"
-              />
-              {/* Closed-form probability, as a check on the simulated bar. */}
-              <line
-                x1={x(r.exactProbability)}
-                x2={x(r.exactProbability)}
-                y1={yPos - 2}
-                y2={yPos + y.bandwidth() + 2}
-                className="chart-exact-tick"
               />
               <text
                 x={inner + VALUE_X}
