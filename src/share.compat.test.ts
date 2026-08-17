@@ -284,6 +284,8 @@ describe("the parameter names are the contract", () => {
       "arena-direct-cube",
       "arena-direct-play",
       "arena-direct-collector",
+      "constructed-event",
+      "traditional-constructed-event",
     ]);
   });
 });
