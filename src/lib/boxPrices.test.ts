@@ -4,6 +4,9 @@ import {
   BOX_SAMPLE_SIZE,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
+  DEFAULT_LATEST_SET,
+  FALLBACK_BOX_PRICES,
+  boxPriceTable,
   liveBoxDefaults,
   parseBoxPriceFeed,
   type BoxPriceFeed,
@@ -149,6 +152,104 @@ describe("liveBoxDefaults", () => {
     const today = row({ code: "new", releasedAt: "2026-08-09" });
     const live = liveBoxDefaults(feed([today, ...SHIPPED_BASIS]), NOW);
     expect(live?.sets.map((s) => s.code)).toEqual(["new", "msh", "sos"]);
+  });
+});
+
+describe("boxPriceTable", () => {
+  it("prices every set the feed carries, newest first", () => {
+    const table = boxPriceTable(feed(SHIPPED_BASIS), NOW);
+    expect(table.sets.map((s) => s.code)).toEqual(["msh", "sos", "tmt"]);
+    // Market at 200 gems to the dollar, the same conversion the averages use.
+    expect(table.sets[0].boxes).toEqual({
+      play: Math.round(116.26 * 200),
+      collector: Math.round(440.45 * 200),
+    });
+    expect(table.generatedAt).toBe("2026-08-09T10:43:00.000Z");
+  });
+
+  /*
+   * Wider than the averaging rule on every axis that matters, and each of
+   * these is a set somebody's payout could name: Arena Direct has paid Modern
+   * Horizons boxes, and it runs alongside a release, so the release week's
+   * presale is exactly the box in question.
+   */
+  it("keeps the sets the averages leave out, since a payout can name one", () => {
+    const table = boxPriceTable(
+      feed([
+        row({ code: "pre", releasedAt: "2026-11-13", playUsd: 210 }),
+        row({ code: "mh3", setType: "draft_innovation", playUsd: 293 }),
+        row({ code: "fin", releasedAt: "2026-05-01", collectorUsd: 1728 }),
+        ...SHIPPED_BASIS,
+      ]),
+      NOW,
+    );
+    // The presale, the non-expansion and the outlier are all priced.
+    expect(table.sets.map((s) => s.code)).toContain("pre");
+    expect(table.sets.map((s) => s.code)).toContain("mh3");
+    expect(table.sets.find((s) => s.code === "fin")?.boxes.collector).toBe(1728 * 200);
+  });
+
+  it("leaves out what has no paper box or no price", () => {
+    const table = boxPriceTable(
+      feed([
+        row({ code: "dig", digital: true }),
+        row({ code: "tbd", releasedAt: null }),
+        row({ code: "none", playUsd: null, collectorUsd: null }),
+        ...SHIPPED_BASIS,
+      ]),
+      NOW,
+    );
+    expect(table.sets.map((s) => s.code)).toEqual(["msh", "sos", "tmt"]);
+  });
+
+  it("keeps a set priced in one kind only, in that kind only", () => {
+    const table = boxPriceTable(feed([row({ code: "half", playUsd: null })]), NOW);
+    expect(table.sets[0].boxes).toEqual({ collector: 600 * 200 });
+  });
+
+  /*
+   * `latest` is what a preset's "newest set" box resolves to, and it is the
+   * one narrow reading in this table: released, so a preset cannot price this
+   * week's event at next month's preorder, and an expansion, because that is
+   * the cadence Arena Direct follows.
+   */
+  it("points latest at the newest released expansion, per kind", () => {
+    const table = boxPriceTable(
+      feed([
+        row({ code: "pre", releasedAt: "2026-11-13" }),
+        row({ code: "mh3", releasedAt: "2026-07-01", setType: "draft_innovation" }),
+        row({ code: "new", releasedAt: "2026-06-30", collectorUsd: null }),
+        ...SHIPPED_BASIS,
+      ]),
+      NOW,
+    );
+    // "new" is the newest released expansion, but has no collector price, so
+    // the two kinds resolve to different sets.
+    expect(table.latest).toEqual({ play: "new", collector: "msh" });
+  });
+
+  it("has no latest to offer when nothing qualifies", () => {
+    const table = boxPriceTable(
+      feed([row({ code: "mh3", setType: "draft_innovation" })]),
+      NOW,
+    );
+    expect(table.sets.map((s) => s.code)).toEqual(["mh3"]);
+    expect(table.latest).toEqual({});
+  });
+
+  /*
+   * A feed that priced nothing is no better than no feed, so it resolves the
+   * same way — no prices, but still naming the newest set from the baked
+   * snapshot, since which set an event ships is knowable without the feed.
+   */
+  it("falls back to the baked table when the feed prices nothing", () => {
+    expect(boxPriceTable(feed([]), NOW)).toEqual(FALLBACK_BOX_PRICES);
+    expect(boxPriceTable(feed([row({ code: "dig", digital: true })]), NOW)).toEqual(
+      FALLBACK_BOX_PRICES,
+    );
+    // And that table names a set even though it prices none.
+    expect(FALLBACK_BOX_PRICES.sets).toEqual([]);
+    expect(FALLBACK_BOX_PRICES.latest.play).toBe(DEFAULT_LATEST_SET);
   });
 });
 

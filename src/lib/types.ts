@@ -15,6 +15,25 @@
  * type and the model imports the data, so a third home would be a cycle.
  */
 
+/** The two booster-box kinds an event has ever paid. */
+export type BoxKind = "play" | "collector";
+
+/**
+ * One physical booster box a payout row pays.
+ *
+ * `set` is a Scryfall set code, or `LATEST_SET` for "whatever the newest
+ * released expansion is when this is read" — the standing arrangement for
+ * Arena Direct, which pays boxes of the set it is run alongside. Absent means
+ * a *generic* box of its kind, priced at the config's average rather than at
+ * any one set's market.
+ *
+ * A box per entry rather than `{ set, count }`: a row pays one or two, and the
+ * two are not always the same product — the August 2026 Powered Cube paid a
+ * Spider-Man box at six wins and a Spider-Man *and* a Marvel Super Heroes box
+ * at seven.
+ */
+export type PayoutBox = { kind: BoxKind; set?: string };
+
 export type PayoutTier = {
   /** Number of match wins this tier pays out for. */
   wins: number;
@@ -25,10 +44,43 @@ export type PayoutTier = {
    * them, so this is optional and absent means none.
    */
   playInPoints?: number;
-  /** Physical Play Booster boxes, shipped after the event. Arena Direct only. */
-  playBoxes?: number;
-  /** Physical Collector Booster boxes. */
-  collectorBoxes?: number;
+  /**
+   * Physical booster boxes, shipped after the event. Arena Direct only, so
+   * this is optional and absent means none.
+   */
+  boxes?: PayoutBox[];
+};
+
+/** What one set's boxes are worth, in gems, by kind. */
+export type BoxPriceSet = {
+  code: string;
+  name: string;
+  releasedAt: string;
+  /** Absent for a kind this set was not sold in, or has no market price for. */
+  boxes: Partial<Record<BoxKind, number>>;
+};
+
+/**
+ * What the live feed says each set's boxes are worth today.
+ *
+ * Carried on the config rather than fetched where it is needed, because every
+ * function that prices a payout already takes a config — and because the
+ * worker's cache key is the config, so a price change invalidates a cached
+ * simulation without anyone maintaining a list. It is never written to a share
+ * link: a link names a *product*, and the feed prices it on the day it is
+ * opened.
+ *
+ * The empty table is the honest state, not a broken one. Previews, dev without
+ * the proxy and outages all land there, and every box then prices at its
+ * kind's generic average — exactly what the app did before the feed existed.
+ */
+export type BoxPriceTable = {
+  /** Priced sets, newest first. */
+  sets: BoxPriceSet[];
+  /** Which set `LATEST_SET` means, per kind; absent when nothing qualifies. */
+  latest: Partial<Record<BoxKind, string>>;
+  /** When the feed was built, or null for the empty table. */
+  generatedAt: string | null;
 };
 
 /** Play until a win or loss threshold is hit. */
@@ -110,10 +162,28 @@ export type EventConfig = {
   packValueGems: number;
   /** Gem value assigned to one play-in point. */
   playInPointValueGems: number;
-  /** Gem value assigned to one physical Play Booster box. */
+  /**
+   * Gem value of a *generic* Play Booster box — one that names no set.
+   *
+   * Two jobs. It prices the boxes a custom ladder pays, which name nothing;
+   * and it is what a named box falls back to when the feed cannot price it,
+   * so a missing feed is never worse than having no feed at all.
+   *
+   * Zero means boxes are worth nothing, and it says so for *every* box
+   * including named ones — the same reading `gemsPer10kGold: 0` has for
+   * leftover gold. Without that, "zero these out" would leave an Arena Direct
+   * still paying for its boxes at market.
+   */
   playBoxValueGems: number;
-  /** Gem value assigned to one physical Collector Booster box. */
+  /** Gem value of a generic Collector Booster box; see `playBoxValueGems`. */
   collectorBoxValueGems: number;
+  /**
+   * What each set's boxes trade for, from the live feed.
+   *
+   * Empty until the fetch lands, and empty for good on previews and in dev
+   * without the proxy — every box then prices at the generic rate above.
+   */
+  boxPrices: BoxPriceTable;
   /**
    * Gem value of one Player Draft token — a free Premier Draft entry.
    *
@@ -162,8 +232,14 @@ export type WinBucket = {
   netGems: number;
   packs: number;
   playInPoints: number;
-  playBoxes: number;
-  collectorBoxes: number;
+  /**
+   * Boxes paid at this win count, all products together.
+   *
+   * A total rather than a count per product, because what a bucket is asked is
+   * how often a box turns up at all — the breakdown that cares *which* box
+   * prices them one at a time, off the ladder rather than off a bucket.
+   */
+  boxes: number;
 };
 
 /**

@@ -1,7 +1,16 @@
-import { useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 
 import { REAL_GEMS, approx, pct, type Money } from "../format";
-import type { BankrollRun, EventConfig, EventLog, SampleRun } from "../lib";
+import {
+  boxChip,
+  boxFullName,
+  boxId,
+  ladderBoxes,
+  type BankrollRun,
+  type EventConfig,
+  type EventLog,
+  type SampleRun,
+} from "../lib";
 import { SectionHeading } from "./SectionHeading";
 import { Stat } from "./Stat";
 
@@ -26,19 +35,22 @@ const counted = (n: number, one: string, many: string): string =>
  * Reward names for a cramped cell, which is not what the breakdown cards call
  * them: a card heading is always plural and has room to be a proper noun,
  * while "1 Play Booster box" in a table column is neither.
+ *
+ * The boxes are not here. They are drawn as the chips the payout editor uses,
+ * beside these — an event that shipped a Spider-Man box and a Marvel Super
+ * Heroes box is the case "2 play boxes" cannot state, and it is exactly what
+ * someone reading one run wants to see.
  */
 const REWARDS: { key: keyof EventLog; one: string; many: string }[] = [
   { key: "packs", one: "pack", many: "packs" },
   { key: "playInPoints", one: "point", many: "points" },
-  { key: "playBoxes", one: "play box", many: "play boxes" },
-  { key: "collectorBoxes", one: "collector box", many: "collector boxes" },
 ];
 
-/** What a tier paid, beyond the gems. */
-const rewardText = (row: EventLog): string =>
-  REWARDS.filter((r) => (row[r.key] as number) > 0)
-    .map((r) => counted(row[r.key] as number, r.one, r.many))
-    .join(" · ");
+/** What a tier paid beyond the gems, other than boxes — one part each. */
+const rewardParts = (row: EventLog): string[] =>
+  REWARDS.filter((r) => (row[r.key] as number) > 0).map((r) =>
+    counted(row[r.key] as number, r.one, r.many),
+  );
 
 /**
  * The same rewards for the run summary, where a sentence has room for the
@@ -46,15 +58,13 @@ const rewardText = (row: EventLog): string =>
  * with a win count. A payout type added to the model belongs in both lists.
  */
 const RUN_REWARDS: {
-  key: "packs" | "draftPacks" | "playInPoints" | "playBoxes" | "collectorBoxes";
+  key: "packs" | "draftPacks" | "playInPoints";
   one: string;
   many: string;
 }[] = [
   { key: "packs", one: "pack", many: "packs" },
   { key: "draftPacks", one: "draft pack", many: "draft packs" },
   { key: "playInPoints", one: "play-in point", many: "play-in points" },
-  { key: "playBoxes", one: "Play Booster box", many: "Play Booster boxes" },
-  { key: "collectorBoxes", one: "Collector Booster box", many: "Collector Booster boxes" },
 ];
 
 /** A list as a sentence would say it: "a, b and c". */
@@ -71,13 +81,22 @@ const proseJoin = (parts: string[]): string =>
  * none of them follow the display unit. The valuation is the "worth ≈ …" that
  * closes the sentence, and it is the only part dollars belong in.
  */
-const heldText = (run: BankrollRun): string =>
+const heldText = (config: EventConfig, run: BankrollRun): string =>
   proseJoin([
     REAL_GEMS.fmt(run.finalGems),
     `${Math.round(run.finalGold).toLocaleString()} gold`,
     ...RUN_REWARDS.filter((r) => run[r.key] > 0).map((r) =>
       counted(run[r.key], r.one, r.many),
     ),
+    // Named in full here, where a sentence has the room the table cell does
+    // not: "2 The Hobbit Play Booster boxes" is what the run came away with.
+    ...ladderBoxes(config.payouts)
+      .map((box, i) => ({ box, n: run.boxes[i] ?? 0 }))
+      .filter(({ n }) => n > 0)
+      .map(({ box, n }) => {
+        const name = boxFullName(config.boxPrices, box);
+        return n === 1 ? `1 ${name}` : `${n.toLocaleString()} ${name}es`;
+      }),
   ]);
 
 export function RunLog({
@@ -190,7 +209,7 @@ export function RunLog({
         ) : null}
         <div className="stat-hint mt-1">
           {/* The holdings are real amounts; the "all told" is a valuation. */}
-          Ended holding {heldText(run)}, worth{" "}
+          Ended holding {heldText(config, run)}, worth{" "}
           <span className="fw-semibold">{approx(m.fmt(sample.value))}</span> all told.
         </div>
       </Stat>
@@ -230,7 +249,26 @@ export function RunLog({
           </thead>
           <tbody>
             {rows.map((row) => {
-              const rewards = rewardText(row);
+              /*
+                Everything the row paid, in the order the ladder lists it:
+                the gems it always pays, then the counted rewards, then a
+                chip per box.
+              */
+              const rewards: ReactNode[] = [
+                REAL_GEMS.fmt(row.gems),
+                ...rewardParts(row).map((text) => (
+                  <span className="text-body-secondary">{text}</span>
+                )),
+                ...row.boxes.map((box, i) => (
+                  <span
+                    className={`box-chip box-chip-${box.kind}`}
+                    title={boxFullName(config.boxPrices, box)}
+                    key={`${boxId(box)}-${i}`}
+                  >
+                    {boxChip(config.boxPrices, box)}
+                  </span>
+                )),
+              ];
               return (
                 <tr key={row.event}>
                   <td className="text-body-secondary">{row.event}</td>
@@ -242,11 +280,20 @@ export function RunLog({
                       ? `${config.entryCostGold.toLocaleString()} gold`
                       : REAL_GEMS.fmt(config.entryCostGems)}
                   </td>
+                  {/*
+                    One list, one separator. The boxes are chips rather than
+                    words — drawn as the payout editor draws them, so the row
+                    that shipped a box and the ladder that promised it read the
+                    same — but they are still items in the same list as the
+                    packs, including between two boxes.
+                  */}
                   <td>
-                    {REAL_GEMS.fmt(row.gems)}
-                    {rewards ? (
-                      <span className="text-body-secondary"> · {rewards}</span>
-                    ) : null}
+                    {rewards.map((part, i) => (
+                      <Fragment key={i}>
+                        {i > 0 ? <span className="text-body-secondary"> · </span> : null}
+                        {part}
+                      </Fragment>
+                    ))}
                   </td>
                   <td className="text-end">{REAL_GEMS.fmt(row.gemBalance)}</td>
                   <td className="text-end text-body-secondary">

@@ -130,15 +130,22 @@ const gemsAt = (config: EventConfig, wins: number): number =>
  * Gem-equivalent value a win count is worth: the gems, everything the tier
  * pays as a count at the config's rate for it, and the cards kept from the
  * pool, which come with the entry rather than the result.
+ *
+ * Boxes are priced at the two generic rates rather than through
+ * `boxValueGems`, keeping this file's promise to re-derive rather than call
+ * the code under test. That is the same answer wherever these tests take
+ * their configs from `defaultConfig()`, whose price table is empty — a config
+ * carrying live prices would need this to look them up, and would be beyond
+ * what an independent check can say.
  */
 function valueAt(config: EventConfig, wins: number): number {
   const row = rowAt(config.payouts, wins);
+  const boxRate = { play: config.playBoxValueGems, collector: config.collectorBoxValueGems };
   return (
     row.gems +
     row.packs * config.packValueGems +
     (row.playInPoints ?? 0) * config.playInPointValueGems +
-    (row.playBoxes ?? 0) * config.playBoxValueGems +
-    (row.collectorBoxes ?? 0) * config.collectorBoxValueGems +
+    (row.boxes ?? []).reduce((acc, box) => acc + boxRate[box.kind], 0) +
     config.draftPacks * config.draftPackValueGems
   );
 }

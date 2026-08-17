@@ -1,3 +1,4 @@
+import { LATEST_SET } from "../../lib/boxes";
 import type { EventPreset } from "../../lib/types";
 
 /**
@@ -31,6 +32,12 @@ import type { EventPreset } from "../../lib/types";
  * July 2026, both in the Arena Direct terms, which agree with each other and
  * with the cube event's table.
  *
+ * The boxes name `LATEST_SET` rather than a set, because that is the standing
+ * arrangement: a sealed Arena Direct is run alongside a release and pays boxes
+ * of it. Naming the set a particular run paid would be wrong by the next one,
+ * and would age every link that carried it. The cube variant is the exception
+ * and says why in its own comment.
+ *
  * `draftPacks: 6` is the one figure here that is assumed rather than sourced.
  * The terms give the pool as six packs but never say whether the cards are kept,
  * so this follows SEALED, where they are. If Arena Direct Sealed turns out to be
@@ -50,7 +57,15 @@ export const ARENA_DIRECT_PLAY = {
     { wins: 3, gems: 3600, packs: 8 },
     { wins: 4, gems: 7200, packs: 16 },
     { wins: 5, gems: 10800, packs: 24 },
-    { wins: 6, gems: 0, packs: 0, playBoxes: 1 },
-    { wins: 7, gems: 0, packs: 0, playBoxes: 2 },
+    { wins: 6, gems: 0, packs: 0, boxes: [{ kind: "play", set: LATEST_SET }] },
+    {
+      wins: 7,
+      gems: 0,
+      packs: 0,
+      boxes: [
+        { kind: "play", set: LATEST_SET },
+        { kind: "play", set: LATEST_SET },
+      ],
+    },
   ],
 } satisfies EventPreset;

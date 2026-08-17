@@ -1,10 +1,24 @@
 /**
- * The live box-price feed, and the rule that turns it into default values.
+ * The live box-price feed, and the two things the app makes of it.
  *
  * A Worker (see `worker/`) publishes the newest twenty draftable paper sets
  * at `/api/box-prices` on this origin — every booster-box kind TCGplayer
  * tracks for each, with the full price statistics, presales included. The
- * feed decides nothing; every modelling choice is made here, in the app:
+ * feed decides nothing; every modelling choice is made here, in the app.
+ *
+ * Two readings, because two questions are being asked:
+ *
+ * **`boxPriceTable`** answers "what does *this* box cost", for a payout that
+ * names its set. Every priced paper set in the feed is listed, presales
+ * included and whatever its type — Arena Direct has paid Modern Horizons
+ * boxes, and it runs alongside a set in its release week. No outlier rule:
+ * a named box is worth what it trades at, however startling that is, and
+ * Final Fantasy's $1,728 collector box is the answer rather than an error.
+ *
+ * **`liveBoxDefaults`** answers "what does a box cost, roughly", for the
+ * generic rates that price a custom ladder and stand in whenever a named set
+ * cannot be priced. That one is an average and wants a representative sample,
+ * so it is narrower:
  *
  *   - **market price**, not a listing — `market` is derived from actual
  *     sales, `low`/`mid`/`high` are the current ask spread, and a listing is
@@ -12,23 +26,26 @@
  *   - **released sets only** — presale boxes trade and even carry market
  *     prices, but those prices ride preorder hype and settle after release,
  *     and a default should rest on settled prices;
- *   - **Standard-legal expansions only** for the *default*, the mean of the
- *     newest three, with anything over twice its pool's median set aside —
- *     the rule that kept Final Fantasy's collector box out of the average.
+ *   - **Standard-legal expansions only**, the mean of the newest three, with
+ *     anything over twice its pool's median set aside — the rule that kept
+ *     Final Fantasy's collector box out of the average.
  *
- * This module is the pure half: validating the payload and deriving the two
- * defaults. Fetching lives in `src/liveBoxPrices.ts` — the model layer stays
- * free of side effects. The feed carries data rather than an answer so that
- * changing a rule here is an app deploy, not a data migration; the eventual
- * goal is payouts that name their set and price against that row directly.
+ * Market price is common to both, for the reason above.
+ *
+ * This module is the pure half: validating the payload and reading it. Fetching
+ * lives in `src/liveBoxPrices.ts` — the model layer stays free of side effects.
+ * The feed carries data rather than an answer so that changing a rule here is
+ * an app deploy, not a data migration.
  *
  * When the feed is missing (previews, dev without the proxy, an outage) or
- * fails validation, the app stays on DEFAULT_PLAY_BOX_VALUE_GEMS and
- * DEFAULT_COLLECTOR_BOX_VALUE_GEMS — a snapshot of this same rule, refreshed
- * by hand via `npm run refresh:constants`.
+ * fails validation, the table is empty and the app stays on
+ * DEFAULT_PLAY_BOX_VALUE_GEMS and DEFAULT_COLLECTOR_BOX_VALUE_GEMS — a
+ * snapshot of the averaging rule, refreshed by hand. Every named box then
+ * prices at those, so a missing feed is never worse than no feed.
  */
 
-import { GEMS_PER_USD } from "./presets";
+import { FALLBACK_BOX_PRICES, GEMS_PER_USD } from "./presets";
+import type { BoxKind, BoxPriceSet, BoxPriceTable } from "./types";
 
 /**
  * TCGplayer's price statistics for one box, in USD. Any may be null — a box
@@ -216,4 +233,65 @@ export function liveBoxDefaults(feed: BoxPriceFeed, now: Date): LiveBoxDefaults 
     outliers,
     generatedAt: feed.generatedAt,
   };
+}
+
+/** Kinds a payout can name, and the feed key each is published under. */
+const TABLE_KINDS: BoxKind[] = ["play", "collector"];
+
+/**
+ * Every priced box in the feed, for payouts that name their set.
+ *
+ * Wider than the averaging rule above on purpose, and each widening earns its
+ * place: **any set type**, because Arena Direct has paid Modern Horizons
+ * boxes and a Masters set is a real product with a real price; **presales
+ * included**, because an Arena Direct runs in its set's release week and the
+ * hype premium that disqualifies a preorder from an *average* is simply what
+ * the box costs that week; **no outlier rule**, because naming a set is
+ * saying which box, and the answer to "what is that box worth" is its price.
+ *
+ * Digital sets are still excluded — an Alchemy set has no paper box to ship.
+ *
+ * `latest` is the narrow one, since it stands for a preset's "whatever is
+ * newest": the newest *released* expansion priced in that kind. Released,
+ * because a preset that pointed at a set nobody can buy yet would price this
+ * week's event at next month's preorder; an expansion, because that is the
+ * cadence Arena Direct follows.
+ */
+export function boxPriceTable(feed: BoxPriceFeed, now: Date): BoxPriceTable {
+  const today = isoDate(now);
+
+  const sets: BoxPriceSet[] = [];
+  for (const row of feed.boxes) {
+    if (row.digital || row.releasedAt === null) continue;
+    const boxes: BoxPriceSet["boxes"] = {};
+    for (const kind of TABLE_KINDS) {
+      const market = row.boxes[kind]?.market;
+      if (market != null) boxes[kind] = Math.round(market * GEMS_PER_USD);
+    }
+    if (Object.keys(boxes).length === 0) continue;
+    sets.push({ code: row.code, name: row.name, releasedAt: row.releasedAt, boxes });
+  }
+  sets.sort((a, b) => (a.releasedAt < b.releasedAt ? 1 : -1));
+
+  const released = feed.boxes.filter(
+    (row) =>
+      !row.digital &&
+      row.releasedAt !== null &&
+      row.releasedAt <= today &&
+      row.setType === "expansion",
+  );
+  const latest: BoxPriceTable["latest"] = {};
+  for (const kind of TABLE_KINDS) {
+    // `sets` is already newest-first, and this walks the same order.
+    const code = sets.find(
+      (s) => s.boxes[kind] !== undefined && released.some((r) => r.code === s.code),
+    )?.code;
+    if (code !== undefined) latest[kind] = code;
+  }
+
+  // A feed that priced nothing is no better than no feed, so it resolves the
+  // same way — including still naming the newest set from the baked snapshot.
+  return sets.length === 0
+    ? FALLBACK_BOX_PRICES
+    : { sets, latest, generatedAt: feed.generatedAt };
 }

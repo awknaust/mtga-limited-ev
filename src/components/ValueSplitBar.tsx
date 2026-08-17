@@ -3,12 +3,12 @@ import { useState } from "react";
 import { approx, type Money } from "../format";
 import { amountText } from "./holdingText";
 import {
-  HOLDING_KEYS,
   grossCounts,
   grossSplit,
   heldKeys,
-  holding,
-  holdingRate,
+  holdingLabel,
+  reportedKeys,
+  isBoxHolding,
   type BankrollResult,
   type EventConfig,
   type HoldingKey,
@@ -20,11 +20,21 @@ import {
 /**
  * What a segment can be.
  *
- * Holdings for the two event bars, mastery rewards for the pass's. The union
- * rather than a bare string because the key names a colour — `.slice-<key>` in
- * the stylesheet — and a typo would silently draw an uncoloured segment.
+ * Holdings for the two event bars, mastery rewards for the pass's.
  */
 export type ValueSliceKey = HoldingKey | MasteryRewardKind;
+
+/**
+ * The colour a segment takes, as `.slice-<name>` in the stylesheet.
+ *
+ * Usually the key itself. Boxes are the exception and share one colour: their
+ * keys carry a set code, so there is no fixed list of them to give colours to
+ * — and a bar showing four sets' boxes in four hues would be colouring the
+ * least interesting difference on it. They are still separate segments, with
+ * separate labels and separate amounts.
+ */
+export const sliceColor = (key: ValueSliceKey): string =>
+  isBoxHolding(key) ? "boxes" : key;
 
 /** One component of a total: what it is, how much of it, and what it came to. */
 export type ValueSlice = {
@@ -47,11 +57,16 @@ export function holdingSlices(
   bankroll: BankrollResult,
   config: EventConfig,
 ): ValueSlice[] {
-  return heldKeys(config, bankroll.holdings.gold.mean > 0)
+  // The result's own keys, not the config's: the two disagree for the moment
+  // between picking a new event and its simulation landing.
+  return reportedKeys(bankroll, config, bankroll.holdings.gold.mean > 0)
     .map((key) => ({
       key,
-      label: holding(key).label,
-      worth: bankroll.holdings[key].mean * holdingRate(config, key),
+      label: holdingLabel(config, key),
+      // The value each run actually held, averaged — not the mean count at a
+      // rate, which no longer describes boxes: two play boxes of different
+      // sets are worth different amounts, so there is no one rate to apply.
+      worth: bankroll.holdings[key].worth,
       amount: bankroll.holdings[key].mean,
     }))
     .filter((s) => s.worth > 0);
@@ -68,12 +83,14 @@ export function grossSlices(
   // Walked in the holdings' own order rather than the object's, which only
   // fixes the order these are listed in — the bar ranks them by share when it
   // draws them, and relies on this being deterministic to break ties.
-  return HOLDING_KEYS.map((key) => ({
-    key,
-    label: holding(key).label,
-    worth: worths[key],
-    amount: counts[key],
-  })).filter((s) => s.worth > 0);
+  return heldKeys(config, true)
+    .map((key) => ({
+      key,
+      label: holdingLabel(config, key),
+      worth: worths[key] ?? 0,
+      amount: counts[key] ?? 0,
+    }))
+    .filter((s) => s.worth > 0);
 }
 
 /**
@@ -173,7 +190,7 @@ export function ValueSplitBar({ slices, m }: { slices: ValueSlice[]; m: Money })
         {ranked.map((s) => (
           <div
             key={s.key}
-            className={`value-split-seg slice-${s.key}${
+            className={`value-split-seg slice-${sliceColor(s.key)}${
               hovered && hovered !== s.key ? " is-muted" : ""
             }`}
             // The proportions. Set here because they are data, and the sole

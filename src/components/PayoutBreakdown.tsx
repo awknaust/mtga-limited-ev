@@ -11,9 +11,9 @@ import {
 import { amountText } from "./holdingText";
 import { Stat } from "./Stat";
 import {
-  heldKeys,
   holding,
-  holdingRate,
+  holdingLabel,
+  reportedKeys,
   type Bin,
   type BankrollResult,
   type EventConfig,
@@ -270,8 +270,9 @@ function HoldingCard({
   config: EventConfig;
   m: Money;
 }) {
-  const { label, whole } = holding(bankrollKey);
-  const rate = holdingRate(config, bankrollKey);
+  const { whole } = holding(bankrollKey);
+  // Boxes name their set, which only the config can resolve.
+  const label = holdingLabel(config, bankrollKey);
   const text = (n: number, exact = false) => amountText(bankrollKey, n, exact);
 
   return (
@@ -281,14 +282,16 @@ function HoldingCard({
         /*
           An average lands between two boxes; a constant does not.
 
-          The worth beside it is a valuation at the config's rate, hence the ≈,
-          and the only figure on the card that follows the display unit — the
-          amounts here and the ticks below are what a run is holding, so they
-          stay in their own currency.
+          The worth beside it is a valuation, hence the ≈, and the only figure
+          on the card that follows the display unit — the amounts here and the
+          ticks below are what a run is holding, so they stay in their own
+          currency. It is the value the runs actually held rather than the
+          amount at a rate, which is the same thing for everything but boxes,
+          where two of a kind can be worth different amounts.
         */
         value={avg(
           text(totals.mean, totals.min === totals.max),
-          approx(m.fmt(totals.mean * rate)),
+          approx(m.fmt(totals.worth)),
         )}
         hint={`typically ${text(totals.median, true)}`}
       >
@@ -323,7 +326,9 @@ export function PayoutBreakdown({
   config: EventConfig;
   m: Money;
 }) {
-  const keys = heldKeys(config, bankroll.holdings.gold.mean > 0);
+  // The result's own keys — see `reportedKeys`. A result outlives the config
+  // that produced it by one simulation.
+  const keys = reportedKeys(bankroll, config, bankroll.holdings.gold.mean > 0);
 
   return (
     <>

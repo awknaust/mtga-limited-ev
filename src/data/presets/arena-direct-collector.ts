@@ -1,3 +1,4 @@
+import { LATEST_SET } from "../../lib/boxes";
 import type { EventPreset } from "../../lib/types";
 
 /**
@@ -15,18 +16,22 @@ import type { EventPreset } from "../../lib/types";
  * of the table combined, and the two losses that end the run are as likely to
  * arrive at six as anywhere else.
  *
- * The first preset to use `collectorBoxes`. The field, its column in the payout
- * editor and DEFAULT_COLLECTOR_BOX_VALUE_GEMS all existed before any event
- * exercised them.
+ * The only preset paying a collector box, and so the only thing exercising
+ * the collector side of the box pricing. Like the Play variant it names
+ * `LATEST_SET` rather than a set: the event runs alongside a release and pays
+ * that release's box.
  *
- * A caution on that default, because this preset makes it the largest single
- * number in the model. It is a street price, roughly $630 across three recent
- * sets, and Wizards' own substitution when supplies run out is $455.88 a box.
- * For Play boxes the two point the other way — street sits *below* Wizards'
- * $209.70 — so DEFAULT_PLAY_BOX_VALUE_GEMS is the conservative choice its doc
- * comment claims. Here the same rule gives the more generous figure, and it is
- * worth knowing which side of the cash alternative you are on before reading
- * anything off the seven-win row.
+ * A caution on what that box is worth, because this preset makes it the
+ * largest single number in the model. Priced from the feed it is that set's
+ * own market price; unpriced it falls back to
+ * DEFAULT_COLLECTOR_BOX_VALUE_GEMS, a street average of roughly $630 across
+ * three recent sets, against Wizards' substitution of $455.88 a box when
+ * supplies run out. For Play boxes the two point the other way — street sits
+ * *below* Wizards' $209.70 — so the play figure is the conservative choice its
+ * doc comment claims and this one is the more generous. Either way it is worth
+ * knowing which side of the cash alternative you are on before reading
+ * anything off the seven-win row, and the spread between sets is wide: the
+ * feed has had collector boxes from $328 to $1,728.
  *
  * Six and seven wins are quoted from the Marvel Super Heroes run of 30 June to
  * 5 July 2026, in the Arena Direct terms. Three to five wins are *inferred*
@@ -51,6 +56,6 @@ export const ARENA_DIRECT_COLLECTOR = {
     { wins: 4, gems: 7200, packs: 16 },
     { wins: 5, gems: 10800, packs: 24 },
     { wins: 6, gems: 14400, packs: 32 },
-    { wins: 7, gems: 0, packs: 0, collectorBoxes: 1 },
+    { wins: 7, gems: 0, packs: 0, boxes: [{ kind: "collector", set: LATEST_SET }] },
   ],
 } satisfies EventPreset;

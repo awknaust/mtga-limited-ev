@@ -1,5 +1,20 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`the captured corpus > pins everything arena direct with boxes valued at nothing resolves to 1`] = `
+"preset     Arena Direct (Play)
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
+entry      8000 gems / 0 gold
+draft      6 packs @ 23
+values     pack=22 playIn=200 playBox=0 collBox=91691
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    8000.0 gems (984.9 gold/event)
+payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
+bankroll   gems=3000 gold=0 maxEvents=20
+sim        trials=100000 runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200"
+`;
+
 exports[`the captured corpus > pins everything arena direct — physical boxes in the ladder resolves to 1`] = `
 "preset     Arena Direct (Cube)
 winRate    0.55 over 100 matches
@@ -9,7 +24,7 @@ draft      0 packs @ 23
 values     pack=22 playIn=200 playBox=24288 collBox=91691
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
-payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-0-1_0-0-0-2
+payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
 bankroll   gems=3000 gold=0 maxEvents=20
 sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
@@ -75,6 +90,21 @@ sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
 
+exports[`the captured corpus > pins everything custom ladder naming its boxes resolves to 1`] = `
+"preset     Custom
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
+entry      1500 gems / 10000 gold
+draft      3 packs @ 23
+values     pack=22 playIn=200 playBox=24288 collBox=91691
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    1361.1 gems (926.3 gold/event)
+payouts    0-0_0-0_0-0-play.msh_0-0-play.latest-collector.spm
+bankroll   gems=3000 gold=0 maxEvents=20
+sim        trials=100000 runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200"
+`;
+
 exports[`the captured corpus > pins everything demo 2 — premier, gems only, no gold resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
@@ -129,7 +159,7 @@ draft      4 packs @ 110
 values     pack=132 playIn=250 playBox=60000 collBox=250000
 gold       other=900/day over 2 events, goldPer10k=2000
 charges    1131.2 gems (750.0 gold/event)
-payouts    10-1_20-1_300-2-1_4000-3-0-1_5000-4-0-0-2_12000-6-4-0-3
+payouts    10-1_20-1_300-2-1_4000-3-play_5000-4-collector-collector_12000-6-4-collector-collector-collector
 bankroll   gems=12000 gold=5000 maxEvents=50
 sim        trials=250000 runs=10000 seed=77
 display    tab=event unit=usd gemsPerUsd=350"
@@ -249,7 +279,7 @@ draft      6 packs @ 23
 values     pack=22 playIn=200 playBox=24288 collBox=91691
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
-payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_14400-32_0-0-0-0-1
+payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_14400-32_0-0-collector.latest
 bankroll   gems=3000 gold=0 maxEvents=20
 sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
@@ -264,7 +294,7 @@ draft      0 packs @ 23
 values     pack=22 playIn=200 playBox=24288 collBox=91691
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
-payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-0-1_0-0-0-2
+payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
 bankroll   gems=3000 gold=0 maxEvents=20
 sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
@@ -279,7 +309,7 @@ draft      6 packs @ 23
 values     pack=22 playIn=200 playBox=24288 collBox=91691
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
-payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-0-1_0-0-0-2
+payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
 bankroll   gems=3000 gold=0 maxEvents=20
 sim        trials=100000 runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"

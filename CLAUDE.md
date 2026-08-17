@@ -88,33 +88,76 @@ data, and every modelling question lives in the app.** The twenty-set cap is
 what keeps a refresh inside the Workers free plan's 50 subrequests — the
 arithmetic is in `scripts/box-prices/select.ts` — and it is a
 budget, not a model. The app fetches the feed once at load and makes its
-choices in `src/lib/boxPrices.ts`: market price (sales-derived, 15–25% under
+choices in `src/lib/boxPrices.ts`, and it makes two of them, because two
+different questions are being asked.
+
+**What is *this* box worth** — `boxPriceTable`, for a payout that names its
+set. A payout row lists the boxes it ships (`PayoutBox`, a kind and a set
+code), and each is priced against that set's own row. Every priced paper set
+is listed, presales and Masters sets included, with no outlier rule: naming a
+set is saying which box, and the answer is its price however startling. This
+is what the "a box of set X" shape was reserved for, and `src/lib/boxes.ts`
+is where a box becomes a number.
+
+**What is a box worth, roughly** — `liveBoxDefaults`, for the two *generic*
+rates that price a ladder naming no set and stand in wherever a named set
+cannot be priced. That one is an average and wants a representative sample,
+so it keeps the narrow rule: market price (sales-derived, 15–25% under
 listings; the basis change from MTGGoldfish's listing figures was
 deliberate), released sets only (presales trade at hype prices that settle
 later), newest three Standard-legal expansions, outliers past twice the pool
-median set aside. Publishing data rather than an answer is deliberate twice
-over — changing a rule is an app change, not a data migration, and the
-per-set rows are the shape a future "this payout is a box of set X" feature
-would price against.
+median set aside.
+
+Two consequences worth holding on to. A generic rate of **0 zeroes named
+boxes too** — otherwise "zero these out" would leave an Arena Direct still
+paying for its boxes at market, and `?playBoxValue=0` links would quietly
+stop meaning what they say.
+
+And **a box holding is one product, not one kind**. "Play boxes" stopped
+being a thing worth a rate the moment a ladder could pay two sets of them, so
+the results report `box:play.spm` and `box:play.msh` separately — one
+breakdown card, one bar segment and one run-log chip each, each at its own
+market price. `ladderBoxes` is the list of them and `HOLDING_KEYS` is
+everything else; a run carries `boxes[]` counts indexed by the first, which
+is what keeps the breakdown summing to the total it breaks down. Note the
+contract the static keys keep and the box keys do not: every static holding
+is reported whether or not the event pays it, so `holdings.packs` is a row of
+zeroes on a ladder paying no packs rather than absent. Filtering that list
+once shipped a blank page.
 
 Boundaries that should outlive any refactor:
 
 - **The route is same-origin because the CSP says so.** `connect-src 'self'`
   is not to be amended for this; the Worker's route on
   `mtga-limited-ev.awknaust.me/api/*` is what makes the fetch legal. Preview
-  deploys and offline dev have no route and *fall back* to
-  `DEFAULT_PLAY_BOX_VALUE_GEMS` / `DEFAULT_COLLECTOR_BOX_VALUE_GEMS` — the
-  baked snapshot of the same rule. A missing feed must never be worse than
-  the constants were alone. Dev behaves like a preview by default; to
+  deploys and offline dev are on other hostnames, match no route, and *fall
+  back* to `DEFAULT_PLAY_BOX_VALUE_GEMS` /
+  `DEFAULT_COLLECTOR_BOX_VALUE_GEMS` — the baked snapshot of the same rule.
+  A missing feed must never be worse than the constants were alone. Note the
+  shape of the miss on Pages: `/api/box-prices` there returns **200 with the
+  SPA's HTML**, not a 404, so the fetch fails at `res.json()` rather than at
+  `res.ok`. `fetchBoxPriceFeed` catches both and returns null, which is why
+  the two cases need no telling apart.
+  `DEFAULT_LATEST_SET` is baked for the same reason and refreshed the same
+  way: which set an event ships is knowable without the feed, so a preview
+  still says "HOB" and only the *price* falls back to the average. Dev behaves like a preview by default; to
   exercise the live path, name a proxy target per shell —
   `MTGA_EV_API_PROXY=http://localhost:8787 npm run dev` against `wrangler
   dev` — rather than baking the production origin into the build config.
-- **Share links never depend on the feed.** Encode measures against the fixed
-  constants and decode falls back to them, so live values are always written
-  into links explicitly, and an old link means what it meant the day it was
-  written. The app only overwrites a box value that still sits at its baked
-  default — a link's explicit value and a user's edit both survive the fetch
-  resolving late.
+- **Decoding a link never *requires* the feed.** Encode measures against the
+  fixed constants and decode falls back to them, so the generic rates are
+  always written into links explicitly and a link that spelled one out means
+  what it meant the day it was written. The app only overwrites a box value
+  that still sits at its baked default — a link's explicit value and a user's
+  edit both survive the fetch resolving late. A link never carries the price
+  table; what it carries is which *product* was won, and the feed prices that
+  on the day the link is opened. So a link naming a set does move with the
+  market, deliberately — and with no feed it falls back to the generic rate,
+  which is the pre-feed answer. The rule underneath both is the one above: a
+  missing feed must never be worse than the constants were alone.
+  `share.compat.test.ts` pins the old positional box counts (`0-0-0-1-2`) as
+  generic boxes and prices them, so the spelling could change and the meaning
+  could not.
 - **The Worker is a deployment of `scripts/box-prices/`, not a program of its
   own.** It imports the module relatively, never copies it, so the feed the
   Worker publishes and the one `npm run box:prices` prints are the same code

@@ -47,6 +47,23 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   playBoxValueGems: 1,
   collectorBoxValueGems: 2,
   /*
+   * Not a setting anyone edits — it is what the live feed said — but it is in
+   * the key for the reason everything else is: a box repriced overnight is a
+   * different answer, and a cached one would go on quoting yesterday's.
+   */
+  boxPrices: {
+    sets: [
+      {
+        code: "msh",
+        name: "Marvel Super Heroes",
+        releasedAt: "2026-06-26",
+        boxes: { play: 23_444 },
+      },
+    ],
+    latest: { play: "msh" },
+    generatedAt: "2026-08-16T00:00:00.000Z",
+  },
+  /*
    * The mastery rates. Nothing the workers simulate reads them — they price a
    * season's pass, not an event — so they are in the key only because the key is
    * the whole config, and the cost of that is a cache miss on a change that
@@ -111,11 +128,74 @@ describe("requestKey", () => {
       requestKey(simRequest({ ...defaultConfig(), payouts: [tier] }));
     const bare = withTier({ wins: 0, gems: 10, packs: 1 });
     // Absent and explicit 0 are the same simulation, so the same key.
-    expect(withTier({ wins: 0, gems: 10, packs: 1, playInPoints: 0, playBoxes: 0 })).toBe(bare);
+    expect(withTier({ wins: 0, gems: 10, packs: 1, playInPoints: 0, boxes: [] })).toBe(bare);
     // A real value is a different simulation.
     expect(withTier({ wins: 0, gems: 10, packs: 1, playInPoints: 1 })).not.toBe(bare);
-    expect(withTier({ wins: 0, gems: 10, packs: 1, playBoxes: 1 })).not.toBe(bare);
-    expect(withTier({ wins: 0, gems: 10, packs: 1, collectorBoxes: 1 })).not.toBe(bare);
+    expect(
+      withTier({ wins: 0, gems: 10, packs: 1, boxes: [{ kind: "play" }] }),
+    ).not.toBe(bare);
+    expect(
+      withTier({ wins: 0, gems: 10, packs: 1, boxes: [{ kind: "collector" }] }),
+    ).not.toBe(bare);
+  });
+
+  it("prices a named box apart from a generic one, and from another set's", () => {
+    const withTier = (tier: EventConfig["payouts"][number]) =>
+      requestKey(simRequest({ ...defaultConfig(), payouts: [tier] }));
+    const generic = withTier({ wins: 0, gems: 0, packs: 0, boxes: [{ kind: "play" }] });
+    const msh = withTier({
+      wins: 0,
+      gems: 0,
+      packs: 0,
+      boxes: [{ kind: "play", set: "msh" }],
+    });
+    const spm = withTier({
+      wins: 0,
+      gems: 0,
+      packs: 0,
+      boxes: [{ kind: "play", set: "spm" }],
+    });
+    expect(new Set([generic, msh, spm]).size).toBe(3);
+  });
+
+  it("ignores the order two boxes were listed in, since the model does", () => {
+    const withBoxes = (boxes: EventConfig["payouts"][number]["boxes"]) =>
+      requestKey(
+        simRequest({ ...defaultConfig(), payouts: [{ wins: 0, gems: 0, packs: 0, boxes }] }),
+      );
+    expect(
+      withBoxes([
+        { kind: "play", set: "spm" },
+        { kind: "play", set: "msh" },
+      ]),
+    ).toBe(
+      withBoxes([
+        { kind: "play", set: "msh" },
+        { kind: "play", set: "spm" },
+      ]),
+    );
+    // Two of the same box is not one of them, though.
+    expect(withBoxes([{ kind: "play" }, { kind: "play" }])).not.toBe(
+      withBoxes([{ kind: "play" }]),
+    );
+  });
+
+  it("moves when a box's price moves, so a refreshed feed is not served stale", () => {
+    const config = {
+      ...defaultConfig(),
+      payouts: [{ wins: 0, gems: 0, packs: 0, boxes: [{ kind: "play" as const, set: "msh" }] }],
+    };
+    const priced = (gems: number): EventConfig => ({
+      ...config,
+      boxPrices: {
+        sets: [{ code: "msh", name: "Marvel Super Heroes", releasedAt: "2026-06-26", boxes: { play: gems } }],
+        latest: { play: "msh" },
+        generatedAt: "2026-08-16T00:00:00.000Z",
+      },
+    });
+    expect(requestKey(simRequest(priced(23_444)))).not.toBe(
+      requestKey(simRequest(priced(25_000))),
+    );
   });
 
   it("moves with the request's own numbers, and never across kinds", () => {
