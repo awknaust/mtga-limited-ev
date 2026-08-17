@@ -25,6 +25,7 @@ import {
   configFromPreset,
   defaultConfig,
   eventExpectation,
+  meanRoundsPerEvent,
   exactDistribution,
   exactRecordDistribution,
   possibleRecords,
@@ -363,7 +364,8 @@ describe("eventExpectation", () => {
 
   it("stops early in an elimination event", () => {
     // A player who cannot win is out after exactly maxLosses matches; one who
-    // cannot lose plays exactly maxWins.
+    // cannot lose plays exactly maxWins. Both sit where the identity divides
+    // by zero or by one, so they are the endpoints worth pinning by value.
     expect(eventExpectation({ ...defaultConfig(), winRate: 0 }).meanRounds).toBe(3);
     expect(eventExpectation({ ...defaultConfig(), winRate: 1 }).meanRounds).toBe(7);
     // By hand: to two wins or one loss at p = ½ finishes 0-1 half the time
@@ -380,12 +382,37 @@ describe("eventExpectation", () => {
     expect(premier).toBeLessThan(maxRounds(ELIM));
   });
 
+  it("is Wald's identity, and agrees with the sum over the records", () => {
+    /*
+     * The tile divides expected wins by the win rate. The other closed form
+     * — every record's length weighted by its chance, off the same array the
+     * distribution chart draws — has to give the identical number, and it is
+     * the derivation a reader can check row by row, so the two are held
+     * together here rather than trusted to be one identity.
+     */
+    for (const preset of PRESETS) {
+      for (const winRate of [0.005, 0.3, 0.55, 0.8, 0.995]) {
+        const config = { ...configFromPreset(preset, defaultConfig()), winRate };
+        const ev = eventExpectation(config);
+        expect(ev.meanRounds).toBe(meanRoundsPerEvent(config));
+        expect(ev.meanRounds).toBeCloseTo(meanWinsPerEvent(config) / winRate, 12);
+        const overRecords = ev.records.reduce(
+          (acc, r) => acc + r.probability * (r.wins + r.losses),
+          0,
+        );
+        expect(ev.meanRounds).toBeCloseTo(overRecords, 12);
+      }
+    }
+  });
+
   it("agrees with the dice on how long an event lasts", () => {
     /*
      * `simulateEvent` is the bankroll's kernel and the one place an event is
      * played by chance. Its mean length has to be the closed-form one, which
      * is the check that keeps the two halves of the model honest with each
-     * other now that nothing on screen draws them side by side.
+     * other now that nothing on screen draws them side by side. (The retired
+     * per-event Monte Carlo was checked the same way before it went: a
+     * million trials at three seeds over eleven configs, all within noise.)
      */
     for (const config of [
       { ...defaultConfig(), winRate: 0.58 },

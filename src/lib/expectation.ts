@@ -21,6 +21,7 @@ import {
   effectiveEntryGems,
   goldFundedFraction,
   grossValue,
+  meanWinsPerEvent,
   netValue,
   payoutFor,
 } from "./payouts";
@@ -103,34 +104,51 @@ export function eventExpectation(config: EventConfig): EventExpectation {
   const mean = (of: (o: WinOutcome) => number): number =>
     outcomes.reduce((acc, o) => acc + o.probability * of(o), 0);
 
-  /*
-   * Matches are read off the records rather than the win counts, because a
-   * win count does not fix them: 7-0 and 7-2 are one row of the outcome table
-   * and seven or nine matches. Every record's length is its wins plus its
-   * losses, so the mean is one weighted sum. A fixed-rounds event comes out at
-   * exactly its round count, every record summing to it.
-   */
-  const records = exactRecordDistribution(pMatch, config.structure);
-  const meanRounds = records.reduce(
-    (acc, r) => acc + r.probability * (r.wins + r.losses),
-    0,
-  );
-
   const meanNet = mean((o) => o.netGems);
   const entryGems = effectiveEntryGems(config);
 
   return {
     outcomes,
-    records,
+    records: exactRecordDistribution(pMatch, config.structure),
     meanNet,
     meanGross: mean((o) => o.grossGems),
     meanBoxes: mean((o) => o.boxes),
-    meanRounds,
+    meanRounds: meanRoundsPerEvent(config),
     probProfit: mean((o) => (o.netGems > 0 ? 1 : 0)),
     roi: entryGems > 0 ? meanNet / entryGems : 0,
     goldEntryFraction: goldFundedFraction(config),
     entryGems,
   };
+}
+
+/**
+ * Mean matches one event lasts, at the config's own win rate.
+ *
+ * Wald's identity, not a sum over the finishing records. The event ends at a
+ * stopping time on a sequence of matches each won with probability `p`, so
+ * the expected wins are `p` times the expected matches, and
+ *
+ *     E[matches] = E[wins] / p
+ *
+ * The right-hand side is a sum over the ordinary win-count distribution —
+ * the one `meanWinsPerEvent` already takes for the daily-gold ladder — which
+ * is what makes this the plain-arithmetic answer rather than the ten-row one:
+ * a win count does not fix how many matches were played (7-0 and 7-2 are one
+ * row and seven or nine matches), so summing `wins + losses` over the records
+ * was the other route, and this one needs no records at all.
+ *
+ * The one endpoint the division cannot reach: a player who never wins has
+ * `E[wins] = 0` and `p = 0`, and the identity reads just as well from the
+ * losses' side — `E[matches] = E[losses] / (1 − p)` — where it says they bust
+ * out after exactly `maxLosses` matches. A fixed-rounds event plays every
+ * round whatever `p` is, and comes out at its round count on either side.
+ */
+export function meanRoundsPerEvent(config: EventConfig): number {
+  const p = matchWinRate(config);
+  const { structure } = config;
+  if (structure.kind === "rounds") return structure.rounds;
+  if (p <= 0) return structure.maxLosses;
+  return meanWinsPerEvent(config) / p;
 }
 
 /** Expected net gems per event at the config's own win rate, closed form. */
