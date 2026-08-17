@@ -44,8 +44,7 @@
  * prices at those, so a missing feed is never worse than no feed.
  */
 
-import { EMPTY_BOX_PRICES } from "./boxes";
-import { GEMS_PER_USD } from "./presets";
+import { FALLBACK_BOX_PRICES, GEMS_PER_USD } from "./presets";
 import type { BoxKind, BoxPriceSet, BoxPriceTable } from "./types";
 
 /**
@@ -290,7 +289,9 @@ export function boxPriceTable(feed: BoxPriceFeed, now: Date): BoxPriceTable {
     if (code !== undefined) latest[kind] = code;
   }
 
+  // A feed that priced nothing is no better than no feed, so it resolves the
+  // same way — including still naming the newest set from the baked snapshot.
   return sets.length === 0
-    ? EMPTY_BOX_PRICES
+    ? FALLBACK_BOX_PRICES
     : { sets, latest, generatedAt: feed.generatedAt };
 }

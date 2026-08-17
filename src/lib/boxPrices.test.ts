@@ -4,7 +4,8 @@ import {
   BOX_SAMPLE_SIZE,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
-  EMPTY_BOX_PRICES,
+  DEFAULT_LATEST_SET,
+  FALLBACK_BOX_PRICES,
   boxPriceTable,
   liveBoxDefaults,
   parseBoxPriceFeed,
@@ -236,11 +237,19 @@ describe("boxPriceTable", () => {
     expect(table.latest).toEqual({});
   });
 
-  it("is the empty table when the feed prices nothing", () => {
-    expect(boxPriceTable(feed([]), NOW)).toEqual(EMPTY_BOX_PRICES);
+  /*
+   * A feed that priced nothing is no better than no feed, so it resolves the
+   * same way — no prices, but still naming the newest set from the baked
+   * snapshot, since which set an event ships is knowable without the feed.
+   */
+  it("falls back to the baked table when the feed prices nothing", () => {
+    expect(boxPriceTable(feed([]), NOW)).toEqual(FALLBACK_BOX_PRICES);
     expect(boxPriceTable(feed([row({ code: "dig", digital: true })]), NOW)).toEqual(
-      EMPTY_BOX_PRICES,
+      FALLBACK_BOX_PRICES,
     );
+    // And that table names a set even though it prices none.
+    expect(FALLBACK_BOX_PRICES.sets).toEqual([]);
+    expect(FALLBACK_BOX_PRICES.latest.play).toBe(DEFAULT_LATEST_SET);
   });
 });
 

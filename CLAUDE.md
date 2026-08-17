@@ -130,10 +130,17 @@ Boundaries that should outlive any refactor:
 - **The route is same-origin because the CSP says so.** `connect-src 'self'`
   is not to be amended for this; the Worker's route on
   `mtga-limited-ev.awknaust.me/api/*` is what makes the fetch legal. Preview
-  deploys and offline dev have no route and *fall back* to
-  `DEFAULT_PLAY_BOX_VALUE_GEMS` / `DEFAULT_COLLECTOR_BOX_VALUE_GEMS` — the
-  baked snapshot of the same rule. A missing feed must never be worse than
-  the constants were alone. Dev behaves like a preview by default; to
+  deploys and offline dev are on other hostnames, match no route, and *fall
+  back* to `DEFAULT_PLAY_BOX_VALUE_GEMS` /
+  `DEFAULT_COLLECTOR_BOX_VALUE_GEMS` — the baked snapshot of the same rule.
+  A missing feed must never be worse than the constants were alone. Note the
+  shape of the miss on Pages: `/api/box-prices` there returns **200 with the
+  SPA's HTML**, not a 404, so the fetch fails at `res.json()` rather than at
+  `res.ok`. `fetchBoxPriceFeed` catches both and returns null, which is why
+  the two cases need no telling apart.
+  `DEFAULT_LATEST_SET` is baked for the same reason and refreshed the same
+  way: which set an event ships is knowable without the feed, so a preview
+  still says "HOB" and only the *price* falls back to the average. Dev behaves like a preview by default; to
   exercise the live path, name a proxy target per shell —
   `MTGA_EV_API_PROXY=http://localhost:8787 npm run dev` against `wrangler
   dev` — rather than baking the production origin into the build config.

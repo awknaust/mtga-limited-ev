@@ -21,9 +21,8 @@ import { SEALED } from "../data/presets/sealed";
 import { TRADITIONAL_CUBE_DRAFT } from "../data/presets/traditional-cube-draft";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
 import { TRADITIONAL_SEALED } from "../data/presets/traditional-sealed";
-import { EMPTY_BOX_PRICES } from "./boxes";
 import { copyTier } from "./structure";
-import type { EventConfig, EventPreset } from "./types";
+import type { BoxPriceTable, EventConfig, EventPreset } from "./types";
 
 export {
   ARENA_DIRECT,
@@ -280,6 +279,37 @@ const COLLECTOR_BOX_USD = [440.45, 494.36, 440.56];
 const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
 
 /**
+ * The newest released paper expansion, as of 2026-08-17: The Hobbit.
+ *
+ * What `LATEST_SET` resolves to when the feed is unreachable — the same
+ * fallback the two box values above are, and refreshed the same way: run
+ * `npm run box:prices` and take the code of the topmost released `expansion`
+ * row. Being a set behind is the cost of a stale snapshot, and it is the same
+ * cost as the prices being a month old.
+ *
+ * Without this the sealed Arena Directs read "Any box" on every preview, in
+ * dev without the proxy and through any outage — which understates what they
+ * pay, since the event ships a box of the set it runs alongside and the app
+ * knows which set that is even when it cannot price it. The price still falls
+ * back to the generic average: naming the set and pricing it are separate
+ * questions, and only the second one needs the feed.
+ */
+export const DEFAULT_LATEST_SET = "hob";
+
+/**
+ * The price table the app holds before — or instead of — the live feed.
+ *
+ * No prices, because those come from the feed and there is a baked average
+ * for their absence; but it still names the newest set, so a payout that
+ * says "the set this event runs alongside" can say which set that is.
+ */
+export const FALLBACK_BOX_PRICES: BoxPriceTable = {
+  sets: [],
+  latest: { play: DEFAULT_LATEST_SET, collector: DEFAULT_LATEST_SET },
+  generatedAt: null,
+};
+
+/**
  * Fallback gem value of a physical Play Booster box, converted at
  * GEMS_PER_USD. Live prices normally replace it — see the note on
  * PLAY_BOX_USD above.
@@ -407,9 +437,9 @@ export function defaultConfig(): EventConfig {
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
-    // Filled in if and when the live feed lands; until then every box, named
-    // or not, prices at the two averages above.
-    boxPrices: EMPTY_BOX_PRICES,
+    // Replaced when the live feed lands. Until then every box prices at the
+    // two averages above, while still naming the set it ships.
+    boxPrices: FALLBACK_BOX_PRICES,
     draftTokenValueGems: DEFAULT_DRAFT_TOKEN_VALUE_GEMS,
     mythicIcrValueGems: DEFAULT_MYTHIC_ICR_VALUE_GEMS,
     rareCardValueGems: DEFAULT_RARE_CARD_VALUE_GEMS,

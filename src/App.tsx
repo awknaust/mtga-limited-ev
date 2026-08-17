@@ -1425,7 +1425,13 @@ export default function App() {
                         </th>
                       )}
                       {showBoxes && (
-                        <th scope="col">
+                        /*
+                          Held to one line. This column is as narrow as its
+                          chips, which is narrower than "Boxes" plus its icon,
+                          so the two wrap and the header row grows to twice
+                          the height of every other column's.
+                        */
+                        <th scope="col" className="text-nowrap">
                           <i className="bi bi-box-seam me-1" aria-hidden="true" />
                           Boxes
                         </th>
