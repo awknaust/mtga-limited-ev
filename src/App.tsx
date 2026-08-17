@@ -55,6 +55,7 @@ import {
   masteryBySlug,
   breakEvenWinRate,
   configFromPreset,
+  eventExpectation,
   expectedNetAt,
   goldPerEvent,
   liveBoxDefaults,
@@ -66,6 +67,7 @@ import {
   winRatePosterior,
   maxPossibleWins,
   maxRounds,
+  boxChancePerEvent,
   payoutFor,
   paysBoxes,
   resizePayouts,
@@ -88,7 +90,7 @@ import {
   type Tab,
 } from "./share";
 import { SIM_DEBOUNCE_MS, useDebouncedValue } from "./hooks/useDebouncedValue";
-import { useSimulate, useSimulateBankrolls } from "./hooks/useSimulation";
+import { useSimulateBankrolls } from "./hooks/useSimulation";
 
 /** An event the current balance cannot enter, and what to do about it. */
 type TopUp = {
@@ -150,12 +152,6 @@ export default function App() {
    */
   const [initial] = useState(() => decodeShareState(window.location.search));
   const [config, setConfig] = useState<EventConfig>(initial.config);
-  const [trials, setTrials] = useState(initial.trials);
-  /*
-   * Counted apart from `trials` because a run costs far more than an event:
-   * one plays a whole sequence, so matching the per-event count would be tens
-   * of times the work for a shape a few thousand runs already settle.
-   */
   const [bankrollRuns, setBankrollRuns] = useState(initial.bankrollRuns);
   const [seed, setSeed] = useState(initial.seed);
   const [presetName, setPresetName] = useState(initial.presetName);
@@ -217,7 +213,6 @@ export default function App() {
   const shareState = (): ShareState => ({
     presetName,
     config,
-    trials,
     bankrollRuns,
     seed,
     startingGems,
@@ -249,7 +244,6 @@ export default function App() {
   }, [
     presetName,
     config,
-    trials,
     bankrollRuns,
     seed,
     startingGems,
@@ -395,8 +389,8 @@ export default function App() {
   }, []);
 
   /*
-   * Whether the Advanced dialog is open, which holds the simulations: its
-   * edits apply together when it closes rather than one recompute per
+   * Whether the Advanced dialog is open, which holds the bankroll simulation:
+   * its edits apply together when it closes rather than one recompute per
    * keystroke. `show` rather than `shown` puts the hold in place before the
    * first keystroke can land in the dialog; `hide` rather than `hidden` lets
    * the flush overlap the closing fade. Done, ×, Esc and a backdrop click
@@ -494,7 +488,6 @@ export default function App() {
     sleeveValue: `${uid}-sleeve-value`,
     avatarValue: `${uid}-avatar-value`,
     companionValue: `${uid}-companion-value`,
-    trials: `${uid}-trials`,
     bankrollRuns: `${uid}-bankroll-runs`,
     seed: `${uid}-seed`,
     startGems: `${uid}-start-gems`,
@@ -511,27 +504,27 @@ export default function App() {
   };
 
   /*
-   * The Monte Carlo runs live in workers, debounced behind the inputs; only
-   * the closed-form figures below are computed here, live. The params
-   * objects are memoised so the debounce sees one identity per actual
-   * change, and the *objects* are what debounce — a flush is atomic, so no
-   * render can pair this keystroke's trials with the last one's seed.
+   * The bankroll simulation lives in a worker, debounced behind the inputs;
+   * everything on the Per event tab is closed form and computed here, live.
+   * The params object is memoised so the debounce sees one identity per
+   * actual change, and the *object* is what debounces — a flush is atomic,
+   * so no render can pair this keystroke's runs with the last one's seed.
    */
-  const eventParams = useMemo(() => ({ config, trials, seed }), [config, trials, seed]);
   const bankrollParams = useMemo(
     () => ({ config, startingGems, startingGold, maxEvents, runs: bankrollRuns, seed }),
     [config, startingGems, startingGold, maxEvents, bankrollRuns, seed],
   );
   const {
-    result,
-    pending: eventPending,
-    error: eventError,
-  } = useSimulate(useDebouncedValue(eventParams, SIM_DEBOUNCE_MS, advancedOpen));
-  const {
     result: bankroll,
     pending: bankrollPending,
     error: bankrollError,
   } = useSimulateBankrolls(useDebouncedValue(bankrollParams, SIM_DEBOUNCE_MS, advancedOpen));
+  /*
+   * What one entry is worth, exactly. A sum over the outcome distribution
+   * rather than a simulation, so it needs no worker, no debounce, no
+   * pending state and no seed: it is as current as the inputs are.
+   */
+  const event = useMemo(() => eventExpectation(config), [config]);
   const breakEven = useMemo(() => breakEvenWinRate(config), [config]);
   /*
    * The gem-equivalent baseline ending values are judged against — gems plus
@@ -633,7 +626,6 @@ export default function App() {
     const next = resetAdvanced(shareState());
     setPresetName(next.presetName);
     setConfig(next.config);
-    setTrials(next.trials);
     setBankrollRuns(next.bankrollRuns);
     setSeed(next.seed);
     setStartingGems(next.startingGems);
@@ -703,11 +695,12 @@ export default function App() {
       : `to ${structure.maxWins} wins or ${structure.maxLosses} losses`;
 
   /*
-   * Tile building tolerates results that have not arrived: `result` and
-   * `bankroll` are null until each first simulation lands, and every tile
-   * list below collapses to empty for the skeleton to stand in. Once a
-   * result exists it is never null again — recomputes dim the stale tiles
-   * instead.
+   * Bankroll tile building tolerates a result that has not arrived:
+   * `bankroll` is null until the first simulation lands, and every tile list
+   * below collapses to empty for the skeleton to stand in. Once a result
+   * exists it is never null again — recomputes dim the stale tiles instead.
+   * The per-event tiles further down have no such state: they are closed
+   * form and always current.
    */
   /** Null unless the ladder pays boxes, which is what makes the strip move. */
   const box = bankroll?.boxChance ?? null;
@@ -844,9 +837,10 @@ export default function App() {
            * more than the figure alone: at twenty matches of record the chance
            * of a box can span a factor of three, which is the difference
            * between a plan and a hope. Falls back to the sampling error of the
-           * simulated proportion when the rate is called certain, the same way
-           * the expected-net tile does, since there is then nothing else for a
-           * ± to describe.
+           * simulated proportion when the rate is called certain, since there
+           * is then nothing else for a ± to describe — the one place the app
+           * still quotes a sampling error, this being the one simulated tile
+           * with a figure the reader is asked to trust to a point.
            */
           hint: box.interval
             ? `plausibly ${pct(box.interval[0])} to ${pct(box.interval[1])}`
@@ -887,8 +881,8 @@ export default function App() {
    * single entry was among them for a while and has been taken out again: it
    * answers a question nobody asked of a page about bankrolls, and sitting in
    * the same row as the run-level chance it mostly invited the two to be
-   * confused. It still exists as `boxChancePerEvent`, where it does its real
-   * work of holding the simulation to account in the tests.
+   * confused. It lives on the Per event tab, under the expected-boxes tile,
+   * and holds this simulation to account in the tests.
    */
   const bankrollTiles: StatTile[] = [...boxChanceTiles, ...runTiles, ...packsTiles];
 
@@ -899,7 +893,7 @@ export default function App() {
    * winners. The share underneath is the chance, keeping the pair together;
    * the run-level version of that question lives on the bankroll strip.
    */
-  const boxTiles: StatTile[] = result !== null && paysBoxes(config.payouts)
+  const boxTiles: StatTile[] = paysBoxes(config.payouts)
     ? [
         {
           key: "boxes",
@@ -909,14 +903,8 @@ export default function App() {
               Expected boxes
             </>
           ),
-          value: result.meanBoxes.toFixed(2),
-          hint: `${pct(
-            result.buckets.reduce(
-              (acc, b) =>
-                acc + (b.boxes > 0 ? b.probability : 0),
-              0,
-            ),
-          )} of events win at least one`,
+          value: event.meanBoxes.toFixed(2),
+          hint: `${pct(boxChancePerEvent(config))} of events win at least one`,
           help: {
             label: "What expected boxes means",
             content:
@@ -929,38 +917,43 @@ export default function App() {
   /*
    * As on the bankroll strip, each tile carries a popover explaining the
    * statistic in plain terms — what was averaged, over what, and how to read
-   * it — for a reader the bare label would leave behind.
+   * it — for a reader the bare label would leave behind. Every figure here is
+   * exact for the win rate on the slider; the only uncertainty worth carrying
+   * is how much of a guess that rate is, and the net tile carries it.
    */
-  const stats: StatTile[] = result === null ? [] : [
+  const stats: StatTile[] = [
     {
       key: "net",
       label: "Expected net",
-      value: gemsEq2(result.meanNet),
-      // The band the record supports. Falls back to the sampling error of the
-      // simulated mean when the rate is called certain, since there is then
-      // nothing else for a range to describe.
-      // No unit word: the figures above and here carry their own sign.
+      value: gemsEq2(event.meanNet),
+      /*
+       * The band the record supports. There is nothing to fall back to when
+       * the rate is called certain: the figure is then exact, and the hint
+       * says so rather than going quiet, since a range that was there a
+       * moment ago and is not now should say why.
+       * No unit word: the figures above and here carry their own sign.
+       */
       hint: netBand
         ? `plausibly ${eq2(netBand[0])} to ${eq2(netBand[1])}`
-        : `give or take ${eq2(1.96 * result.stdErrNet)}`,
-      tone: signClass(result.meanNet),
+        : "exact, at a win rate you called certain",
+      tone: signClass(event.meanNet),
       help: {
         label: "What expected net means",
         content: `What one entry wins or loses on average, after paying the entry. Marked ≈ because packs and other rewards are priced at the rates set on the left, not paid as gems. Any single event swings well above or below this; play many and your average result heads toward it. ${
           netBand
             ? `The range underneath covers ${pct(CREDIBLE_LEVEL, 0)} of the possibilities your win-rate record allows.`
-            : "The give-or-take underneath is the simulation's own sampling wobble, a 95% confidence interval."
+            : "With the win rate set as exactly known there is no range to show: the figure is the exact expectation at that rate."
         }`,
       },
     },
     {
       key: "gross",
       label: "Expected gross",
-      value: gemsEq2(result.meanGross),
+      value: gemsEq2(event.meanGross),
       // No hint: the popover says what the figure folds in.
       // Which of those it is, though, the popover cannot say — a gross that is
       // mostly gems and one that is mostly packs read alike as a number.
-      children: <ValueSplitBar slices={grossSlices(config, result.buckets)} m={m} />,
+      children: <ValueSplitBar slices={grossSlices(config)} m={m} />,
       help: {
         label: "What expected gross means",
         content:
@@ -971,19 +964,19 @@ export default function App() {
     {
       key: "roi",
       label: "ROI",
-      value: pct(result.roi),
+      value: pct(event.roi),
       /*
        * Marked ≈, and converting with the toggle, because this is what ROI
-       * divides by rather than a price anyone was quoted: `meanEntryGems` is
-       * the entry discounted by the share of entries gold paid for, so it
-       * lands between the gem price and zero and equals neither. The no-gold
+       * divides by rather than a price anyone was quoted: `entryGems` is the
+       * entry discounted by the share of entries gold pays for, so it lands
+       * between the gem price and zero and equals neither. The no-gold
        * wording quotes the same statistic, which is why it is marked too.
        */
       hint:
-        result.goldEntryFraction > 0
-          ? `of ${gemsEq(result.meanEntryGems)} paid · ${pct(result.goldEntryFraction)} entries free`
+        event.goldEntryFraction > 0
+          ? `of ${gemsEq(event.entryGems)} paid · ${pct(event.goldEntryFraction)} entries free`
           : `of ${gemsEq(config.entryCostGems)} entry`,
-      tone: signClass(result.roi),
+      tone: signClass(event.roi),
       help: {
         label: "What ROI means",
         content:
@@ -1007,18 +1000,18 @@ export default function App() {
     {
       key: "p-profit",
       label: "P(profit)",
-      value: pct(result.probProfit),
+      value: pct(event.probProfit),
       hint: "of events end net positive",
       help: {
         label: "What P(profit) means",
         content:
-          "The share of simulated events that ended worth more than they cost to enter. It can sit below 50% even when the event is profitable on average, because rare big finishes carry the average.",
+          "The chance one event ends worth more than it cost to enter. It can sit below 50% even when the event is profitable on average, because rare big finishes carry the average.",
       },
     },
     {
       key: "matches",
       label: "Matches",
-      value: result.meanRounds.toFixed(2),
+      value: event.meanRounds.toFixed(2),
       hint: `max ${maxRounds(structure)}`,
       help: {
         label: "What matches per event means",
@@ -1550,7 +1543,7 @@ export default function App() {
                   <span className="section-note">
                     {presetName} · {structureSummary}
                     {/* Visible from any tab, unlike the dimmed panel itself. */}
-                    {(eventPending || bankrollPending) && (
+                    {bankrollPending && (
                       <span
                         className="spinner-border spinner-border-sm ms-2 text-secondary"
                         aria-hidden="true"
@@ -1592,7 +1585,7 @@ export default function App() {
                     </div>
                   )}
                   {bankroll === null ? (
-                    <ResultsPlaceholder variant="bankroll" />
+                    <ResultsPlaceholder />
                   ) : (
                   <SimPending pending={bankrollPending}>
                   <div className="mb-3">
@@ -1694,20 +1687,15 @@ export default function App() {
                 Conventional analysis: the (possibly very) long-term
                 expectations for this event, assuming a bankroll deep enough
                 that you can always afford the next entry. Every figure is per
-                event: what an average entry wins or loses, and how the
-                possible finishes are spread.
+                event and exact for the win rate you set: what an average
+                entry wins or loses, and how the possible finishes are spread.
               </div>
-              {eventError != null && (
-                <div className="alert alert-warning" role="alert">
-                  {result === null
-                    ? "The simulation failed to run. Adjust any input to retry."
-                    : "The simulation failed — showing previous results. Adjust any input to retry."}
-                </div>
-              )}
-              {result === null ? (
-                <ResultsPlaceholder variant="event" />
-              ) : (
-              <SimPending pending={eventPending}>
+              {/*
+                No placeholder, no pending state and no error alert here,
+                unlike the Bankroll tab: nothing on this tab is simulated.
+                Every figure is a sum over the exact outcome distribution,
+                computed in render, so it is never waiting on anything.
+              */}
               <div className="row g-2">
                 {stats.map(({ key, ...s }) => (
                   <div key={key} className="col-6 col-xl-4">
@@ -1719,9 +1707,9 @@ export default function App() {
               <SectionHeading
                 className="mt-4"
                 title="Distribution of outcomes by record"
-                subtitle="Bars are the simulation; the tick mark is the closed-form probability."
+                subtitle="How likely each finishing record is, at your win rate."
               />
-              <DistributionChart records={result.records} />
+              <DistributionChart records={event.records} />
 
               <SectionHeading
                 className="mt-4"
@@ -1730,7 +1718,7 @@ export default function App() {
               >
                 <InfoTip
                   label="About the expected net curve"
-                  content="Closed-form expectation, not the simulation. The dot is where you are, the dashed line is break-even."
+                  content="The dot is where you are, the dashed line is break-even, and the shaded band is the win rates your record supports."
                 />
               </SectionHeading>
               <EvCurveChart config={config} breakEven={breakEven} m={m} rateBand={rateBand} />
@@ -1743,20 +1731,13 @@ export default function App() {
               <div className="table-responsive">
                 <table className="table table-sm align-middle mb-0">
                   {/*
-                    Closed form throughout, the simulated columns having been
-                    dropped: an "Events" count and a "Simulated" percentage
-                    were the Monte Carlo answering, to two decimal places, the
-                    question the column beside them answered exactly. `Chance`
-                    therefore reads as itself — `Exact` only ever earned that
-                    name against the column it sat beside.
-
-                    So the table no longer carries its own check on the
-                    simulation, and where that check lives is worth knowing
-                    before anyone puts a figure back: `model.test.ts` pins
-                    every bucket to within half a point of the closed form,
-                    and the distribution chart above draws both and names
-                    them. Nothing here is a sampled figure to be checked
-                    anyway — the tiles above are, and they carry the interval.
+                    Closed form, like everything else on the tab. It once
+                    carried an "Events" count and a "Simulated" percentage
+                    beside an "Exact" one, the Monte Carlo answering to two
+                    decimal places the question the column beside it answered
+                    exactly; those went, and then the simulation did. `Chance`
+                    reads as itself — `Exact` only ever earned that name
+                    against the column it sat beside.
                   */}
                   <thead>
                     <tr>
@@ -1780,12 +1761,12 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {result.buckets.map((b) => {
+                    {event.outcomes.map((b) => {
                       const tier = payoutFor(config, b.wins);
                       return (
                         <tr key={b.wins}>
                           <td className="fw-semibold text-primary">{b.wins}</td>
-                          <td className="text-end">{pct(b.exactProbability, 2)}</td>
+                          <td className="text-end">{pct(b.probability, 2)}</td>
                           {/*
                             What the finish awards, itemised as the run log
                             itemises an event that paid it. The pool is not
@@ -1822,17 +1803,14 @@ export default function App() {
                         Under Net, which is the column it is the mean of:
                         every row's net weighted by the chance beside it. The
                         per-row products used to be a column of their own and
-                        are a multiplication instead, on the two columns above.
-
-                        Closed form, because those two columns are — so the
-                        arithmetic closes on what is shown. It is the simulated
-                        mean that the "Expected net" tile carries, with the
-                        interval that belongs to a sampled figure.
+                        are a multiplication instead, on the two columns above
+                        — so the arithmetic closes on what is shown, and this
+                        is the same number the "Expected net" tile carries.
                       */}
                       <td
-                        className={`text-end fw-semibold ${signClass(result.exactMeanNet)}`}
+                        className={`text-end fw-semibold ${signClass(event.meanNet)}`}
                       >
-                        {gemsEq2(result.exactMeanNet)}
+                        {gemsEq2(event.meanNet)}
                       </td>
                     </tr>
                   </tfoot>
@@ -1853,8 +1831,6 @@ export default function App() {
                   entering pays for however the event goes.
                 </div>
               ) : null}
-              </SimPending>
-              )}
                 </>
               )}
               </TabPanel>
@@ -2296,30 +2272,19 @@ export default function App() {
                 </div>
               </div>
 
+              {/*
+                The Bankroll tab's knobs, and only its: the Per event tab is
+                closed form and has nothing to size or seed.
+              */}
               <div className="adv-group">
-                <h3 className="section-title">Simulation</h3>
+                <h3 className="section-title">Bankroll simulation</h3>
                 <div className="row g-2">
                   <div className="col-6">
-                    <label htmlFor={ids.trials} className="form-label">
-                      Simulated events (Per event)
-                      <InfoTip
-                        label="About simulated events"
-                        content="How many single events the Per event tab simulates; it does not touch the Bankroll tab. More of them narrow the confidence interval on the mean, and bring the simulation closer to the closed-form figures in the outcome table."
-                      />
-                    </label>
-                    <NumberInput
-                      id={ids.trials}
-                      min={1}
-                      value={trials}
-                      onChange={(n) => setTrials(clampInt(n, 1, SIM_LIMITS.trials))}
-                    />
-                  </div>
-                  <div className="col-6">
                     <label htmlFor={ids.bankrollRuns} className="form-label">
-                      Bankroll runs (Bankroll)
+                      Runs
                       <InfoTip
                         label="About bankroll runs"
-                        content="How many sequences the Bankroll tab plays. Counted apart from simulated events because one run plays a whole sequence of them, so the same number would be tens of times the work."
+                        content="How many sequences the Bankroll tab plays from your starting balance. More of them steady the averages and the shape of the histograms."
                       />
                     </label>
                     <NumberInput

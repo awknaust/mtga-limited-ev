@@ -69,7 +69,7 @@ function fingerprint(state: ShareState): string {
     `charges    ${effectiveEntryGems(c).toFixed(1)} gems (${goldPerEvent(c).toFixed(1)} gold/event)`,
     `payouts    ${encodePayouts(c.payouts)}`,
     `bankroll   gems=${state.startingGems} gold=${state.startingGold} maxEvents=${state.maxEvents}`,
-    `sim        trials=${state.trials} runs=${state.bankrollRuns} seed=${state.seed}`,
+    `sim        runs=${state.bankrollRuns} seed=${state.seed}`,
     `display    tab=${state.tab} unit=${state.unit} gemsPerUsd=${state.gemsPerUsd}`,
   ].join("\n");
 }
@@ -108,7 +108,8 @@ const CORPUS: [name: string, search: string][] = [
    * says: `runs=999999` resolved to 200,000 before the simulations moved off
    * the main thread and resolves to itself after. Nothing else in the corpus
    * exceeds a cap, so without this row that break happens silently — which is
-   * the one thing this file exists to prevent.
+   * the one thing this file exists to prevent. `trials` is retired and reads
+   * as nothing at all now, which the fingerprint records.
    */
   ["counts above the ceilings", "?trials=999999999&runs=999999&maxEvents=99999"],
   ["mastery tab", "?tab=mastery"],
@@ -177,7 +178,6 @@ describe("the parameter names are the contract", () => {
           { wins: 4, gems: 5, packs: 5 },
         ],
       },
-      trials: 12,
       bankrollRuns: 17,
       seed: 13,
       startingGems: 14,
@@ -233,21 +233,22 @@ describe("the parameter names are the contract", () => {
       "startGems",
       "startGold",
       "tab",
-      "trials",
       "uncommonIcrValue",
       "unit",
       "wr",
     ]);
   });
 
-  it("drops the retired spendWinnings without disturbing the rest", () => {
+  it("drops the retired parameters without disturbing the rest", () => {
     /*
-     * The one parameter that has been withdrawn rather than renamed. Two links
-     * in the corpus below carry it, and what they now mean is a run that holds
-     * its winnings — the only behaviour the model has left. The name is not
-     * emitted and must never be reused for something else.
+     * Two parameters have been withdrawn rather than renamed, and links in
+     * the corpus below carry both. `spendWinnings` decodes to a run that
+     * holds its winnings — the only behaviour the model has left. `trials`
+     * sized a per-event Monte Carlo that no longer exists; the tab it fed is
+     * closed form, so a link carrying it means exactly what it did. Neither
+     * name is emitted, and neither may ever be reused for something else.
      */
-    const state = decodeShareState("?spendWinnings=1&startGems=20000");
+    const state = decodeShareState("?spendWinnings=1&trials=250000&startGems=20000");
     expect(state.startingGems).toBe(20_000);
     expect(encodeShareState(state)).toBe("startGems=20000");
   });
@@ -303,7 +304,7 @@ describe("the defaults are the contract", () => {
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3000 gold=0 maxEvents=20
-      sim        trials=100000 runs=10000 seed=1
+      sim        runs=10000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=200"
     `);
   });
@@ -456,8 +457,8 @@ describe("a link that arrives damaged", () => {
   ])("decodes %s to a usable state", (_name, search) => {
     const state = decodeShareState(search);
     expect(Number.isFinite(state.config.winRate)).toBe(true);
-    expect(Number.isFinite(state.trials)).toBe(true);
-    expect(state.trials).toBeGreaterThanOrEqual(1);
+    expect(Number.isFinite(state.maxEvents)).toBe(true);
+    expect(state.maxEvents).toBeGreaterThanOrEqual(1);
     expect(state.config.entryCostGems).toBeGreaterThanOrEqual(0);
     expect(state.config.payouts).toHaveLength(
       maxPossibleWins(state.config.structure) + 1,

@@ -5,11 +5,13 @@
  * cache and the dedupe, and workers are stateless one-job executors that
  * stay warm between dispatches.
  *
- * Each kind gets its own pool, so the event and bankroll simulations never
- * queue behind each other. Within a pool, workers spawn lazily up to
- * `maxWorkersPerKind` — capacity above the first worker costs nothing until
- * two jobs of the same kind actually overlap. The default is 1, which is
- * today's workload exactly: every parameter change supersedes the previous
+ * There is one kind today, the bankroll, since the per-event figures are
+ * closed form and never leave the main thread. The pool is still keyed by
+ * kind: two kinds must never queue behind each other, and this is where a
+ * second one would get its own lane. Within a pool, workers spawn lazily up
+ * to `maxWorkersPerKind` — capacity above the first worker costs nothing
+ * until two jobs of the same kind actually overlap. The default is 1, which
+ * is today's workload exactly: every parameter change supersedes the previous
  * request, so the queue is never deeper than the run being canceled. Raise
  * the cap when a real multi-request workload (a preset sweep, a comparison
  * grid) arrives; the dispatch, tests and cancellation already support it.
@@ -28,12 +30,12 @@ import { wrap } from "comlink";
 import type { Endpoint, Remote } from "comlink";
 
 import type { BankrollConfig, BankrollResult } from "../lib/bankroll";
-import type { EventConfig, SimResult } from "../lib/types";
+import type { EventConfig } from "../lib/types";
 import { requestKey } from "./keys";
 import { abortError } from "./protocol";
 import type { SimulationApi, SimulationHandle, SimulationRequest } from "./protocol";
 
-type SimulationResult = SimResult | BankrollResult;
+type SimulationResult = BankrollResult;
 type Kind = SimulationRequest["kind"];
 
 /** What the pool needs from a worker; a seam the tests fill with ports. */
@@ -73,13 +75,12 @@ type Lane = {
 };
 
 /**
- * Sized per result shape: a SimResult is a dozen buckets at any trial
- * count, a worst-case BankrollResult is ~4.3 MB of example-run logs, so
- * four entries bound the bankroll cache near 17 MB while covering the
- * switch-away-and-back the cache exists for. Settled successes only;
- * errors and canceled runs are never cached.
+ * Sized per result shape: a worst-case BankrollResult is ~4.3 MB of
+ * example-run logs, so four entries bound the cache near 17 MB while
+ * covering the switch-away-and-back the cache exists for. Settled successes
+ * only; errors and canceled runs are never cached.
  */
-const CACHE_MAX: Record<Kind, number> = { simulate: 64, bankrolls: 4 };
+const CACHE_MAX: Record<Kind, number> = { bankrolls: 4 };
 
 class KindPool {
   private readonly lanes: Lane[] = [];
@@ -207,23 +208,13 @@ export class SimulationClient {
     this.maxWorkersPerKind = opts?.maxWorkersPerKind ?? 1;
   }
 
-  simulate(config: EventConfig, trials: number, seed: number): SimulationHandle<SimResult> {
-    return this.submit({ kind: "simulate", config, trials, seed }) as SimulationHandle<SimResult>;
-  }
-
   simulateBankrolls(
     config: EventConfig,
     bankroll: BankrollConfig,
     runs: number,
     seed: number,
   ): SimulationHandle<BankrollResult> {
-    return this.submit({
-      kind: "bankrolls",
-      config,
-      bankroll,
-      runs,
-      seed,
-    }) as SimulationHandle<BankrollResult>;
+    return this.submit({ kind: "bankrolls", config, bankroll, runs, seed });
   }
 
   cancel(id: string): void {
@@ -283,7 +274,7 @@ export class SimulationClient {
   }
 }
 
-/** The instance the hooks share, so both tabs talk to the same pools. */
+/** The instance the hook uses; one client, so one set of pools. */
 export const simulationClient = new SimulationClient();
 
 // A Vite hot update of this module would otherwise strand the old instance's

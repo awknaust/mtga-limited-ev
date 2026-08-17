@@ -24,6 +24,7 @@ import {
   breakEvenWinRate,
   configFromPreset,
   defaultConfig,
+  eventExpectation,
   exactDistribution,
   exactRecordDistribution,
   possibleRecords,
@@ -37,6 +38,7 @@ import {
   grossCounts,
   grossSplit,
   grossValue,
+  netValue,
   matchWinRate,
   RECORDED_EVENTS,
   netInterval,
@@ -64,9 +66,9 @@ import {
   paysBoxes,
   playInPointsFor,
   resizePayouts,
-  simulate,
   simulateBankroll,
   simulateBankrolls,
+  simulateEvent,
   runValue,
   startingValue,
   seededRandom,
@@ -258,16 +260,6 @@ describe("win rate uncertainty", () => {
     expect(width(100)).toBeGreaterThan(width(500));
   });
 
-  it("dwarfs the Monte Carlo error it replaced", () => {
-    // The whole point of the issue: the old ± was the standard error of the
-    // simulated mean, which is a far smaller number than what is not known
-    // about the win rate.
-    const config = at(0.55, 100);
-    const [lo, hi] = netInterval(config)!;
-    const monteCarlo = 2 * 1.96 * simulate(config, 100_000, 1).stdErrNet;
-    expect(hi - lo).toBeGreaterThan(20 * monteCarlo);
-  });
-
   it("straddles break-even on a short record", () => {
     const [lo, hi] = netInterval(at(0.55, 20))!;
     expect(lo).toBeLessThan(0);
@@ -307,38 +299,107 @@ describe("win rate uncertainty", () => {
   });
 });
 
-describe("simulate", () => {
-  it("converges to the closed-form distribution (elimination)", () => {
-    const config = { ...defaultConfig(), winRate: 0.58 };
-    const res = simulate(config, 200_000, 42);
-    for (const b of res.buckets) {
-      expect(Math.abs(b.probability - b.exactProbability)).toBeLessThan(0.005);
-    }
-    expect(Math.abs(res.meanNet - res.exactMeanNet)).toBeLessThan(150);
+describe("eventExpectation", () => {
+  it("sizes the outcome table to the structure", () => {
+    const premier = eventExpectation(defaultConfig()).outcomes;
+    expect(premier).toHaveLength(8);
+    expect(premier.map((o) => o.wins)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+    expect(
+      eventExpectation(configFromPreset(TRADITIONAL_DRAFT, defaultConfig())).outcomes,
+    ).toHaveLength(4);
   });
 
-  it("converges to the closed-form distribution (fixed rounds, BO3)", () => {
-    const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
-    const res = simulate(config, 200_000, 7);
-    for (const b of res.buckets) {
-      expect(Math.abs(b.probability - b.exactProbability)).toBeLessThan(0.005);
+  it("is the exact distribution, priced row by row", () => {
+    const config = { ...defaultConfig(), winRate: 0.58 };
+    const ev = eventExpectation(config);
+    const dist = exactDistribution(0.58, ELIM);
+    ev.outcomes.forEach((o, wins) => {
+      expect(o.probability).toBe(dist[wins]);
+      expect(o.grossGems).toBe(grossValue(config, wins));
+      expect(o.netGems).toBe(netValue(config, wins));
+    });
+    expect(ev.outcomes.reduce((a, o) => a + o.probability, 0)).toBeCloseTo(1, 12);
+  });
+
+  it("puts one expected net on the tile and at the foot of the table", () => {
+    for (const preset of PRESETS) {
+      const config = configFromPreset(preset, defaultConfig());
+      const ev = eventExpectation(config);
+      expect(ev.meanNet).toBeCloseTo(expectedNet(config), 9);
+      // The foot of the table is chance times net, summed over the rows shown.
+      expect(
+        ev.outcomes.reduce((a, o) => a + o.probability * o.netGems, 0),
+      ).toBeCloseTo(ev.meanNet, 9);
+      // Gross and net differ by exactly what an entry costs.
+      expect(ev.meanGross - ev.meanNet).toBeCloseTo(effectiveEntryGems(config), 9);
     }
-    expect(Math.abs(res.meanNet - res.exactMeanNet)).toBeLessThan(150);
+  });
+
+  it("splits the event by record, and collapses back to win counts", () => {
+    const ev = eventExpectation({ ...defaultConfig(), winRate: 0.58 });
+    // Seven ways to bust out, then the three ways to reach seven.
+    expect(ev.records.map(label)).toEqual([
+      "0-3", "1-3", "2-3", "3-3", "4-3", "5-3", "6-3", "7-0", "7-1", "7-2",
+    ]);
+    const grouped = byWins(ev.records);
+    expect(grouped).toHaveLength(ev.outcomes.length);
+    grouped.forEach((mass, wins) =>
+      expect(mass).toBeCloseTo(ev.outcomes[wins].probability, 12),
+    );
+    // Nothing to split in a fixed-rounds event: a win count is a record.
+    const trad = eventExpectation(configFromPreset(TRADITIONAL_DRAFT, defaultConfig()));
+    expect(trad.records.map(label)).toEqual(["0-3", "1-2", "2-1", "3-0"]);
+    expect(trad.records.map((r) => r.probability)).toEqual(
+      trad.outcomes.map((o) => o.probability),
+    );
   });
 
   it("always plays every round of a fixed-rounds event", () => {
     const config = configFromPreset(TRADITIONAL_DRAFT, defaultConfig());
-    expect(simulate(config, 20_000, 3).meanRounds).toBe(3);
-    // Even a hopeless run plays all three.
-    expect(simulate({ ...config, winRate: 0 }, 5_000, 3).meanRounds).toBe(3);
+    for (const winRate of [0, 0.4, 0.55, 1]) {
+      expect(eventExpectation({ ...config, winRate }).meanRounds).toBeCloseTo(3, 12);
+    }
   });
 
   it("stops early in an elimination event", () => {
-    const res = simulate(defaultConfig(), 20_000, 3);
-    expect(res.meanRounds).toBeLessThanOrEqual(9);
-    expect(res.meanRounds).toBeGreaterThan(0);
-    // A 0% win rate busts out after exactly maxLosses games.
-    expect(simulate({ ...defaultConfig(), winRate: 0 }, 1_000, 3).meanRounds).toBe(3);
+    // A player who cannot win is out after exactly maxLosses matches; one who
+    // cannot lose plays exactly maxWins.
+    expect(eventExpectation({ ...defaultConfig(), winRate: 0 }).meanRounds).toBe(3);
+    expect(eventExpectation({ ...defaultConfig(), winRate: 1 }).meanRounds).toBe(7);
+    // By hand: to two wins or one loss at p = ½ finishes 0-1 half the time
+    // after one match, and 1-1 or 2-0 a quarter each after two — 1½ matches.
+    const short: EventConfig = {
+      ...defaultConfig(),
+      winRate: 0.5,
+      structure: { kind: "elimination", maxWins: 2, maxLosses: 1 },
+      payouts: resizePayouts(defaultConfig().payouts, 2),
+    };
+    expect(eventExpectation(short).meanRounds).toBeCloseTo(1.5, 12);
+    const premier = eventExpectation(defaultConfig()).meanRounds;
+    expect(premier).toBeGreaterThan(3);
+    expect(premier).toBeLessThan(maxRounds(ELIM));
+  });
+
+  it("agrees with the dice on how long an event lasts", () => {
+    /*
+     * `simulateEvent` is the bankroll's kernel and the one place an event is
+     * played by chance. Its mean length has to be the closed-form one, which
+     * is the check that keeps the two halves of the model honest with each
+     * other now that nothing on screen draws them side by side.
+     */
+    for (const config of [
+      { ...defaultConfig(), winRate: 0.58 },
+      configFromPreset(TRADITIONAL_DRAFT, defaultConfig()),
+    ]) {
+      const rand = seededRandom(3);
+      const p = matchWinRate(config);
+      const n = 100_000;
+      let total = 0;
+      for (let i = 0; i < n; i++) total += simulateEvent(config.structure, p, rand).rounds;
+      // Rounds vary by a couple of matches, so the standard error at this
+      // count is under a hundredth; the tolerance is many times that.
+      expect(total / n).toBeCloseTo(eventExpectation(config).meanRounds, 1);
+    }
   });
 
   it("counts expected boxes per event, doubles included", () => {
@@ -349,58 +410,40 @@ describe("simulate", () => {
      * of a box per entry.
      */
     const config = { ...configFromPreset(ARENA_DIRECT, defaultConfig()), winRate: 0.5 };
-    const res = simulate(config, 200_000, 42);
-    const exact = res.buckets.reduce(
-      (acc, b) => acc + b.exactProbability * b.boxes,
-      0,
-    );
-    expect(exact).toBeCloseTo(25 / 256, 12);
-    expect(Math.abs(res.meanBoxes - exact)).toBeLessThan(0.005);
+    expect(eventExpectation(config).meanBoxes).toBeCloseTo(25 / 256, 12);
     // A ladder with no boxes reports none.
-    expect(simulate(defaultConfig(), 1_000, 1).meanBoxes).toBe(0);
+    expect(eventExpectation(defaultConfig()).meanBoxes).toBe(0);
   });
 
-  it("sizes the outcome table to the structure", () => {
-    expect(simulate(defaultConfig(), 100, 1).buckets).toHaveLength(8);
-    expect(
-      simulate(configFromPreset(TRADITIONAL_DRAFT, defaultConfig()), 100, 1).buckets,
-    ).toHaveLength(4);
-  });
-
-  it("is deterministic for a given seed", () => {
+  it("reads the chance of a profit off the rows that make one", () => {
     const config = defaultConfig();
-    expect(simulate(config, 5_000, 7).meanNet).toBe(simulate(config, 5_000, 7).meanNet);
+    const ev = eventExpectation(config);
+    const byHand = ev.outcomes
+      .filter((o) => o.netGems > 0)
+      .reduce((a, o) => a + o.probability, 0);
+    expect(ev.probProfit).toBeCloseTo(byHand, 12);
+    expect(ev.probProfit).toBeGreaterThan(0);
+    expect(ev.probProfit).toBeLessThan(1);
+    // A perfect run pays 2,200 gems and change against a 1,500 entry; a
+    // winless one pays 50 gems and a pack.
+    expect(eventExpectation({ ...config, winRate: 1 }).probProfit).toBe(1);
+    expect(eventExpectation({ ...config, winRate: 0 }).probProfit).toBe(0);
   });
 
-  it("counts every event once, by record as well as by win count", () => {
-    for (const preset of [PREMIER_DRAFT, ARENA_DIRECT, TRADITIONAL_DRAFT]) {
-      const res = simulate(configFromPreset(preset, defaultConfig()), 20_000, 11);
-      expect(res.records.reduce((a, r) => a + r.count, 0)).toBe(res.trials);
-      // Grouping the records by wins has to give the win buckets back.
-      const grouped: number[] = [];
-      for (const r of res.records) grouped[r.wins] = (grouped[r.wins] ?? 0) + r.count;
-      expect(grouped).toEqual(res.buckets.map((b) => b.count));
-    }
-  });
-
-  it("converges to the closed-form record distribution", () => {
-    const config = { ...defaultConfig(), winRate: 0.58 };
-    const res = simulate(config, 200_000, 42);
-    for (const r of res.records) {
-      expect(Math.abs(r.probability - r.exactProbability)).toBeLessThan(0.005);
-    }
-    // The ceiling splits three ways and every one of them is reached.
-    const ceiling = res.records.filter((r) => r.wins === 7);
-    expect(ceiling.map(label)).toEqual(["7-0", "7-1", "7-2"]);
-    for (const r of ceiling) expect(r.count).toBeGreaterThan(0);
-  });
-
-  it("leaves a fixed-rounds event's rows alone", () => {
-    // Nothing to split: three rounds are always played, so a win count is a
-    // record. The chart's braces have nothing to gather here.
-    const res = simulate(configFromPreset(TRADITIONAL_DRAFT, defaultConfig()), 20_000, 5);
-    expect(res.records.map(label)).toEqual(["0-3", "1-2", "2-1", "3-0"]);
-    expect(res.records.map((r) => r.count)).toEqual(res.buckets.map((b) => b.count));
+  it("returns the net on what an entry actually costs", () => {
+    const config = defaultConfig();
+    const ev = eventExpectation(config);
+    expect(ev.entryGems).toBeCloseTo(effectiveEntryGems(config), 12);
+    expect(ev.goldEntryFraction).toBeCloseTo(goldFundedFraction(config), 12);
+    expect(ev.roi).toBeCloseTo(ev.meanNet / effectiveEntryGems(config), 12);
+    // Priced in gems alone, ROI divides by the sticker price.
+    const gemsOnly = eventExpectation({ ...config, eventsPerDay: 0 });
+    expect(gemsOnly.entryGems).toBe(1500);
+    expect(gemsOnly.goldEntryFraction).toBe(0);
+    // Nothing paid, nothing to return on.
+    expect(
+      eventExpectation({ ...config, entryCostGems: 0, entryCostGold: 0 }).roi,
+    ).toBe(0);
   });
 });
 
@@ -547,29 +590,23 @@ describe("splitting a gross", () => {
   it("adds back up to the mean gross it decomposes", () => {
     for (const preset of [PREMIER_DRAFT, SEALED, ARENA_DIRECT, CONTENDER_DRAFT]) {
       const config = configFromPreset(preset, defaultConfig());
-      const res = simulate(config, 20_000, 7);
-      const parts = grossSplit(config, res.buckets);
+      const parts = grossSplit(config);
       const summed = Object.values(parts).reduce((acc, v) => acc + v, 0);
-      expect(summed).toBeCloseTo(res.meanGross, 6);
+      expect(summed).toBeCloseTo(eventExpectation(config).meanGross, 9);
     }
   });
 
   it("puts nothing in gold, which no ladder pays", () => {
     const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
-    const res = simulate(config, 5_000, 3);
-    expect(grossSplit(config, res.buckets).gold).toBe(0);
+    expect(grossSplit(config).gold).toBe(0);
   });
 
   it("moves value between segments rather than creating it", () => {
     // Doubling what a pack is worth cannot change how many packs are won, so
     // the packs segment doubles and every other segment holds still.
     const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
-    const res = simulate(config, 20_000, 11);
-    const base = grossSplit(config, res.buckets);
-    const dearer = grossSplit(
-      { ...config, packValueGems: config.packValueGems * 2 },
-      res.buckets,
-    );
+    const base = grossSplit(config);
+    const dearer = grossSplit({ ...config, packValueGems: config.packValueGems * 2 });
     expect(dearer.packs).toBeCloseTo(base.packs * 2, 9);
     expect(dearer.gems).toBeCloseTo(base.gems, 9);
     expect(dearer.draftPacks).toBeCloseTo(base.draftPacks, 9);
@@ -577,10 +614,14 @@ describe("splitting a gross", () => {
 
   it("counts the rewards the split values", () => {
     const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
-    const res = simulate(config, 20_000, 5);
-    const counts = grossCounts(config, res.buckets);
-    const parts = grossSplit(config, res.buckets);
-    expect(counts.packs).toBeCloseTo(res.meanPacks, 9);
+    const counts = grossCounts(config);
+    const parts = grossSplit(config);
+    // Packs per event, straight off the distribution and the ladder.
+    const meanPacks = exactDistribution(matchWinRate(config), config.structure).reduce(
+      (acc, p, wins) => acc + p * config.payouts[wins].packs,
+      0,
+    );
+    expect(counts.packs).toBeCloseTo(meanPacks, 9);
     expect(counts.packs * config.packValueGems).toBeCloseTo(parts.packs, 9);
     expect(counts.draftPacks).toBe(config.draftPacks);
   });
@@ -770,12 +811,12 @@ describe("bankroll", () => {
         generatedAt: "2026-08-16T00:00:00.000Z",
       },
     };
-    const res = simulate(config, 20_000, 7);
-    const split = grossSplit(config, res.buckets);
+    const ev = eventExpectation(config);
+    const split = grossSplit(config);
     // The split still adds up to the gross it decomposes, boxes and all.
     expect(Object.values(split).reduce((a, n) => a + n, 0)).toBeCloseTo(
-      res.meanGross,
-      6,
+      ev.meanGross,
+      9,
     );
     /*
      * And each box is its own term at its own price. Six wins pays the
@@ -783,14 +824,14 @@ describe("bankroll", () => {
      * so the two rows weight the two products differently — which is what a
      * single "play boxes" figure could not say.
      */
-    const p = res.buckets;
+    const p = ev.outcomes;
     expect(split[boxHoldingKey({ kind: "play", set: "spm" })]).toBeCloseTo(
       (p[6].probability + p[7].probability) * 25_538,
-      6,
+      9,
     );
     expect(split[boxHoldingKey({ kind: "play", set: "msh" })]).toBeCloseTo(
       p[7].probability * 23_444,
-      6,
+      9,
     );
   });
 
@@ -1377,26 +1418,15 @@ describe("gold entries", () => {
     expect(withQuest(0.7) - withQuest(0.4)).toBeCloseTo(at(0.7) - at(0.4), 9);
   });
 
-  it("makes the simulated bankroll converge to the closed-form share", () => {
-    // The bankroll runs a path — gold piles up and is spent when it suffices —
-    // while the closed form is its long-run limit. They have to agree.
-    for (const otherGoldPerDay of [0, 500, 1350, 4000]) {
-      const config = { ...defaultConfig(), otherGoldPerDay };
-      const res = simulate(config, 100_000, 5);
-      expect(res.goldEntryFraction).toBeCloseTo(goldFundedFraction(config), 3);
-      expect(res.meanEntryGems).toBeCloseTo(effectiveEntryGems(config), 1);
-    }
-  });
-
   it("improves expected value without touching the outcome distribution", () => {
     const without = { ...defaultConfig(), eventsPerDay: 0 };
     const with_ = defaultConfig();
-    const a = simulate(without, 50_000, 9);
-    const b = simulate(with_, 50_000, 9);
+    const a = eventExpectation(without);
+    const b = eventExpectation(with_);
     expect(b.meanNet).toBeGreaterThan(a.meanNet);
     // Gold pays the entry; it does not help you win.
-    expect(b.buckets.map((x) => x.exactProbability)).toEqual(
-      a.buckets.map((x) => x.exactProbability),
+    expect(b.outcomes.map((o) => o.probability)).toEqual(
+      a.outcomes.map((o) => o.probability),
     );
     // The gap is exactly the entry the gold covers, derived rather than
     // restated so that retuning the quest default cannot silently pass here.

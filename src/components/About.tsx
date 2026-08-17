@@ -227,8 +227,10 @@ export function About({
 
         <dt className="col-sm-4">Give or take</dt>
         <dd className="col-sm-8">
-          Shown instead when your win rate is set to exactly known: the
-          simulation's own wobble, which more simulated events do narrow.
+          Shown on the bankroll's box chance instead, when your win rate is set
+          to exactly known: the simulation's own wobble, which more bankroll
+          runs do narrow. The Per event tab needs no such figure — everything
+          on it is exact for the win rate you set.
         </dd>
 
         <dt className="col-sm-4">One in twenty</dt>

@@ -42,7 +42,7 @@ const normalizeTier = (t: PayoutTier): NormalTier => ({
   boxes: (t.boxes ?? []).map(boxId).sort(),
 });
 
-/** The whole request as one key; `kind` keeps the two shapes apart. */
+/** The whole request as one key; `kind` keeps request shapes apart. */
 export function requestKey(req: SimulationRequest): string {
   return stringify({
     ...req,

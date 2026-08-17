@@ -6,17 +6,15 @@
  * The client hands back a handle rather than a bare promise: cancellation is
  * by id, REST-style, and the id lives on the handle so cancelling needs no
  * round trip.
+ *
+ * One kind today. The per-event figures went closed form and left the
+ * workers, so the bankroll is the only simulation there is; the tag stays on
+ * the request because it costs nothing, keeps a cache key self-describing,
+ * and is where a second kind would announce itself.
  */
 
 import type { BankrollConfig, BankrollResult } from "../lib/bankroll";
-import type { EventConfig, SimResult } from "../lib/types";
-
-export type SimulateRequest = {
-  kind: "simulate";
-  config: EventConfig;
-  trials: number;
-  seed: number;
-};
+import type { EventConfig } from "../lib/types";
 
 export type BankrollsRequest = {
   kind: "bankrolls";
@@ -26,7 +24,7 @@ export type BankrollsRequest = {
   seed: number;
 };
 
-export type SimulationRequest = SimulateRequest | BankrollsRequest;
+export type SimulationRequest = BankrollsRequest;
 
 /**
  * What the worker exposes over comlink, and what the backend implements:
@@ -34,7 +32,7 @@ export type SimulationRequest = SimulateRequest | BankrollsRequest;
  * the client-side pool's business — a worker only ever holds one job.
  */
 export type SimulationApi = {
-  run(id: string, request: SimulationRequest): Promise<SimResult | BankrollResult>;
+  run(id: string, request: SimulationRequest): Promise<BankrollResult>;
   cancel(id: string): void;
 };
 

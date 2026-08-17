@@ -13,14 +13,7 @@ import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../lib/presets";
 import type { EventConfig } from "../lib/types";
 import { requestKey } from "./keys";
-import type { BankrollsRequest, SimulateRequest } from "./protocol";
-
-const simRequest = (config: EventConfig = defaultConfig()): SimulateRequest => ({
-  kind: "simulate",
-  config,
-  trials: 1000,
-  seed: 1,
-});
+import type { BankrollsRequest } from "./protocol";
 
 const bankRequest = (config: EventConfig = defaultConfig()): BankrollsRequest => ({
   kind: "bankrolls",
@@ -85,7 +78,6 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
 
 describe("requestKey", () => {
   it("is identical for structurally equal requests", () => {
-    expect(requestKey(simRequest())).toBe(requestKey(simRequest()));
     expect(requestKey(bankRequest())).toBe(requestKey(bankRequest()));
   });
 
@@ -98,21 +90,20 @@ describe("requestKey", () => {
     reversed.structure = Object.fromEntries(
       Object.entries(config.structure).reverse(),
     ) as EventConfig["structure"];
-    expect(requestKey(simRequest(reversed))).toBe(requestKey(simRequest(config)));
+    expect(requestKey(bankRequest(reversed))).toBe(requestKey(bankRequest(config)));
   });
 
   it.each(Object.keys(MUTATED) as (keyof EventConfig)[])(
     "moves when config.%s moves",
     (field) => {
       const mutated = { ...defaultConfig(), [field]: MUTATED[field] };
-      expect(requestKey(simRequest(mutated))).not.toBe(requestKey(simRequest()));
       expect(requestKey(bankRequest(mutated))).not.toBe(requestKey(bankRequest()));
     },
   );
 
   it("distinguishes structures within and across kinds", () => {
     const at = (structure: EventConfig["structure"]) =>
-      requestKey(simRequest({ ...defaultConfig(), structure }));
+      requestKey(bankRequest({ ...defaultConfig(), structure }));
     const keys = [
       at({ kind: "elimination", maxWins: 7, maxLosses: 3 }),
       at({ kind: "elimination", maxWins: 7, maxLosses: 4 }),
@@ -125,7 +116,7 @@ describe("requestKey", () => {
 
   it("reads absent payout options as the 0 the model prices them at", () => {
     const withTier = (tier: EventConfig["payouts"][number]) =>
-      requestKey(simRequest({ ...defaultConfig(), payouts: [tier] }));
+      requestKey(bankRequest({ ...defaultConfig(), payouts: [tier] }));
     const bare = withTier({ wins: 0, gems: 10, packs: 1 });
     // Absent and explicit 0 are the same simulation, so the same key.
     expect(withTier({ wins: 0, gems: 10, packs: 1, playInPoints: 0, boxes: [] })).toBe(bare);
@@ -141,7 +132,7 @@ describe("requestKey", () => {
 
   it("prices a named box apart from a generic one, and from another set's", () => {
     const withTier = (tier: EventConfig["payouts"][number]) =>
-      requestKey(simRequest({ ...defaultConfig(), payouts: [tier] }));
+      requestKey(bankRequest({ ...defaultConfig(), payouts: [tier] }));
     const generic = withTier({ wins: 0, gems: 0, packs: 0, boxes: [{ kind: "play" }] });
     const msh = withTier({
       wins: 0,
@@ -161,7 +152,7 @@ describe("requestKey", () => {
   it("ignores the order two boxes were listed in, since the model does", () => {
     const withBoxes = (boxes: EventConfig["payouts"][number]["boxes"]) =>
       requestKey(
-        simRequest({ ...defaultConfig(), payouts: [{ wins: 0, gems: 0, packs: 0, boxes }] }),
+        bankRequest({ ...defaultConfig(), payouts: [{ wins: 0, gems: 0, packs: 0, boxes }] }),
       );
     expect(
       withBoxes([
@@ -193,14 +184,12 @@ describe("requestKey", () => {
         generatedAt: "2026-08-16T00:00:00.000Z",
       },
     });
-    expect(requestKey(simRequest(priced(23_444)))).not.toBe(
-      requestKey(simRequest(priced(25_000))),
+    expect(requestKey(bankRequest(priced(23_444)))).not.toBe(
+      requestKey(bankRequest(priced(25_000))),
     );
   });
 
-  it("moves with the request's own numbers, and never across kinds", () => {
-    expect(requestKey({ ...simRequest(), trials: 1001 })).not.toBe(requestKey(simRequest()));
-    expect(requestKey({ ...simRequest(), seed: 2 })).not.toBe(requestKey(simRequest()));
+  it("moves with the request's own numbers", () => {
     expect(requestKey({ ...bankRequest(), runs: 1001 })).not.toBe(requestKey(bankRequest()));
     expect(requestKey({ ...bankRequest(), seed: 2 })).not.toBe(requestKey(bankRequest()));
     const roll = bankRequest();
@@ -213,6 +202,5 @@ describe("requestKey", () => {
         requestKey({ ...roll, bankroll: { ...roll.bankroll, ...patch } }),
       ).not.toBe(requestKey(roll));
     }
-    expect(requestKey(simRequest())).not.toBe(requestKey(bankRequest()));
   });
 });

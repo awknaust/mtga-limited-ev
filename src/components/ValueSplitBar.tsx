@@ -14,7 +14,6 @@ import {
   type HoldingKey,
   type MasteryRewardKind,
   type MasteryValue,
-  type WinBucket,
 } from "../lib";
 
 /**
@@ -73,12 +72,9 @@ export function holdingSlices(
 }
 
 /** What one event pays back on average, as slices of its expected gross. */
-export function grossSlices(
-  config: EventConfig,
-  buckets: readonly WinBucket[],
-): ValueSlice[] {
-  const worths = grossSplit(config, buckets);
-  const counts = grossCounts(config, buckets);
+export function grossSlices(config: EventConfig): ValueSlice[] {
+  const worths = grossSplit(config);
+  const counts = grossCounts(config);
 
   // Walked in the holdings' own order rather than the object's, which only
   // fixes the order these are listed in — the bar ranks them by share when it

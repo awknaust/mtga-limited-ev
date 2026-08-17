@@ -15,19 +15,15 @@
  */
 
 import { simulateBankrollsSteps, type BankrollResult } from "../lib/bankroll";
-import { simulateSteps } from "../lib/simulate";
-import type { SimResult } from "../lib/types";
 import { abortError, type SimulationApi, type SimulationRequest } from "./protocol";
-
-type SimulationResult = SimResult | BankrollResult;
 
 /**
  * How long a run may compute between event-loop pings.
  *
- * The generators yield every ~thousand events, which is far more often than
+ * The generator yields every ~thousand events, which is far more often than
  * the event loop needs to hear about: a ping is a macrotask round trip, and
- * a five-million-trial run would pay for thousands of them. Gating pings on
- * elapsed time keeps cancel latency around this figure while the run pays
+ * a run of millions of events would pay for thousands of them. Gating pings
+ * on elapsed time keeps cancel latency around this figure while the run pays
  * for dozens.
  */
 const PING_INTERVAL_MS = 10;
@@ -74,7 +70,7 @@ export class SimulationBackend implements SimulationApi {
     this.pingIntervalMs = opts?.pingIntervalMs ?? PING_INTERVAL_MS;
   }
 
-  async run(id: string, request: SimulationRequest): Promise<SimulationResult> {
+  async run(id: string, request: SimulationRequest): Promise<BankrollResult> {
     if (this.running !== null) {
       throw new Error(`backend already running ${this.running}; dispatcher sent ${id}`);
     }
@@ -110,11 +106,9 @@ export class SimulationBackend implements SimulationApi {
   }
 }
 
-// Direct imports from the two model modules, never the src/lib barrel: the
+// A direct import from the model module, never the src/lib barrel: the
 // barrel re-exports presets, and presets would drag src/data into the worker
 // chunk for nothing.
-function generatorOf(request: SimulationRequest): Generator<number, SimulationResult> {
-  return request.kind === "simulate"
-    ? simulateSteps(request.config, request.trials, request.seed)
-    : simulateBankrollsSteps(request.config, request.bankroll, request.runs, request.seed);
+function generatorOf(request: SimulationRequest): Generator<number, BankrollResult> {
+  return simulateBankrollsSteps(request.config, request.bankroll, request.runs, request.seed);
 }

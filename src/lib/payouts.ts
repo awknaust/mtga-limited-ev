@@ -11,7 +11,7 @@ import { exactDistribution } from "./distribution";
 import { DAILY_WIN_CAP, DAILY_WIN_GOLD } from "./presets";
 import { matchWinRate } from "./structure";
 import type { HoldingKey } from "./holdings";
-import type { EventConfig, PayoutTier, WinBucket } from "./types";
+import type { EventConfig, PayoutTier } from "./types";
 
 export function payoutFor(config: EventConfig, wins: number): PayoutTier {
   const tier = config.payouts.find((t) => t.wins === wins);
@@ -48,6 +48,16 @@ export function grossValue(config: EventConfig, wins: number): number {
 }
 
 /**
+ * Means over the win counts, each weighted by its exact chance at the config's
+ * own win rate. The distribution is computed once and the closure reused for
+ * every term a caller wants averaged.
+ */
+function meanOverWins(config: EventConfig): (of: (wins: number) => number) => number {
+  const dist = exactDistribution(matchWinRate(config), config.structure);
+  return (of) => dist.reduce((acc, p, wins) => acc + p * of(wins), 0);
+}
+
+/**
  * Expected gross per event, split into what it is made of.
  *
  * `grossValue` folds six terms into one number, and by the time it reaches the
@@ -61,29 +71,27 @@ export function grossValue(config: EventConfig, wins: number): number {
  * by a ladder, so no part of an event's gross is gold. Callers drop the empty
  * entries.
  *
- * These sum to `SimResult.meanGross` by construction, since they are that same
- * sum with the bucket weights distributed over its terms and the probabilities
- * summing to one. `payouts.test.ts` pins that rather than trusting it, because
- * a figure drawn under a total has to add up to the total.
+ * These sum to `eventExpectation(config).meanGross` by construction, since
+ * they are that same sum with the weights distributed over its terms and the
+ * probabilities summing to one. `model.test.ts` pins that rather than
+ * trusting it, because a figure drawn under a total has to add up to the
+ * total.
  */
-export function grossSplit(
-  config: EventConfig,
-  buckets: readonly WinBucket[],
-): Record<HoldingKey, number> {
-  const mean = (of: (b: WinBucket) => number): number =>
-    buckets.reduce((acc, b) => acc + b.probability * of(b), 0);
+export function grossSplit(config: EventConfig): Record<HoldingKey, number> {
+  const mean = meanOverWins(config);
 
   const priced = priceTiers(config);
   return {
-    gems: mean((b) => payoutFor(config, b.wins).gems),
+    gems: mean((wins) => payoutFor(config, wins).gems),
     // Never part of a gross: nothing on a payout ladder pays gold.
     gold: 0,
-    packs: mean((b) => b.packs) * config.packValueGems,
-    playInPoints: mean((b) => b.playInPoints) * config.playInPointValueGems,
+    packs: mean((wins) => payoutFor(config, wins).packs) * config.packValueGems,
+    playInPoints:
+      mean((wins) => playInPointsFor(config, wins)) * config.playInPointValueGems,
     // One entry per box the ladder pays, each at its own price — two play
     // boxes of different sets are different amounts and different rows.
     ...boxSplit(priced, (i) =>
-      mean((b) => (tierBoxesAt(priced, b.wins)[i] ?? 0) * priced.prices[i]),
+      mean((wins) => (tierBoxesAt(priced, wins)[i] ?? 0) * priced.prices[i]),
     ),
     // Flat across win counts: the pool is kept for entering, however it goes.
     draftPacks: config.draftPacks * config.draftPackValueGems,
@@ -102,20 +110,16 @@ const boxSplit = (
  * to. The bar built from `grossSplit` names both — "6.2 packs" and what they
  * are worth answer different questions, and neither implies the other.
  */
-export function grossCounts(
-  config: EventConfig,
-  buckets: readonly WinBucket[],
-): Record<HoldingKey, number> {
-  const mean = (of: (b: WinBucket) => number): number =>
-    buckets.reduce((acc, b) => acc + b.probability * of(b), 0);
+export function grossCounts(config: EventConfig): Record<HoldingKey, number> {
+  const mean = meanOverWins(config);
 
   const priced = priceTiers(config);
   return {
-    gems: mean((b) => payoutFor(config, b.wins).gems),
+    gems: mean((wins) => payoutFor(config, wins).gems),
     gold: 0,
-    packs: mean((b) => b.packs),
-    playInPoints: mean((b) => b.playInPoints),
-    ...boxSplit(priced, (i) => mean((b) => tierBoxesAt(priced, b.wins)[i] ?? 0)),
+    packs: mean((wins) => payoutFor(config, wins).packs),
+    playInPoints: mean((wins) => playInPointsFor(config, wins)),
+    ...boxSplit(priced, (i) => mean((wins) => tierBoxesAt(priced, wins)[i] ?? 0)),
     draftPacks: config.draftPacks,
   };
 }
@@ -139,10 +143,7 @@ export function dailyWinGold(wins: number): number {
 
 /** Expected match wins from one run of the event, at its configured win rate. */
 export function meanWinsPerEvent(config: EventConfig): number {
-  return exactDistribution(matchWinRate(config), config.structure).reduce(
-    (acc, p, wins) => acc + p * wins,
-    0,
-  );
+  return meanOverWins(config)((wins) => wins);
 }
 
 /**
