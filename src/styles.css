@@ -662,6 +662,15 @@ body {
 }
 
 /*
+ * Next to the points deliberately: the two are the same currency at two
+ * removes — twenty points buy the entry, the entry wins the token — so a
+ * neighbouring hue reads them as related rather than as separate rewards.
+ */
+.slice-qualifierTokens {
+  --slice: #c084fc;
+}
+
+/*
  * Every box, whichever set and whichever kind. A ladder names its own boxes,
  * so there is no fixed list of them to give hues to — and the difference a
  * reader is after is boxes against packs and gems, not one set against

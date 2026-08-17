@@ -57,6 +57,7 @@ export type BankrollSimParams = {
   config: EventConfig;
   startingGems: number;
   startingGold: number;
+  startingPlayInPoints: number;
   maxEvents: number;
   runs: number;
   seed: number;
@@ -74,7 +75,12 @@ export type SimulationState<T> = {
 const submitBankrolls = (p: BankrollSimParams): SimulationHandle<BankrollResult> =>
   simulationClient.simulateBankrolls(
     p.config,
-    { startingGems: p.startingGems, startingGold: p.startingGold, maxEvents: p.maxEvents },
+    {
+      startingGems: p.startingGems,
+      startingGold: p.startingGold,
+      startingPlayInPoints: p.startingPlayInPoints,
+      maxEvents: p.maxEvents,
+    },
     p.runs,
     p.seed,
   );

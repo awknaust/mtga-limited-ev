@@ -57,10 +57,26 @@ export type PayoutTier = {
    */
   cubePacks?: number;
   /**
-   * Play-in points toward an Arena Open. Only the traditional events award
-   * them, so this is optional and absent means none.
+   * Play-in points toward a Qualifier Play-In entry — twenty of them buy one.
+   * Only the traditional events award them, so this is optional and absent
+   * means none.
    */
   playInPoints?: number;
+  /**
+   * Qualifier Weekend tokens. Only the Qualifier Play-Ins award them, at their
+   * top win count and nowhere else, so this is optional and absent means none.
+   *
+   * Counted rather than summed into gems because there is no price to sum it
+   * at: nothing sells one, and the only thing it converts to is a seat at a
+   * tournament. `DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS` is 0 for that reason and
+   * says why.
+   *
+   * Worth knowing when reading a mean of these: Wizards is explicit that "all
+   * Qualifier Tokens earned beyond the first are redundant", so a run that won
+   * two did not win twice. That is why the app reports a *chance* of one and
+   * never an expected count.
+   */
+  qualifierTokens?: number;
   /**
    * Physical booster boxes, shipped after the event. Arena Direct only, so
    * this is optional and absent means none.
@@ -124,6 +140,11 @@ export type EventPreset = {
   /** Gold price, where the event takes gold. Absent means gems only. */
   entryCostGold?: number;
   /**
+   * Play-in point price, where the event takes points. Absent means it does
+   * not, which is every event but the Qualifier Play-Ins.
+   */
+  entryCostPlayInPoints?: number;
+  /**
    * Packs' worth of cards you keep from the pool you played with. Zero for
    * phantom events, where the cards are borrowed for the event only.
    */
@@ -150,6 +171,17 @@ export type EventConfig = {
   entryCostGems: number;
   /** Gold price, or 0 where the event takes gems only. */
   entryCostGold: number;
+  /**
+   * Play-in point price, or 0 where the event does not take them.
+   *
+   * The third way to pay for an entry, and unlike the other two it buys
+   * nothing else in Arena — which is why the bankroll spends these first. It
+   * is a stock rather than a flow: no event here pays points *and* charges
+   * them, so a balance drains and never refills. That is the reason it moves
+   * the bankroll simulation and leaves `effectiveEntryGems` alone; see the
+   * note there.
+   */
+  entryCostPlayInPoints: number;
   /**
    * Gold earned in a day from everything *except* this event's own wins —
    * quests, and games played outside it.
@@ -197,6 +229,19 @@ export type EventConfig = {
   cubePackValueGems: number;
   /** Gem value assigned to one play-in point. */
   playInPointValueGems: number;
+  /**
+   * Gem value of one Qualifier Weekend token.
+   *
+   * Zero by default, and the default is the honest one — see
+   * `DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS`, which carries the figure to type here
+   * for anyone who wants the seat priced at what it returns.
+   *
+   * One caveat if you do set it. Tokens are valued linearly like every other
+   * holding, so a run that won two counts twice — and a second token is
+   * redundant. The count is right; the valuation is generous by however many
+   * repeats a long run picked up.
+   */
+  qualifierTokenValueGems: number;
   /**
    * Gem value of a *generic* Play Booster box — one that names no set.
    *

@@ -166,6 +166,27 @@ export function GoldInput(props: {
   return <AddonInput addon={<i className="bi bi-coin" aria-hidden="true" />} {...props} />;
 }
 
+/**
+ * Play-in points: a count of things, not money, so like gold it never follows
+ * the display unit. They do carry a gem rate, but that rate prices a *leftover*
+ * balance rather than saying what the field means — twenty points is twenty
+ * points whether or not anybody would sell them.
+ */
+export function PointsInput(props: {
+  id?: string;
+  disabled?: boolean;
+  value: number;
+  onChange: (n: number) => void;
+  compact?: boolean;
+}) {
+  return (
+    <AddonInput
+      addon={<i className="bi bi-ticket-perforated" aria-hidden="true" />}
+      {...props}
+    />
+  );
+}
+
 /** A gem-valued input, displayed and edited in the active unit. */
 export function MoneyInput({
   gemValue,

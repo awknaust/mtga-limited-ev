@@ -18,7 +18,7 @@ import { isAbortError } from "./protocol";
 import type { BankrollsRequest } from "./protocol";
 
 const config = defaultConfig();
-const roll = { startingGems: 3000, startingGold: 0, maxEvents: 20 };
+const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 20 };
 
 const bank = (runs: number, seed = 1): BankrollsRequest => ({
   kind: "bankrolls",

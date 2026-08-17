@@ -33,6 +33,11 @@ export function cubePacksFor(config: EventConfig, wins: number): number {
   return payoutFor(config, wins).cubePacks ?? 0;
 }
 
+/** Qualifier Weekend tokens awarded at a win count; absent means none. */
+export function qualifierTokensFor(config: EventConfig, wins: number): number {
+  return payoutFor(config, wins).qualifierTokens ?? 0;
+}
+
 /**
  * Gross value in gems for a given win count.
  *
@@ -55,6 +60,7 @@ export function grossValue(config: EventConfig, wins: number): number {
     (tier.mythicPacks ?? 0) * config.mythicPackValueGems +
     (tier.cubePacks ?? 0) * config.cubePackValueGems +
     (tier.playInPoints ?? 0) * config.playInPointValueGems +
+    (tier.qualifierTokens ?? 0) * config.qualifierTokenValueGems +
     boxes
   );
 }
@@ -103,6 +109,8 @@ export function grossSplit(config: EventConfig): Record<HoldingKey, number> {
     cubePacks: mean((wins) => cubePacksFor(config, wins)) * config.cubePackValueGems,
     playInPoints:
       mean((wins) => playInPointsFor(config, wins)) * config.playInPointValueGems,
+    qualifierTokens:
+      mean((wins) => qualifierTokensFor(config, wins)) * config.qualifierTokenValueGems,
     // One entry per box the ladder pays, each at its own price — two play
     // boxes of different sets are different amounts and different rows.
     ...boxSplit(priced, (i) =>
@@ -136,6 +144,7 @@ export function grossCounts(config: EventConfig): Record<HoldingKey, number> {
     mythicPacks: mean((wins) => mythicPacksFor(config, wins)),
     cubePacks: mean((wins) => cubePacksFor(config, wins)),
     playInPoints: mean((wins) => playInPointsFor(config, wins)),
+    qualifierTokens: mean((wins) => qualifierTokensFor(config, wins)),
     ...boxSplit(priced, (i) => mean((wins) => tierBoxesAt(priced, wins)[i] ?? 0)),
     draftPacks: config.draftPacks,
   };
@@ -204,7 +213,18 @@ export function goldFundedFraction(config: EventConfig): number {
   return Math.min(1, perEvent / config.entryCostGold);
 }
 
-/** Gems actually paid per entry on average, once gold has covered its share. */
+/**
+ * Gems actually paid per entry on average, once gold has covered its share.
+ *
+ * Play-in points are deliberately absent, and the asymmetry with gold is the
+ * point rather than an oversight. Gold is a *flow*: it accrues daily whether or
+ * not you enter, so over many entries a fixed share of them is gold-funded and
+ * that share belongs in a per-event figure. Points are a *stock* — no event
+ * here both pays them and charges them, so a balance drains and never refills,
+ * and the long-run share of entries they cover is zero. A banked stock changes
+ * how far a bankroll goes, which is the bankroll simulation's question; it does
+ * not change what an entry costs in the steady state, which is this one.
+ */
 export function effectiveEntryGems(config: EventConfig): number {
   return config.entryCostGems * (1 - goldFundedFraction(config));
 }

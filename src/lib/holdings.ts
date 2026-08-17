@@ -30,6 +30,7 @@ export const TIER_REWARD_KEYS = [
   "mythicPacks",
   "cubePacks",
   "playInPoints",
+  "qualifierTokens",
 ] as const;
 
 export type TierRewardKey = (typeof TIER_REWARD_KEYS)[number];
@@ -48,6 +49,11 @@ export function paidRewards(payouts: PayoutTier[]): TierRewardKey[] {
 /** Whether a ladder pays a box at any win count. */
 export function paysBoxes(payouts: PayoutTier[]): boolean {
   return payouts.some((t) => (t.boxes?.length ?? 0) > 0);
+}
+
+/** Whether a ladder pays a Qualifier Weekend token at any win count. */
+export function paysTokens(payouts: PayoutTier[]): boolean {
+  return payouts.some((t) => (t.qualifierTokens ?? 0) > 0);
 }
 
 /**
@@ -83,6 +89,12 @@ export const HOLDINGS = [
     label: "Play-in points",
     whole: true,
     rateKey: "playInPointValueGems",
+  },
+  {
+    key: "qualifierTokens",
+    label: "Qualifier tokens",
+    whole: true,
+    rateKey: "qualifierTokenValueGems",
   },
   {
     // "Draft packs", matching the input that sets them, rather than "drafted
@@ -161,16 +173,27 @@ export function holdingRate(config: EventConfig, key: HoldingKey): number {
  * balance the event has no use for is still sitting there, which the config
  * alone cannot say.
  *
+ * Play-in points follow the same rule as gold, and for the same reason: an
+ * event that *charges* them leaves you holding them whether or not any ladder
+ * pays them. Reading only what is paid would hide the balance a Qualifier
+ * Play-In is spending, which is the one event where the points matter most.
+ *
  * The boxes sit where the two aggregate box holdings used to, between the
  * points and the drafted cards: won rather than bought, and one entry per
  * product the ladder actually ships.
  */
-export function heldKeys(config: EventConfig, holdingGold = false): HoldingKey[] {
+export function heldKeys(
+  config: EventConfig,
+  holdingGold = false,
+  holdingPoints = false,
+): HoldingKey[] {
   const paid: string[] = paidRewards(config.payouts);
   const kept = (key: StaticHoldingKey): boolean => {
     if (key === "gems") return true;
     if (key === "gold")
       return holdingGold || config.entryCostGold > 0 || goldPerEvent(config) > 0;
+    if (key === "playInPoints")
+      return holdingPoints || config.entryCostPlayInPoints > 0 || paid.includes(key);
     if (key === "draftPacks") return config.draftPacks > 0;
     return paid.includes(key);
   };

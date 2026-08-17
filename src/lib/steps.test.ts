@@ -28,7 +28,7 @@ const CHUNKS = [1, 7, 1000] as const;
 
 describe("simulateBankrollsSteps", () => {
   const config = defaultConfig();
-  const bankroll = { startingGems: 3_000, startingGold: 0, maxEvents: 20 };
+  const bankroll = { startingGems: 3_000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 20 };
 
   it("drains chunked to the sync result", () => {
     for (const seed of [1, 42]) {

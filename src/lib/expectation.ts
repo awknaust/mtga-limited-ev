@@ -23,7 +23,7 @@ import {
   payoutFor,
 } from "./payouts";
 import { matchWinRate } from "./structure";
-import type { EventConfig, RecordProbability } from "./types";
+import type { EventConfig, PayoutTier, RecordProbability } from "./types";
 
 /** One row of the outcome table: a win count, how likely it is, what it pays. */
 export type WinOutcome = {
@@ -35,6 +35,8 @@ export type WinOutcome = {
   mythicPacks: number;
   cubePacks: number;
   playInPoints: number;
+  /** Qualifier Weekend tokens paid at this win count; at most one, in practice. */
+  qualifierTokens: number;
   /**
    * Boxes paid at this win count, all products together.
    *
@@ -99,6 +101,7 @@ export function eventExpectation(config: EventConfig): EventExpectation {
       mythicPacks: tier.mythicPacks ?? 0,
       cubePacks: tier.cubePacks ?? 0,
       playInPoints: tier.playInPoints ?? 0,
+      qualifierTokens: tier.qualifierTokens ?? 0,
       boxes: tier.boxes?.length ?? 0,
     };
   });
@@ -172,20 +175,50 @@ export function expectedNetAt(config: EventConfig, winRate: number): number {
 }
 
 /**
- * Chance that a single event pays at least one box, at a given win rate.
+ * Chance that a single event pays a prize at all, at a given win rate.
  *
- * A win count either pays a box or it does not, so the answer is the weight
- * the distribution puts on the counts that do. It is the share under the
- * "Expected boxes" tile, and it is also what holds the bankroll simulation to
- * account: a run of one event has to agree with it, and that is a check the
- * simulation cannot perform on itself.
+ * A win count either pays the thing or it does not, so the answer is the weight
+ * the distribution puts on the counts that do. It is what holds the bankroll
+ * simulation to account: a run of one event has to agree with it, and that is a
+ * check the simulation cannot perform on itself.
+ *
+ * Parameterised rather than written twice because the box and token versions
+ * differ in one predicate and nothing else, and two copies of this reasoning is
+ * how the two would come to disagree.
  */
-export function boxChancePerEvent(config: EventConfig, p = matchWinRate(config)): number {
+export function chancePerEvent(
+  config: EventConfig,
+  pays: (tier: PayoutTier) => boolean,
+  p = matchWinRate(config),
+): number {
   const dist = exactDistribution(p, config.structure);
   return config.payouts.reduce(
-    (acc, t) => (t.boxes?.length ? acc + (dist[t.wins] ?? 0) : acc),
+    (acc, t) => (pays(t) ? acc + (dist[t.wins] ?? 0) : acc),
     0,
   );
+}
+
+/** Chance one event pays at least one box. The share under "Expected boxes". */
+export function boxChancePerEvent(config: EventConfig, p = matchWinRate(config)): number {
+  return chancePerEvent(config, (t) => (t.boxes?.length ?? 0) > 0, p);
+}
+
+/**
+ * Chance one event pays a Qualifier Weekend token.
+ *
+ * Only the top of a Play-In ladder pays one, so in practice this is the chance
+ * of reaching the ceiling — but it is written as the same fold so a custom
+ * ladder paying a token somewhere else still gets the right answer.
+ *
+ * There is no expected-tokens counterpart on purpose. A second token is
+ * redundant, so a mean would count something nobody receives; see
+ * `PayoutTier.qualifierTokens`.
+ */
+export function tokenChancePerEvent(
+  config: EventConfig,
+  p = matchWinRate(config),
+): number {
+  return chancePerEvent(config, (t) => (t.qualifierTokens ?? 0) > 0, p);
 }
 
 /**

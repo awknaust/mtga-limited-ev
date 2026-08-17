@@ -4,13 +4,13 @@ exports[`the captured corpus > pins everything a custom ladder paying cube packs
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=60 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=60 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1000-0-cube.2_2200-0-cube.7
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -19,13 +19,13 @@ exports[`the captured corpus > pins everything a custom ladder paying mythic pac
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=45 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=45 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1400-3_4200-10-mythic.4
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -34,13 +34,13 @@ exports[`the captured corpus > pins everything arena direct with boxes valued at
 "preset     Arena Direct (Play)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold
+entry      8000 gems / 0 gold / 0 points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=0 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=0 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -49,13 +49,13 @@ exports[`the captured corpus > pins everything arena direct — physical boxes i
 "preset     Arena Direct (Cube)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold
+entry      8000 gems / 0 gold / 0 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -64,13 +64,13 @@ exports[`the captured corpus > pins everything bankroll only resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=20000 gold=15000 maxEvents=200
+bankroll   gems=20000 gold=15000 points=0 maxEvents=200
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -79,13 +79,13 @@ exports[`the captured corpus > pins everything bare origin resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -94,13 +94,13 @@ exports[`the captured corpus > pins everything counts above the ceilings resolve
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=2000
+bankroll   gems=3000 gold=0 points=0 maxEvents=2000
 sim        runs=999999 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -109,13 +109,13 @@ exports[`the captured corpus > pins everything custom elimination shape resolves
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":5,"maxLosses":2}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1354.8 gems (968.3 gold/event)
 payouts    0-0_100-1_200-2_400-3_800-4_1600-5
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -124,13 +124,28 @@ exports[`the captured corpus > pins everything custom ladder naming its boxes re
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_0-0-play.msh_0-0-play.latest-collector.spm
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200"
+`;
+
+exports[`the captured corpus > pins everything custom ladder paying a qualifier token resolves to 1`] = `
+"preset     Custom
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":3,"maxLosses":1}
+entry      1500 gems / 10000 gold / 20 points
+draft      3 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=4830 playBox=29866 collBox=120116
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    1372.2 gems (851.9 gold/event)
+payouts    0-0_0-0_0-0_6000-0-token.1
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -139,13 +154,13 @@ exports[`the captured corpus > pins everything demo 2 — premier, gems only, no
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 0
-values     pack=0 mythicPack=37 cubePack=51 playIn=0 playBox=0 collBox=0
+values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collBox=0
 gold       other=0/day over 1 events, goldPer10k=1500
 charges    1426.7 gems (488.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=200"
 `;
@@ -154,13 +169,13 @@ exports[`the captured corpus > pins everything demo 3 — quick, gems only, no g
 "preset     Quick Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      750 gems / 5000 gold
+entry      750 gems / 5000 gold / 0 points
 draft      3 packs @ 0
-values     pack=0 mythicPack=37 cubePack=51 playIn=0 playBox=0 collBox=0
+values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collBox=0
 gold       other=0/day over 1 events, goldPer10k=1500
 charges    676.7 gems (488.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=200"
 `;
@@ -169,13 +184,13 @@ exports[`the captured corpus > pins everything demo 4 — premier at the post's 
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 110
-values     pack=132 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=132 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=0/day over 1 events, goldPer10k=1500
 charges    1426.7 gems (488.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=200"
 `;
@@ -184,13 +199,13 @@ exports[`the captured corpus > pins everything demo 5 — full custom worst case
 "preset     Custom
 winRate    0.6125 over 100 matches
 structure  {"kind":"rounds","rounds":5}
-entry      1234 gems / 9000 gold
+entry      1234 gems / 9000 gold / 0 points
 draft      4 packs @ 110
-values     pack=132 mythicPack=37 cubePack=51 playIn=250 playBox=60000 collBox=250000
+values     pack=132 mythicPack=37 cubePack=51 playIn=250 qualToken=0 playBox=60000 collBox=250000
 gold       other=900/day over 2 events, goldPer10k=2000
 charges    1131.2 gems (750.0 gold/event)
 payouts    10-1_20-1_300-2-1_4000-3-play_5000-4-collector-collector_12000-6-4-collector-collector-collector
-bankroll   gems=12000 gold=5000 maxEvents=50
+bankroll   gems=12000 gold=5000 points=0 maxEvents=50
 sim        runs=10000 seed=77
 display    tab=event unit=usd gemsPerUsd=350"
 `;
@@ -199,13 +214,13 @@ exports[`the captured corpus > pins everything display only resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=about unit=usd gemsPerUsd=350"
 `;
@@ -214,13 +229,13 @@ exports[`the captured corpus > pins everything every kind of pack at once, in an
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":2,"maxLosses":2}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1366.9 gems (887.2 gold/event)
 payouts    0-0_0-0_500-3-mythic.4-cube.5
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -229,13 +244,13 @@ exports[`the captured corpus > pins everything mastery rates, cosmetics priced r
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=mastery unit=gems gemsPerUsd=200"
 `;
@@ -244,13 +259,13 @@ exports[`the captured corpus > pins everything mastery tab resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=mastery unit=gems gemsPerUsd=200"
 `;
@@ -259,13 +274,13 @@ exports[`the captured corpus > pins everything one slider moved resolves to 1`] 
 "preset     Premier Draft
 winRate    0.62 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1327.5 gems (1150.0 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -274,13 +289,28 @@ exports[`the captured corpus > pins everything preset switch only resolves to 1`
 "preset     Quick Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      750 gems / 5000 gold
+entry      750 gems / 5000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    586.7 gems (1088.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200"
+`;
+
+exports[`the captured corpus > pins everything qualifier play-in — points in, token out resolves to 1`] = `
+"preset     Qualifier Play-In (Bo1)
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":6,"maxLosses":2}
+entry      4000 gems / 20000 gold / 20 points
+draft      0 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    3804.3 gems (978.5 gold/event)
+payouts    500-0_1000-0_1500-0_3000-0_4500-0_6000-0_6000-0-token.1
+bankroll   gems=3000 gold=0 points=60 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -289,13 +319,13 @@ exports[`the captured corpus > pins everything the cube ladder as it was spelled
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    50-1_100-1_250-2_2200-7
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -304,13 +334,13 @@ exports[`the captured corpus > pins everything the old fold, where mythic packs 
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1400-3_4200-14
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -319,13 +349,13 @@ exports[`the captured corpus > pins everything traditional draft — bo3, fixed 
 "preset     Traditional Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-6-2
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -334,13 +364,13 @@ exports[`the captured corpus > pins everything unspent gold counted as worthless
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=0
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -349,13 +379,13 @@ exports[`the preset definitions are the contract > pins what ?preset=arena-direc
 "preset     Arena Direct (Collector)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold
+entry      8000 gems / 0 gold / 0 points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_14400-32_0-0-collector.latest
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -364,13 +394,13 @@ exports[`the preset definitions are the contract > pins what ?preset=arena-direc
 "preset     Arena Direct (Cube)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold
+entry      8000 gems / 0 gold / 0 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -379,13 +409,13 @@ exports[`the preset definitions are the contract > pins what ?preset=arena-direc
 "preset     Arena Direct (Play)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold
+entry      8000 gems / 0 gold / 0 points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -394,13 +424,13 @@ exports[`the preset definitions are the contract > pins what ?preset=constructed
 "preset     Constructed Event
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      375 gems / 2500 gold
+entry      375 gems / 2500 gold / 0 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    211.7 gems (1088.8 gold/event)
 payouts    25-0_50-0_75-1_200-1_300-1_400-2_450-2_500-3-1
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -409,13 +439,13 @@ exports[`the preset definitions are the contract > pins what ?preset=contender-d
 "preset     Contender Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      3000 gems / 20000 gold
+entry      3000 gems / 20000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    2836.7 gems (1088.8 gold/event)
 payouts    0-0_0-0_0-0_1400-3_2800-6_3200-8_4200-10-mythic.4_7200-12-mythic.10
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -424,13 +454,13 @@ exports[`the preset definitions are the contract > pins what ?preset=pick-two-dr
 "preset     Pick Two Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":4,"maxLosses":2}
-entry      900 gems / 6000 gold
+entry      900 gems / 6000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    757.2 gems (951.9 gold/event)
 payouts    50-1_150-1_800-1_1000-2_1300-3
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -439,13 +469,13 @@ exports[`the preset definitions are the contract > pins what ?preset=premier-cub
 "preset     Premier Cube Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-0-cube.1_100-0-cube.1_250-0-cube.2_1000-0-cube.2_1400-0-cube.3_1600-0-cube.5_1800-0-cube.6_2200-0-cube.7
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -454,13 +484,43 @@ exports[`the preset definitions are the contract > pins what ?preset=premier-dra
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200"
+`;
+
+exports[`the preset definitions are the contract > pins what ?preset=qualifier-play-in-bo1 resolves to 1`] = `
+"preset     Qualifier Play-In (Bo1)
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":6,"maxLosses":2}
+entry      4000 gems / 20000 gold / 20 points
+draft      0 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    3804.3 gems (978.5 gold/event)
+payouts    500-0_1000-0_1500-0_3000-0_4500-0_6000-0_6000-0-token.1
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200"
+`;
+
+exports[`the preset definitions are the contract > pins what ?preset=qualifier-play-in-bo3 resolves to 1`] = `
+"preset     Qualifier Play-In (Bo3)
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":4,"maxLosses":1}
+entry      4000 gems / 20000 gold / 20 points
+draft      0 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
+gold       other=600/day over 1 events, goldPer10k=1500
+charges    3827.8 gems (861.0 gold/event)
+payouts    500-0_2000-0_4500-0_6000-0_6000-0-token.1
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -469,13 +529,13 @@ exports[`the preset definitions are the contract > pins what ?preset=quick-draft
 "preset     Quick Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      750 gems / 5000 gold
+entry      750 gems / 5000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    586.7 gems (1088.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -484,13 +544,13 @@ exports[`the preset definitions are the contract > pins what ?preset=sealed reso
 "preset     Sealed
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      2000 gems / 0 gold
+entry      2000 gems / 0 gold / 0 points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    2000.0 gems (1088.8 gold/event)
 payouts    200-3_400-3_600-3_1200-3_1400-3_1600-3_2000-3_2200-3
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -499,13 +559,13 @@ exports[`the preset definitions are the contract > pins what ?preset=traditional
 "preset     Traditional Constructed Event
 winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":5}
-entry      750 gems / 5000 gold
+entry      750 gems / 5000 gold / 0 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    596.3 gems (1025.0 gold/event)
 payouts    50-1_100-1_150-2_600-2_800-2_1000-3-4
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -514,13 +574,13 @@ exports[`the preset definitions are the contract > pins what ?preset=traditional
 "preset     Traditional Cube Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1362.8 gems (915.0 gold/event)
 payouts    0-0-cube.1_250-0-cube.1_1000-0-cube.3_2500-0-cube.5
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -529,13 +589,13 @@ exports[`the preset definitions are the contract > pins what ?preset=traditional
 "preset     Traditional Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
-entry      1500 gems / 10000 gold
+entry      1500 gems / 10000 gold / 0 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-6-2
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;
@@ -544,13 +604,13 @@ exports[`the preset definitions are the contract > pins what ?preset=traditional
 "preset     Traditional Sealed
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":4,"maxLosses":2}
-entry      2000 gems / 0 gold
+entry      2000 gems / 0 gold / 0 points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    2000.0 gems (951.9 gold/event)
 payouts    200-1_500-2_1200-3_1800-4_2200-5
-bankroll   gems=3000 gold=0 maxEvents=20
+bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200"
 `;

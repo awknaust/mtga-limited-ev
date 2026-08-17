@@ -132,6 +132,10 @@ export function About({
               <td>{show(m, config.playInPointValueGems)} each</td>
             </tr>
             <tr>
+              <td>Qualifier tokens</td>
+              <td>{show(m, config.qualifierTokenValueGems)} each</td>
+            </tr>
+            <tr>
               <td>Play Booster box</td>
               <td>
                 <BoxPricesLink onClick={onShowBoxPrices} />

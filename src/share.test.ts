@@ -151,6 +151,7 @@ describe("round trips", () => {
         structure: { kind: "rounds", rounds: 4 },
         entryCostGems: 1234,
         entryCostGold: 9000,
+        entryCostPlayInPoints: 25,
         otherGoldPerDay: 900,
         eventsPerDay: 2,
         gemsPer10kGold: 2000,
@@ -158,12 +159,13 @@ describe("round trips", () => {
         draftPackValueGems: 110,
         packValueGems: 132,
         playInPointValueGems: 250,
+        qualifierTokenValueGems: 4830,
         playBoxValueGems: 60000,
         collectorBoxValueGems: 250000,
         payouts: [
           { wins: 0, gems: 10, packs: 1 },
           { wins: 1, gems: 20, packs: 1 },
-          { wins: 2, gems: 30, packs: 2, playInPoints: 1 },
+          { wins: 2, gems: 30, packs: 2, playInPoints: 1, qualifierTokens: 1 },
           { wins: 3, gems: 40, packs: 3, boxes: [{ kind: "play", set: "latest" }] },
           {
             wins: 4,
@@ -176,6 +178,7 @@ describe("round trips", () => {
       seed: 7,
       startingGems: 12_000,
       startingGold: 5_000,
+      startingPlayInPoints: 40,
       maxEvents: 50,
       tab: "event",
       unit: "usd",
@@ -221,10 +224,12 @@ describe("resetting advanced settings", () => {
         structure: { kind: "rounds", rounds: 4 },
         entryCostGems: 1234,
         entryCostGold: 9000,
+        entryCostPlayInPoints: 25,
         draftPacks: 4,
         draftPackValueGems: 110,
         packValueGems: 132,
         playInPointValueGems: 250,
+        qualifierTokenValueGems: 4830,
         playBoxValueGems: 60_000,
         collectorBoxValueGems: 250_000,
         otherGoldPerDay: 900,
@@ -242,7 +247,7 @@ describe("resetting advanced settings", () => {
         payouts: [
           { wins: 0, gems: 10, packs: 1 },
           { wins: 1, gems: 20, packs: 1 },
-          { wins: 2, gems: 30, packs: 2, playInPoints: 1 },
+          { wins: 2, gems: 30, packs: 2, playInPoints: 1, qualifierTokens: 1 },
           { wins: 3, gems: 40, packs: 3, boxes: [{ kind: "play", set: "latest" }] },
           {
             wins: 4,
@@ -256,6 +261,7 @@ describe("resetting advanced settings", () => {
       seed: 7,
       startingGems: 12_000,
       startingGold: 5_000,
+      startingPlayInPoints: 40,
       maxEvents: 50,
       tab: "event",
       unit: "usd",
@@ -299,6 +305,7 @@ describe("resetting advanced settings", () => {
       "packValue",
       "playBoxValue",
       "playInValue",
+      "qualifierTokenValue",
       "rareCardValue",
       "runs",
       "seed",
@@ -311,12 +318,14 @@ describe("resetting advanced settings", () => {
       "draftPacks",
       "entry",
       "entryGold",
+      "entryPoints",
       "maxEvents",
       "payouts",
       "preset",
       "rounds",
       "startGems",
       "startGold",
+      "startPoints",
       "tab",
       "unit",
       "wr",
@@ -330,6 +339,7 @@ describe("resetting advanced settings", () => {
     expect(reset.config.packValueGems).toBe(config.packValueGems);
     expect(reset.config.draftPackValueGems).toBe(config.draftPackValueGems);
     expect(reset.config.playInPointValueGems).toBe(config.playInPointValueGems);
+    expect(reset.config.qualifierTokenValueGems).toBe(config.qualifierTokenValueGems);
     expect(reset.config.playBoxValueGems).toBe(config.playBoxValueGems);
     expect(reset.config.collectorBoxValueGems).toBe(config.collectorBoxValueGems);
     // The mastery track's rates, which the reset reaches for the same reason it
@@ -568,6 +578,51 @@ describe("payout table codec", () => {
         boxes: [{ kind: "play" }, { kind: "play" }],
       },
     ]);
+  });
+
+  /*
+   * The Qualifier token is a named count token like the pack kinds, never a
+   * sixth number. Slots three to five belong to the old positional form above,
+   * so a numeric token slot would silently re-read every link written before
+   * boxes named their sets. These two tests are the pair that would fail if
+   * anyone moved it into the numbers.
+   */
+  it("names the qualifier token rather than counting it into a slot", () => {
+    expect(
+      encodePayouts([{ wins: 0, gems: 6000, packs: 0, qualifierTokens: 1 }]),
+    ).toBe("6000-0-token.1");
+    // Points still drop out when they are zero, because what follows is named.
+    expect(
+      encodePayouts([
+        { wins: 0, gems: 6000, packs: 0, playInPoints: 2, qualifierTokens: 1 },
+      ]),
+    ).toBe("6000-0-2-token.1");
+  });
+
+  it("round-trips a ladder paying a token, and leaves the old form alone", () => {
+    const payouts = [
+      { wins: 0, gems: 500, packs: 0 },
+      { wins: 1, gems: 6000, packs: 0, qualifierTokens: 1 },
+    ];
+    expect(decodePayouts(encodePayouts(payouts))).toEqual(payouts);
+    // The old five-number row still means three generic boxes and no token,
+    // which is the reading the named spelling exists to protect.
+    expect(decodePayouts("0-0-0-1-2")?.[0].qualifierTokens).toBeUndefined();
+    // A token beside boxes stays distinguishable from both, in either order.
+    expect(decodePayouts("0-0-play.spm-token.1")).toEqual([
+      {
+        wins: 0,
+        gems: 0,
+        packs: 0,
+        qualifierTokens: 1,
+        boxes: [{ kind: "play", set: "spm" }],
+      },
+    ]);
+    expect(decodePayouts("0-0-token.1-play.spm")).toEqual(
+      decodePayouts("0-0-play.spm-token.1"),
+    );
+    // And a row may not say the count twice, as for the pack kinds.
+    expect(decodePayouts("0-0-token.1-token.1")).toBeNull();
   });
 
   it("refuses a malformed box rather than guessing at it", () => {

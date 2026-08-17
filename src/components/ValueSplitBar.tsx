@@ -72,7 +72,12 @@ export function holdingSlices(
 ): ValueSlice[] {
   // The result's own keys, not the config's: the two disagree for the moment
   // between picking a new event and its simulation landing.
-  return reportedKeys(bankroll, config, bankroll.holdings.gold.mean > 0)
+  return reportedKeys(
+    bankroll,
+    config,
+    bankroll.holdings.gold.mean > 0,
+    bankroll.holdings.playInPoints.mean > 0,
+  )
     .map((key) => ({
       key,
       label: holdingLabel(config, key),

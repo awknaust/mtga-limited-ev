@@ -328,7 +328,12 @@ export function PayoutBreakdown({
 }) {
   // The result's own keys — see `reportedKeys`. A result outlives the config
   // that produced it by one simulation.
-  const keys = reportedKeys(bankroll, config, bankroll.holdings.gold.mean > 0);
+  const keys = reportedKeys(
+    bankroll,
+    config,
+    bankroll.holdings.gold.mean > 0,
+    bankroll.holdings.playInPoints.mean > 0,
+  );
 
   return (
     <>

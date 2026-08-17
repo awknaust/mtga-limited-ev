@@ -19,7 +19,7 @@ import { SimulationClient } from "./client";
 import { isAbortError } from "./protocol";
 
 const config = defaultConfig();
-const roll = { startingGems: 3000, startingGold: 0, maxEvents: 20 };
+const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 20 };
 
 /** The model's own answer, for a submission to be compared against. */
 const expected = (runs: number, seed = 1) => simulateBankrolls(config, roll, runs, seed);
