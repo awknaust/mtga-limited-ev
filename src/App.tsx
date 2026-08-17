@@ -28,6 +28,7 @@ import {
 } from "./components/Inputs";
 import { Mastery } from "./components/Mastery";
 import { PayoutBreakdown } from "./components/PayoutBreakdown";
+import { PayoutParts } from "./components/PayoutParts";
 import { PercentileSummary } from "./components/PercentileSummary";
 import { ResultsPlaceholder } from "./components/ResultsPlaceholder";
 import { RunLog } from "./components/RunLog";
@@ -65,6 +66,7 @@ import {
   winRatePosterior,
   maxPossibleWins,
   maxRounds,
+  payoutFor,
   paysBoxes,
   resizePayouts,
   startingValue,
@@ -73,6 +75,7 @@ import {
   type EventStructure,
   type PayoutBox,
   type PayoutTier,
+  type WinBucket,
 } from "./lib";
 import { fetchBoxPriceFeed } from "./liveBoxPrices";
 import {
@@ -135,6 +138,22 @@ const WIN_RATE_STEPS = [
 
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
+
+/**
+ * The widest gap between a simulated frequency and its closed-form probability,
+ * in percentage points.
+ *
+ * The outcome table dropped its simulated columns, and this is what took their
+ * place: rather than printing the Monte Carlo's answer beside the exact one on
+ * every row, the note under the table states the worst disagreement between
+ * them once. The check the two columns performed is the same check — it is
+ * being reported rather than left to the reader to do eight times.
+ */
+const worstBucketGap = (buckets: readonly WinBucket[]): number =>
+  buckets.reduce(
+    (worst, b) => Math.max(worst, Math.abs(b.probability - b.exactProbability)),
+    0,
+  ) * 100;
 
 
 export default function App() {
@@ -1741,21 +1760,24 @@ export default function App() {
               />
               <div className="table-responsive">
                 <table className="table table-sm align-middle mb-0">
+                  {/*
+                    Closed form throughout, the simulated columns having been
+                    dropped: an "Events" count and a "Simulated" percentage
+                    were the Monte Carlo answering, to two decimal places, the
+                    question the column beside them answered exactly. What is
+                    given up by that is the on-screen check, and the note under
+                    the table is where it went — one line stating how far the
+                    simulation is from these figures, rather than two columns
+                    of it. `Chance` therefore reads as itself: `Exact` only
+                    ever earned that name against the column it sat beside.
+                  */}
                   <thead>
                     <tr>
                       <th scope="col">Wins</th>
                       <th scope="col" className="text-end">
-                        Events
+                        Chance
                       </th>
-                      <th scope="col" className="text-end">
-                        Simulated
-                      </th>
-                      <th scope="col" className="text-end">
-                        Exact
-                      </th>
-                      <th scope="col" className="text-end">
-                        Packs
-                      </th>
+                      <th scope="col">Pays</th>
                       {/*
                         The ≈ is declared once, on the column, rather than on
                         every signed cell below it — the same way an axis names
@@ -1774,38 +1796,85 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {result.buckets.map((b) => (
-                      <tr key={b.wins}>
-                        <td className="fw-semibold text-primary">{b.wins}</td>
-                        <td className="text-end">{b.count.toLocaleString()}</td>
-                        <td className="text-end">{pct(b.probability, 2)}</td>
-                        <td className="text-end text-body-secondary">
-                          {pct(b.exactProbability, 2)}
-                        </td>
-                        <td className="text-end">{b.packs}</td>
-                        <td className="text-end">{eq(b.grossGems)}</td>
-                        <td className={`text-end ${signClass(b.netGems)}`}>
-                          {eq(b.netGems)}
-                        </td>
-                        <td
-                          className={`text-end ${signClass(b.probability * b.netGems)}`}
-                        >
-                          {eq2(b.probability * b.netGems)}
-                        </td>
-                      </tr>
-                    ))}
+                    {result.buckets.map((b) => {
+                      const tier = payoutFor(config, b.wins);
+                      return (
+                        <tr key={b.wins}>
+                          <td className="fw-semibold text-primary">{b.wins}</td>
+                          <td className="text-end">{pct(b.exactProbability, 2)}</td>
+                          {/*
+                            What the finish awards, itemised as the run log
+                            itemises an event that paid it. The pool is not
+                            here — it comes with entering rather than with a
+                            finish, so it is flat down the column and would be
+                            eight repetitions of one fact. The note says it
+                            once instead.
+                          */}
+                          <td>
+                            <PayoutParts
+                              prices={config.boxPrices}
+                              payout={{
+                                gems: tier.gems,
+                                packs: b.packs,
+                                playInPoints: b.playInPoints,
+                                boxes: tier.boxes ?? [],
+                              }}
+                            />
+                          </td>
+                          <td className="text-end">{eq(b.grossGems)}</td>
+                          <td className={`text-end ${signClass(b.netGems)}`}>
+                            {eq(b.netGems)}
+                          </td>
+                          <td
+                            className={`text-end ${signClass(b.exactProbability * b.netGems)}`}
+                          >
+                            {eq2(b.exactProbability * b.netGems)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                   <tfoot>
                     <tr className="border-top">
-                      <td colSpan={7} className="fw-semibold">
+                      <td colSpan={5} className="fw-semibold">
                         Expected net per event
                       </td>
-                      <td className={`text-end fw-semibold ${signClass(result.meanNet)}`}>
-                        {gemsEq2(result.meanNet)}
+                      {/*
+                        The closed-form mean, because the column above it is
+                        closed form: this is the sum of those contributions and
+                        has to be the number they add to. It is the simulated
+                        mean that the "Expected net" tile carries, with the
+                        interval that belongs to a sampled figure.
+                      */}
+                      <td
+                        className={`text-end fw-semibold ${signClass(result.exactMeanNet)}`}
+                      >
+                        {gemsEq2(result.exactMeanNet)}
                       </td>
                     </tr>
                   </tfoot>
                 </table>
+              </div>
+              {/*
+                The pool, said once. It is in every row's gross and in none of
+                their Pays, being what entering buys rather than what finishing
+                pays — and printing it on all eight rows would be eight
+                statements of one flat figure.
+              */}
+              <div className="form-text">
+                {config.draftPacks > 0 ? (
+                  <>
+                    Every gross also carries the pool you keep — {config.draftPacks}{" "}
+                    {config.draftPacks === 1 ? "pack" : "packs"}&rsquo; worth of
+                    cards, {gemsEq(config.draftPacks * config.draftPackValueGems)} —
+                    which entering pays for however the event goes.{" "}
+                  </>
+                ) : null}
+                These are closed form; the {result.trials.toLocaleString()} simulated
+                events agree with them to within{" "}
+                {worstBucketGap(result.buckets).toFixed(2)} points on any row, and{" "}
+                {gemsEq2(Math.abs(result.meanNet - result.exactMeanNet))} on the
+                total.
               </div>
 
               <SectionHeading
@@ -2282,7 +2351,7 @@ export default function App() {
                       Simulated events (Per event)
                       <InfoTip
                         label="About simulated events"
-                        content="How many single events the Per event tab simulates; it does not touch the Bankroll tab. More of them narrow the confidence interval on the mean, and the exact column beside it is closed form rather than simulated."
+                        content="How many single events the Per event tab simulates; it does not touch the Bankroll tab. More of them narrow the confidence interval on the mean, and bring the simulation closer to the closed-form figures in the outcome table."
                       />
                     </label>
                     <NumberInput
