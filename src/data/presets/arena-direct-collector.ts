@@ -11,11 +11,6 @@ import type { EventPreset } from "../../lib/types";
  * over a box at six; this one keeps paying — 14,400 gems and 32 packs at six —
  * and puts everything else on a single Collector Booster box at seven.
  *
- * That makes it the steepest ladder here by some distance. Six wins is a real
- * prize you can bank, seven trades it for one object worth more than the rest
- * of the table combined, and the two losses that end the run are as likely to
- * arrive at six as anywhere else.
- *
  * The only preset paying a collector box, and so the only thing exercising
  * the collector side of the box pricing. Like the Play variant it names
  * `LATEST_SET` rather than a set: the event runs alongside a release and pays

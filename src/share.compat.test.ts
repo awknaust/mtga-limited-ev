@@ -58,7 +58,7 @@ function fingerprint(state: ShareState): string {
     `structure  ${JSON.stringify(c.structure)}`,
     `entry      ${c.entryCostGems} gems / ${c.entryCostGold} gold`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
-    `values     pack=${c.packValueGems} playIn=${c.playInPointValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
+    `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
     `gold       other=${c.otherGoldPerDay}/day over ${c.eventsPerDay} events, goldPer10k=${c.gemsPer10kGold}`,
     /*
      * Derived rather than stored, and that is the point. A link pins inputs,
@@ -131,6 +131,47 @@ const CORPUS: [name: string, search: string][] = [
    * its boxes at market, and this link would stop meaning what it says.
    */
   ["arena direct with boxes valued at nothing", "?preset=arena-direct-play&playBoxValue=0"],
+  /*
+   * Mythic packs, which arrived after this file did. Contender Draft's ladder
+   * paid them from the start and spelled them as ordinary packs — 14 and 22 at
+   * the top two rungs — until the model could price the two apart. Both
+   * spellings are pinned here: the preset's own, and a link that carries the
+   * old fold and must go on meaning fourteen ordinary packs.
+   */
+  [
+    "a custom ladder paying mythic packs",
+    "?preset=custom&maxWins=3&maxLosses=2&payouts=0-0_0-0_1400-3_4200-10-mythic.4&mythicPackValue=45",
+  ],
+  [
+    "the old fold, where mythic packs were spelled as packs",
+    "?preset=custom&maxWins=3&maxLosses=2&payouts=0-0_0-0_1400-3_4200-14",
+  ],
+  /*
+   * Cube Prize Packs, which arrived with the mythic ones. Same pair: a ladder
+   * spelling them, and a link from when the cube drafts counted them as
+   * ordinary packs. The second is the one that matters — `?preset=
+   * premier-cube-draft` moved underneath every link naming it, and this is
+   * what someone who had spelled the old ladder out by hand still holds.
+   */
+  [
+    "a custom ladder paying cube packs",
+    "?preset=custom&maxWins=3&maxLosses=2&payouts=0-0_0-0_1000-0-cube.2_2200-0-cube.7&cubePackValue=60",
+  ],
+  [
+    "the cube ladder as it was spelled before cube packs existed",
+    "?preset=custom&maxWins=3&maxLosses=2&payouts=50-1_100-1_250-2_2200-7",
+  ],
+  /*
+   * All three kinds of pack on one row. No real ladder pays that and none is
+   * expected to, but the codec has to say which is which whatever it is
+   * handed, and the tokens are order-independent — so this pins that a row
+   * naming them in an order the encoder would not choose still decodes to the
+   * same three counts.
+   */
+  [
+    "every kind of pack at once, in an order the encoder would not write",
+    "?preset=custom&maxWins=2&maxLosses=2&payouts=0-0_0-0_500-3-cube.5-mythic.4",
+  ],
 ];
 
 describe("the parameter names are the contract", () => {
@@ -159,6 +200,8 @@ describe("the parameter names are the contract", () => {
         draftPacks: 6,
         draftPackValueGems: 7,
         packValueGems: 8,
+        mythicPackValueGems: 27,
+        cubePackValueGems: 28,
         playInPointValueGems: 9,
         playBoxValueGems: 10,
         collectorBoxValueGems: 11,
@@ -208,6 +251,7 @@ describe("the parameter names are the contract", () => {
       "collectorBoxValue",
       "companionValue",
       "confMatches",
+      "cubePackValue",
       "draftPackValue",
       "draftPacks",
       "draftTokenValue",
@@ -221,6 +265,7 @@ describe("the parameter names are the contract", () => {
       "maxLosses",
       "maxWins",
       "mythicIcrValue",
+      "mythicPackValue",
       "orbValue",
       "packValue",
       "payouts",
@@ -302,7 +347,7 @@ describe("the defaults are the contract", () => {
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23
-      values     pack=22 playIn=200 playBox=29866 collBox=120116
+      values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
       gold       other=600/day over 1 events, goldPer10k=1500
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6

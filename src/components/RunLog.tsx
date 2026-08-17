@@ -36,11 +36,13 @@ const counted = (n: number, one: string, many: string): string =>
  * which is what names them in the cramped cells of the log below.
  */
 const RUN_REWARDS: {
-  key: "packs" | "draftPacks" | "playInPoints";
+  key: "packs" | "mythicPacks" | "cubePacks" | "draftPacks" | "playInPoints";
   one: string;
   many: string;
 }[] = [
   { key: "packs", one: "pack", many: "packs" },
+  { key: "mythicPacks", one: "mythic pack", many: "mythic packs" },
+  { key: "cubePacks", one: "cube pack", many: "cube packs" },
   { key: "draftPacks", one: "draft pack", many: "draft packs" },
   { key: "playInPoints", one: "play-in point", many: "play-in points" },
 ];

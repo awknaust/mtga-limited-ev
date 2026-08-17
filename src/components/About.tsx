@@ -40,9 +40,10 @@ const BoxPricesLink = ({ onClick }: { onClick: () => void }) => (
  * so they are not lost: card quality is ignored, a pool counting only at what
  * duplicate protection converts it to; a run plays one event type throughout;
  * gold is credited per event at what an average number of wins would earn,
- * however that run went; packs are counted at face count, so Contender Draft's
- * mythic packs are understated; and tax withholding on cash prizes, which
- * Arena Direct's terms mention, is not deducted.
+ * however that run went; and tax withholding on cash prizes, which Arena
+ * Direct's terms mention, is not deducted. Contender Draft's mythic packs were
+ * on this list and are not any more — they are a reward of their own now, at a
+ * rate of their own, counted apart from the packs beside them.
  *
  * Two of that list were the Mastery Pass's, and both are already said where
  * they bite. Whether a season earns enough experience to finish the track is
@@ -115,6 +116,16 @@ export function About({
             <tr>
               <td>Packs</td>
               <td>{show(m, config.packValueGems)} each</td>
+            </tr>
+            <tr>
+              <td>Mythic packs</td>
+              <td>{show(m, config.mythicPackValueGems)} each</td>
+            </tr>
+            <tr>
+              {/* Wizards' name for them, since this table is where a reader
+                  checks what is being priced against the drop-rates page. */}
+              <td>Cube prize packs</td>
+              <td>{show(m, config.cubePackValueGems)} each</td>
             </tr>
             <tr>
               <td>Play-in points</td>

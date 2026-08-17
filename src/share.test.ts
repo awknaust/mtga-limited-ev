@@ -449,11 +449,87 @@ describe("payout table codec", () => {
     ).toBe("0-0-2");
   });
 
-  it("round-trips a ladder with points and boxes", () => {
+  it("names a row's mythic packs, before the boxes and after the numbers", () => {
+    expect(
+      encodePayouts([{ wins: 0, gems: 4200, packs: 10, mythicPacks: 4 }]),
+    ).toBe("4200-10-mythic.4");
+    // The empty points slot goes, as it does before a box: what follows is
+    // named, so nothing is counting places.
+    expect(
+      encodePayouts([
+        {
+          wins: 0,
+          gems: 0,
+          packs: 0,
+          mythicPacks: 2,
+          boxes: [{ kind: "play", set: "msh" }],
+        },
+      ]),
+    ).toBe("0-0-mythic.2-play.msh");
+    // And a row paying none says nothing about them, which is what keeps every
+    // link written before this unchanged.
+    expect(encodePayouts([{ wins: 0, gems: 50, packs: 1, mythicPacks: 0 }])).toBe("50-1");
+  });
+
+  /*
+   * The reason mythic packs are a named token rather than a fourth number: the
+   * fourth position is taken by the old positional play-box count, and a link
+   * carrying one has to go on meaning a box.
+   */
+  it("keeps the fourth position meaning boxes, not mythic packs", () => {
+    expect(decodePayouts("4000-3-0-1")).toEqual([
+      { wins: 0, gems: 4000, packs: 3, boxes: [{ kind: "play" }] },
+    ]);
+    expect(decodePayouts("4000-3-mythic.1")).toEqual([
+      { wins: 0, gems: 4000, packs: 3, mythicPacks: 1 },
+    ]);
+  });
+
+  it("refuses a malformed count token rather than guessing at it", () => {
+    // A count is required, and it is a whole number.
+    expect(decodePayouts("0-0-mythic")).toBeNull();
+    expect(decodePayouts("0-0-mythic.")).toBeNull();
+    expect(decodePayouts("0-0-mythic.two")).toBeNull();
+    expect(decodePayouts("0-0-mythic.1.5")).toBeNull();
+    // A row says each count once; twice is malformed rather than a sum.
+    expect(decodePayouts("0-0-mythic.2-mythic.3")).toBeNull();
+    // And it is not a box kind, so it takes no set.
+    expect(decodePayouts("0-0-mythic.msh")).toBeNull();
+    // The same holds of every token, which is one code path and one test.
+    expect(decodePayouts("0-0-cube")).toBeNull();
+    expect(decodePayouts("0-0-cube.two")).toBeNull();
+    expect(decodePayouts("0-0-cube.2-cube.3")).toBeNull();
+    // A name that is neither a count nor a box kind is not a third thing.
+    expect(decodePayouts("0-0-golden.2")).toBeNull();
+  });
+
+  it("keeps the counts apart, in whatever order a row names them", () => {
+    // Two kinds on one row, each landing in its own field — and the tokens
+    // are named, so the order they arrive in cannot swap them.
+    const both = { wins: 0, gems: 500, packs: 3, mythicPacks: 4, cubePacks: 5 };
+    expect(decodePayouts("500-3-mythic.4-cube.5")).toEqual([both]);
+    expect(decodePayouts("500-3-cube.5-mythic.4")).toEqual([both]);
+    // The encoder writes one order, so re-encoding either is the same string.
+    expect(encodePayouts([both])).toBe("500-3-mythic.4-cube.5");
+  });
+
+  it("mixes counts and boxes on one row without either eating the other", () => {
+    const row = {
+      wins: 0,
+      gems: 0,
+      packs: 0,
+      cubePacks: 2,
+      boxes: [{ kind: "play" as const, set: "msh" }, { kind: "collector" as const }],
+    };
+    expect(encodePayouts([row])).toBe("0-0-cube.2-play.msh-collector");
+    expect(decodePayouts("0-0-cube.2-play.msh-collector")).toEqual([row]);
+  });
+
+  it("round-trips a ladder with points, both kinds of pack and boxes", () => {
     const payouts = [
       { wins: 0, gems: 0, packs: 1 },
       { wins: 1, gems: 250, packs: 1 },
-      { wins: 2, gems: 1000, packs: 3, playInPoints: 2 },
+      { wins: 2, gems: 1000, packs: 3, mythicPacks: 4, cubePacks: 6, playInPoints: 2 },
       {
         wins: 3,
         gems: 2500,

@@ -7,6 +7,8 @@ import {
   DEFAULT_OTHER_GOLD_PER_DAY,
   DEFAULT_EVENTS_PER_DAY,
   DEFAULT_DRAFT_PACK_VALUE_GEMS,
+  DEFAULT_CUBE_PACK_VALUE_GEMS,
+  DEFAULT_MYTHIC_PACK_VALUE_GEMS,
   DEFAULT_PACK_VALUE_GEMS,
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
@@ -657,6 +659,17 @@ describe("holdings", () => {
   it("lists what a ladder pays, and only that", () => {
     expect(paidRewards(PREMIER_DRAFT.payouts)).toEqual(["packs"]);
     expect(paidRewards(TRADITIONAL_DRAFT.payouts)).toEqual(["packs", "playInPoints"]);
+    // The one ladder paying both kinds of pack, which is what puts a second
+    // pack card in its breakdown and a second column in its editor.
+    expect(paidRewards(CONTENDER_DRAFT.payouts)).toEqual(["packs", "mythicPacks"]);
+    /*
+     * The cubes are the other shape: Cube Prize Packs *instead of* packs, so
+     * "packs" is absent rather than joined. It is what makes the packs tile
+     * conditional — an "Avg packs won 0.0" on a ladder paying none is a fact
+     * about nothing.
+     */
+    expect(paidRewards(PREMIER_CUBE_DRAFT.payouts)).toEqual(["cubePacks"]);
+    expect(paidRewards(TRADITIONAL_CUBE_DRAFT.payouts)).toEqual(["cubePacks"]);
     // Boxes are not among these: which exist depends on which the ladder
     // names, so they arrive as their own holdings rather than as a fixed pair.
     expect(paidRewards(ARENA_DIRECT.payouts)).toEqual(["packs"]);
@@ -1094,6 +1107,8 @@ describe("bankroll", () => {
       finalGems: 1000,
       finalGold: 10_000,
       packs: 0,
+      mythicPacks: 0,
+      cubePacks: 0,
       draftPacks: 0,
       playInPoints: 0,
       boxes: [],
@@ -1540,6 +1555,7 @@ describe("presets", () => {
     // derivation on DEFAULT_PACK_VALUE_GEMS before changing it.
     expect(DEFAULT_PACK_VALUE_GEMS).toBe(22);
     expect(defaultConfig().packValueGems).toBe(DEFAULT_PACK_VALUE_GEMS);
+    expect(defaultConfig().mythicPackValueGems).toBe(DEFAULT_MYTHIC_PACK_VALUE_GEMS);
   });
 
   it("gives Premier Cube the Premier structure and gem ladder, but not its packs", () => {
@@ -1548,10 +1564,16 @@ describe("presets", () => {
     expect(PREMIER_CUBE_DRAFT.payouts.map((t) => t.gems)).toEqual(
       PREMIER_DRAFT.payouts.map((t) => t.gems),
     );
-    // Packs diverge from five wins up, paying more to offset the phantom pool.
-    expect(PREMIER_CUBE_DRAFT.payouts.map((t) => t.packs)).toEqual([
+    /*
+     * Counts diverge from five wins up, paying more to offset the phantom
+     * pool — and they are in the other column. A cube draft pays Cube Prize
+     * Packs *instead of* ordinary packs, so `packs` is zero down the whole
+     * ladder and reading it is how this gets silently mispriced.
+     */
+    expect(PREMIER_CUBE_DRAFT.payouts.map((t) => t.cubePacks)).toEqual([
       1, 1, 2, 2, 3, 5, 6, 7,
     ]);
+    expect(PREMIER_CUBE_DRAFT.payouts.every((t) => t.packs === 0)).toBe(true);
   });
 
   it("gives both cubes the same gem ladder as their non-cube twin", () => {
@@ -1559,7 +1581,7 @@ describe("presets", () => {
       TRADITIONAL_DRAFT.payouts.map((t) => t.gems),
     );
     // ...but one pack fewer at 3-0, and no play-in points at all.
-    expect(TRADITIONAL_CUBE_DRAFT.payouts.map((t) => t.packs)).toEqual([1, 1, 3, 5]);
+    expect(TRADITIONAL_CUBE_DRAFT.payouts.map((t) => t.cubePacks)).toEqual([1, 1, 3, 5]);
     expect(TRADITIONAL_DRAFT.payouts.map((t) => t.packs)).toEqual([1, 1, 3, 6]);
   });
 
@@ -1734,10 +1756,22 @@ describe("presets", () => {
       expect(t.gems).toBe(0);
       expect(t.packs).toBe(0);
     }
-    // Mythic packs are folded into the pack count at the top two tiers:
-    // 10 + 4 at six wins, 12 + 10 at seven.
-    expect(CONTENDER_DRAFT.payouts[6].packs).toBe(14);
-    expect(CONTENDER_DRAFT.payouts[7].packs).toBe(22);
+    /*
+     * The top two tiers pay both kinds, and the split is the contract: they
+     * were folded into one count of 14 and 22 while the model had nowhere to
+     * put a mythic pack, and the totals below are what that fold added up to.
+     * Getting the halves the wrong way round would leave both totals intact
+     * and misprice the ladder by hundreds of gems, so each is pinned.
+     */
+    expect(CONTENDER_DRAFT.payouts[6].packs).toBe(10);
+    expect(CONTENDER_DRAFT.payouts[6].mythicPacks).toBe(4);
+    expect(CONTENDER_DRAFT.payouts[7].packs).toBe(12);
+    expect(CONTENDER_DRAFT.payouts[7].mythicPacks).toBe(10);
+    // And no other ladder pays one, which is what makes the column a Contender
+    // column and the tile a Contender tile.
+    for (const preset of PRESETS.filter((p) => p !== CONTENDER_DRAFT)) {
+      expect(preset.payouts.every((t) => (t.mythicPacks ?? 0) === 0)).toBe(true);
+    }
   });
 
   it("pays only the drafted cards for a Contender run under three wins", () => {
@@ -1748,7 +1782,83 @@ describe("presets", () => {
       // The reward table pays nothing, but the pool is still yours.
       expect(grossValue(config, wins)).toBe(cards);
     }
-    expect(grossValue(config, 7)).toBe(cards + 7200 + 22 * config.packValueGems);
+    expect(grossValue(config, 7)).toBe(
+      cards + 7200 + 12 * config.packValueGems + 10 * config.mythicPackValueGems,
+    );
+  });
+
+  it("charges Contender's mythic packs to their own rate, count for count", () => {
+    /*
+     * The whole reason the two are separate fields: the rate one moves is the
+     * rate the other does not, and the ladder's counts decide how far. Nothing
+     * here says which rate is larger — that is the reader's to set, and the
+     * derivation of the default is on the constant.
+     */
+    expect(DEFAULT_MYTHIC_PACK_VALUE_GEMS).toBe(37);
+
+    const config = configFromPreset(CONTENDER_DRAFT, defaultConfig());
+    const gap = config.mythicPackValueGems - config.packValueGems;
+    const folded = { ...config, mythicPackValueGems: config.packValueGems };
+    expect(grossValue(config, 7) - grossValue(folded, 7)).toBe(10 * gap);
+    expect(grossValue(config, 6) - grossValue(folded, 6)).toBe(4 * gap);
+    // Everything below six wins pays none, so the split moves nothing there.
+    for (const wins of [0, 1, 2, 3, 4, 5]) {
+      expect(grossValue(config, wins)).toBe(grossValue(folded, wins));
+    }
+  });
+
+  it("prices a Cube Prize Pack from its published contents", () => {
+    /*
+     * The one pack whose contents Wizards publishes in full, so this is a sum
+     * over slots rather than a judgement. Three of the nine cards pay on a
+     * complete collection — the Timeless rare/mythic at ~1:6.5, the bonus
+     * sheet rare/mythic at ~1:5, and a fifth of the flex slot — and the
+     * derivation is written out on the constant.
+     */
+    const timeless = (5.5 / 6.5) * 20 + (1 / 6.5) * 40;
+    const bonusSheet = (4 / 5) * 20 + (1 / 5) * 40;
+    const flexRare = 0.2 * 20;
+    expect(DEFAULT_CUBE_PACK_VALUE_GEMS).toBe(
+      Math.round(timeless + bonusSheet + flexRare),
+    );
+    expect(DEFAULT_CUBE_PACK_VALUE_GEMS).toBe(51);
+
+    /*
+     * Wizards' own claim for these packs is that they carry "over twice the
+     * value of a normal Store pack". That sentence is no part of the sum
+     * above, so it is a genuine check on it rather than a restatement — and
+     * it is the check that would catch a slot dropped or double-counted.
+     */
+    expect(DEFAULT_CUBE_PACK_VALUE_GEMS).toBeGreaterThan(2 * DEFAULT_PACK_VALUE_GEMS);
+    expect(DEFAULT_CUBE_PACK_VALUE_GEMS).toBeLessThan(3 * DEFAULT_PACK_VALUE_GEMS);
+  });
+
+  it("prices a cube ladder at cube packs, and at nothing when they are zeroed", () => {
+    const config = configFromPreset(PREMIER_CUBE_DRAFT, defaultConfig());
+    // Phantom, so there is no pool in the gross — the ladder is all of it.
+    expect(config.draftPacks).toBe(0);
+    expect(grossValue(config, 7)).toBe(2200 + 7 * config.cubePackValueGems);
+
+    /*
+     * The two rates are independent, and on this ladder that bites: zeroing
+     * ordinary packs changes nothing at all here, because none are paid.
+     * Someone pricing packs at nothing has said nothing about cube packs.
+     */
+    expect(grossValue({ ...config, packValueGems: 0 }, 7)).toBe(grossValue(config, 7));
+    expect(grossValue({ ...config, cubePackValueGems: 0 }, 7)).toBe(2200);
+  });
+
+  it("zeroes mythic packs on their own rate, not on the pack rate", () => {
+    // The two fields are independent in both directions: repricing packs to
+    // nothing leaves the mythic packs paying, and the reverse.
+    const config = configFromPreset(CONTENDER_DRAFT, defaultConfig());
+    const cards = config.draftPacks * config.draftPackValueGems;
+    expect(grossValue({ ...config, packValueGems: 0 }, 7)).toBe(
+      cards + 7200 + 10 * config.mythicPackValueGems,
+    );
+    expect(grossValue({ ...config, mythicPackValueGems: 0 }, 7)).toBe(
+      cards + 7200 + 12 * config.packValueGems,
+    );
   });
 
   it("models Sealed as BO1 to 7 wins or 3 losses", () => {

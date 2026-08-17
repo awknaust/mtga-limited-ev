@@ -26,14 +26,28 @@ export type ValueSliceKey = HoldingKey | MasteryRewardKind;
 /**
  * The colour a segment takes, as `.slice-<name>` in the stylesheet.
  *
- * Usually the key itself. Boxes are the exception and share one colour: their
- * keys carry a set code, so there is no fixed list of them to give colours to
- * — and a bar showing four sets' boxes in four hues would be colouring the
- * least interesting difference on it. They are still separate segments, with
- * separate labels and separate amounts.
+ * Usually the key itself, with two families sharing a hue between them. Boxes
+ * share one because their keys carry a set code, so there is no fixed list of
+ * them to give colours to — and a bar showing four sets' boxes in four hues
+ * would be colouring the least interesting difference on it. Packs share one
+ * because a fourth green was a hue nobody could tell from the third: what a
+ * reader is after is packs against gems and boxes, not one pack against
+ * another.
+ *
+ * Sharing a colour is not sharing a segment. Each keeps its own segment, its
+ * own label and its own amount, and hovering still names which it is — the
+ * bar goes on summing to the figure above it either way.
+ *
+ * A key with no rule of its own draws no colour at all, since `--slice` then
+ * has no value and the background falls back to the bar's dark track. That is
+ * what a missed entry here looks like, and it is why the families are mapped
+ * rather than each new key being given a hue.
  */
-export const sliceColor = (key: ValueSliceKey): string =>
-  isBoxHolding(key) ? "boxes" : key;
+export const sliceColor = (key: ValueSliceKey): string => {
+  if (isBoxHolding(key)) return "boxes";
+  if (key === "mythicPacks" || key === "cubePacks") return "packs";
+  return key;
+};
 
 /** One component of a total: what it is, how much of it, and what it came to. */
 export type ValueSlice = {

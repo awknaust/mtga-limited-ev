@@ -642,6 +642,13 @@ body {
   --slice: #fbbf24;
 }
 
+/*
+ * Every pack a run wins, mythic ones included. Two greens far enough apart to
+ * name would still be two greens on a bar the height of a rule, so the kinds
+ * are told apart by segment and label rather than by hue — the same call the
+ * boxes below make, for the same reason. Draft packs keep their own colour:
+ * they are the pool entering buys rather than a pack a finish paid.
+ */
 .slice-packs {
   --slice: #34d399;
 }

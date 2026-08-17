@@ -36,6 +36,8 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   draftPacks: 4,
   draftPackValueGems: 24,
   packValueGems: 23,
+  mythicPackValueGems: 38,
+  cubePackValueGems: 52,
   playInPointValueGems: 201,
   playBoxValueGems: 1,
   collectorBoxValueGems: 2,
