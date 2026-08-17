@@ -23,6 +23,7 @@ import {
   GemInput,
   GoldInput,
   MoneyInput,
+  PointsInput,
   NumberInput,
   UsdInput,
 } from "./components/Inputs";
@@ -95,6 +96,8 @@ type TopUp = {
   entryGems: number;
   /** 0 where the event takes gems only, which changes what the prompt says. */
   goldPrice: number;
+  /** 0 where the event takes no play-in points, which is every event but two. */
+  pointPrice: number;
   suggested: number;
 };
 
@@ -155,6 +158,7 @@ const PAYOUT_COLUMNS = [
   { key: "mythicPacks", label: "Mythic", icon: "bi-stars" },
   { key: "cubePacks", label: "Cube", icon: "bi-box" },
   { key: "playInPoints", label: "Points", icon: "bi-ticket-perforated" },
+  { key: "qualifierTokens", label: "Tokens", icon: "bi-trophy" },
 ] as const satisfies readonly {
   key: keyof PayoutTier;
   label: string;
@@ -251,6 +255,10 @@ export default function App({
   const [winRateStepped, setWinRateStepped] = useState("");
   const [startingGems, setStartingGems] = useState(initial.startingGems);
   const [startingGold, setStartingGold] = useState(initial.startingGold);
+  // Only the Qualifier Play-Ins spend these, and nothing here refills them.
+  const [startingPlayInPoints, setStartingPlayInPoints] = useState(
+    initial.startingPlayInPoints,
+  );
   // Where the player stops, not a numerical guard — a run that never busts has
   // to end somewhere, and how long you intend to play is a real input.
   const [maxEvents, setMaxEvents] = useState(initial.maxEvents);
@@ -298,6 +306,7 @@ export default function App({
     seed,
     startingGems,
     startingGold,
+    startingPlayInPoints,
     maxEvents,
     tab,
     masterySlug,
@@ -329,6 +338,7 @@ export default function App({
     seed,
     startingGems,
     startingGold,
+    startingPlayInPoints,
     maxEvents,
     tab,
     unit,
@@ -503,6 +513,7 @@ export default function App({
     winRate: `${uid}-win-rate`,
     entry: `${uid}-entry`,
     entryGold: `${uid}-entry-gold`,
+    entryPoints: `${uid}-entry-points`,
     draftPacks: `${uid}-draft-packs`,
     draftPackValue: `${uid}-draft-pack-value`,
     goldPerDay: `${uid}-gold-per-day`,
@@ -513,6 +524,7 @@ export default function App({
     cubePackValue: `${uid}-cube-pack-value`,
     funValue: `${uid}-fun-value`,
     playInValue: `${uid}-play-in-value`,
+    qualifierTokenValue: `${uid}-qualifier-token-value`,
     playBoxValue: `${uid}-play-box-value`,
     collectorBoxValue: `${uid}-collector-box-value`,
     draftTokenValue: `${uid}-draft-token-value`,
@@ -528,6 +540,7 @@ export default function App({
     seed: `${uid}-seed`,
     startGems: `${uid}-start-gems`,
     startGold: `${uid}-start-gold`,
+    startPoints: `${uid}-start-points`,
     maxEvents: `${uid}-max-events`,
     gemsPerUsd: `${uid}-gems-per-usd`,
     confMatches: `${uid}-conf-matches`,
@@ -563,8 +576,24 @@ export default function App({
    * select on Custom changes the config under the same name and debounces.
    */
   const bankrollParams = useMemo(
-    () => ({ config, startingGems, startingGold, maxEvents, runs: bankrollRuns, seed }),
-    [config, startingGems, startingGold, maxEvents, bankrollRuns, seed],
+    () => ({
+      config,
+      startingGems,
+      startingGold,
+      startingPlayInPoints,
+      maxEvents,
+      runs: bankrollRuns,
+      seed,
+    }),
+    [
+      config,
+      startingGems,
+      startingGold,
+      startingPlayInPoints,
+      maxEvents,
+      bankrollRuns,
+      seed,
+    ],
   );
   const {
     result: bankroll,
@@ -584,7 +613,12 @@ export default function App({
    * the same way. Judged against bare starting gems, a run beginning with
    * gold would read as ahead before it played anything.
    */
-  const startValue = startingValue(config, startingGems, startingGold);
+  const startValue = startingValue(
+    config,
+    startingGems,
+    startingGold,
+    startingPlayInPoints,
+  );
   /*
    * The win rate is a guess, so these carry how much of one. Null throughout
    * when the player has called it certain.
@@ -650,17 +684,22 @@ export default function App({
      * bankroll run ends before its first entry, so every figure on that tab is
      * the starting balance restated. That reads as a broken app rather than as
      * an empty wallet, so it is worth interrupting for — but only in that case,
-     * which is why the test is whether *either* currency covers one entry
-     * rather than whether both do.
+     * which is why the test is whether *any* of the three currencies covers
+     * one entry rather than whether all of them do. Points are one of the
+     * three now: someone holding twenty of them can enter a Play-In with an
+     * empty gem balance, and interrupting them would be plain wrong.
      */
     const gemsCover = startingGems >= preset.entryCostGems;
     const goldPrice = preset.entryCostGold ?? 0;
     const goldCovers = goldPrice > 0 && startingGold >= goldPrice;
-    if (gemsCover || goldCovers) return;
+    const pointPrice = preset.entryCostPlayInPoints ?? 0;
+    const pointsCover = pointPrice > 0 && startingPlayInPoints >= pointPrice;
+    if (gemsCover || goldCovers || pointsCover) return;
     setTopUp({
       name: preset.name,
       entryGems: preset.entryCostGems,
       goldPrice,
+      pointPrice,
       suggested: STARTING_ENTRIES * preset.entryCostGems,
     });
   };
@@ -682,6 +721,7 @@ export default function App({
     setSeed(next.seed);
     setStartingGems(next.startingGems);
     setStartingGold(next.startingGold);
+    setStartingPlayInPoints(next.startingPlayInPoints);
     setMaxEvents(next.maxEvents);
     setTab(next.tab);
     setMasterySlug(next.masterySlug);
@@ -756,8 +796,8 @@ export default function App({
   // below are meaningless without it.
   const structureSummary =
     structure.kind === "rounds"
-      ? `${structure.rounds} rounds played in full`
-      : `to ${structure.maxWins} wins or ${structure.maxLosses} losses`;
+      ? `${structure.rounds} round${structure.rounds === 1 ? "" : "s"} played in full`
+      : `to ${structure.maxWins} win${structure.maxWins === 1 ? "" : "s"} or ${structure.maxLosses} loss${structure.maxLosses === 1 ? "" : "es"}`;
 
   /*
    * Bankroll tile building tolerates a result that has not arrived:
@@ -769,6 +809,8 @@ export default function App({
    */
   /** Null unless the ladder pays boxes, which is what makes the strip move. */
   const box = bankroll?.boxChance ?? null;
+  /** Null unless the ladder pays a Qualifier token, i.e. on the two Play-Ins. */
+  const token = bankroll?.tokenChance ?? null;
   /** Null only on an empty wallet, where there is nothing to return on. */
   const runRoi = bankroll === null ? null : bankrollRoi(bankroll.meanFinalValue, startValue);
   /*
@@ -919,6 +961,47 @@ export default function App({
     : [];
 
   /**
+   * The same question for the Play-Ins, and the only one worth asking of them.
+   *
+   * A Play-In pays gems down its whole ladder, so unlike an Arena Direct it is
+   * not a lottery with a consolation prize — but the thing anyone enters one
+   * *for* is the Qualifier Weekend seat, which is won at the top and nowhere
+   * else. There is no expected-tokens counterpart to this on the other tab, and
+   * there should not be: a second token is redundant, so a mean would count
+   * something nobody receives.
+   *
+   * Two chance tiles never appear together on any preset — no ladder pays both
+   * a box and a token — so this costs the strip nothing where it is not shown.
+   */
+  const tokenChanceTiles: StatTile[] = token && bankroll
+    ? [
+        {
+          key: "token",
+          label: (
+            <>
+              <i className="bi bi-trophy me-1" aria-hidden="true" />
+              Chance of a qualifier token
+            </>
+          ),
+          value: pct(token.probAny),
+          // Same reading as the box band above, and the same fallback when the
+          // rate is called certain and there is no range left to report.
+          hint: token.interval
+            ? `plausibly ${pct(token.interval[0])} to ${pct(token.interval[1])}`
+            : `give or take ${pct(1.96 * Math.sqrt((token.probAny * (1 - token.probAny)) / bankroll.trials))}`,
+          help: {
+            label: "What chance of a qualifier token means",
+            content: `The share of simulated runs that won at least one Qualifier Weekend token — the seat a Play-In is played for. At 10%, one player in ten who plays this way earns one. Winning a second is no better than winning one, so this is a chance rather than an average. ${
+              token.interval
+                ? `The range underneath is this chance at each end of the win rates your record supports, covering ${pct(token.level, 0)} of them.`
+                : "With the win rate exactly known, the give-or-take underneath is only the simulation's sampling noise (95% confidence)."
+            }`,
+          },
+        },
+      ]
+    : [];
+
+  /**
    * The bankroll tiles, in the order they earn their place.
    *
    * Four show and the rest sit behind the strip's arrow, so the order is a
@@ -938,14 +1021,25 @@ export default function App({
    * strip runs to six: the tiles pair up as value with ROI and events played
    * with ruin, and showing one of each pair beats showing both halves of one.
    *
-   * Six is the most this ever runs to. The closed-form chance of a box for a
-   * single entry was among them for a while and has been taken out again: it
-   * answers a question nobody asked of a page about bankrolls, and sitting in
-   * the same row as the run-level chance it mostly invited the two to be
-   * confused. It lives on the Long-term value tab, under the expected-boxes
-   * tile, and holds this simulation to account in the tests.
+   * Six is the most this ever runs to on a preset. The two prize tiles are
+   * mutually exclusive across every event here — the Arena Directs pay boxes,
+   * the Play-Ins pay tokens, and nothing pays both — so only one is ever at
+   * the front. A *custom* ladder paying both would reach seven, which the
+   * strip scrolls rather than breaks on.
+   *
+   * The closed-form chance of a box for a single entry was among them for a
+   * while and has been taken out again: it answers a question nobody asked of
+   * a page about bankrolls, and sitting in the same row as the run-level
+   * chance it mostly invited the two to be confused. It lives on the Long-term
+   * value tab, under the expected-boxes tile, and holds this simulation to
+   * account in the tests.
    */
-  const bankrollTiles: StatTile[] = [...boxChanceTiles, ...runTiles, ...packsTiles];
+  const bankrollTiles: StatTile[] = [
+    ...boxChanceTiles,
+    ...tokenChanceTiles,
+    ...runTiles,
+    ...packsTiles,
+  ];
 
   /*
    * Boxes per entry, where the ladder pays them. A mean rather than a chance,
@@ -1235,7 +1329,27 @@ export default function App({
                     />
                   </div>
                   {/*
-                    The two balances as the one figure the results judge runs
+                    Full width beneath the two currencies rather than beside
+                    them: it is the balance most readers have none of, and
+                    narrowing the two they do have to make room would be the
+                    wrong trade.
+                  */}
+                  <div className="col-12">
+                    <label htmlFor={ids.startPoints} className="form-label">
+                      Starting play-in points
+                      <InfoTip
+                        label="About play-in points"
+                        content="Points you have banked. Twenty enter a Qualifier Play-In, and the simulation spends them before gold or gems since nothing else in Arena takes them."
+                      />
+                    </label>
+                    <PointsInput
+                      id={ids.startPoints}
+                      value={startingPlayInPoints}
+                      onChange={setStartingPlayInPoints}
+                    />
+                  </div>
+                  {/*
+                    The balances as the one figure the results judge runs
                     against, priced both ways — the gems Arena would show and
                     the dollars they would cost, since deciding whether a
                     bankroll is worth playing means weighing it against what
@@ -1437,6 +1551,21 @@ export default function App({
                       disabled={locked}
                       value={config.entryCostGold}
                       onChange={(n) => set("entryCostGold", n)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.entryPoints} className="form-label">
+                      Entry cost (points)
+                      <InfoTip
+                        label="About the points entry"
+                        content="The entry price in play-in points, for the Qualifier Play-Ins. Set 0 for events that do not take them. Banked points are spent before gold or gems, since nothing else in Arena takes them."
+                      />
+                    </label>
+                    <PointsInput
+                      id={ids.entryPoints}
+                      disabled={locked}
+                      value={config.entryCostPlayInPoints}
+                      onChange={(n) => set("entryCostPlayInPoints", n)}
                     />
                   </div>
                   <div className="col-6">
@@ -1830,6 +1959,7 @@ export default function App({
                                 mythicPacks: b.mythicPacks,
                                 cubePacks: b.cubePacks,
                                 playInPoints: b.playInPoints,
+                                qualifierTokens: b.qualifierTokens,
                                 boxes: tier.boxes ?? [],
                               }}
                             />
@@ -1987,6 +2117,7 @@ export default function App({
                         mythicPackValueGems: 0,
                         cubePackValueGems: 0,
                         playInPointValueGems: 0,
+                        qualifierTokenValueGems: 0,
                         playBoxValueGems: 0,
                         collectorBoxValueGems: 0,
                         draftTokenValueGems: 0,
@@ -2070,7 +2201,7 @@ export default function App({
                       Play-in point value ({m.label})
                       <InfoTip
                         label="About play-in point value"
-                        content="Priced by what the points buy: 20 cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point."
+                        content="Priced by what the points buy: 20 cover a Qualifier Play-In that otherwise costs 4,000 gems, so 200 a point."
                       />
                     </label>
                     <MoneyInput
@@ -2079,6 +2210,21 @@ export default function App({
                     gemValue={config.playInPointValueGems}
                     onChange={(n) => set("playInPointValueGems", n)}
                   />
+                  </div>
+                  <div className="col-6">
+                    <label htmlFor={ids.qualifierTokenValue} className="form-label">
+                      Qualifier token value ({m.label})
+                      <InfoTip
+                        label="About qualifier token value"
+                        content="What a Qualifier Weekend seat is worth to you. Zero by default because nothing sells one. Day One pays 500 to 12,000 gems by wins, about 4,830 at a 55% win rate."
+                      />
+                    </label>
+                    <MoneyInput
+                      id={ids.qualifierTokenValue}
+                      m={m}
+                      gemValue={config.qualifierTokenValueGems}
+                      onChange={(n) => set("qualifierTokenValueGems", n)}
+                    />
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.funValue} className="form-label">
@@ -2484,6 +2630,12 @@ export default function App({
                         {" "}
                         Your gold does not cover its{" "}
                         {topUp.goldPrice.toLocaleString()} gold price either.
+                      </>
+                    )}
+                    {topUp.pointPrice > 0 && (
+                      <>
+                        {" "}
+                        Nor do your play-in points cover its {topUp.pointPrice}.
                       </>
                     )}{" "}
                     Set your balance to{" "}

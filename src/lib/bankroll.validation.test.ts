@@ -161,6 +161,7 @@ function valueAt(config: EventConfig, wins: number): number {
     row.gems +
     row.packs * config.packValueGems +
     (row.playInPoints ?? 0) * config.playInPointValueGems +
+    (row.qualifierTokens ?? 0) * config.qualifierTokenValueGems +
     (row.boxes ?? []).reduce((acc, box) => acc + boxAt(config, box), 0) +
     config.draftPacks * config.draftPackValueGems
   );
@@ -235,6 +236,7 @@ function gemsOnly(over: Partial<EventConfig> = {}): EventConfig {
 const NO_GOLD: BankrollConfig = {
   startingGems: 0,
   startingGold: 0,
+  startingPlayInPoints: 0,
   maxEvents: 0,
 };
 
@@ -362,6 +364,23 @@ describe("gambler's ruin", () => {
   const varRuinTime = (k: number, p: number): number =>
     (k * 4 * p * (1 - p)) / (1 - 2 * p) ** 3;
 
+  /**
+   * What the two heavy walks below are allowed to take.
+   *
+   * They are the most expensive checks in the suite by an order of magnitude —
+   * 200,000 runs over three configs, and 20,000 runs to a 20,000-event ceiling —
+   * because the bounds they assert are four standard errors wide and a standard
+   * error shrinks with the square root of the trial count. Cutting the trials to
+   * fit a budget would widen the bounds and cost the test its teeth.
+   *
+   * Vitest's bare 5s default was never a budget chosen for that. It was ~94% spent
+   * on CI before anything here changed, so any edit to the simulation — by anyone,
+   * for any reason — tipped it over and failed a test that had found no defect.
+   * This says what the tests actually need, so a real hang still fails and an
+   * ordinary 5% slowdown does not.
+   */
+  const WALK_TIMEOUT_MS = 30_000;
+
   it("plays k / (q − p) events before going broke", () => {
     const trials = 200_000;
     for (const [k, p] of [
@@ -388,7 +407,7 @@ describe("gambler's ruin", () => {
       // Ruin is certain, so the cap must never be what ended a run.
       expect(res.survivedFraction).toBe(0);
     }
-  });
+  }, WALK_TIMEOUT_MS);
 
   it("never busts when the walk drifts upward, so the cap is what stops it", () => {
     // p > ½ leaves a positive chance of never hitting zero. The survivors are
@@ -406,7 +425,7 @@ describe("gambler's ruin", () => {
     const se = Math.sqrt((escapes * (1 - escapes)) / trials);
     expect(res.survivedFraction).toBeGreaterThan(escapes - 4 * se);
     expect(res.survivedFraction).toBeLessThan(escapes + 4 * se);
-  });
+  }, WALK_TIMEOUT_MS);
 });
 
 /* ────────────────────────────────────────────────────────────────────────
@@ -929,6 +948,7 @@ describe("gold-funded entries", () => {
   const roll: BankrollConfig = {
     startingGems: 10_000,
     startingGold: 0,
+    startingPlayInPoints: 0,
     maxEvents: 500,
   };
 
@@ -974,9 +994,89 @@ describe("gold-funded entries", () => {
      * only place the difference shows.
      */
     const logged = simulateBankroll(config, roll, seededRandom(1), true);
-    const paidWithGold = logged.log!.filter((e) => e.paidWithGold).map((e) => e.event);
+    const paidWithGold = logged.log!
+      .filter((e) => e.paidWith === "gold")
+      .map((e) => e.event);
     expect(paidWithGold).toEqual([6, 11, 16]);
     expect(paidWithGold).toHaveLength(goldEntries(run.events));
+  });
+
+  /*
+   * The three-way order, derived the same way: a stock of points that drains
+   * before anything else is touched.
+   *
+   * Points are not a flow — nothing on this ladder pays them — so the
+   * arithmetic is simpler than the gold case and can be pinned exactly.
+   * Sixty points at twenty an entry is three entries, and only then does the
+   * run fall through to the gold-and-gems behaviour above.
+   */
+  const POINT_PRICE = 20;
+  const pointed: EventConfig = { ...config, entryCostPlayInPoints: POINT_PRICE };
+
+  it("drains banked points before it touches gold or gems", () => {
+    const banked = { ...roll, startingPlayInPoints: 3 * POINT_PRICE };
+    const logged = simulateBankroll(pointed, banked, seededRandom(1), true);
+    const paidWith = logged.log!.map((e) => e.paidWith);
+    // The first three entries are free in both currencies, and nothing after
+    // them is paid in points, because none come back.
+    expect(paidWith.slice(0, 3)).toEqual(["points", "points", "points"]);
+    expect(paidWith.filter((c) => c === "points")).toHaveLength(3);
+    expect(logged.log![2].pointBalance).toBe(0);
+    // Gems are untouched across those three, which is the whole claim.
+    expect(logged.log![2].gemBalance).toBe(roll.startingGems + 3 * LOSS_GEMS);
+  });
+
+  it("buys more than the three events the points paid for", () => {
+    const banked = { ...roll, startingPlayInPoints: 3 * POINT_PRICE };
+    const withPoints = simulateBankroll(pointed, banked, seededRandom(1));
+    /*
+     * Four more events, not three, and the extra one is the interesting part:
+     * gold accrues per *event* rather than per gem spent, so the three
+     * points-funded events earn their 1,000 apiece just like any other. That
+     * is 3,000 gold the run would not otherwise have had, which is most of a
+     * fourth entry.
+     *
+     * Derived rather than observed. Gold reaches the 5,000 price on events 6,
+     * 11, 16 and 21 — the same five-event cadence as without points, since
+     * the free entries neither spend gold nor stop it accruing — so those
+     * four are gold-funded, three are points-funded, and the remaining
+     * fourteen come out of gems:
+     *
+     *     gems = 10,000 + 21 × 50 − 750 × 14 = 550
+     *     gold = 21 × 1,000 − 5,000 × 4      = 1,000
+     *
+     * and a twenty-second entry can be paid by none of the three.
+     */
+    expect(withPoints.events).toBe(21);
+    expect(withPoints.events).toBe(run.events + 4);
+    expect(withPoints.finalGems).toBe(550);
+    expect(withPoints.finalGold).toBe(1_000);
+    expect(withPoints.playInPoints).toBe(0);
+
+    const logged = simulateBankroll(pointed, banked, seededRandom(1), true);
+    expect(
+      logged.log!.filter((e) => e.paidWith === "gold").map((e) => e.event),
+    ).toEqual([6, 11, 16, 21]);
+  });
+
+  it("busts only when none of the three covers an entry", () => {
+    // Points alone, and not enough for a second entry: the run plays exactly
+    // one event and stops, because gems and gold are both empty too.
+    const brokeButPointed = {
+      startingGems: 0,
+      startingGold: 0,
+      startingPlayInPoints: POINT_PRICE,
+      maxEvents: 500,
+    };
+    const one = simulateBankroll(pointed, brokeButPointed, seededRandom(1));
+    expect(one.events).toBe(1);
+    // A stray point short of the entry buys nothing at all.
+    const short = simulateBankroll(
+      pointed,
+      { ...brokeButPointed, startingPlayInPoints: POINT_PRICE - 1 },
+      seededRandom(1),
+    );
+    expect(short.events).toBe(0);
   });
 });
 

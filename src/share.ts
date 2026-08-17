@@ -47,6 +47,8 @@ export type ShareState = {
   seed: number;
   startingGems: number;
   startingGold: number;
+  /** Play-in points banked at the start; only the Play-Ins spend them. */
+  startingPlayInPoints: number;
   maxEvents: number;
   tab: Tab;
   /**
@@ -119,6 +121,10 @@ export function defaultShareState(): ShareState {
     seed: 1,
     startingGems: STARTING_ENTRIES * opening.entryCostGems,
     startingGold: 0,
+    // Zero, like the gold: the app opens on a draft, which has no use for
+    // points, and a balance nothing spends would be noise in the tile that
+    // prices the starting bankroll.
+    startingPlayInPoints: 0,
     maxEvents: 20,
     tab: "bankroll",
     masterySlug: CURRENT_MASTERY_TRACK.slug,
@@ -158,6 +164,7 @@ export function resetAdvanced(state: ShareState): ShareState {
       structure: state.config.structure,
       entryCostGems: state.config.entryCostGems,
       entryCostGold: state.config.entryCostGold,
+      entryCostPlayInPoints: state.config.entryCostPlayInPoints,
       draftPacks: state.config.draftPacks,
       payouts: state.config.payouts,
       /*
@@ -172,6 +179,7 @@ export function resetAdvanced(state: ShareState): ShareState {
     // The Bankroll card's.
     startingGems: state.startingGems,
     startingGold: state.startingGold,
+    startingPlayInPoints: state.startingPlayInPoints,
     maxEvents: state.maxEvents,
     // Where the page is pointed, which is not a setting to restore.
     tab: state.tab,
@@ -231,12 +239,14 @@ const CONFIG_NUMBERS = [
   ["wr", "winRate"],
   ["entry", "entryCostGems"],
   ["entryGold", "entryCostGold"],
+  ["entryPoints", "entryCostPlayInPoints"],
   ["draftPacks", "draftPacks"],
   ["draftPackValue", "draftPackValueGems"],
   ["packValue", "packValueGems"],
   ["mythicPackValue", "mythicPackValueGems"],
   ["cubePackValue", "cubePackValueGems"],
   ["playInValue", "playInPointValueGems"],
+  ["qualifierTokenValue", "qualifierTokenValueGems"],
   ["playBoxValue", "playBoxValueGems"],
   ["collectorBoxValue", "collectorBoxValueGems"],
   /*
@@ -284,6 +294,7 @@ const CONFIG_NUMBERS = [
 const UI_NUMBERS = [
   ["startGems", "startingGems"],
   ["startGold", "startingGold"],
+  ["startPoints", "startingPlayInPoints"],
   ["maxEvents", "maxEvents"],
   ["gemsPerUsd", "gemsPerUsd"],
   ["runs", "bankrollRuns"],
@@ -356,6 +367,7 @@ const BOX_KIND_TOKENS = new Set<string>(BOX_KINDS);
 const COUNT_TOKENS = [
   ["mythic", "mythicPacks"],
   ["cube", "cubePacks"],
+  ["token", "qualifierTokens"],
 ] as const satisfies readonly (readonly [string, keyof PayoutTier])[];
 
 /** The tier fields those tokens write, which are all optional counts. */
@@ -559,6 +571,11 @@ export function decodeShareState(search: string): ShareState {
     seed: numberFrom(params, "seed", fallback.seed, { int: true }),
     startingGems: numberFrom(params, "startGems", fallback.startingGems),
     startingGold: numberFrom(params, "startGold", fallback.startingGold),
+    startingPlayInPoints: numberFrom(
+      params,
+      "startPoints",
+      fallback.startingPlayInPoints,
+    ),
     maxEvents: numberFrom(params, "maxEvents", fallback.maxEvents, {
       min: 1,
       max: SIM_LIMITS.maxEvents,

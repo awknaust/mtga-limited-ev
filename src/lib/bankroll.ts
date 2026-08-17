@@ -25,6 +25,7 @@ import {
   holding,
   holdingRate,
   paysBoxes,
+  paysTokens,
   type HoldingKey,
 } from "./holdings";
 import { goldPerEvent, payoutFor } from "./payouts";
@@ -76,6 +77,16 @@ export type BankrollConfig = {
   startingGems: number;
   startingGold: number;
   /**
+   * Play-in points banked before the run starts.
+   *
+   * The one starting balance that only ever goes down. Points are paid by a
+   * couple of ladders and charged by the Qualifier Play-Ins, and no event does
+   * both — so within a single run this is a stock that drains. It is why the
+   * Play-In tab answers "how far do my banked points get me" rather than
+   * anything about a steady state.
+   */
+  startingPlayInPoints: number;
+  /**
    * Events after which a run is cut short. A profitable event never busts, so
    * without a ceiling those runs would not terminate.
    */
@@ -103,7 +114,16 @@ export type BankrollResult = {
    *
    * Null when it does not, which is every event here but the Arena Directs.
    */
-  boxChance: BoxChance | null;
+  boxChance: PrizeChance | null;
+  /**
+   * The chance of coming away with a Qualifier Weekend token, where the ladder
+   * pays one at all.
+   *
+   * Null when it does not, which is every event here but the two Play-Ins. It
+   * is the only figure the app reports about tokens, and deliberately: a second
+   * token is redundant, so a mean would count something nobody receives.
+   */
+  tokenChance: PrizeChance | null;
   /** Gems plus the gem value of everything won along the way. */
   meanFinalValue: number;
   /**
@@ -125,21 +145,23 @@ export type BankrollResult = {
 };
 
 /**
- * How often a run comes away with a box, and how far that answer moves with
- * the win rate.
+ * How often a run comes away with the prize it was played for, and how far that
+ * answer moves with the win rate.
  *
- * A box is the only reason to enter an Arena Direct, and it is the one reward
- * a mean cannot describe. A box holding's mean of 0.21 is not an outcome
- * anybody has: nobody is shipped a fifth of a box. The question people arrive
- * with is whether they get one, which is a probability, and how much that
- * probability leans on a win rate they are guessing at, which is an interval.
+ * Two prizes are asked this and both are the kind a mean cannot describe. A box
+ * holding's mean of 0.21 is not an outcome anybody has: nobody is shipped a
+ * fifth of a box. A token's mean fails from the other end — Wizards says every
+ * token past the first is redundant, so 1.4 tokens is not 1.4 of anything
+ * usable. What people arrive wanting to know is whether they get one, which is
+ * a probability, and how much that probability leans on a win rate they are
+ * guessing at, which is an interval.
  *
  * Every box counts together here, for the reason `boxesWon` gives. `holdings`
  * still reports them one product at a time, and it should — a collector box is
  * worth several play boxes, and two sets' play boxes are not worth the same.
  */
-export type BoxChance = {
-  /** Share of runs ending with at least one box, of either kind. */
+export type PrizeChance = {
+  /** Share of runs ending with at least one of them. */
   probAny: number;
   /**
    * The same chance at each end of the win rate's credible interval, or null
@@ -259,14 +281,22 @@ export type EventLog = {
   wins: number;
   /** Matches played, whether each was one game or up to three. */
   rounds: number;
-  /** True when gold covered the entry, so no gems were spent on it. */
-  paidWithGold: boolean;
+  /**
+   * Which currency covered the entry.
+   *
+   * A three-way answer rather than the boolean it was, because the Play-Ins
+   * take points as well — and which door a run went through is most of what
+   * the log is for on those, where the first few entries are free in gems and
+   * the rest are not.
+   */
+  paidWith: EntryCurrency;
   /** What the tier paid. */
   gems: number;
   packs: number;
   mythicPacks: number;
   cubePacks: number;
   playInPoints: number;
+  qualifierTokens: number;
   /**
    * The boxes it paid, named — the tier's own list, not a copy.
    *
@@ -278,7 +308,18 @@ export type EventLog = {
   /** Balances once the event is settled. */
   gemBalance: number;
   goldBalance: number;
+  pointBalance: number;
 };
+
+/**
+ * The three doors into an entry.
+ *
+ * Ordered as the simulation spends them, which is not the order they are worth:
+ * points go first because they buy nothing else in Arena, so spending a banked
+ * point costs nothing you could have spent elsewhere. Gold before gems is the
+ * older rule and unchanged.
+ */
+export type EntryCurrency = "points" | "gold" | "gems";
 
 export type BankrollRun = {
   events: number;
@@ -292,7 +333,17 @@ export type BankrollRun = {
   mythicPacks: number;
   cubePacks: number;
   draftPacks: number;
+  /**
+   * Play-in points held at the end — a *balance*, not a tally.
+   *
+   * The odd one out among these fields: the rest count what a run was paid,
+   * and this is what it was paid plus what it started with less what it spent
+   * on entries. It has to be, since the Play-Ins charge them; a tally would
+   * report a Play-In run as gaining points it was actually burning through.
+   */
   playInPoints: number;
+  /** Qualifier Weekend tokens won. Redundant past the first; see the tile. */
+  qualifierTokens: number;
   /**
    * Boxes won, one count per product the ladder pays, in `LadderBoxes.products`
    * order.
@@ -336,6 +387,7 @@ export function simulateBankroll(
   priced = priceTiers(config),
 ): BankrollRun {
   const takesGold = config.entryCostGold > 0;
+  const takesPoints = config.entryCostPlayInPoints > 0;
   /*
    * Gold follows the drawn rate rather than the configured one, since the
    * daily-win ladder is climbed by this run's wins. A run dealt a poor rate
@@ -353,17 +405,32 @@ export function simulateBankroll(
   let mythicPacks = 0;
   let cubePacks = 0;
   let draftPacks = 0;
-  let playInPoints = 0;
+  // A balance, so it opens at what was banked rather than at nothing.
+  let playInPoints = bankroll.startingPlayInPoints;
+  let qualifierTokens = 0;
   // One running count per box the ladder pays, in the order `priceTiers` put
   // them; zero-length when it pays none, which is every event but two.
   const boxes = new Array<number>(priced.products.length).fill(0);
   const log: EventLog[] = [];
 
   while (events < bankroll.maxEvents) {
-    const payWithGold = takesGold && gold >= config.entryCostGold;
-    if (payWithGold) gold -= config.entryCostGold;
-    else if (gems >= config.entryCostGems) gems -= config.entryCostGems;
-    else break;
+    /*
+     * Cheapest-to-hold first, falling through on each: a banked point buys
+     * nothing else in Arena, so spending it forgoes nothing, where a gem or a
+     * gold piece always could have gone somewhere else. The run busts only when
+     * none of the three covers the entry.
+     */
+    let paidWith: EntryCurrency;
+    if (takesPoints && playInPoints >= config.entryCostPlayInPoints) {
+      playInPoints -= config.entryCostPlayInPoints;
+      paidWith = "points";
+    } else if (takesGold && gold >= config.entryCostGold) {
+      gold -= config.entryCostGold;
+      paidWith = "gold";
+    } else if (gems >= config.entryCostGems) {
+      gems -= config.entryCostGems;
+      paidWith = "gems";
+    } else break;
 
     const { wins, rounds } = simulateEvent(config.structure, pMatch, rand);
     totalWins += wins;
@@ -376,7 +443,10 @@ export function simulateBankroll(
     mythicPacks += tier.mythicPacks ?? 0;
     cubePacks += tier.cubePacks ?? 0;
     draftPacks += config.draftPacks;
+    // Points are the exception to that: they were just spent above, and a
+    // ladder that pays them puts them back into the same balance.
     playInPoints += tier.playInPoints ?? 0;
+    qualifierTokens += tier.qualifierTokens ?? 0;
     const won = tierBoxesAt(priced, wins);
     for (let i = 0; i < won.length; i++) boxes[i] += won[i];
     gold += goldEarned;
@@ -390,15 +460,17 @@ export function simulateBankroll(
         event: events,
         wins,
         rounds,
-        paidWithGold: payWithGold,
+        paidWith,
         gems: tier.gems,
         packs: tier.packs,
         mythicPacks: tier.mythicPacks ?? 0,
         cubePacks: tier.cubePacks ?? 0,
         playInPoints: tier.playInPoints ?? 0,
+        qualifierTokens: tier.qualifierTokens ?? 0,
         boxes: tier.boxes ?? NO_BOXES,
         gemBalance: gems,
         goldBalance: gold,
+        pointBalance: playInPoints,
       });
     }
   }
@@ -414,6 +486,7 @@ export function simulateBankroll(
     cubePacks,
     draftPacks,
     playInPoints,
+    qualifierTokens,
     boxes,
     survived: events >= bankroll.maxEvents,
     log: record ? log : undefined,
@@ -486,8 +559,11 @@ export function reportedKeys(
   bankroll: BankrollResult,
   config: EventConfig,
   holdingGold = false,
+  holdingPoints = false,
 ): HoldingKey[] {
-  return heldKeys(config, holdingGold).filter((key) => key in bankroll.holdings);
+  return heldKeys(config, holdingGold, holdingPoints).filter(
+    (key) => key in bankroll.holdings,
+  );
 }
 
 /**
@@ -508,7 +584,13 @@ export function heldBy(
     return at === -1 ? 0 : (run.boxes[at] ?? 0);
   }
   return run[
-    key as "packs" | "mythicPacks" | "cubePacks" | "draftPacks" | "playInPoints"
+    key as
+      | "packs"
+      | "mythicPacks"
+      | "cubePacks"
+      | "draftPacks"
+      | "playInPoints"
+      | "qualifierTokens"
   ];
 }
 
@@ -558,20 +640,28 @@ export function runValue(
 }
 
 /**
- * Gem-equivalent value of what a run starts holding: the gem balance plus the
- * starting gold at the config's exchange rate.
+ * Gem-equivalent value of what a run starts holding: the gem balance, the
+ * starting gold at the config's exchange rate, and the banked points at theirs.
  *
- * The baseline `runValue` is judged against. Bare starting gems are the wrong
- * one wherever gold is in play — the ending value counts leftover gold, so a
- * run that began with gold would read as ahead the moment it converted. As in
- * `runValue`, a rate of 0 drops the gold term to zero.
+ * The baseline `runValue` is judged against, and every starting balance has to
+ * appear in it for the same reason. Bare starting gems are the wrong one
+ * wherever gold is in play — the ending value counts leftover gold, so a run
+ * that began with gold would read as ahead the moment it converted — and points
+ * are the sharper case, since a Play-In run *spends* them: omitting them here
+ * would have twenty points turn into a 4,000-gem entry out of nowhere and call
+ * it profit. As in `runValue`, a rate of 0 drops that term to zero.
  */
 export function startingValue(
   config: EventConfig,
   startingGems: number,
   startingGold: number,
+  startingPlayInPoints = 0,
 ): number {
-  return startingGems + (startingGold * config.gemsPer10kGold) / 10000;
+  return (
+    startingGems +
+    (startingGold * config.gemsPer10kGold) / 10000 +
+    startingPlayInPoints * config.playInPointValueGems
+  );
 }
 
 /**
@@ -619,8 +709,11 @@ export function bankrollRoi(meanFinalValue: number, startValue: number): number 
 const boxesWon = (run: BankrollRun): number =>
   run.boxes.reduce((acc, n) => acc + n, 0);
 
+/** Qualifier tokens a run came away with. Redundant past the first; see below. */
+const tokensWon = (run: BankrollRun): number => run.qualifierTokens;
+
 /**
- * How many runs each end of the box interval is read off.
+ * How many runs each end of the interval is read off.
  *
  * Capped rather than matched to the main sample, because these are two extra
  * passes over work that already reruns on every keystroke, and a proportion
@@ -633,15 +726,16 @@ const boxesWon = (run: BankrollRun): number =>
 const INTERVAL_RUNS = 2000;
 
 /**
- * Chance of a box over a run played at one fixed win rate.
+ * Chance of winning a prize over a run played at one fixed win rate.
  *
  * Fixed, rather than drawn per run the way the main sample is: the interval
  * asks what the chance would be *if* the true rate were this, so the rate is
  * the one thing that must not vary between the runs answering it.
  */
-function probBoxAt(
+function probPrizeAt(
   config: EventConfig,
   bankroll: BankrollConfig,
+  won: (run: BankrollRun) => number,
   pMatch: number,
   trials: number,
   seed: number,
@@ -650,7 +744,7 @@ function probBoxAt(
   const priced = priceTiers(config);
   let hits = 0;
   for (let i = 0; i < trials; i++) {
-    if (boxesWon(simulateBankroll(config, bankroll, rand, false, pMatch, priced)) > 0) {
+    if (won(simulateBankroll(config, bankroll, rand, false, pMatch, priced)) > 0) {
       hits++;
     }
   }
@@ -658,14 +752,15 @@ function probBoxAt(
 }
 
 /**
- * Summarise the box question, or return null where the ladder pays no boxes.
+ * Summarise a prize question, or return null where the ladder never pays it.
  *
  * The point estimate comes off the main sample, which already draws a rate per
  * run and so has the uncertainty folded through it. The interval cannot: it
  * has to hold the rate still at each end, so it costs two further passes. They
- * are only paid for on a ladder that pays boxes, which in practice means the
- * Arena Directs — the events whose entry is steep enough that runs are a few
- * events long and the passes are cheap.
+ * are only paid for on a ladder that pays the thing — the Arena Directs for
+ * boxes, the Play-Ins for tokens — which are the events whose entry is steep
+ * enough that runs are a few events long and the passes are cheap. No preset
+ * pays both, so in practice at most one prize is ever paid for.
  *
  * The two ends share a seed deliberately. Common random numbers make the gap
  * between them the work of the win rate rather than of sampling noise, which
@@ -673,20 +768,27 @@ function probBoxAt(
  *
  * Only the ends are evaluated, so this is the chance at each end of the
  * plausible rate range rather than the range of the chance. The two agree
- * whenever a box gets easier as the win rate rises, which is every ladder here
- * — boxes sit at the top of them. A custom ladder paying a box at exactly six
- * wins and nothing at seven would break it, since winning more would then step
- * straight past the prize, so the pair is sorted rather than assumed ordered.
+ * whenever the prize gets easier as the win rate rises, which is every ladder
+ * here — boxes and tokens both sit at the top of them. A custom ladder paying
+ * a box at exactly six wins and nothing at seven would break it, since winning
+ * more would then step straight past the prize, so the pair is sorted rather
+ * than assumed ordered.
+ *
+ * Parameterised over the two rather than written twice: they differ in a
+ * predicate and a counter, and everything subtle here — the shared seed, the
+ * separate stream, the sort — is the part that would drift between copies.
  */
-function boxChanceOf(
+function prizeChanceOf(
   config: EventConfig,
   bankroll: BankrollConfig,
   runs: BankrollRun[],
   seed: number,
-): BoxChance | null {
-  if (!paysBoxes(config.payouts)) return null;
+  pays: (payouts: EventConfig["payouts"]) => boolean,
+  won: (run: BankrollRun) => number,
+): PrizeChance | null {
+  if (!pays(config.payouts)) return null;
 
-  const boxes = runs.map(boxesWon);
+  const counts = runs.map(won);
   const posterior = winRatePosterior(config);
   const trials = Math.min(runs.length, INTERVAL_RUNS);
 
@@ -698,13 +800,13 @@ function boxChanceOf(
      * on how long the runs before them happened to be.
      */
     const ends = winRateInterval(posterior).map((p) =>
-      probBoxAt(config, bankroll, p, trials, seed + 1),
+      probPrizeAt(config, bankroll, won, p, trials, seed + 1),
     );
     interval = [Math.min(...ends), Math.max(...ends)];
   }
 
   return {
-    probAny: runs.length ? boxes.filter((n) => n > 0).length / runs.length : 0,
+    probAny: runs.length ? counts.filter((n) => n > 0).length / runs.length : 0,
     interval,
     level: CREDIBLE_LEVEL,
   };
@@ -819,7 +921,8 @@ export function* simulateBankrollsSteps(
         ),
       ]),
     ) as Record<HoldingKey, HoldingTotals>,
-    boxChance: boxChanceOf(config, bankroll, runs, seed),
+    boxChance: prizeChanceOf(config, bankroll, runs, seed, paysBoxes, boxesWon),
+    tokenChance: prizeChanceOf(config, bankroll, runs, seed, paysTokens, tokensWon),
     meanFinalValue: mean((r) => runValue(config, r, priced)),
     medianFinalValue,
     histogram: [...counts.entries()]

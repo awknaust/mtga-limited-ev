@@ -5,6 +5,7 @@ import {
   boxFullName,
   ladderBoxes,
   type BankrollRun,
+  type EntryCurrency,
   type EventConfig,
   type SampleRun,
 } from "../lib";
@@ -36,7 +37,13 @@ const counted = (n: number, one: string, many: string): string =>
  * which is what names them in the cramped cells of the log below.
  */
 const RUN_REWARDS: {
-  key: "packs" | "mythicPacks" | "cubePacks" | "draftPacks" | "playInPoints";
+  key:
+    | "packs"
+    | "mythicPacks"
+    | "cubePacks"
+    | "draftPacks"
+    | "playInPoints"
+    | "qualifierTokens";
   one: string;
   many: string;
 }[] = [
@@ -44,8 +51,21 @@ const RUN_REWARDS: {
   { key: "mythicPacks", one: "mythic pack", many: "mythic packs" },
   { key: "cubePacks", one: "cube pack", many: "cube packs" },
   { key: "draftPacks", one: "draft pack", many: "draft packs" },
+  // A balance rather than a tally on this one, so on a Play-In it reads as
+  // what is left rather than what was won. That is the honest sentence: a run
+  // that started on twenty points and spent them ends holding none.
   { key: "playInPoints", one: "play-in point", many: "play-in points" },
+  { key: "qualifierTokens", one: "qualifier token", many: "qualifier tokens" },
 ];
+
+/** What one entry cost, in whichever currency actually paid for it. */
+const entryText = (config: EventConfig, paidWith: EntryCurrency): string => {
+  if (paidWith === "points") {
+    return counted(config.entryCostPlayInPoints, "point", "points");
+  }
+  if (paidWith === "gold") return `${config.entryCostGold.toLocaleString()} gold`;
+  return REAL_GEMS.fmt(config.entryCostGems);
+};
 
 /** A list as a sentence would say it: "a, b and c". */
 const proseJoin = (parts: string[]): string =>
@@ -117,6 +137,12 @@ export function RunLog({
   const log = run.log ?? [];
   const rows = log.slice(0, VISIBLE);
   const landmarks = samples.filter((s) => s.label !== undefined);
+  // Points earn a column when the event charges them or a ladder pays them —
+  // the same test `heldKeys` applies, so the table and the breakdown agree
+  // about whether points are part of this event at all.
+  const showPoints =
+    config.entryCostPlayInPoints > 0 ||
+    config.payouts.some((t) => (t.playInPoints ?? 0) > 0);
 
   return (
     <>
@@ -225,6 +251,14 @@ export function RunLog({
               <th scope="col" className="text-end">
                 Gold
               </th>
+              {/* Only where points are in play, which is the two Play-Ins: a
+                  column of zeroes on every draft would cost the table its
+                  width for nothing. */}
+              {showPoints && (
+                <th scope="col" className="text-end">
+                  Points
+                </th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -235,9 +269,7 @@ export function RunLog({
                   {row.wins}–{row.rounds - row.wins}
                 </td>
                 <td className="text-body-secondary">
-                  {row.paidWithGold
-                    ? `${config.entryCostGold.toLocaleString()} gold`
-                    : REAL_GEMS.fmt(config.entryCostGems)}
+                  {entryText(config, row.paidWith)}
                 </td>
                 {/* Gems on every row, zero included: this is what the entry
                     came back with, not what the ladder promises. */}
@@ -248,6 +280,11 @@ export function RunLog({
                 <td className="text-end text-body-secondary">
                   {Math.round(row.goldBalance).toLocaleString()}
                 </td>
+                {showPoints && (
+                  <td className="text-end text-body-secondary">
+                    {row.pointBalance.toLocaleString()}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

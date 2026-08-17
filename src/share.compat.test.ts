@@ -56,9 +56,9 @@ function fingerprint(state: ShareState): string {
     `preset     ${state.presetName}`,
     `winRate    ${c.winRate} over ${c.winRateMatches} matches`,
     `structure  ${JSON.stringify(c.structure)}`,
-    `entry      ${c.entryCostGems} gems / ${c.entryCostGold} gold`,
+    `entry      ${c.entryCostGems} gems / ${c.entryCostGold} gold / ${c.entryCostPlayInPoints} points`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
-    `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
+    `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} qualToken=${c.qualifierTokenValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
     `gold       other=${c.otherGoldPerDay}/day over ${c.eventsPerDay} events, goldPer10k=${c.gemsPer10kGold}`,
     /*
      * Derived rather than stored, and that is the point. A link pins inputs,
@@ -69,7 +69,7 @@ function fingerprint(state: ShareState): string {
      */
     `charges    ${effectiveEntryGems(c).toFixed(1)} gems (${goldPerEvent(c).toFixed(1)} gold/event)`,
     `payouts    ${encodePayouts(c.payouts)}`,
-    `bankroll   gems=${state.startingGems} gold=${state.startingGold} maxEvents=${state.maxEvents}`,
+    `bankroll   gems=${state.startingGems} gold=${state.startingGold} points=${state.startingPlayInPoints} maxEvents=${state.maxEvents}`,
     `sim        runs=${state.bankrollRuns} seed=${state.seed}`,
     `display    tab=${state.tab} unit=${state.unit} gemsPerUsd=${state.gemsPerUsd}`,
   ].join("\n");
@@ -172,6 +172,21 @@ const CORPUS: [name: string, search: string][] = [
     "every kind of pack at once, in an order the encoder would not write",
     "?preset=custom&maxWins=2&maxLosses=2&payouts=0-0_0-0_500-3-cube.5-mythic.4",
   ],
+  /*
+   * The third entry currency, and the token nothing prices. Three things here
+   * have to go on meaning what they mean: `startPoints` is a banked stock the
+   * run spends, `entryPoints` is a price rather than a reward, and `token.1`
+   * in the ladder is a Qualifier token rather than a number in a positional
+   * slot. The last is the one with teeth — the slots it sits past belong to
+   * the old `gems-packs-points-playBoxes-collectorBoxes` form, still read
+   * above, so a count there would re-read every link written before boxes
+   * named their sets.
+   */
+  ["qualifier play-in — points in, token out", "?preset=qualifier-play-in-bo1&startPoints=60"],
+  [
+    "custom ladder paying a qualifier token",
+    "?preset=custom&maxWins=3&maxLosses=1&payouts=0-0_0-0_0-0_6000-0-token.1&entryPoints=20&qualifierTokenValue=4830",
+  ],
 ];
 
 describe("the parameter names are the contract", () => {
@@ -193,6 +208,7 @@ describe("the parameter names are the contract", () => {
         structure: { kind: "rounds", rounds: 4 },
         entryCostGems: 1,
         entryCostGold: 2,
+        entryCostPlayInPoints: 27,
         otherGoldPerDay: 3,
         eventsPerDay: 4,
         winRateMatches: 33,
@@ -203,6 +219,7 @@ describe("the parameter names are the contract", () => {
         mythicPackValueGems: 27,
         cubePackValueGems: 28,
         playInPointValueGems: 9,
+        qualifierTokenValueGems: 28,
         playBoxValueGems: 10,
         collectorBoxValueGems: 11,
         draftTokenValueGems: 18,
@@ -226,6 +243,7 @@ describe("the parameter names are the contract", () => {
       seed: 13,
       startingGems: 14,
       startingGold: 15,
+      startingPlayInPoints: 29,
       maxEvents: 16,
       tab: "about",
       // The only season there is, so it cannot differ from the default and
@@ -257,6 +275,7 @@ describe("the parameter names are the contract", () => {
       "draftTokenValue",
       "entry",
       "entryGold",
+      "entryPoints",
       "eventsPerDay",
       "gemsPerUsd",
       "goldPer10k",
@@ -272,12 +291,14 @@ describe("the parameter names are the contract", () => {
       "playBoxValue",
       "playInValue",
       "preset",
+      "qualifierTokenValue",
       "rounds",
       "runs",
       "seed",
       "sleeveValue",
       "startGems",
       "startGold",
+      "startPoints",
       "tab",
       "uncommonIcrValue",
       "unit",
@@ -331,6 +352,8 @@ describe("the parameter names are the contract", () => {
       "arena-direct-collector",
       "constructed-event",
       "traditional-constructed-event",
+      "qualifier-play-in-bo1",
+      "qualifier-play-in-bo3",
     ]);
   });
 });
@@ -345,13 +368,13 @@ describe("the defaults are the contract", () => {
       "preset     Premier Draft
       winRate    0.55 over 100 matches
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-      entry      1500 gems / 10000 gold
+      entry      1500 gems / 10000 gold / 0 points
       draft      3 packs @ 23
-      values     pack=22 mythicPack=37 cubePack=51 playIn=200 playBox=29866 collBox=120116
+      values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
       gold       other=600/day over 1 events, goldPer10k=1500
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-      bankroll   gems=3000 gold=0 maxEvents=20
+      bankroll   gems=3000 gold=0 points=0 maxEvents=20
       sim        runs=10000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=200"
     `);

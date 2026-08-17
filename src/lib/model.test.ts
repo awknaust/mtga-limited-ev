@@ -11,6 +11,7 @@ import {
   DEFAULT_MYTHIC_PACK_VALUE_GEMS,
   DEFAULT_PACK_VALUE_GEMS,
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
+  DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   EMPTY_BOX_PRICES,
@@ -19,6 +20,8 @@ import {
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
+  QUALIFIER_PLAY_IN_BO1,
+  QUALIFIER_PLAY_IN_BO3,
   QUICK_DRAFT,
   SEALED,
   TRADITIONAL_CUBE_DRAFT,
@@ -68,7 +71,10 @@ import {
   reportedKeys,
   paidRewards,
   paysBoxes,
+  paysTokens,
   playInPointsFor,
+  qualifierTokensFor,
+  tokenChancePerEvent,
   resizePayouts,
   simulateBankroll,
   simulateBankrolls,
@@ -604,7 +610,7 @@ describe("drafted cards", () => {
     const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
     const run = simulateBankroll(
       config,
-      { startingGems: 10_000, startingGold: 0, maxEvents: 5 },
+      { startingGems: 10_000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 5 },
       seededRandom(21),
     );
     expect(run.draftPacks).toBe(run.events * 3);
@@ -740,6 +746,7 @@ describe("bankroll", () => {
   const roll = {
     startingGems: 10_000,
     startingGold: 0,
+    startingPlayInPoints: 0,
     maxEvents: 500,
   };
 
@@ -770,6 +777,7 @@ describe("bankroll", () => {
     const golden = {
       startingGems: 10_000,
       startingGold: 100_000,
+      startingPlayInPoints: 0,
       maxEvents: 10,
     };
     const run = simulateBankroll(config, golden, seededRandom(2));
@@ -1016,7 +1024,22 @@ describe("bankroll", () => {
       const sum = (pick: (e: (typeof log)[number]) => number) =>
         log.reduce((a, e) => a + pick(e), 0);
       expect(sum((e) => e.packs)).toBe(run.packs);
-      expect(sum((e) => e.playInPoints)).toBe(run.playInPoints);
+      expect(sum((e) => e.qualifierTokens)).toBe(run.qualifierTokens);
+      /*
+       * Points are the one field the log cannot simply sum to, because the
+       * run reports a *balance* rather than a tally: it opens at what was
+       * banked and every entry that spends points takes twenty out again. On
+       * a ladder that charges none this reduces to the plain sum, which is
+       * why the stricter form is exercised separately below.
+       */
+      const spent = log.filter((e) => e.paidWith === "points").length;
+      expect(
+        roll.startingPlayInPoints +
+          sum((e) => e.playInPoints) -
+          spent * config.entryCostPlayInPoints,
+      ).toBe(run.playInPoints);
+      // And the log's own running balance is that same arithmetic, row by row.
+      expect(log[log.length - 1].pointBalance).toBe(run.playInPoints);
       // The log names the boxes each event shipped; the run counts them per
       // product. Both have to describe the same run.
       expect(sum((e) => e.boxes.length)).toBe(
@@ -1111,6 +1134,7 @@ describe("bankroll", () => {
       cubePacks: 0,
       draftPacks: 0,
       playInPoints: 0,
+      qualifierTokens: 0,
       boxes: [],
       survived: false,
     };
@@ -1188,11 +1212,132 @@ describe("bankroll", () => {
   });
 });
 
+describe("the chance of a qualifier token", () => {
+  /** Enough for one entry, capped at one event, so a run is one event. */
+  const oneEvent = {
+    startingGems: 5_000,
+    startingGold: 0,
+    startingPlayInPoints: 0,
+    maxEvents: 1,
+  };
+  const several = { ...oneEvent, startingGems: 40_000, maxEvents: 20 };
+  const bo1 = () => configFromPreset(QUALIFIER_PLAY_IN_BO1, defaultConfig());
+  const bo3 = () => configFromPreset(QUALIFIER_PLAY_IN_BO3, defaultConfig());
+
+  it("names the ladders that pay a Qualifier Weekend seat", () => {
+    expect(paysTokens(QUALIFIER_PLAY_IN_BO1.payouts)).toBe(true);
+    expect(paysTokens(QUALIFIER_PLAY_IN_BO3.payouts)).toBe(true);
+    expect(paysTokens(PREMIER_DRAFT.payouts)).toBe(false);
+    expect(paysTokens(ARENA_DIRECT.payouts)).toBe(false);
+    // Zeroing the tier retires the reward, as it does for boxes.
+    const none = QUALIFIER_PLAY_IN_BO1.payouts.map((t) => ({
+      ...t,
+      qualifierTokens: 0,
+    }));
+    expect(paysTokens(none)).toBe(false);
+  });
+
+  it("is the chance of reaching the ceiling, in closed form", () => {
+    /*
+     * Only the top rung pays one, so the chance is the weight on the ceiling.
+     *
+     * Bo3 is the one worth deriving by hand: four wins before a *single* loss
+     * is p⁴ flat, with no second chance behind it. At 0.55 that is 0.09150625.
+     */
+    expect(tokenChancePerEvent(bo3(), 0.55)).toBeCloseTo(0.55 ** 4, 12);
+    expect(tokenChancePerEvent(bo3(), 0.55)).toBeCloseTo(0.091506, 6);
+
+    /*
+     * Bo1 is six wins before two losses. Finishing on k < 6 wins is k wins
+     * before the second loss — (k + 1)·p^k·q² — and the ceiling is what is
+     * left of one after summing those. At 0.55 that comes to 0.10241837.
+     */
+    expect(tokenChancePerEvent(bo1(), 0.55)).toBeCloseTo(0.102418, 6);
+    const q = 0.45;
+    const eliminated = Array.from(
+      { length: 6 },
+      (_, k) => (k + 1) * 0.55 ** k * q * q,
+    ).reduce((a, b) => a + b, 0);
+    expect(tokenChancePerEvent(bo1(), 0.55)).toBeCloseTo(1 - eliminated, 12);
+  });
+
+  it("rises with the win rate, and reaches both ends", () => {
+    expect(tokenChancePerEvent(bo1(), 0.3)).toBeLessThan(
+      tokenChancePerEvent(bo1(), 0.6),
+    );
+    expect(tokenChancePerEvent(bo1(), 1)).toBe(1);
+    expect(tokenChancePerEvent(bo1(), 0)).toBe(0);
+    // The steeper structure: never behind the Bo1 at a losing rate, never
+    // ahead of it at a winning one, since one loss ends it.
+    expect(tokenChancePerEvent(bo3(), 0.8)).toBeLessThan(
+      tokenChancePerEvent(bo1(), 0.8),
+    );
+  });
+
+  it("agrees with the closed form over a single event", () => {
+    // The check the closed form is carried for, and the one the simulation
+    // cannot perform on itself: one entry, one event, and a rate called
+    // certain so every run is played at the same one.
+    for (const config of [
+      { ...bo1(), winRateMatches: 0 },
+      { ...bo3(), winRateMatches: 0 },
+    ]) {
+      const res = simulateBankrolls(config, oneEvent, 20_000, 7);
+      expect(res.tokenChance?.probAny).toBeCloseTo(tokenChancePerEvent(config), 2);
+    }
+  });
+
+  it("is asked only of ladders that pay one", () => {
+    const premier = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    expect(simulateBankrolls(premier, several, 200, 5).tokenChance).toBeNull();
+    expect(simulateBankrolls(bo1(), several, 200, 5).tokenChance).not.toBeNull();
+    // And the two prize tiles never both appear: no preset pays both.
+    expect(simulateBankrolls(bo1(), several, 200, 5).boxChance).toBeNull();
+    for (const preset of PRESETS) {
+      expect(paysBoxes(preset.payouts) && paysTokens(preset.payouts)).toBe(false);
+    }
+  });
+
+  it("reports the ends of the interval in order", () => {
+    // Only the ends are evaluated, so a narrow band could come out inverted
+    // without the sort `prizeChanceOf` applies.
+    const res = simulateBankrolls(bo1(), several, 500, 11);
+    const [lo, hi] = res.tokenChance!.interval!;
+    expect(lo).toBeLessThanOrEqual(hi);
+  });
+
+  it("prices the seat at nothing until someone says otherwise", () => {
+    // Zero is the default, not a claim: the token is counted, and counted at
+    // nothing, so what is being ignored stays on screen.
+    expect(DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS).toBe(0);
+    const config = bo1();
+    expect(holdingRate(config, "qualifierTokens")).toBe(0);
+    expect(qualifierTokensFor(config, 6)).toBe(1);
+    expect(qualifierTokensFor(config, 5)).toBe(0);
+    // The consequence the default carries: the last win pays no more than the
+    // one before it, because the only thing it adds is unpriced.
+    expect(grossValue(config, 6)).toBe(grossValue(config, 5));
+    // Give the seat a value and the ceiling separates again.
+    const priced = { ...config, qualifierTokenValueGems: 4830 };
+    expect(grossValue(priced, 6)).toBe(grossValue(priced, 5) + 4830);
+  });
+
+  it("counts the token among the rewards the ladder pays", () => {
+    expect(paidRewards(QUALIFIER_PLAY_IN_BO1.payouts)).toEqual(["qualifierTokens"]);
+    // Points are held on a Play-In because the entry *charges* them, not
+    // because any rung pays them — the rule gold has always followed.
+    const config = bo1();
+    expect(heldKeys(config)).toContain("playInPoints");
+    expect(heldKeys(config)).toContain("qualifierTokens");
+  });
+});
+
 describe("the chance of a box", () => {
   /** Enough for one entry, and capped at one event, so a run is one event. */
   const oneEvent = {
     startingGems: 8_000,
     startingGold: 0,
+    startingPlayInPoints: 0,
     maxEvents: 1,
   };
   /** Room to keep entering, which is what makes the run-level chance differ. */
@@ -1591,6 +1736,67 @@ describe("presets", () => {
     expect(TRADITIONAL_DRAFT.payouts).toHaveLength(4);
   });
 
+  it("models the Bo1 Qualifier Play-In as six wins before two losses", () => {
+    // Wizards' own wording, and the only part of this event they publish.
+    expect(QUALIFIER_PLAY_IN_BO1.structure).toEqual({
+      kind: "elimination",
+      maxWins: 6,
+      maxLosses: 2,
+    });
+    // The only preset that takes a third currency, and the only one whose gold
+    // price is not 1,500 per 10,000 — 20,000 against 4,000 implies 2,000.
+    expect(QUALIFIER_PLAY_IN_BO1.entryCostGems).toBe(4000);
+    expect(QUALIFIER_PLAY_IN_BO1.entryCostGold).toBe(20_000);
+    expect(QUALIFIER_PLAY_IN_BO1.entryCostPlayInPoints).toBe(20);
+    // Phantom: the pool is handed back, so no packs' worth is kept.
+    expect(QUALIFIER_PLAY_IN_BO1.draftPacks).toBe(0);
+    expect(QUALIFIER_PLAY_IN_BO1.payouts.map((t) => t.gems)).toEqual([
+      500, 1000, 1500, 3000, 4500, 6000, 6000,
+    ]);
+    // The shape worth pinning: the gem prize caps a win *below* the ceiling,
+    // so the last win buys the token and nothing else. Get this wrong and the
+    // ladder silently becomes an ordinary one.
+    expect(QUALIFIER_PLAY_IN_BO1.payouts[6]).toEqual({
+      wins: 6,
+      gems: 6000,
+      packs: 0,
+      qualifierTokens: 1,
+    });
+    expect(QUALIFIER_PLAY_IN_BO1.payouts.every((t) => t.packs === 0)).toBe(true);
+  });
+
+  it("models the Bo3 Qualifier Play-In as four wins without a loss", () => {
+    expect(QUALIFIER_PLAY_IN_BO3.structure).toEqual({
+      kind: "elimination",
+      maxWins: 4,
+      maxLosses: 1,
+    });
+    // Same entry as its sibling, all three ways.
+    expect(QUALIFIER_PLAY_IN_BO3.entryCostGems).toBe(
+      QUALIFIER_PLAY_IN_BO1.entryCostGems,
+    );
+    expect(QUALIFIER_PLAY_IN_BO3.entryCostGold).toBe(
+      QUALIFIER_PLAY_IN_BO1.entryCostGold,
+    );
+    expect(QUALIFIER_PLAY_IN_BO3.entryCostPlayInPoints).toBe(
+      QUALIFIER_PLAY_IN_BO1.entryCostPlayInPoints,
+    );
+    expect(QUALIFIER_PLAY_IN_BO3.payouts.map((t) => t.gems)).toEqual([
+      500, 2000, 4500, 6000, 6000,
+    ]);
+    expect(QUALIFIER_PLAY_IN_BO3.payouts[4].qualifierTokens).toBe(1);
+  });
+
+  it("prices a play-in point at the entry twenty of them buy", () => {
+    // Derived from the preset rather than typed, so the constant follows the
+    // ladder if that entry ever moves — the arrangement the draft token has
+    // with Premier Draft.
+    expect(DEFAULT_PLAY_IN_POINT_VALUE_GEMS).toBe(200);
+    expect(DEFAULT_PLAY_IN_POINT_VALUE_GEMS * 20).toBe(
+      QUALIFIER_PLAY_IN_BO1.entryCostGems,
+    );
+  });
+
   it("exposes all fourteen presets", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
@@ -1607,17 +1813,39 @@ describe("presets", () => {
       "Arena Direct (Collector)",
       "Constructed Event",
       "Traditional Constructed Event",
+      "Qualifier Play-In (Bo1)",
+      "Qualifier Play-In (Bo3)",
     ]);
   });
 
   it("charges the same gold-to-gem rate everywhere both are priced", () => {
-    // Arena sets GEMS_PER_10K_GOLD by what it charges, so an event that broke
-    // the rate would make the constant a fiction. Constructed prices both
-    // ways, at 2,500 gold against 375 gems, and lands on it exactly.
+    /*
+     * Arena sets GEMS_PER_10K_GOLD by what it charges, so an event that broke
+     * the rate without anyone noticing would make the constant a fiction.
+     * Constructed prices both ways, at 2,500 gold against 375 gems, and lands
+     * on it exactly.
+     *
+     * The Qualifier Play-Ins are exempt, and named rather than filtered by
+     * their ratio: 20,000 gold against 4,000 gems implies 2,000 gems per
+     * 10,000 gold rather than 1,500, so gold buys more entry here than it does
+     * anywhere else — 20,000 gold is 3,000 gems' worth at the standard rate
+     * against a 4,000-gem price, making gold the cheaper door by a quarter.
+     * Naming them is what keeps this
+     * test loud — a *new* event breaking the rate fails here rather than
+     * quietly joining an exemption defined as "whatever does not match".
+     */
+    const EXEMPT = ["Qualifier Play-In (Bo1)", "Qualifier Play-In (Bo3)"];
     const dual = PRESETS.filter((p) => (p.entryCostGold ?? 0) > 0);
     expect(dual.map((p) => p.name)).toContain("Constructed Event");
-    for (const p of dual) {
+    expect(dual.map((p) => p.name)).toEqual(expect.arrayContaining(EXEMPT));
+    for (const p of dual.filter((p) => !EXEMPT.includes(p.name))) {
       expect((p.entryCostGems / p.entryCostGold!) * 10_000).toBe(GEMS_PER_10K_GOLD);
+    }
+    // And the exemption is exactly what it claims to be, rather than a licence
+    // to drift: both Play-Ins imply 2,000 per 10,000 and nothing else does.
+    for (const name of EXEMPT) {
+      const p = PRESETS.find((x) => x.name === name)!;
+      expect((p.entryCostGems / p.entryCostGold!) * 10_000).toBe(2000);
     }
   });
 

@@ -41,6 +41,10 @@ const REWARDS = [
   // are as cramped as they get here, and nobody calls them that.
   { key: "cubePacks", one: "cube pack", many: "cube packs" },
   { key: "playInPoints", one: "point", many: "points" },
+  // "Token" unqualified: the only token a ladder pays is the Qualifier
+  // Weekend one, and the cell has no room for the adjective. The tile and the
+  // breakdown card, which do, both say "qualifier".
+  { key: "qualifierTokens", one: "token", many: "tokens" },
 ] as const;
 
 export type PayoutContents = {
@@ -49,6 +53,7 @@ export type PayoutContents = {
   mythicPacks: number;
   cubePacks: number;
   playInPoints: number;
+  qualifierTokens: number;
   boxes: readonly PayoutBox[];
 };
 

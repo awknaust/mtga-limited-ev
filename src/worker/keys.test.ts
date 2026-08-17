@@ -18,7 +18,7 @@ import type { BankrollsRequest } from "./protocol";
 const bankRequest = (config: EventConfig = defaultConfig()): BankrollsRequest => ({
   kind: "bankrolls",
   config,
-  bankroll: { startingGems: 3000, startingGold: 0, maxEvents: 20 },
+  bankroll: { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 20 },
   runs: 1000,
   seed: 1,
 });
@@ -30,6 +30,7 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   structure: { kind: "rounds", rounds: 9 },
   entryCostGems: 1501,
   entryCostGold: 10001,
+  entryCostPlayInPoints: 21,
   otherGoldPerDay: 601,
   eventsPerDay: 3,
   gemsPer10kGold: 1501,
@@ -39,6 +40,7 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   mythicPackValueGems: 38,
   cubePackValueGems: 52,
   playInPointValueGems: 201,
+  qualifierTokenValueGems: 4831,
   playBoxValueGems: 1,
   collectorBoxValueGems: 2,
   /*
