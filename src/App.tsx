@@ -86,7 +86,6 @@ import {
   type ShareState,
   type Tab,
 } from "./share";
-import { SIM_DEBOUNCE_MS, useDebouncedValue } from "./hooks/useDebouncedValue";
 import { useSimulateBankrolls } from "./hooks/useSimulation";
 
 /** An event the current balance cannot enter, and what to do about it. */
@@ -474,9 +473,25 @@ export default function App({
   /*
    * The bankroll simulation lives in a worker, debounced behind the inputs;
    * everything on the Long-term value tab is closed form and computed here,
-   * live. The params object is memoised so the debounce sees one identity per
+   * live. The params object is memoised so the hook sees one identity per
    * actual change, and the *object* is what debounces — a flush is atomic,
    * so no render can pair this keystroke's runs with the last one's seed.
+   *
+   * What the debounce delays is the *run*, not the saying so. The hook
+   * measures pending against these live params, so the results dim and the
+   * spinner appears on the render that takes the keystroke, and only the
+   * recompute waits for the typing to stop. Getting that the wrong way round
+   * is what made this feel jarring: nothing happened for 300 ms, and then
+   * everything did at once.
+   *
+   * Two changes do not wait. The Advanced dialog is a hold — its edits apply
+   * together, and the run goes the moment it closes. And a preset pick runs
+   * at once: one deliberate choice with no run of repeats behind it, for
+   * which the delay would be latency for nothing. The preset's name is what
+   * says one was picked — it moves then and only then — so it is handed over
+   * as the thing to flush on rather than a flag the handler would have to
+   * set and something else reset. Only the main selector: the "Copy from…"
+   * select on Custom changes the config under the same name and debounces.
    */
   const bankrollParams = useMemo(
     () => ({ config, startingGems, startingGold, maxEvents, runs: bankrollRuns, seed }),
@@ -486,7 +501,7 @@ export default function App({
     result: bankroll,
     pending: bankrollPending,
     error: bankrollError,
-  } = useSimulateBankrolls(useDebouncedValue(bankrollParams, SIM_DEBOUNCE_MS, advancedOpen));
+  } = useSimulateBankrolls(bankrollParams, { hold: advancedOpen, flushOn: presetName });
   /*
    * What one entry is worth, exactly. A sum over the outcome distribution
    * rather than a simulation, so it needs no worker, no debounce, no
