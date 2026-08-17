@@ -54,7 +54,7 @@ export function Mastery({
       help: {
         label: "What the net figure means",
         content:
-          "Everything the Mastery Pass track pays, valued at your rates, less what the pass costs. The free Set Mastery track is not counted: you receive it whether or not you buy, and buying late still grants the pass rewards for levels you already earned, so it is not something the purchase causes.",
+          "Everything the Mastery Pass track pays at your rates, less the pass's cost. The free Set Mastery track is not counted, since you get it whether or not you buy.",
       },
       value: gemsEq(v.net),
       tone: signClass(v.net),
@@ -66,7 +66,7 @@ export function Mastery({
       help: {
         label: "What the pass value figure means",
         content:
-          "Everything on the Mastery Pass track, valued at the rates in Advanced settings, over the whole season.",
+          "Everything on the Mastery Pass track, valued at the rates under Values & assumptions, over the whole season.",
       },
       value: gemsEq(v.pass),
       // No hint: the bar underneath is what the figure cannot say on its own.
@@ -80,7 +80,7 @@ export function Mastery({
       help: {
         label: "What the break-even level means",
         content:
-          "The first mastery level at which the pass rewards you have collected are worth what the pass cost. Below it you are behind; above it you are ahead. Whether you reach it is not modelled — that depends on how much experience you earn in the season, which Wizards does not publish rates for.",
+          "The first mastery level at which the pass rewards you have collected are worth the pass's cost. Whether you reach it is not modelled.",
       },
       value:
         v.breakEvenLevel === null ? "—" : `${v.breakEvenLevel} of ${track.passCap}`,
@@ -95,7 +95,7 @@ export function Mastery({
       help: {
         label: "What the free track figure means",
         content:
-          "What the Set Mastery track pays without a pass. Shown for scale; it is deliberately not part of the net above, because you get it either way.",
+          "What the Set Mastery track pays without a pass. Shown for scale; not part of the net above, since you get it either way.",
       },
       value: gemsEq(v.free),
       hint: "yours without paying",
@@ -106,8 +106,8 @@ export function Mastery({
     <div>
       <div className="form-text mb-2">
         What the Mastery Pass costs, against what its reward track pays at the
-        values in Advanced settings. The whole track is priced assuming you
-        reach the final level.
+        values under Values &amp; assumptions. The whole track is priced
+        assuming you reach the final level.
       </div>
       <div className="mb-3">
         <StatStrip tiles={tiles} label="Mastery Pass summary" />

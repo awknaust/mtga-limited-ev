@@ -115,7 +115,7 @@ const CONFIDENCE_CHOICES = [
 
 const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
-  { key: "event" as const, label: "Per event" },
+  { key: "event" as const, label: "Long-term value" },
   { key: "mastery" as const, label: "Mastery" },
   { key: "about" as const, label: "About" },
 ];
@@ -473,8 +473,8 @@ export default function App({
 
   /*
    * The bankroll simulation lives in a worker, debounced behind the inputs;
-   * everything on the Per event tab is closed form and computed here, live.
-   * The params object is memoised so the debounce sees one identity per
+   * everything on the Long-term value tab is closed form and computed here,
+   * live. The params object is memoised so the debounce sees one identity per
    * actual change, and the *object* is what debounces — a flush is atomic,
    * so no render can pair this keystroke's runs with the last one's seed.
    */
@@ -603,7 +603,7 @@ export default function App({
     setMasterySlug(next.masterySlug);
     setUnit(next.unit);
     setGemsPerUsd(next.gemsPerUsd);
-    setAdvancedReset("Advanced settings reset to defaults");
+    setAdvancedReset("Values and assumptions reset to defaults");
   };
 
   /*
@@ -694,7 +694,7 @@ export default function App({
             help: {
               label: "What average packs won means",
               content:
-                "How many packs a run had collected by the time it stopped, averaged across every simulated run.",
+                "Packs a run holds when it stops, averaged over all simulated runs.",
             },
           },
         ];
@@ -707,7 +707,7 @@ export default function App({
       help: {
         label: "What average events played means",
         content:
-          "How many events a run got to enter before it stopped, averaged across every simulated run. The typical figure underneath is the median: half of the runs played at least that many.",
+          "Events a run enters before it stops, averaged over all simulated runs. \"Typically\" is the median: half of runs played at least that many.",
       },
     },
     {
@@ -727,7 +727,7 @@ export default function App({
       help: {
         label: "What average ending value means",
         content:
-          "Everything a run holds when it stops — gems, leftover gold, and winnings priced at the rates set on the left — averaged across every simulated run. Green means the average run ends ahead of the combined value you started with, gems and gold together; red, behind it.",
+          "Everything a run holds when it stops (gems, leftover gold, and rewards at your rates), averaged over all simulated runs. Green: the average run ends ahead of what you started with, gems and gold together. Red: behind.",
       },
     },
     {
@@ -767,7 +767,7 @@ export default function App({
       help: {
         label: "What bankroll ROI means",
         content:
-          "What the average run gained or lost, as a share of the balance it started with. Unlike the per-event ROI this is not per entry: it covers the whole run, so playing longer moves it — a profitable event compounds, and a losing one grinds toward −100%, which is as far as it can fall.",
+          "What the average run gained or lost, as a share of its starting balance. Unlike the per-event ROI it covers the whole run, so playing longer moves it: a profitable event compounds and a losing one grinds toward −100%.",
       },
     },
     {
@@ -780,7 +780,7 @@ export default function App({
       help: {
         label: "What risk of ruin means",
         content:
-          "The share of simulated runs that went broke — could no longer afford an entry — before reaching your stop limit. At 25%, one player in four who tries this goes bust along the way.",
+          "The share of simulated runs that went broke (could no longer afford an entry) before reaching your stop limit. At 25%, one player in four goes bust along the way.",
       },
     },
   ];
@@ -815,10 +815,10 @@ export default function App({
             : `give or take ${pct(1.96 * Math.sqrt((box.probAny * (1 - box.probAny)) / bankroll.trials))}`,
           help: {
             label: "What chance of a box means",
-            content: `The share of simulated runs that won at least one box — at 10%, one player in ten who plays this way walks away with one. ${
+            content: `The share of simulated runs that won at least one box. At 10%, one player in ten who plays this way walks away with one. ${
               box.interval
-                ? `The range underneath covers ${pct(box.level, 0)} of the possibilities your win-rate record allows.`
-                : "The give-or-take underneath is the simulation's own sampling wobble, a 95% confidence interval."
+                ? `The range underneath is this chance at each end of the win rates your record supports, covering ${pct(box.level, 0)} of them.`
+                : "With the win rate exactly known, the give-or-take underneath is only the simulation's sampling noise (95% confidence)."
             }`,
           },
         },
@@ -849,8 +849,8 @@ export default function App({
    * single entry was among them for a while and has been taken out again: it
    * answers a question nobody asked of a page about bankrolls, and sitting in
    * the same row as the run-level chance it mostly invited the two to be
-   * confused. It lives on the Per event tab, under the expected-boxes tile,
-   * and holds this simulation to account in the tests.
+   * confused. It lives on the Long-term value tab, under the expected-boxes
+   * tile, and holds this simulation to account in the tests.
    */
   const bankrollTiles: StatTile[] = [...boxChanceTiles, ...runTiles, ...packsTiles];
 
@@ -876,7 +876,7 @@ export default function App({
           help: {
             label: "What expected boxes means",
             content:
-              "How many physical boxes one entry wins on average, counting a double-box finish as two. At 0.17, six entries bring home about one box between them. The share underneath counts events that win any at all — fewer, because winners often take two.",
+              "How many boxes one entry wins on average, counting a double-box finish as two. At 0.17, six entries bring home about one box between them. The share underneath counts events that win any at all; it is lower, since winners often take two.",
           },
         },
       ]
@@ -907,10 +907,10 @@ export default function App({
       tone: signClass(event.meanNet),
       help: {
         label: "What expected net means",
-        content: `What one entry wins or loses on average, after paying the entry. Marked ≈ because packs and other rewards are priced at the rates set on the left, not paid as gems. Any single event swings well above or below this; play many and your average result heads toward it. ${
+        content: `What one entry wins or loses on average, after the entry fee. Marked ≈ because packs and other rewards are priced at your rates, not paid as gems.${
           netBand
-            ? `The range underneath covers ${pct(CREDIBLE_LEVEL, 0)} of the possibilities your win-rate record allows.`
-            : "With the win rate set as exactly known there is no range to show: the figure is the exact expectation at that rate."
+            ? ` The range underneath covers ${pct(CREDIBLE_LEVEL, 0)} of what your win-rate record allows.`
+            : ""
         }`,
       },
     },
@@ -925,7 +925,7 @@ export default function App({
       help: {
         label: "What expected gross means",
         content:
-          "What one event pays back on average, before subtracting what it cost to enter. Packs and other rewards are folded in at the rates set on the left.",
+          "What one event pays back on average, before the entry fee. Packs and other rewards are counted at your rates.",
       },
     },
     ...boxTiles,
@@ -948,7 +948,7 @@ export default function App({
       help: {
         label: "What ROI means",
         content:
-          "Return on investment: the expected net as a share of what an entry costs. At −10%, an average entry gives back 90 for every 100 paid in; positive means the average entry more than pays for itself.",
+          "Expected net as a share of the entry fee. At −10%, an average entry gives back 90 for every 100 paid; positive means it more than pays for itself.",
       },
     },
     {
@@ -962,7 +962,7 @@ export default function App({
       help: {
         label: "What break-even win rate means",
         content:
-          "The match win rate at which the average event exactly pays back its entry. Win more often than this and the event makes you money on average; less often, and it loses.",
+          "The match win rate at which the average event exactly pays back its entry. Win more often and the event makes money on average; less often and it loses.",
       },
     },
     {
@@ -973,7 +973,7 @@ export default function App({
       help: {
         label: "What P(profit) means",
         content:
-          "The chance one event ends worth more than it cost to enter. It can sit below 50% even when the event is profitable on average, because rare big finishes carry the average.",
+          "The chance one event ends worth more than its entry. It can be under 50% even when the event is profitable on average, because a few big finishes carry the average.",
       },
     },
     {
@@ -984,7 +984,7 @@ export default function App({
       help: {
         label: "What matches per event means",
         content:
-          "How many matches one event lasts on average before it reaches a finish.",
+          "How many matches one event lasts on average.",
       },
     },
   ];
@@ -995,7 +995,8 @@ export default function App({
         <div>
           <h1 className="h3 mb-1">MTGA Limited EV</h1>
           <p className="text-body-secondary mb-0">
-            How far you can go drafting — the quest for infinite.
+            The quest for going infinite: an analyzer for the value of MTGA
+            events and passes.
           </p>
         </div>
         {/* Every input is already in the address bar; this is only the shortest
@@ -1059,7 +1060,7 @@ export default function App({
                   <span className="win-rate-value text-body">{pct(roundWinRate)}</span>
                   <InfoTip
                     label="About the win rate"
-                    content="Your chance of winning one match. A best-of-one match is a single game and a best-of-three is up to three, but either way this is the rate the event's win and loss counters move on."
+                    content="Your chance of winning one match. In best-of-three that is the match, not each game; either way it is the rate the event's win and loss counters move at."
                   />
                 </label>
                 <input
@@ -1155,7 +1156,7 @@ export default function App({
                       Stop after (events)
                       <InfoTip
                         label="About the event limit"
-                        content="Where you stop playing. A run that never goes broke has to end somewhere, and how long you intend to keep going changes the ending balance."
+                        content="Where you stop playing. A run that never goes broke has to end somewhere, and how long you keep going changes the ending balance."
                       />
                     </label>
                     <NumberInput
@@ -1168,13 +1169,16 @@ export default function App({
                 </div>
               </div>
 
+              {/* Opens the dialog the code and `share.ts` still call
+                  "advanced" — reward values, win rate confidence, gold, the
+                  dollar rate and the simulation's size and seed. */}
               <button
                 type="button"
                 className="btn btn-outline-secondary w-100"
                 onClick={() => modal.current?.show()}
               >
                 <i className="bi bi-gear me-1" aria-hidden="true" />
-                Advanced
+                Values &amp; assumptions
               </button>
             </div>
           </div>
@@ -1332,7 +1336,7 @@ export default function App({
                       Entry cost (gold)
                       <InfoTip
                         label="About the gold entry"
-                        content="Most events price the entry in gold as well as gems. Set 0 for events that do not. Gold accrues as you play and pays the entry whenever enough has built up."
+                        content="The entry price in gold, for events that take it. Set 0 for events that do not. Gold builds up as you play and pays the entry whenever there is enough."
                       />
                     </label>
                     <GoldInput
@@ -1347,7 +1351,7 @@ export default function App({
                       Draft packs kept
                       <InfoTip
                         label="About draft packs kept"
-                        content="How many packs' worth of cards you keep from the pool you played with — three for a draft, six for sealed. Zero for phantom events like cube, where the cards are borrowed."
+                        content="How many packs' worth of cards you keep from the pool you played: three for a draft, six for sealed, zero for phantom events like cube."
                       />
                     </label>
                     <AddonInput
@@ -1364,7 +1368,7 @@ export default function App({
                   Payout schedule
                   <InfoTip
                     label="About the payout schedule"
-                    content="What the event pays for finishing on each win count — you get one row, not the rows below it. On Custom the rows follow the win ceiling, so lowering it drops the ones above."
+                    content="What the event pays for finishing on each win count. You get one row, not the rows below it. On Custom the rows follow the win ceiling, so lowering it drops the top ones."
                   />
                 </h3>
                 <div className="table-responsive">
@@ -1600,7 +1604,7 @@ export default function App({
                           help={{
                             label: "What the final value figures mean",
                             content:
-                              "Every simulated run, sorted from worst ending value to best. Half the runs ended with at least the median; p5 marks a run that only 5% did worse than, and p95 one that only 5% did better than.",
+                              "Every simulated run, sorted from worst ending value to best. Half the runs ended at or above the median; only 5% ended below p5, and only 5% above p95.",
                           }}
                         >
                           <PercentileSummary
@@ -1805,9 +1809,6 @@ export default function App({
       </div>
 
       <footer className="site-footer">
-        <p className="mb-1">
-          An expected-value model for MTG Arena limited events.
-        </p>
         <p className="mb-0">
           <a
             className="link-secondary"
@@ -1825,7 +1826,7 @@ export default function App({
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content">
             <div className="modal-header">
-              <h2 className="modal-title h6 mb-0">Advanced settings</h2>
+              <h2 className="modal-title h6 mb-0">Values &amp; assumptions</h2>
               <button
                 type="button"
                 className="btn-close"
@@ -1842,7 +1843,7 @@ export default function App({
                       Matches played
                       <InfoTip
                         label="About matches played"
-                        content="How many matches you estimated your win rate from. Fewer matches means less certain outcomes. Infinity means you know it exactly, and every range collapses to a single figure."
+                        content="How many matches your win rate estimate is based on. Fewer means less certain outcomes; infinity means you know it exactly, and every range collapses to a single figure."
                       />
                     </label>
                     {/*
@@ -1885,6 +1886,14 @@ export default function App({
                 </div>
               </div>
 
+              {/*
+                Every rate a reward is priced at, event and mastery alike. The
+                event ladders' rewards come first; the mastery track's follow,
+                and its last five — the orb and the four cosmetics — are zero
+                by default because nothing in Arena converts them to currency.
+                One button zeroes the lot, cosmetics included: it says "these",
+                and a field the reader has typed into is one of these.
+              */}
               <div className="adv-group mb-3">
                 <div className="d-flex align-items-center justify-content-between mb-2">
                   <h3 className="section-title mb-0">Reward values</h3>
@@ -1899,6 +1908,15 @@ export default function App({
                         playInPointValueGems: 0,
                         playBoxValueGems: 0,
                         collectorBoxValueGems: 0,
+                        draftTokenValueGems: 0,
+                        mythicIcrValueGems: 0,
+                        rareCardValueGems: 0,
+                        uncommonIcrValueGems: 0,
+                        orbValueGems: 0,
+                        cardStyleValueGems: 0,
+                        sleeveValueGems: 0,
+                        avatarValueGems: 0,
+                        companionValueGems: 0,
                       })
                     }
                   >
@@ -1911,7 +1929,7 @@ export default function App({
                       Draft pack value ({m.label})
                       <InfoTip
                         label="About draft pack value"
-                        content="What one draft pack of kept cards is worth, assuming a complete set: a rare converts to 20 gems and a mythic to 40, upgrading about 1:7, so roughly 23 a pack."
+                        content="What one pack of kept draft cards is worth to you. Default: Arena's duplicate-protection payout on a complete set, about 23 gems."
                       />
                     </label>
                     <MoneyInput
@@ -1926,7 +1944,7 @@ export default function App({
                       Pack value ({m.label})
                       <InfoTip
                         label="About pack value"
-                        content="How much are packs worth to you (in gems)? Default is based on duplicate protection for a complete set."
+                        content="What one pack won as a reward is worth to you. Default: Arena's duplicate-protection payout on a complete set."
                       />
                     </label>
                     <MoneyInput
@@ -1941,7 +1959,7 @@ export default function App({
                       Play-in point value ({m.label})
                       <InfoTip
                         label="About play-in point value"
-                        content="Priced off what the points buy: 20 of them cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point."
+                        content="Priced by what the points buy: 20 cover an Arena Open play-in that otherwise costs 4,000 gems, so 200 a point."
                       />
                     </label>
                     <MoneyInput
@@ -1969,7 +1987,7 @@ export default function App({
                       Generic play box value (USD)
                       <InfoTip
                         label="About generic play box value"
-                        content="What a Play Booster box is worth when no set is named — an average street price across three recent Standard sets. A payout naming a set is priced at that set's own market price instead. Zero here values every box at nothing, named or not."
+                        content="What a Play Booster box is worth when the payout names no set: an average street price across three recent Standard sets. A payout naming a set uses that set's own market price. Zero here values every box at nothing, named or not."
                       />
                     </label>
                     <UsdInput
@@ -1984,7 +2002,7 @@ export default function App({
                       Generic collector box value (USD)
                       <InfoTip
                         label="About generic collector box value"
-                        content="What a Collector Booster box is worth when no set is named. These trade well above the $479.88 MSRP of a 12-pack display, and vary widely by set — a named payout uses that set's own price."
+                        content="What a Collector Booster box is worth when the payout names no set. Prices vary widely by set and trade well above the $479.88 MSRP; a payout naming a set uses that set's own price."
                       />
                     </label>
                     <UsdInput
@@ -1994,42 +2012,14 @@ export default function App({
                       onChange={(n) => set("collectorBoxValueGems", n)}
                     />
                   </div>
-                </div>
-              </div>
-
-              {/*
-                The Mastery tab's rates, which no event ladder pays. Kept in
-                their own group rather than mixed into the reward values above:
-                these price a season's pass, and the four cosmetics are all zero
-                by default, so a reader scanning the group above should not have
-                to wonder why five of its fields do nothing.
-              */}
-              <div className="adv-group mb-3">
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <h3 className="section-title mb-0">Mastery rewards</h3>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() =>
-                      update({
-                        ...config,
-                        draftTokenValueGems: 0,
-                        mythicIcrValueGems: 0,
-                        rareCardValueGems: 0,
-                        uncommonIcrValueGems: 0,
-                      })
-                    }
-                  >
-                    Zero these out
-                  </button>
-                </div>
-                <div className="row g-2">
+                  {/* From here down: what the mastery track pays, which no
+                      event ladder does. */}
                   <div className="col-6">
                     <label htmlFor={ids.draftTokenValue} className="form-label">
                       Draft token value ({m.label})
                       <InfoTip
                         label="About draft token value"
-                        content="A Player Draft token is redeemable for a Premier or Traditional Draft entry, both of which cost 1,500 gems — so it is priced at the entry it replaces. That holds if you would have drafted anyway; if you would not, what the entry returns is the better figure, and at most win rates it is smaller."
+                        content="A Player Draft token buys a Premier or Traditional Draft entry, so it is priced at that entry's 1,500 gems. If you would not have drafted anyway, what the entry pays back is the better figure, and usually smaller."
                       />
                     </label>
                     <MoneyInput
@@ -2044,7 +2034,7 @@ export default function App({
                       Mythic ICR value ({m.label})
                       <InfoTip
                         label="About mythic ICR value"
-                        content="Arena's published duplicate protection: a mythic you already hold four of converts to 40 gems. Higher than a pack because a card reward has no rare slot to lose to a wildcard."
+                        content="Arena's duplicate-protection payout for a mythic you already hold four of: 40 gems."
                       />
                     </label>
                     <MoneyInput
@@ -2059,7 +2049,7 @@ export default function App({
                       Rare card value ({m.label})
                       <InfoTip
                         label="About rare card value"
-                        content="The published rare buyout, 20 gems on a complete collection."
+                        content="Arena's duplicate-protection payout for a rare you already hold four of: 20 gems."
                       />
                     </label>
                     <MoneyInput
@@ -2074,7 +2064,7 @@ export default function App({
                       Uncommon ICR value ({m.label})
                       <InfoTip
                         label="About uncommon ICR value"
-                        content="An uncommon has no gem buyout, so this is only its 5% chance of upgrading to a rare — about 1.1 gems. It is what every mastery level past the cap pays."
+                        content="An uncommon has no gem payout, so this is only its 5% chance of upgrading to a rare: about 1.1 gems. It is what every mastery level past the cap pays."
                       />
                     </label>
                     <MoneyInput
@@ -2089,7 +2079,7 @@ export default function App({
                       Mastery Orb value ({m.label})
                       <InfoTip
                         label="About Mastery Orb value"
-                        content="Zero by default, for want of anything to derive a figure from: an orb buys a card style or an avatar in the Mastery Emporium, and neither has a gem price."
+                        content="Zero by default: an orb buys a card style or avatar in the Mastery Emporium, and neither has a gem price."
                       />
                     </label>
                     <MoneyInput
@@ -2104,7 +2094,7 @@ export default function App({
                       Card style value ({m.label})
                       <InfoTip
                         label="About card style value"
-                        content="Cosmetic, so zero by default. Nothing in Arena converts a style to currency."
+                        content="Cosmetic, so zero by default."
                       />
                     </label>
                     <MoneyInput
@@ -2170,7 +2160,7 @@ export default function App({
                       Other gold per day
                       <InfoTip
                         label="About other gold per day"
-                        content="Gold from quests and games outside this event, counted as budget toward entries. Defaults to 600, roughly a daily quest. The gold the event's own wins pay is counted separately, off the daily-win ladder."
+                        content="Gold from quests and play outside this event, counted toward entries. Defaults to 600, about one daily quest. Gold from the event's own wins is counted separately, off the daily-win ladder."
                       />
                     </label>
                     <GoldInput
@@ -2184,7 +2174,7 @@ export default function App({
                       Events per day
                       <InfoTip
                         label="About events per day"
-                        content="How far a day's wins climb the daily-win ladder before it stops paying at fifteen. Playing more earns more gold in total but less per event. Set 0 to price the event in gems alone."
+                        content="How far a day's wins climb the daily-win ladder, which stops paying at fifteen. More events a day earn more gold in total but less per event. Set 0 to price the event in gems alone."
                       />
                     </label>
                     <NumberInput
@@ -2205,7 +2195,7 @@ export default function App({
                       Gems per 10,000 gold
                       <InfoTip
                         label="About the gold exchange rate"
-                        content="What leftover gold is counted as worth. Every event priced in both charges the same ratio of gold to gems, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
+                        content="What leftover gold counts as worth. Every event priced in both uses the same gold-to-gem ratio, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
                       />
                     </label>
                     <GemInput
@@ -2225,7 +2215,7 @@ export default function App({
                       Gems per US dollar
                       <InfoTip
                         label="About the dollar conversion"
-                        content="Used only for showing figures in USD; the simulation always runs in gems. 200 comes from the largest bundle, 20,000 gems for $99.99, which is the best rate on offer."
+                        content="Only for showing figures in USD; the model runs in gems. 200 is the largest bundle's rate, 20,000 gems for $99.99, the best on offer."
                       />
                     </label>
                     <GemInput
@@ -2238,8 +2228,8 @@ export default function App({
               </div>
 
               {/*
-                The Bankroll tab's knobs, and only its: the Per event tab is
-                closed form and has nothing to size or seed.
+                The Bankroll tab's knobs, and only its: the Long-term value tab
+                is closed form and has nothing to size or seed.
               */}
               <div className="adv-group">
                 <h3 className="section-title">Bankroll simulation</h3>
@@ -2249,7 +2239,7 @@ export default function App({
                       Runs
                       <InfoTip
                         label="About bankroll runs"
-                        content="How many sequences the Bankroll tab plays from your starting balance. More of them steady the averages and the shape of the histograms."
+                        content="How many runs the Bankroll tab simulates from your starting balance. More runs steady the averages and the histograms."
                       />
                     </label>
                     <NumberInput
@@ -2264,7 +2254,7 @@ export default function App({
                       Seed
                       <InfoTip
                         label="About the seed"
-                        content="Changes which possible outcomes you get, not the distribution they are drawn from. The same seed always reproduces the same figures."
+                        content="Changes which outcomes you get, not the distribution they come from. The same seed always reproduces the same figures."
                       />
                     </label>
                     <NumberInput id={ids.seed} value={seed} onChange={setSeed} />

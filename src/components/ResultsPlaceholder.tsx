@@ -4,8 +4,8 @@
  * instead of jumping when the numbers arrive. Decoration to a screen
  * reader — the status line carries the meaning.
  *
- * Only the Bankroll tab needs one. The Per event tab is closed form and has
- * its numbers on first render.
+ * Only the Bankroll tab needs one. The Long-term value tab is closed form and
+ * has its numbers on first render.
  */
 export function ResultsPlaceholder() {
   return (

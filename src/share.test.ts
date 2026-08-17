@@ -332,7 +332,7 @@ describe("resetting advanced settings", () => {
     expect(reset.config.playInPointValueGems).toBe(config.playInPointValueGems);
     expect(reset.config.playBoxValueGems).toBe(config.playBoxValueGems);
     expect(reset.config.collectorBoxValueGems).toBe(config.collectorBoxValueGems);
-    // The Mastery rewards group, which the reset reaches for the same reason it
+    // The mastery track's rates, which the reset reaches for the same reason it
     // reaches the rest: `resetAdvanced` names what it keeps, not what it clears,
     // so a rate added to the dialog is restored without anyone editing it.
     expect(reset.config.draftTokenValueGems).toBe(config.draftTokenValueGems);

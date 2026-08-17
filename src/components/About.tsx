@@ -80,7 +80,7 @@ export function About({
           sentence can be wrong. */}
       <SectionHeading
         title="What each reward counts as"
-        subtitle={`Everything is converted to ${m.label} at these rates, all of them editable in Advanced settings.`}
+        subtitle={`Everything is converted to ${m.label} at these rates, all of them editable under Values & assumptions.`}
       />
       <div className="table-responsive">
         <table className="table table-sm align-middle mb-0">
@@ -229,8 +229,8 @@ export function About({
         <dd className="col-sm-8">
           Shown on the bankroll's box chance instead, when your win rate is set
           to exactly known: the simulation's own wobble, which more bankroll
-          runs do narrow. The Per event tab needs no such figure — everything
-          on it is exact for the win rate you set.
+          runs do narrow. The Long-term value tab needs no such figure —
+          everything on it is exact for the win rate you set.
         </dd>
 
         <dt className="col-sm-4">One in twenty</dt>

@@ -137,19 +137,21 @@ export function BoxPrices({
           </thead>
           <tbody>
             {/* The figure the model settles an unnamed box at, above the
-                per-set prices. It is not a set and takes no set code, and it
-                is not derived from the rows below — it is a constant, set from
-                three recent sets and editable in Advanced settings. The
+                per-set prices. It is not a set, so its code is the chip's
+                "Any" — title case among the uppercase codes, as the payout row
+                draws it, which is what marks it as not one of them — and it
+                is not derived from the rows below: it is a constant, set from
+                three recent sets and editable under Values & assumptions. The
                 popover is what keeps it from reading as one more set. */}
-            <tr className="box-price-custom">
+            <tr className="box-price-generic">
               <th scope="row" className="fw-normal">
-                —
+                Any
               </th>
               <td>
-                Custom
+                Generic
                 <InfoTip
-                  label="About the custom box value"
-                  content="What the model prices a box at when the payout names no set, from Advanced settings: an average street price across three recent Standard sets, until you edit it. A payout naming a set is priced from that set's row below."
+                  label="About the generic box value"
+                  content="What the model prices a box at when the payout names no set: an average street price across three recent Standard sets, until you edit it under Values & assumptions. A payout naming a set is priced from that set's row below."
                 />
               </td>
               <td className="text-end">

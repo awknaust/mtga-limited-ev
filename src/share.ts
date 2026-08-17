@@ -14,8 +14,8 @@
  * so switching to Quick Draft does not spell out its whole ladder.
  *
  * **Nothing is compressed.** A shared link should be readable and editable by
- * hand, for the same reason every figure on the Per event tab is closed form:
- * a number you cannot check is a number you have to trust.
+ * hand, for the same reason every figure on the Long-term value tab is closed
+ * form: a number you cannot check is a number you have to trust.
  */
 
 import type { Unit } from "./format";
@@ -275,9 +275,9 @@ const CONFIG_NUMBERS = [
  *    nothing in Arena does. A link still carrying it decodes to a run that
  *    holds its winnings instead of spending them, and that is the intended
  *    reading rather than an oversight.
- *  - `trials` was the Per event tab's Monte Carlo count. Every figure on that
- *    tab is closed form now, so there is nothing for the number to size; a
- *    link carrying it decodes to the same event it always did, exactly.
+ *  - `trials` was the Long-term value tab's Monte Carlo count. Every figure
+ *    on that tab is closed form now, so there is nothing for the number to
+ *    size; a link carrying it decodes to the same event it always did, exactly.
  */
 const UI_NUMBERS = [
   ["startGems", "startingGems"],
