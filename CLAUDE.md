@@ -102,15 +102,19 @@ is where a box becomes a number.
 `DEFAULT_PLAY_BOX_VALUE_GEMS` and `DEFAULT_COLLECTOR_BOX_VALUE_GEMS`, for a
 ladder naming no set and as the stand-in for a named set the table cannot
 price. These are **constants in `presets.ts`**, like every other default:
-typed by a person from `npm run box:prices`, never recomputed by the app,
-never moved by the feed. Every preset box names a set or `latest`, so only a
-custom ladder reads them, and a figure a few months old is fine for that. The
-recipe is on `PLAY_BOX_USD`: market price (sales-derived, 15–25% under
-listings; the basis change from MTGGoldfish's listing figures was
-deliberate), released sets only (presales trade at hype prices that settle
-later), the newest three Standard-legal expansions, anything past twice the
-median of the newest eight set aside. Moving them is a deliberate change to a
-default, and `share.compat.test.ts` fires for it as for any other.
+typed by a person, never recomputed by the app, never moved by the feed.
+Every preset box names a set or `latest`, so only a custom ladder reads them,
+and a figure a few months old is fine for that. They are in the constants
+registry like the rest — `npm run refresh:constants -- DEFAULT_PLAY_BOX_VALUE_GEMS
+DEFAULT_COLLECTOR_BOX_VALUE_GEMS --verbose` prints today's values, the sets
+behind them and the two arrays to paste — and the rule lives in
+`scripts/constants/derive.ts` (`genericBoxValues`): market price
+(sales-derived, 15–25% under listings; the basis change from MTGGoldfish's
+listing figures was deliberate), released sets only (presales trade at hype
+prices that settle later), the newest three Standard-legal expansions,
+anything past twice the median of the newest eight set aside. Moving them is
+a deliberate change to a default, and `share.compat.test.ts` fires for it as
+for any other.
 
 Two consequences worth holding on to. A generic rate of **0 zeroes named
 boxes too** — otherwise "zero these out" would leave an Arena Direct still
@@ -222,7 +226,7 @@ inspection, standing on a thin `scripts/shared/` floor (http, Scryfall,
 dates):
 
 ```bash
-npm run refresh:constants        # scripts/constants/  — every constant except boxes
+npm run refresh:constants        # scripts/constants/  — every sourced constant, box values included
 npm run box:prices               # scripts/box-prices/ — the feed the Worker publishes
 npm run box:prices -- --write    # ...and write it to src/data/box-prices.json, the app's copy
 ```
@@ -236,8 +240,10 @@ value here should replace the one in `presets.ts` is a person's job**, along
 with the doc comment that has to change with it — so there is no drift check
 and no exit code for "a number moved": 0 means it printed, 2 means it could
 not, kept apart so an outage never reads as a price crash. Sources are
-Wizards' drop-rates page and Scryfall; fetching is lazy and memoised, so
-`GEMS_PER_USD` alone touches the network not at all. A constant is one entry
+Wizards' drop-rates page, Scryfall, and — for the two box constants only —
+the box-price feed, built by `scripts/box-prices/` in full; fetching is lazy
+and memoised, so `GEMS_PER_USD` alone touches the network not at all and the
+feed is only fetched when a box constant was asked for. A constant is one entry
 in `registry.ts` carrying its own `compute` and its own explanation, and every
 output mode is a fold over that list — adding one means adding an entry and
 nothing else. Figures only in the client live in `by-hand.ts` with the date
@@ -249,10 +255,10 @@ ever on screen.
 **`scripts/box-prices/`** is the feed: `tcgcsv.ts` reads TCGplayer's mirror,
 `select.ts` picks which sets are worth two requests (a budget, never a
 model), `feed.ts` joins and refuses to publish stumps, `fetch.ts` is the
-front door the Worker and the driver both call. The box constants are *not*
-in the constants registry — their data is this feed, and they are set by hand
-from its table following the doc comment on `PLAY_BOX_USD` in
-`src/lib/presets.ts`. The driver's `--write` is the one thing under
+front door the Worker and the driver both call. The two generic box constants
+read this feed too, through the constants registry (`sources.ts` calls the
+same `fetchBoxPriceFeed`), so `refresh:constants` and `box:prices` never
+disagree about the data. The driver's `--write` is the one thing under
 `scripts/` that writes into the repository: it replaces
 `src/data/box-prices.json`, the copy of the feed the app ships its per-set
 price table from, and it is how that copy is refreshed — by CI before every

@@ -229,17 +229,21 @@ export const DEFAULT_EVENTS_PER_DAY = 1;
  * the plain sense: typed here, never recomputed by the app, and moved only
  * by a person editing this file or by the reader in Advanced settings.
  *
- * The rule they follow, for whoever refreshes them: market price (derived
- * from actual sales; the listing spread runs 15–25% higher and is a hope
- * rather than a price), released sets only (presale boxes trade at hype
- * prices that settle after release), Standard-legal expansions only, the
- * newest three, with anything priced past twice the median of the newest
- * eight set aside — the rule that kept Final Fantasy's $1,700 collector box
- * out. `npm run box:prices` prints the feed as a table; take the top three
- * released `expansion` rows' market prices and write them here, newest first.
- * The per-set price table is *not* refreshed this way — the app ships a copy
- * of the feed for that, and CI refreshes it on every build; see
- * `boxPrices.ts`.
+ * The rule they follow: market price (derived from actual sales; the listing
+ * spread runs 15–25% higher and is a hope rather than a price), released sets
+ * only (presale boxes trade at hype prices that settle after release),
+ * Standard-legal expansions only, the newest three, with anything priced past
+ * twice the median of the newest eight set aside — the rule that kept Final
+ * Fantasy's $1,700 collector box out. It is written down in
+ * `scripts/constants/derive.ts` (`genericBoxValues`), so refreshing these is
+ * the same motion as any other constant:
+ *
+ *     npm run refresh:constants -- DEFAULT_PLAY_BOX_VALUE_GEMS DEFAULT_COLLECTOR_BOX_VALUE_GEMS --verbose
+ *
+ * prints today's two values, the sets behind them, and the two arrays below
+ * ready to paste. Whether to paste them is the usual judgement. The per-set
+ * price table is *not* refreshed this way — the app ships a copy of the feed
+ * for that, and CI refreshes it on every build; see `boxPrices.ts`.
  *
  * @see https://tcgcsv.com — a public JSON mirror of TCGplayer's API
  */

@@ -11,12 +11,14 @@
  * even though only `--verbose` prints it: it costs nothing, and a derivation
  * that is only assembled when asked for is a derivation that rots.
  *
- * Deliberately absent, twice over: the constants that are modelling choices
- * rather than sourced figures — the default win rate, matches behind it,
- * events per day, and DEFAULT_COSMETIC_VALUE_GEMS, whose zero is a refusal to
- * invent a number rather than a number — and the two box constants, whose
- * data comes from the box-price feed (`scripts/box-prices/`) and whose
- * modelling lives in the app (`src/lib/boxPrices.ts`).
+ * Deliberately absent: the constants that are modelling choices rather than
+ * sourced figures — the default win rate, matches behind it, events per day,
+ * and DEFAULT_COSMETIC_VALUE_GEMS, whose zero is a refusal to invent a number
+ * rather than a number. The two generic box constants *are* here: their data
+ * is the box-price feed (`scripts/box-prices/`, fetched in full when they are
+ * asked for), and the rule that turns it into two numbers is `derive.ts`'s
+ * `genericBoxValues` — the app never recomputes them, so this is the one place
+ * the rule runs.
  *
  * Mastery *track* data (`src/data/mastery/`) is also not covered: it is
  * presets-like data with its own provenance discipline, reconciliation tests
@@ -30,10 +32,14 @@ import {
   PLAY_IN_ENTRY,
 } from "./by-hand.ts";
 import {
+  BOX_OUTLIER_FACTOR,
+  BOX_SAMPLE_SIZE,
   gemsPer10kGold,
+  genericBoxValues,
   rareSlotGems,
   representativeMythicRate,
   wildcardShare,
+  type GenericBoxValues,
   type MythicRateSummary,
 } from "./derive.ts";
 import { SourceError } from "../shared/http.ts";
@@ -59,7 +65,8 @@ export type ConstantDef = {
 };
 
 const gems = (n: number): string => n.toLocaleString("en-US");
-const usd = (n: number): string => `$${n.toLocaleString("en-US", { minimumFractionDigits: 2 })}`;
+const usd = (n: number): string =>
+  `$${n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 // --- shared intermediate results -------------------------------------------
 // Two constants come out of this, so it is computed once per run.
@@ -81,6 +88,54 @@ const packBasis = (ctx: Context): Promise<PackBasis> =>
     const displaced = wildcardShare(rates.wildcards);
     return { rates, mythic, raw, displaced, adjusted: raw * (1 - displaced) };
   });
+
+/**
+ * The generic box values, from the feed at the by-hand gems-per-dollar rate.
+ * Two constants come out of this too, and the feed behind it is forty
+ * requests, so it is computed once per run.
+ */
+const boxBasis = (ctx: Context): Promise<GenericBoxValues> =>
+  ctx.sources.once("boxBasis", async () =>
+    genericBoxValues(await ctx.sources.boxPrices(ctx.now), ctx.now, gemsPerUsd().value),
+  );
+
+/**
+ * The lines the two box constants share: which sets were averaged and which
+ * were set aside, then the paste-ready line for presets.ts.
+ */
+function explainBoxBasis(basis: GenericBoxValues, kind: "play" | "collector"): string[] {
+  const priceOf = (s: GenericBoxValues["sets"][number]) => (kind === "play" ? s.playUsd : s.collectorUsd);
+  const medianUsd = kind === "play" ? basis.medians.playUsd : basis.medians.collectorUsd;
+  const meanUsd = kind === "play" ? basis.playUsd : basis.collectorUsd;
+  const gemsValue = kind === "play" ? basis.playGems : basis.collectorGems;
+  const rate = gemsPerUsd().value;
+  const lines = [
+    `TCGplayer market price of the ${kind} box, via tcgcsv: the newest ${BOX_SAMPLE_SIZE} released,`,
+    "  Standard-legal expansions, newest first",
+    ...basis.sets.map(
+      (s) => `  ${s.code.toUpperCase().padEnd(5)} ${s.releasedAt}  ${usd(priceOf(s)).padStart(10)}  ${s.name}`,
+    ),
+  ];
+  if (basis.outliers.length > 0) {
+    lines.push(
+      `set aside by the outlier rule (past ${BOX_OUTLIER_FACTOR}x the median of ${usd(medianUsd)} over the newest ${basis.medians.over}):`,
+      ...basis.outliers.map(
+        (s) => `  ${s.code.toUpperCase().padEnd(5)} ${s.releasedAt}  ${usd(priceOf(s)).padStart(10)}  ${s.name}`,
+      ),
+    );
+  } else {
+    lines.push(
+      `nothing set aside: none past ${BOX_OUTLIER_FACTOR}x the median of ${usd(medianUsd)} over the newest ${basis.medians.over}`,
+    );
+  }
+  lines.push(
+    `mean ${usd(meanUsd)}, at ${rate} gems to the dollar = ${gems(gemsValue)} gems`,
+    `for presets.ts: ${kind === "play" ? "PLAY_BOX_USD" : "COLLECTOR_BOX_USD"} = [${basis.sets.map((s) => priceOf(s).toFixed(2)).join(", ")}]`,
+    "market, not the listing spread; released sets only; expansions only — a",
+    "  named payout is priced from the live table and never sees this figure",
+  );
+  return lines;
+}
 
 /** Gems per dollar, from the by-hand ladder. */
 function gemsPerUsd() {
@@ -218,6 +273,26 @@ export const CONSTANTS: ConstantDef[] = [
           "  bought or sold, so this overstates a balance you are sitting on",
         ],
       };
+    },
+  },
+
+  {
+    name: "DEFAULT_PLAY_BOX_VALUE_GEMS",
+    summary: "gem value of a Play Booster box that names no set",
+    sources: ["boxPrices", "sets"],
+    async compute(ctx) {
+      const basis = await boxBasis(ctx);
+      return { value: basis.playGems, explain: explainBoxBasis(basis, "play") };
+    },
+  },
+
+  {
+    name: "DEFAULT_COLLECTOR_BOX_VALUE_GEMS",
+    summary: "gem value of a Collector Booster box that names no set",
+    sources: ["boxPrices", "sets"],
+    async compute(ctx) {
+      const basis = await boxBasis(ctx);
+      return { value: basis.collectorGems, explain: explainBoxBasis(basis, "collector") };
     },
   },
 

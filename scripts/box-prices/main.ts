@@ -23,8 +23,8 @@
  * module's business — how a named set is priced lives in
  * `src/lib/boxPrices.ts` and is applied to the baked copy there, not here.
  * The two *generic* box values are constants a person sets in
- * `src/lib/presets.ts` from this table; the doc comment on PLAY_BOX_USD there
- * says which rows to read.
+ * `src/lib/presets.ts`; `npm run refresh:constants` derives them from this
+ * same feed and prints the line to paste.
  *
  * Exit codes: 0 printed (and written), 2 a source was unreachable or changed
  * shape.

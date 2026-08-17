@@ -13,9 +13,11 @@
  * moves are noise — so that call is left to whoever is reading, and the doc
  * comments they would have to update along with it.
  *
- * The two box constants are not here: their data is the box-price feed
- * (`npm run box:prices`, `scripts/box-prices/`) and their modelling lives in
- * the app (`src/lib/boxPrices.ts`).
+ * The two generic box constants are here too, and they are the heavy ones:
+ * their source is the box-price feed (`scripts/box-prices/`, some forty
+ * requests), fetched only when one of them is asked for. The per-set price
+ * *table* is not a constant and is not here — the app ships a copy of the feed
+ * for that (`npm run box:prices -- --write`).
  *
  * Exit codes: 0 printed a result, 2 could not — a source was unreachable, a
  * page changed shape, or the arguments named no constant this knows. There is
