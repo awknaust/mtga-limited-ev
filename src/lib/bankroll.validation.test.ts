@@ -364,6 +364,23 @@ describe("gambler's ruin", () => {
   const varRuinTime = (k: number, p: number): number =>
     (k * 4 * p * (1 - p)) / (1 - 2 * p) ** 3;
 
+  /**
+   * What the two heavy walks below are allowed to take.
+   *
+   * They are the most expensive checks in the suite by an order of magnitude —
+   * 200,000 runs over three configs, and 20,000 runs to a 20,000-event ceiling —
+   * because the bounds they assert are four standard errors wide and a standard
+   * error shrinks with the square root of the trial count. Cutting the trials to
+   * fit a budget would widen the bounds and cost the test its teeth.
+   *
+   * Vitest's bare 5s default was never a budget chosen for that. It was ~94% spent
+   * on CI before anything here changed, so any edit to the simulation — by anyone,
+   * for any reason — tipped it over and failed a test that had found no defect.
+   * This says what the tests actually need, so a real hang still fails and an
+   * ordinary 5% slowdown does not.
+   */
+  const WALK_TIMEOUT_MS = 30_000;
+
   it("plays k / (q − p) events before going broke", () => {
     const trials = 200_000;
     for (const [k, p] of [
@@ -390,7 +407,7 @@ describe("gambler's ruin", () => {
       // Ruin is certain, so the cap must never be what ended a run.
       expect(res.survivedFraction).toBe(0);
     }
-  });
+  }, WALK_TIMEOUT_MS);
 
   it("never busts when the walk drifts upward, so the cap is what stops it", () => {
     // p > ½ leaves a positive chance of never hitting zero. The survivors are
@@ -408,7 +425,7 @@ describe("gambler's ruin", () => {
     const se = Math.sqrt((escapes * (1 - escapes)) / trials);
     expect(res.survivedFraction).toBeGreaterThan(escapes - 4 * se);
     expect(res.survivedFraction).toBeLessThan(escapes + 4 * se);
-  });
+  }, WALK_TIMEOUT_MS);
 });
 
 /* ────────────────────────────────────────────────────────────────────────
