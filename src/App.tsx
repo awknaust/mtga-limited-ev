@@ -1035,8 +1035,6 @@ export default function App() {
       key: "matches",
       label: "Matches",
       value: result.meanRounds.toFixed(2),
-      // The σ of net that used to share this hint lives in the spread section
-      // now, where percentiles say the same thing in plainer words.
       hint: `max ${maxRounds(structure)}`,
       help: {
         label: "What matches per event means",
@@ -1790,9 +1788,6 @@ export default function App() {
                       <th scope="col" className="text-end">
                         Net ≈
                       </th>
-                      <th scope="col" className="text-end">
-                        Contribution to EV ≈
-                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -1825,24 +1820,23 @@ export default function App() {
                           <td className={`text-end ${signClass(b.netGems)}`}>
                             {eq(b.netGems)}
                           </td>
-                          <td
-                            className={`text-end ${signClass(b.exactProbability * b.netGems)}`}
-                          >
-                            {eq2(b.exactProbability * b.netGems)}
-                          </td>
                         </tr>
                       );
                     })}
                   </tbody>
                   <tfoot>
                     <tr className="border-top">
-                      <td colSpan={5} className="fw-semibold">
+                      <td colSpan={4} className="fw-semibold">
                         Expected net per event
                       </td>
                       {/*
-                        The closed-form mean, because the column above it is
-                        closed form: this is the sum of those contributions and
-                        has to be the number they add to. It is the simulated
+                        Under Net, which is the column it is the mean of:
+                        every row's net weighted by the chance beside it. The
+                        per-row products used to be a column of their own and
+                        are a multiplication instead, on the two columns above.
+
+                        Closed form, because those two columns are — so the
+                        arithmetic closes on what is shown. It is the simulated
                         mean that the "Expected net" tile carries, with the
                         interval that belongs to a sampled figure.
                       */}
@@ -1875,30 +1869,6 @@ export default function App() {
                 {worstBucketGap(result.buckets).toFixed(2)} points on any row, and{" "}
                 {gemsEq2(Math.abs(result.meanNet - result.exactMeanNet))} on the
                 total.
-              </div>
-
-              <SectionHeading
-                className="mt-4"
-                title="Spread of a single event"
-                subtitle="Net gems from one entry, from an unlucky one to a lucky one."
-              >
-                <InfoTip
-                  label="What the spread figures mean"
-                  content="Every simulated event, sorted from worst net result to best. Half the events paid at least the median; p5 is an unlucky one-in-twenty result, p95 a lucky one-in-twenty."
-                />
-              </SectionHeading>
-              <PercentileSummary
-                percentiles={result.percentiles}
-                fmt={gemsEq}
-                tone={signClass}
-                noun="entries"
-              />
-              <div className="form-text">
-                Over {result.trials.toLocaleString()} events, total net ={" "}
-                <span className={`fw-semibold ${signClass(result.totalNet)}`}>
-                  {gemsEq(result.totalNet)}
-                </span>
-                .
               </div>
               </SimPending>
               )}
