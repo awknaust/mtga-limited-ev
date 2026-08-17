@@ -3,8 +3,8 @@
  *
  * A single event's outcome is a named distribution — binomial in the rounds
  * for a fixed-rounds event, negative binomial in the losses for an
- * elimination one — and every figure the Per event tab shows is a sum over
- * that PMF and the payout table: expected net, gross, boxes, matches, the
+ * elimination one — and every figure the Long-term value tab shows is a sum
+ * over that PMF and the payout table: expected net, gross, boxes, matches, the
  * chance of a profit, and the outcome table itself. Nothing here rolls a die.
  *
  * The bankroll is the one thing that does. A run is a stopped random walk
@@ -75,7 +75,8 @@ export type EventExpectation = {
 };
 
 /**
- * Everything the Per event tab shows, from the exact outcome distribution.
+ * Everything the Long-term value tab shows, from the exact outcome
+ * distribution.
  *
  * `meanNet` is the same sum `expectedNet` takes, written over the rows so the
  * tile and the foot of the outcome table are one number by construction

@@ -283,12 +283,13 @@ derived in the script; a source being down writes nothing and exits 2.
   (react/react#36868), and a bailout is *silent* — the build succeeds and the
   bundle simply carries less memoisation. `react-compiler.test.ts` is the alarm,
   and `vite.config.ts` has the details.
-- Every number a user sees should be checkable. The Per event tab is closed
-  form throughout (`src/lib/expectation.ts`) — nothing on it is sampled, so
-  there is no trial count and no seed behind it, and it should stay that way.
-  The bankroll is the one simulation, because a stopped random walk has no
-  PMF to sum over; `bankroll.validation.test.ts` holds it to closed forms
-  built by other routes, and hand-derived values are pinned by tests.
+- Every number a user sees should be checkable. The Long-term value tab is
+  closed form throughout (`src/lib/expectation.ts`) — nothing on it is
+  sampled, so there is no trial count and no seed behind it, and it should
+  stay that way. The bankroll is the one simulation, because a stopped random
+  walk has no PMF to sum over; `bankroll.validation.test.ts` holds it to
+  closed forms built by other routes, and hand-derived values are pinned by
+  tests.
 - The build loads nothing off-origin, and the CSP in `public/_headers` enforces
   it — no `unsafe-inline` anywhere, which the app only earns by having no inline
   script or style and no external font or stylesheet. A CDN tag, a web font or

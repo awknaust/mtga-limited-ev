@@ -983,8 +983,8 @@ body {
   background: var(--bs-modal-bg, var(--bs-body-bg));
 }
 
-/* The model's own figure, ruled off from the sets it was averaged from. */
-.box-price-custom > * {
+/* The generic figure, ruled off from the sets it was averaged from. */
+.box-price-generic > * {
   border-bottom-width: 2px;
 }
 
