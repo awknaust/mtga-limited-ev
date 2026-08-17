@@ -14,7 +14,7 @@
  *   bankroll.ts      how far a starting balance goes
  *   presets.ts       named events, loaded from src/data/presets
  *   boxPrices.ts     the box-price feed, the copy the app ships, and the
- *                    defaults derived from either
+ *                    price table read from either
  *   mastery.ts       what a Set Mastery Pass returns against what it costs
  */
 

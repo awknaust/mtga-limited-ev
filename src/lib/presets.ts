@@ -21,11 +21,8 @@ import { SEALED } from "../data/presets/sealed";
 import { TRADITIONAL_CUBE_DRAFT } from "../data/presets/traditional-cube-draft";
 import { TRADITIONAL_DRAFT } from "../data/presets/traditional-draft";
 import { TRADITIONAL_SEALED } from "../data/presets/traditional-sealed";
-import {
-  DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
-  DEFAULT_PLAY_BOX_VALUE_GEMS,
-  FALLBACK_BOX_PRICES,
-} from "./boxPrices";
+import { GEMS_PER_USD } from "./boxes";
+import { FALLBACK_BOX_PRICES } from "./boxPrices";
 import { copyTier } from "./structure";
 import type { EventConfig, EventPreset } from "./types";
 
@@ -217,16 +214,63 @@ export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
  */
 export const DEFAULT_EVENTS_PER_DAY = 1;
 
-/*
- * The two box values and the box-price table are not constants here at all.
- * They are derived in `boxPrices.ts` from the feed the app ships a copy of
- * (`src/data/box-prices.json`), by the same rules that read the live feed —
- * DEFAULT_PLAY_BOX_VALUE_GEMS, DEFAULT_COLLECTOR_BOX_VALUE_GEMS and
- * FALLBACK_BOX_PRICES are exported from there, and `defaultConfig` below
- * imports them. `GEMS_PER_USD`, which those derivations convert at, lives in
- * `boxes.ts` for the same reason: this module has to be able to import the
- * derived values without being imported back.
+/**
+ * TCGplayer market prices in USD (read via tcgcsv.com) of the three newest
+ * released, Standard-legal sets as of 2026-08-17, newest first:
+ *
+ *     The Hobbit             play $193.29   collector $822.77
+ *     Marvel Super Heroes    play $117.22   collector $474.56
+ *     Secrets of Strixhaven  play $137.48   collector $504.41
+ *
+ * These set the two *generic* box values below — what a box is worth when a
+ * payout names no set, which only a custom ladder does, and what a named set
+ * falls back to when the price table cannot price it. Every preset box names
+ * a set or `latest` and is priced from the table, so these are constants in
+ * the plain sense: typed here, never recomputed by the app, and moved only
+ * by a person editing this file or by the reader in Advanced settings.
+ *
+ * The rule they follow, for whoever refreshes them: market price (derived
+ * from actual sales; the listing spread runs 15–25% higher and is a hope
+ * rather than a price), released sets only (presale boxes trade at hype
+ * prices that settle after release), Standard-legal expansions only, the
+ * newest three, with anything priced past twice the median of the newest
+ * eight set aside — the rule that kept Final Fantasy's $1,700 collector box
+ * out. `npm run box:prices` prints the feed as a table; take the top three
+ * released `expansion` rows' market prices and write them here, newest first.
+ * The per-set price table is *not* refreshed this way — the app ships a copy
+ * of the feed for that, and CI refreshes it on every build; see
+ * `boxPrices.ts`.
+ *
+ * @see https://tcgcsv.com — a public JSON mirror of TCGplayer's API
  */
+const PLAY_BOX_USD = [193.29, 117.22, 137.48];
+const COLLECTOR_BOX_USD = [822.77, 474.56, 504.41];
+
+const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+/**
+ * Gem value of a generic Play Booster box, converted at GEMS_PER_USD.
+ *
+ * Street price rather than sticker. Wizards' own figure is higher — the Arena
+ * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
+ * supplies run out — but that cash is taxed (the terms mention 30% withholding
+ * in most cases), and what a box is worth to you is what you could get for it.
+ */
+export const DEFAULT_PLAY_BOX_VALUE_GEMS = Math.round(mean(PLAY_BOX_USD) * GEMS_PER_USD);
+
+/**
+ * Gem value of a generic Collector Booster box, same basis.
+ *
+ * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88
+ * — because the price tracks the singles inside. It is also the most volatile
+ * number here: the feed has carried collector boxes from $328 to $1,682. A
+ * payout that names its set is priced from the live table and never sees
+ * this; it is what a custom ladder's unnamed box is worth, and a round
+ * figure a few months old is fine for that.
+ */
+export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
+  mean(COLLECTOR_BOX_USD) * GEMS_PER_USD,
+);
 
 /**
  * Default gem value of one Player Draft token.

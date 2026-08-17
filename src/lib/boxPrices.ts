@@ -1,38 +1,24 @@
 /**
- * The live box-price feed, and the two things the app makes of it.
+ * The live box-price feed, and what the app makes of it.
  *
  * A Worker (see `worker/`) publishes the newest twenty draftable paper sets
  * at `/api/box-prices` on this origin — every booster-box kind TCGplayer
  * tracks for each, with the full price statistics, presales included. The
  * feed decides nothing; every modelling choice is made here, in the app.
  *
- * Two readings, because two questions are being asked:
+ * What the app makes of it is one thing: **`boxPriceTable`**, which answers
+ * "what does *this* box cost" for a payout that names its set. Every priced
+ * paper set in the feed is listed, presales included and whatever its type —
+ * Arena Direct has paid Modern Horizons boxes, and it runs alongside a set in
+ * its release week. No outlier rule: a named box is worth what it trades at,
+ * however startling that is, and Final Fantasy's $1,728 collector box is the
+ * answer rather than an error. Market price throughout — `market` is derived
+ * from actual sales, `low`/`mid`/`high` are the current ask spread, and a
+ * listing is a hope rather than a price.
  *
- * **`boxPriceTable`** answers "what does *this* box cost", for a payout that
- * names its set. Every priced paper set in the feed is listed, presales
- * included and whatever its type — Arena Direct has paid Modern Horizons
- * boxes, and it runs alongside a set in its release week. No outlier rule:
- * a named box is worth what it trades at, however startling that is, and
- * Final Fantasy's $1,728 collector box is the answer rather than an error.
- *
- * **`liveBoxDefaults`** answers "what does a box cost, roughly", for the
- * generic rates that price a custom ladder and stand in whenever a named set
- * cannot be priced. The app runs it once, at build time, against the copy of
- * the feed it ships, and the two answers are the defaults for the build — the
- * live feed prices named sets and never moves them, so only the reader does.
- * It is an average and wants a representative sample, so it is narrower:
- *
- *   - **market price**, not a listing — `market` is derived from actual
- *     sales, `low`/`mid`/`high` are the current ask spread, and a listing is
- *     a hope rather than a price;
- *   - **released sets only** — presale boxes trade and even carry market
- *     prices, but those prices ride preorder hype and settle after release,
- *     and a default should rest on settled prices;
- *   - **Standard-legal expansions only**, the mean of the newest three, with
- *     anything over twice its pool's median set aside — the rule that kept
- *     Final Fantasy's collector box out of the average.
- *
- * Market price is common to both, for the reason above.
+ * The two *generic* box values — what a box naming no set is worth — are not
+ * read from the feed at all. They are constants in `presets.ts`, refreshed by
+ * a person, and the feed never moves them; see the note on PLAY_BOX_USD there.
  *
  * This module is the pure half: validating the payload and reading it. Fetching
  * lives in `src/liveBoxPrices.ts` — the model layer stays free of side effects.
@@ -41,10 +27,10 @@
  *
  * The app also ships a copy of the feed — `src/data/box-prices.json`, the
  * Worker's payload as it stood when the build was made — and the bottom of
- * this module reads that copy with the same two functions. That is what the
- * app stands on when the feed is missing (previews, dev without the proxy, an
- * outage) or fails validation: not a hand-typed number but production's own
- * answer on an earlier day, so a missing feed is never worse than an old one.
+ * this module reads that copy the same way. That is what the app stands on
+ * when the feed is missing (previews, dev without the proxy, an outage) or
+ * fails validation: not an empty table but production's own on an earlier
+ * day, so a missing feed is never worse than an old one.
  */
 
 import baked from "../data/box-prices.json";
@@ -87,16 +73,6 @@ export type BoxPriceFeed = {
   generatedAt: string;
   boxes: BoxPriceRow[];
 };
-
-/** How many sets feed each average. */
-export const BOX_SAMPLE_SIZE = 3;
-
-/**
- * The outlier rule: a box priced over this multiple of the median across the
- * newest OUTLIER_POOL_SIZE candidates is left out of the average.
- */
-export const BOX_OUTLIER_FACTOR = 2;
-const OUTLIER_POOL_SIZE = 8;
 
 const STAT_KEYS = ["market", "low", "mid", "high", "directLow"] as const;
 
@@ -155,89 +131,11 @@ export function parseBoxPriceFeed(data: unknown): BoxPriceFeed | null {
   return { version: 1, generatedAt: feed.generatedAt, boxes: rows };
 }
 
-/** The two derived defaults, with the sets they rest on kept for showing why. */
-export type LiveBoxDefaults = {
-  playBoxValueGems: number;
-  collectorBoxValueGems: number;
-  /** The sets averaged, newest first. */
-  sets: BoxPriceRow[];
-  /** Sets that would have been used but were priced out by the outlier rule. */
-  outliers: BoxPriceRow[];
-  generatedAt: string;
-};
-
-const mean = (xs: number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
-
-const median = (xs: number[]): number => {
-  const sorted = [...xs].sort((a, b) => a - b);
-  const mid = sorted.length >> 1;
-  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
-};
-
 /** Local calendar date, so a set releasing today counts today everywhere. */
 const isoDate = (d: Date): string =>
   `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
     d.getDate(),
   ).padStart(2, "0")}`;
-
-/** A candidate for the averages: both markets known, so both usable. */
-type PricedRow = BoxPriceRow & { releasedAt: string; playMarket: number; collectorMarket: number };
-
-/**
- * The default box values today's feed implies, or null when the feed cannot
- * support the rule — fewer than BOX_SAMPLE_SIZE usable sets means the answer
- * is "keep the fallback", never a thinner average.
- *
- * A set is usable when it is a released, paper, Standard-legal expansion with
- * a market price for both boxes. "Standard-legal" is `setType ===
- * "expansion"`, the same reading the constants were derived with — it is also
- * what keeps Masters and Remastered sets out. Preorders are excluded by
- * release date even when they already trade: a presale market price rides
- * preorder hype, and the default should rest on settled prices.
- */
-export function liveBoxDefaults(feed: BoxPriceFeed, now: Date): LiveBoxDefaults | null {
-  const today = isoDate(now);
-
-  const candidates: PricedRow[] = [];
-  for (const row of feed.boxes) {
-    const playMarket = row.boxes.play?.market;
-    const collectorMarket = row.boxes.collector?.market;
-    if (playMarket == null || collectorMarket == null) continue;
-    if (row.releasedAt === null || row.releasedAt > today) continue;
-    if (row.setType !== "expansion" || row.digital) continue;
-    candidates.push({ ...row, releasedAt: row.releasedAt, playMarket, collectorMarket });
-  }
-  candidates.sort((a, b) => (a.releasedAt < b.releasedAt ? 1 : -1));
-
-  const pool = candidates.slice(0, OUTLIER_POOL_SIZE);
-  if (pool.length < BOX_SAMPLE_SIZE) return null;
-  const limits = {
-    play: median(pool.map((c) => c.playMarket)) * BOX_OUTLIER_FACTOR,
-    collector: median(pool.map((c) => c.collectorMarket)) * BOX_OUTLIER_FACTOR,
-  };
-
-  const sets: PricedRow[] = [];
-  const outliers: PricedRow[] = [];
-  for (const candidate of candidates) {
-    if (sets.length === BOX_SAMPLE_SIZE) break;
-    if (candidate.playMarket > limits.play || candidate.collectorMarket > limits.collector) {
-      outliers.push(candidate);
-    } else {
-      sets.push(candidate);
-    }
-  }
-  if (sets.length < BOX_SAMPLE_SIZE) return null;
-
-  return {
-    playBoxValueGems: Math.round(mean(sets.map((s) => s.playMarket)) * GEMS_PER_USD),
-    collectorBoxValueGems: Math.round(
-      mean(sets.map((s) => s.collectorMarket)) * GEMS_PER_USD,
-    ),
-    sets,
-    outliers,
-    generatedAt: feed.generatedAt,
-  };
-}
 
 /** Kinds a payout can name, and the feed key each is published under. */
 const TABLE_KINDS: BoxKind[] = ["play", "collector"];
@@ -309,13 +207,11 @@ function readBoxPriceTable(feed: BoxPriceFeed, now: Date): BoxPriceTable {
 /*
  * The copy the app ships with.
  *
- * Everything below is the two readings above applied to `src/data/box-prices.json`
+ * Everything below is the reading above applied to `src/data/box-prices.json`
  * — the payload the Worker publishes, taken when the build was made — and it
  * has to sit at the bottom of the module because it runs at load, after every
- * rule and constant it uses is defined. The three named exports at the end are
- * what the rest of the app reads: `defaultConfig` seeds a config from them,
- * and the two values are the build's answer for a box naming no set until the
- * reader types over one.
+ * rule and constant it uses is defined. `FALLBACK_BOX_PRICES` is what the rest
+ * of the app reads: `defaultConfig` seeds a config's price table from it.
  */
 
 /**
@@ -329,7 +225,7 @@ function feedDay(feed: BoxPriceFeed): Date | null {
 }
 
 /**
- * The feed as it stood when this build was made, and what the rules make of it.
+ * The feed as it stood when this build was made, and the table read from it.
  *
  * `feed` is `src/data/box-prices.json` through `parseBoxPriceFeed` — the same
  * validator the live payload passes, so the copy is trusted exactly as far as
@@ -337,36 +233,23 @@ function feedDay(feed: BoxPriceFeed): Date | null {
  * runs once at the top of every build so a deploy ships the newest feed it
  * could reach; when it cannot, the checked-in copy stands.
  *
- * `day` is when the copy was taken, and it is the date the two readings are
- * asked as of — not the day the page is opened. A set that was a presale when
- * the copy was made stays one, so a preorder price never leaks into an
- * average, and the copy means one thing wherever and whenever it is read:
- * production's answer on that day. Being a build behind is the whole cost of
- * the fallback, and it is the same cost as the prices being a week old.
+ * `day` is when the copy was taken, and it is the date the table is read as
+ * of — not the day the page is opened — so `latest` means the newest set
+ * released *then*, and the copy means one thing wherever and whenever it is
+ * read: production's answer on that day. Being a build behind is the whole
+ * cost of the fallback, and it is the same cost as the prices being a week
+ * old.
  *
- * A copy that will not parse, or that the rules cannot derive the defaults
- * from, is a build that must not ship, and the throw is what makes `npm test`
- * say so before it can.
+ * A copy that will not parse is a build that must not ship, and the throw is
+ * what makes `npm test` say so before it can.
  */
-export const BAKED_BOX_PRICES: {
-  feed: BoxPriceFeed;
-  day: Date;
-  table: BoxPriceTable;
-  defaults: LiveBoxDefaults;
-} = (() => {
+export const BAKED_BOX_PRICES: { feed: BoxPriceFeed; day: Date; table: BoxPriceTable } = (() => {
   const where = "src/data/box-prices.json";
   const feed = parseBoxPriceFeed(baked);
   if (feed === null) throw new Error(`${where} is not a box-price feed`);
   const day = feedDay(feed);
   if (day === null) throw new Error(`${where}: generatedAt ${feed.generatedAt} is not a date`);
-  const defaults = liveBoxDefaults(feed, day);
-  if (defaults === null) {
-    throw new Error(
-      `${where} cannot support the default box rule: fewer than ${BOX_SAMPLE_SIZE} ` +
-        "released expansions with both boxes priced",
-    );
-  }
-  return { feed, day, table: readBoxPriceTable(feed, day), defaults };
+  return { feed, day, table: readBoxPriceTable(feed, day) };
 })();
 
 /**
@@ -374,36 +257,9 @@ export const BAKED_BOX_PRICES: {
  * every set the shipped copy priced, and which of them `LATEST_SET` means,
  * as of the day the copy was taken. A payout naming a set is priced from it,
  * so a preview prices a Hobbit box at what one cost when the build was made
- * rather than at the generic average.
+ * rather than at the generic value.
  */
 export const FALLBACK_BOX_PRICES: BoxPriceTable = BAKED_BOX_PRICES.table;
-
-/**
- * Gem value of a generic Play Booster box — one a payout names no set for, or
- * names a set the table cannot price: the average the shipped copy implies
- * under `liveBoxDefaults`, converted at GEMS_PER_USD. Fixed for the build. The
- * live feed prices named sets and does not touch this; a case for moving it
- * at runtime never really existed once boxes could name their set, and doing
- * so made a fresh load look edited.
- *
- * Street price rather than sticker. Wizards' own figure is higher — the Arena
- * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
- * supplies run out — but that cash is taxed (the terms mention 30% withholding
- * in most cases), and what a box is worth to you is what you could get for it.
- */
-export const DEFAULT_PLAY_BOX_VALUE_GEMS: number = BAKED_BOX_PRICES.defaults.playBoxValueGems;
-
-/**
- * Gem value of a generic Collector Booster box, same basis.
- *
- * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88
- * — because the price tracks the singles inside. It is also the most volatile
- * number in the model — recent sets have ranged from under $350 to over
- * $1,600 — which is why the live feed exists and why this is derived rather
- * than typed: a hand-copied figure here was the one that went stale fastest.
- */
-export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS: number =
-  BAKED_BOX_PRICES.defaults.collectorBoxValueGems;
 
 /**
  * A config with the live feed applied — which is the per-set table, and only

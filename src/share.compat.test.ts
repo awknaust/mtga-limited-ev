@@ -45,21 +45,6 @@ import {
 } from "./lib";
 
 /**
- * A box value as a link means it: the number the link spelled out, or
- * `market` where it spelled none.
- *
- * The two box values are the one pair of defaults that are not a fixed
- * number. Left out of a link, a box value means "whatever boxes trade at" —
- * the app derives it from the feed it ships a copy of, and every build
- * refreshes that copy. So the resolved number moves with the market by
- * design, and printing it here would make this file fire on every build
- * while saying nothing about the link. What *is* the link's meaning — that it
- * left the value to the market, or that it fixed one — is what this prints.
- */
-const boxValue = (gems: number, baked: number): string =>
-  gems === baked ? "market" : String(gems);
-
-/**
  * Everything a link resolves to, rendered compactly.
  *
  * A whole-object snapshot would run to fifty lines and bury the one that
@@ -73,7 +58,7 @@ function fingerprint(state: ShareState): string {
     `structure  ${JSON.stringify(c.structure)}`,
     `entry      ${c.entryCostGems} gems / ${c.entryCostGold} gold`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
-    `values     pack=${c.packValueGems} playIn=${c.playInPointValueGems} playBox=${boxValue(c.playBoxValueGems, DEFAULT_PLAY_BOX_VALUE_GEMS)} collBox=${boxValue(c.collectorBoxValueGems, DEFAULT_COLLECTOR_BOX_VALUE_GEMS)}`,
+    `values     pack=${c.packValueGems} playIn=${c.playInPointValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
     `gold       other=${c.otherGoldPerDay}/day over ${c.eventsPerDay} events, goldPer10k=${c.gemsPer10kGold}`,
     /*
      * Derived rather than stored, and that is the point. A link pins inputs,
@@ -314,7 +299,7 @@ describe("the defaults are the contract", () => {
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold
       draft      3 packs @ 23
-      values     pack=22 playIn=200 playBox=market collBox=market
+      values     pack=22 playIn=200 playBox=29866 collBox=120116
       gold       other=600/day over 1 events, goldPer10k=1500
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6

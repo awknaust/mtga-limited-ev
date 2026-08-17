@@ -3,14 +3,11 @@ import { describe, expect, it } from "vitest";
 import shipped from "../data/box-prices.json";
 import {
   BAKED_BOX_PRICES,
-  BOX_SAMPLE_SIZE,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   FALLBACK_BOX_PRICES,
-  GEMS_PER_USD,
   boxPriceTable,
   defaultConfig,
-  liveBoxDefaults,
   parseBoxPriceFeed,
   withLiveBoxPrices,
   type BoxPriceFeed,
@@ -57,9 +54,7 @@ const feed = (boxes: BoxPriceRow[]): BoxPriceFeed => ({
 /**
  * Three released expansions at their TCGplayer market prices as of
  * 2026-08-10 — real figures on a real day, so the arithmetic in the tests
- * that use them can be checked against something outside this file. They
- * were the basis of the box constants when those were typed by hand; the
- * constants are derived from the shipped feed now, and these are a fixture.
+ * that use them can be checked against something outside this file.
  */
 const BASIS = [
   row({ code: "msh", releasedAt: "2026-06-26", playUsd: 116.26, collectorUsd: 440.45 }),
@@ -74,8 +69,8 @@ const BASIS = [
  * with the market on every refresh, and a test that fixed one of its numbers
  * would go red on the next build for no reason anyone wants to hear about.
  * What is pinned is the shape of the arrangement — that the copy is a feed,
- * that the defaults are what the live rules make of it, and that it is read
- * as of the day it was taken.
+ * that the table is what the live rule makes of it, and that it is read as
+ * of the day it was taken.
  */
 describe("the shipped copy of the feed", () => {
   it("is the Worker's payload, and passes the live validator", () => {
@@ -93,38 +88,6 @@ describe("the shipped copy of the feed", () => {
     expect(BAKED_BOX_PRICES.day.getTime()).toBe(new Date(y, m - 1, d).getTime());
   });
 
-  it("derives the two defaults by the same rule as the live feed", () => {
-    // The tie between the live path and the fallback. If this breaks, the
-    // fallback has stopped meaning "the same answer, older" — fix the wiring,
-    // not the test.
-    const derived = liveBoxDefaults(BAKED_BOX_PRICES.feed, BAKED_BOX_PRICES.day);
-    expect(derived).not.toBeNull();
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(derived?.playBoxValueGems);
-    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(derived?.collectorBoxValueGems);
-    expect(BAKED_BOX_PRICES.defaults).toEqual(derived);
-    // And the rule was actually satisfied — three released expansions, none
-    // of them a presale on the day the copy was taken.
-    const day = shipped.generatedAt.slice(0, 10);
-    expect(BAKED_BOX_PRICES.defaults.sets).toHaveLength(BOX_SAMPLE_SIZE);
-    for (const set of BAKED_BOX_PRICES.defaults.sets) {
-      expect(set.setType).toBe("expansion");
-      expect(set.releasedAt).not.toBeNull();
-      expect(set.releasedAt! <= day).toBe(true);
-    }
-  });
-
-  it("keeps the two defaults in the range a box actually trades in", () => {
-    // A unit check, not a price opinion: the band is wide enough that no
-    // market move reaches it, and a slip that shipped cents, or forgot the
-    // conversion, lands two orders of magnitude outside it either way. Play
-    // boxes have traded from about $100 to $300 and collector boxes from
-    // about $330 to $1,700 over the sets the feed carries.
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBeGreaterThan(50 * GEMS_PER_USD);
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBeLessThan(600 * GEMS_PER_USD);
-    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBeGreaterThan(150 * GEMS_PER_USD);
-    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBeLessThan(2500 * GEMS_PER_USD);
-  });
-
   it("is the table the app holds before the live feed, read on its own day", () => {
     expect(FALLBACK_BOX_PRICES).toBe(BAKED_BOX_PRICES.table);
     expect(FALLBACK_BOX_PRICES).toEqual(
@@ -140,95 +103,6 @@ describe("the shipped copy of the feed", () => {
       const set = FALLBACK_BOX_PRICES.sets.find((s) => s.code === code);
       expect(set?.boxes[kind]).toBeGreaterThan(0);
     }
-  });
-});
-
-describe("liveBoxDefaults", () => {
-  it("averages the newest three market prices at 200 gems to the dollar", () => {
-    const live = liveBoxDefaults(
-      feed([
-        row({ code: "aaa", releasedAt: "2026-03-01", playUsd: 100, collectorUsd: 400 }),
-        row({ code: "bbb", releasedAt: "2026-02-01", playUsd: 200, collectorUsd: 500 }),
-        row({ code: "ccc", releasedAt: "2026-01-01", playUsd: 300, collectorUsd: 600 }),
-        // Older than the sample; would move both averages if counted.
-        row({ code: "ddd", releasedAt: "2025-01-01", playUsd: 900, collectorUsd: 9000 }),
-      ]),
-      NOW,
-    );
-    expect(live?.sets.map((s) => s.code)).toEqual(["aaa", "bbb", "ccc"]);
-    expect(live?.playBoxValueGems).toBe(200 * 200);
-    expect(live?.collectorBoxValueGems).toBe(500 * 200);
-  });
-
-  it("uses market price, never the listing spread", () => {
-    // Same markets as BASIS but a wildly different ask spread. If any
-    // low/mid/high leaks into the derivation, the values move.
-    const askew = BASIS.map((r) => ({
-      ...r,
-      boxes: {
-        play: { ...r.boxes.play!, low: 1, mid: 9999, high: 99999 },
-        collector: { ...r.boxes.collector!, low: 1, mid: 9999, high: 99999 },
-      },
-    }));
-    const live = liveBoxDefaults(feed(askew), NOW);
-    // Worked from the three market prices by hand: (116.26 + 135.34 +
-    // 112.72) / 3 = 121.44 a play box, (440.45 + 494.36 + 440.56) / 3 =
-    // 458.457 a collector box, at 200 gems to the dollar.
-    expect(live?.playBoxValueGems).toBe(24_288);
-    expect(live?.collectorBoxValueGems).toBe(91_691);
-  });
-
-  it("drops a collector-box outlier and reaches past it", () => {
-    // Final Fantasy, in miniature: one set at four times the going collector
-    // rate. It must not enter the average, and the sample must refill from the
-    // next set down rather than shrink.
-    const fin = row({ code: "fin", releasedAt: "2026-05-01", playUsd: 250, collectorUsd: 2400 });
-    const live = liveBoxDefaults(
-      feed([
-        row({ code: "msh", releasedAt: "2026-06-01", collectorUsd: 590 }),
-        fin,
-        row({ code: "eoe", releasedAt: "2025-11-01", collectorUsd: 800 }),
-        row({ code: "dft", releasedAt: "2025-08-01", collectorUsd: 380 }),
-        row({ code: "tdm", releasedAt: "2025-04-01", collectorUsd: 500 }),
-        row({ code: "blb", releasedAt: "2025-01-01", collectorUsd: 550 }),
-        row({ code: "dsk", releasedAt: "2024-10-01", collectorUsd: 700 }),
-        row({ code: "otj", releasedAt: "2024-08-20", collectorUsd: 450 }),
-      ]),
-      NOW,
-    );
-    expect(live?.sets.map((s) => s.code)).toEqual(["msh", "eoe", "dft"]);
-    expect(live?.outliers.map((s) => s.code)).toEqual(["fin"]);
-  });
-
-  it("keeps preorders, digital sets, non-expansions and marketless rows out", () => {
-    const usable = [
-      row({ code: "aaa", releasedAt: "2026-03-01" }),
-      row({ code: "bbb", releasedAt: "2026-02-01" }),
-      row({ code: "ccc", releasedAt: "2026-01-01" }),
-    ];
-    const excluded = [
-      // A presale as the feed actually carries one: listings, no sales yet.
-      // The feed publishes it — released-or-not is the app's call, and this
-      // is where the call is made.
-      row({ code: "pre", releasedAt: "2026-11-13", playUsd: null, collectorUsd: null }),
-      row({ code: "dig", digital: true }),
-      row({ code: "mh3", setType: "draft_innovation" }),
-      row({ code: "old", releasedAt: null }),
-      row({ code: "half", playUsd: null }), // collector sold, play never listed
-    ];
-    const live = liveBoxDefaults(feed([...excluded, ...usable]), NOW);
-    expect(live?.sets.map((s) => s.code)).toEqual(["aaa", "bbb", "ccc"]);
-  });
-
-  it("returns null rather than averaging fewer than three sets", () => {
-    expect(liveBoxDefaults(feed(BASIS.slice(0, BOX_SAMPLE_SIZE - 1)), NOW)).toBeNull();
-    expect(liveBoxDefaults(feed([]), NOW)).toBeNull();
-  });
-
-  it("counts a set released today as released", () => {
-    const today = row({ code: "new", releasedAt: "2026-08-09" });
-    const live = liveBoxDefaults(feed([today, ...BASIS]), NOW);
-    expect(live?.sets.map((s) => s.code)).toEqual(["new", "msh", "sos"]);
   });
 });
 
@@ -351,10 +225,9 @@ describe("withLiveBoxPrices", () => {
   });
 
   it("leaves the two generic values where they were, at the default or not", () => {
-    // The feed would put a play box at 40,000 gems here; the shipped default
-    // is not that, and neither is a value the reader typed. Neither moves —
-    // a fresh load must not read as edited, and an edit must survive.
-    expect(liveBoxDefaults(live, NOW)?.playBoxValueGems).toBe(200 * 200);
+    // The feed prices boxes far from the two constants; neither the constant
+    // nor a value the reader typed moves — a fresh load must not read as
+    // edited, and an edit must survive.
     const fresh = withLiveBoxPrices(defaultConfig(), live, NOW);
     expect(fresh.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
     expect(fresh.collectorBoxValueGems).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);

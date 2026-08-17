@@ -87,9 +87,8 @@ directLow — and the feed chooses among none of them: **the worker publishes
 data, and every modelling question lives in the app.** The twenty-set cap is
 what keeps a refresh inside the Workers free plan's 50 subrequests — the
 arithmetic is in `scripts/box-prices/select.ts` — and it is a
-budget, not a model. The app fetches the feed once at load and makes its
-choices in `src/lib/boxPrices.ts`, and it makes two of them, because two
-different questions are being asked.
+budget, not a model. The app fetches the feed once at load and makes one
+choice from it in `src/lib/boxPrices.ts`.
 
 **What is *this* box worth** — `boxPriceTable`, for a payout that names its
 set. A payout row lists the boxes it ships (`PayoutBox`, a kind and a set
@@ -99,19 +98,19 @@ set is saying which box, and the answer is its price however startling. This
 is what the "a box of set X" shape was reserved for, and `src/lib/boxes.ts`
 is where a box becomes a number.
 
-**What is a box worth, roughly** — `liveBoxDefaults`, for the two *generic*
-rates that price a ladder naming no set and stand in wherever a named set
-cannot be priced. That one is an average and wants a representative sample,
-so it keeps the narrow rule: market price (sales-derived, 15–25% under
+**What is a box worth, roughly** — the two *generic* values,
+`DEFAULT_PLAY_BOX_VALUE_GEMS` and `DEFAULT_COLLECTOR_BOX_VALUE_GEMS`, for a
+ladder naming no set and as the stand-in for a named set the table cannot
+price. These are **constants in `presets.ts`**, like every other default:
+typed by a person from `npm run box:prices`, never recomputed by the app,
+never moved by the feed. Every preset box names a set or `latest`, so only a
+custom ladder reads them, and a figure a few months old is fine for that. The
+recipe is on `PLAY_BOX_USD`: market price (sales-derived, 15–25% under
 listings; the basis change from MTGGoldfish's listing figures was
 deliberate), released sets only (presales trade at hype prices that settle
-later), newest three Standard-legal expansions, outliers past twice the pool
-median set aside. It runs once per build, against the copy of the feed the
-app ships, and its two answers *are* the build's defaults: the live feed
-never moves them, only the reader does. Every preset box names a set (or
-`latest`), so they are read by a custom ladder's boxes and as the stand-in
-for a named set the table cannot price — and a build's staleness there is a
-deploy away from fixed.
+later), the newest three Standard-legal expansions, anything past twice the
+median of the newest eight set aside. Moving them is a deliberate change to a
+default, and `share.compat.test.ts` fires for it as for any other.
 
 Two consequences worth holding on to. A generic rate of **0 zeroes named
 boxes too** — otherwise "zero these out" would leave an Arena Direct still
@@ -150,25 +149,22 @@ Boundaries that should outlive any refactor:
   bottom of `src/lib/boxPrices.ts` reads it through the same validator and
   the same two rules as the live one — as of the day the copy was taken, so
   a presale then stays a presale and the copy means one thing wherever it is
-  read. `DEFAULT_PLAY_BOX_VALUE_GEMS`, `DEFAULT_COLLECTOR_BOX_VALUE_GEMS` and
-  `FALLBACK_BOX_PRICES` are *derived* from it, nothing in `presets.ts` is
-  typed from it, and there is no separate "latest set" constant: the copy
-  names the newest set and prices it, so a preview says "HOB" and prices a
-  Hobbit box at what one cost when the build was made. It is written by
+  read. `FALLBACK_BOX_PRICES` is *derived* from it, and there is no separate
+  "latest set" constant: the copy names the newest set and prices it, so a
+  preview says "HOB" and prices a Hobbit box at what one cost when the build
+  was made. It is written by
   `npm run box:prices -- --write`; CI runs that once at the top of every
   build, before the tests, so a deploy ships the newest feed it could reach
   and the tests, the typecheck and the bundle all see the same copy. A source
   being down is not a red build — the step is `continue-on-error` and a
   warning says the checked-in copy shipped instead — which is why the
   checked-in copy still gets refreshed by hand now and then: it is what a
-  build without network gets. Two rules follow. **No test may pin a number,
+  build without network gets. One rule follows. **No test may pin a number,
   a set code or a date from the copy** — it moves on every build, and the
   tests were mutation-checked against a copy with every price up 37% and a
-  new newest set. And the fingerprint in `share.compat.test.ts` prints
-  `playBox=market` for a box value sitting at its derived default, because
-  what an omitted box value *means* is "whatever boxes trade at", and the
-  number that resolves to is not the link's meaning. That file re-recorded
-  once, for the fingerprint change, and must not need to again for a refresh.
+  new newest set. `share.compat.test.ts` reads nothing from it: the two box
+  values it prints are the constants in `presets.ts`, and the table is never
+  in a link.
 - **The feed is fetched before the first render, not after it.** `index.html`
   preloads `/api/box-prices` (`as="fetch" crossorigin` — without `crossorigin`
   the browser will not hand the response to `fetch()`), so the request leaves
@@ -184,16 +180,17 @@ Boundaries that should outlive any refactor:
   this exists to avoid. Do not move the fetch back into a `useEffect`.
 - **The live feed supplies the per-set table and nothing else.** The two
   generic box values — what a box naming no set is worth, which only a custom
-  ladder pays — are the build's own, derived once from the shipped copy, and
-  only the reader moves them. They used to follow the live feed while they
-  still sat at their default, and that made a fresh load read as edited: the
-  reset button lit and the values were written into the link, for a number
-  nothing on a preset ladder reads. Do not reintroduce that; if the generic
-  values look stale, the answer is a deploy, which refreshes the shipped copy.
+  ladder pays — are constants in `presets.ts`, and only the reader moves
+  them. They used to follow the live feed while they still sat at their
+  default, and that made a fresh load read as edited: the reset button lit
+  and the values were written into the link, for a number nothing on a preset
+  ladder reads. Do not reintroduce that, and do not derive them from the
+  shipped copy either — that was tried and made a build's defaults move on
+  every deploy for the sake of a custom-ladder input.
 - **Decoding a link never *requires* the feed.** Encode measures against the
-  derived defaults and decode falls back to them, so a generic rate is written
-  into a link only when someone changed it, and a link that spelled one out
-  means what it meant the day it was written. A link never carries the
+  constants and decode falls back to them, so a generic rate is written into
+  a link only when someone changed it, and a link that spelled one out means
+  what it meant the day it was written. A link never carries the
   price table; what it carries is which *product* was won, and the feed
   prices that on the day the link is opened. So a link naming a set does move
   with the market, deliberately — with no live feed it prices from the
@@ -253,11 +250,12 @@ ever on screen.
 `select.ts` picks which sets are worth two requests (a budget, never a
 model), `feed.ts` joins and refuses to publish stumps, `fetch.ts` is the
 front door the Worker and the driver both call. The box constants are *not*
-in the constants registry — their data is this feed and their modelling is
-the app's (`src/lib/boxPrices.ts`). The driver's `--write` is the one thing
-under `scripts/` that writes into the repository: it replaces
-`src/data/box-prices.json`, the copy of the feed the app ships and derives
-its fallback from, and it is how that copy is refreshed — by CI before every
+in the constants registry — their data is this feed, and they are set by hand
+from its table following the doc comment on `PLAY_BOX_USD` in
+`src/lib/presets.ts`. The driver's `--write` is the one thing under
+`scripts/` that writes into the repository: it replaces
+`src/data/box-prices.json`, the copy of the feed the app ships its per-set
+price table from, and it is how that copy is refreshed — by CI before every
 build, and by hand when the checked-in copy is wanted current. Nothing is
 derived in the script; a source being down writes nothing and exits 2.
 

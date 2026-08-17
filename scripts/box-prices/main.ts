@@ -20,9 +20,11 @@
  * The Worker (`worker/`) is the deployment of this same module; if the
  * numbers here look wrong, the feed is wrong, and the place to look is
  * `scripts/box-prices/`. What any of these numbers *mean* is not this
- * module's business — the modelling (market vs listing, released or not,
- * which sets feed a default) lives in `src/lib/boxPrices.ts`, and it is
- * applied to the baked copy there, not here.
+ * module's business — how a named set is priced lives in
+ * `src/lib/boxPrices.ts` and is applied to the baked copy there, not here.
+ * The two *generic* box values are constants a person sets in
+ * `src/lib/presets.ts` from this table; the doc comment on PLAY_BOX_USD there
+ * says which rows to read.
  *
  * Exit codes: 0 printed (and written), 2 a source was unreachable or changed
  * shape.

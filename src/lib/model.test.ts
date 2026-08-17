@@ -1619,21 +1619,27 @@ describe("presets", () => {
   });
 
   it("converts physical prizes at 200 gems to the dollar", () => {
+    expect(GEMS_PER_USD).toBe(200);
     // 20,000 gems for $99.99 is the best rung on the store ladder, and so the
     // most generous rate — not the largest bundle, which is the 40,000 and is
     // fractionally worse per gem.
-    expect(GEMS_PER_USD).toBe(200);
+    // TCGplayer market prices averaged over The Hobbit, Marvel Super Heroes
+    // and Secrets of Strixhaven, as of 2026-08-17.
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(
+      Math.round(((193.29 + 117.22 + 137.48) / 3) * 200),
+    );
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(
+      Math.round(((822.77 + 474.56 + 504.41) / 3) * 200),
+    );
     /*
-     * The two box values used to be pinned here as literals, and the pins had
-     * a job: a test that re-derived them exactly as the source did agreed
-     * with it whatever the rate said, which is how GEMS_PER_USD sat at 400 —
-     * double every other bundle — with this test green. They are derived
-     * from the shipped feed now and move with it, so the pin that closes that
-     * hole lives in `boxPrices.test.ts` instead: a synthetic $200 box priced
-     * at 40,000 gems, a literal the rate cannot satisfy by agreeing with
-     * itself; and the shipped-copy tests there hold the derived values to the
-     * range a box actually trades in.
+     * Pinned outright as well, because the two lines above re-derive the value
+     * exactly as the source does and so agree with it whatever the rate says.
+     * That is why this test passed throughout the period GEMS_PER_USD was 400
+     * — double every other bundle on the ladder — and it is the hole these two
+     * literals close.
      */
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(29_866);
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(120_116);
   });
 
   it("models Contender Draft as paying nothing below three wins", () => {

@@ -48,11 +48,12 @@ const byRelease = (a: BoxPriceRow, b: BoxPriceRow): number =>
  * they are not a tooltip's worth of text. Hence a table, reached from the
  * About tab, where the two boxes are already named as rewards.
  *
- * It shows the feed and not the derivation. Which three sets were averaged is
- * `liveBoxDefaults`'s business and was marked here once; the marks said more
- * about the rule than a reader of a price table wants, and the prices are the
- * thing being looked up. A set with neither box priced still gets its row —
- * the feed carries it, and a gap in the data is data.
+ * It shows the feed, and above it the two generic values from Advanced
+ * settings — constants a person set from three recent sets, not something
+ * derived from the rows below. Which sets those were was marked here once;
+ * the marks said more about the recipe than a reader of a price table wants,
+ * and the prices are the thing being looked up. A set with neither box priced
+ * still gets its row — the feed carries it, and a gap in the data is data.
  *
  * There is always a feed to show: the app ships a copy of it, and the live
  * one replaces that when it arrives. Where it has not — previews, dev
@@ -76,11 +77,10 @@ export function BoxPrices({
   /** Whether `feed` came from the network, or is the copy the app shipped. */
   live: boolean;
   /**
-   * What the model prices a box at when the payout names no set — the average
-   * of the newest released expansions as of the build, or whatever the reader
-   * typed over it. The top row of the table, since it is the figure a custom
-   * ladder's boxes settle at and the rows below it are its working; a payout
-   * that names a set is priced from those rows directly.
+   * What the model prices a box at when the payout names no set — the constant
+   * in Advanced settings, or whatever the reader typed over it. The top row of
+   * the table, since it is the figure a custom ladder's boxes settle at; a
+   * payout that names a set is priced from the rows below it directly.
    */
   playBoxValueGems: number;
   collectorBoxValueGems: number;
@@ -136,11 +136,11 @@ export function BoxPrices({
             </tr>
           </thead>
           <tbody>
-            {/* The figure the model settles every box payout at, above the
-                prices it was averaged from. It is not a set and takes no set
-                code; the rows below are its working. The popover is what
-                keeps it from reading as one — a row of prices in a table of
-                sets, that is not a set and can be typed over. */}
+            {/* The figure the model settles an unnamed box at, above the
+                per-set prices. It is not a set and takes no set code, and it
+                is not derived from the rows below — it is a constant, set from
+                three recent sets and editable in Advanced settings. The
+                popover is what keeps it from reading as one more set. */}
             <tr className="box-price-custom">
               <th scope="row" className="fw-normal">
                 —
@@ -149,7 +149,7 @@ export function BoxPrices({
                 Custom
                 <InfoTip
                   label="About the custom box value"
-                  content="What the model prices a box at when the payout names no set, from Advanced settings: the average of the three newest sets when this build was made, until you edit it. A payout naming a set is priced from that set's row below."
+                  content="What the model prices a box at when the payout names no set, from Advanced settings: an average street price across three recent Standard sets, until you edit it. A payout naming a set is priced from that set's row below."
                 />
               </td>
               <td className="text-end">
