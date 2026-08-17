@@ -37,14 +37,16 @@
  * The feed carries data rather than an answer so that changing a rule here is
  * an app deploy, not a data migration.
  *
- * When the feed is missing (previews, dev without the proxy, an outage) or
- * fails validation, the table is empty and the app stays on
- * DEFAULT_PLAY_BOX_VALUE_GEMS and DEFAULT_COLLECTOR_BOX_VALUE_GEMS — a
- * snapshot of the averaging rule, refreshed by hand. Every named box then
- * prices at those, so a missing feed is never worse than no feed.
+ * The app also ships a copy of the feed — `src/data/box-prices.json`, the
+ * Worker's payload as it stood when the build was made — and the bottom of
+ * this module reads that copy with the same two functions. That is what the
+ * app stands on when the feed is missing (previews, dev without the proxy, an
+ * outage) or fails validation: not a hand-typed number but production's own
+ * answer on an earlier day, so a missing feed is never worse than an old one.
  */
 
-import { FALLBACK_BOX_PRICES, GEMS_PER_USD } from "./presets";
+import baked from "../data/box-prices.json";
+import { GEMS_PER_USD } from "./boxes";
 import type { BoxKind, BoxPriceSet, BoxPriceTable } from "./types";
 
 /**
@@ -256,8 +258,18 @@ const TABLE_KINDS: BoxKind[] = ["play", "collector"];
  * because a preset that pointed at a set nobody can buy yet would price this
  * week's event at next month's preorder; an expansion, because that is the
  * cadence Arena Direct follows.
+ *
+ * A feed that priced nothing is no better than no feed, so it resolves the
+ * same way — to the table the app shipped with, which names and prices the
+ * sets it knew. The reading itself is `readBoxPriceTable`, kept apart so the
+ * shipped table can be read by it without being asked for.
  */
 export function boxPriceTable(feed: BoxPriceFeed, now: Date): BoxPriceTable {
+  const table = readBoxPriceTable(feed, now);
+  return table.sets.length === 0 ? FALLBACK_BOX_PRICES : table;
+}
+
+function readBoxPriceTable(feed: BoxPriceFeed, now: Date): BoxPriceTable {
   const today = isoDate(now);
 
   const sets: BoxPriceSet[] = [];
@@ -289,9 +301,100 @@ export function boxPriceTable(feed: BoxPriceFeed, now: Date): BoxPriceTable {
     if (code !== undefined) latest[kind] = code;
   }
 
-  // A feed that priced nothing is no better than no feed, so it resolves the
-  // same way — including still naming the newest set from the baked snapshot.
-  return sets.length === 0
-    ? FALLBACK_BOX_PRICES
-    : { sets, latest, generatedAt: feed.generatedAt };
+  return { sets, latest, generatedAt: feed.generatedAt };
 }
+
+/*
+ * The copy the app ships with.
+ *
+ * Everything below is the two readings above applied to `src/data/box-prices.json`
+ * — the payload the Worker publishes, taken when the build was made — and it
+ * has to sit at the bottom of the module because it runs at load, after every
+ * rule and constant it uses is defined. The three named exports at the end are
+ * what the rest of the app reads: `defaultConfig` seeds a config from them and
+ * App compares a field against them to know whether the reader typed over it.
+ */
+
+/**
+ * The feed's UTC calendar day, as a local `Date`, so the local-date reading
+ * `isoDate` takes lands on the same day in every zone. Null when the stamp is
+ * not one — the validator only checks that it is a string.
+ */
+function feedDay(feed: BoxPriceFeed): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T/.exec(feed.generatedAt);
+  return match ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3])) : null;
+}
+
+/**
+ * The feed as it stood when this build was made, and what the rules make of it.
+ *
+ * `feed` is `src/data/box-prices.json` through `parseBoxPriceFeed` — the same
+ * validator the live payload passes, so the copy is trusted exactly as far as
+ * the network is. It is written by `npm run box:prices -- --write`, which CI
+ * runs once at the top of every build so a deploy ships the newest feed it
+ * could reach; when it cannot, the checked-in copy stands.
+ *
+ * `day` is when the copy was taken, and it is the date the two readings are
+ * asked as of — not the day the page is opened. A set that was a presale when
+ * the copy was made stays one, so a preorder price never leaks into an
+ * average, and the copy means one thing wherever and whenever it is read:
+ * production's answer on that day. Being a build behind is the whole cost of
+ * the fallback, and it is the same cost as the prices being a week old.
+ *
+ * A copy that will not parse, or that the rules cannot derive the defaults
+ * from, is a build that must not ship, and the throw is what makes `npm test`
+ * say so before it can.
+ */
+export const BAKED_BOX_PRICES: {
+  feed: BoxPriceFeed;
+  day: Date;
+  table: BoxPriceTable;
+  defaults: LiveBoxDefaults;
+} = (() => {
+  const where = "src/data/box-prices.json";
+  const feed = parseBoxPriceFeed(baked);
+  if (feed === null) throw new Error(`${where} is not a box-price feed`);
+  const day = feedDay(feed);
+  if (day === null) throw new Error(`${where}: generatedAt ${feed.generatedAt} is not a date`);
+  const defaults = liveBoxDefaults(feed, day);
+  if (defaults === null) {
+    throw new Error(
+      `${where} cannot support the default box rule: fewer than ${BOX_SAMPLE_SIZE} ` +
+        "released expansions with both boxes priced",
+    );
+  }
+  return { feed, day, table: readBoxPriceTable(feed, day), defaults };
+})();
+
+/**
+ * The price table the app holds before — or instead of — the live feed:
+ * every set the shipped copy priced, and which of them `LATEST_SET` means,
+ * as of the day the copy was taken. A payout naming a set is priced from it,
+ * so a preview prices a Hobbit box at what one cost when the build was made
+ * rather than at the generic average.
+ */
+export const FALLBACK_BOX_PRICES: BoxPriceTable = BAKED_BOX_PRICES.table;
+
+/**
+ * Fallback gem value of a physical Play Booster box: the average the shipped
+ * copy implies under `liveBoxDefaults`, converted at GEMS_PER_USD. Live prices
+ * replace it wherever the feed can be reached.
+ *
+ * Street price rather than sticker. Wizards' own figure is higher — the Arena
+ * Direct terms offer "a $209.70 cash prize per Play Booster box" if physical
+ * supplies run out — but that cash is taxed (the terms mention 30% withholding
+ * in most cases), and what a box is worth to you is what you could get for it.
+ */
+export const DEFAULT_PLAY_BOX_VALUE_GEMS: number = BAKED_BOX_PRICES.defaults.playBoxValueGems;
+
+/**
+ * Fallback gem value of a physical Collector Booster box, same basis.
+ *
+ * These run far above MSRP — a 12-pack display lists at 12 × $39.99 = $479.88
+ * — because the price tracks the singles inside. It is also the most volatile
+ * number in the model — recent sets have ranged from under $350 to over
+ * $1,600 — which is why the live feed exists and why this is derived rather
+ * than typed: a hand-copied figure here was the one that went stale fastest.
+ */
+export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS: number =
+  BAKED_BOX_PRICES.defaults.collectorBoxValueGems;

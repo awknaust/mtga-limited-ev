@@ -23,12 +23,13 @@ import type { EventPreset } from "../../lib/types";
  *
  * A caution on what that box is worth, because this preset makes it the
  * largest single number in the model. Priced from the feed it is that set's
- * own market price; unpriced it falls back to
- * DEFAULT_COLLECTOR_BOX_VALUE_GEMS, a street average of roughly $630 across
- * three recent sets, against Wizards' substitution of $455.88 a box when
- * supplies run out. For Play boxes the two point the other way — street sits
- * *below* Wizards' $209.70 — so the play figure is the conservative choice its
- * doc comment claims and this one is the more generous. Either way it is worth
+ * own market price; a set the feed does not carry falls back to
+ * DEFAULT_COLLECTOR_BOX_VALUE_GEMS, the street average of the three newest
+ * released expansions — several hundred dollars, against Wizards' substitution
+ * of $455.88 a box when supplies run out, and on which side of that figure it
+ * sits depends on the sets of the day. For Play boxes street has sat *below*
+ * Wizards' $209.70, so the play figure is the conservative choice its doc
+ * comment claims and this one is the less certain. Either way it is worth
  * knowing which side of the cash alternative you are on before reading
  * anything off the seven-win row, and the spread between sets is wide: the
  * feed has had collector boxes from $328 to $1,728.

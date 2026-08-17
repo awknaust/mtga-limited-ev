@@ -28,9 +28,9 @@ import babel from "@rolldown/plugin-babel";
 /*
  * /api is the box-price feed, served in production by the Worker in `worker/`
  * on the app's own origin (the CSP allows nothing else). Dev has no Worker,
- * so by default the fetch fails and the app stands on its baked-in fallback
- * values — the same behaviour as a preview deploy, and dev never requires the
- * network.
+ * so by default the fetch fails and the app stands on the copy of the feed it
+ * ships (src/data/box-prices.json) — the same behaviour as a preview deploy,
+ * and dev never requires the network.
  *
  * To exercise the live feed path, name a proxy target explicitly:
  *

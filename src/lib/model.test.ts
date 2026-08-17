@@ -11,6 +11,7 @@ import {
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+  EMPTY_BOX_PRICES,
   GEMS_PER_USD,
   GEMS_PER_10K_GOLD,
   PICK_TWO_DRAFT,
@@ -1543,9 +1544,17 @@ describe("presets", () => {
   it("prices boxes into the gross", () => {
     const config = configFromPreset(ARENA_DIRECT, defaultConfig());
     expect(config.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
-    // No feed in a fresh config, so both named boxes price generically.
-    expect(grossValue(config, 7)).toBe(2 * config.playBoxValueGems);
-    expect(grossValue(config, 6)).toBe(config.playBoxValueGems);
+    // A fresh config carries the feed the app shipped with, so the two boxes
+    // on the seven-win row are each priced as the product they name — the sum
+    // of two prices, not a count times a rate.
+    const spm = boxValueGems(config, { kind: "play", set: "spm" });
+    const msh = boxValueGems(config, { kind: "play", set: "msh" });
+    expect(grossValue(config, 7)).toBe(spm + msh);
+    expect(grossValue(config, 6)).toBe(spm);
+    // With no table at all, both fall back to the generic rate.
+    const bare = { ...config, boxPrices: EMPTY_BOX_PRICES };
+    expect(grossValue(bare, 7)).toBe(2 * config.playBoxValueGems);
+    expect(grossValue(bare, 6)).toBe(config.playBoxValueGems);
     // Valuing boxes at nothing strips the top two tiers back to zero, and it
     // has to do so for a box that names a set as much as for one that does not
     // — otherwise "zero these out" would leave an Arena Direct priced.
@@ -1610,27 +1619,21 @@ describe("presets", () => {
   });
 
   it("converts physical prizes at 200 gems to the dollar", () => {
-    expect(GEMS_PER_USD).toBe(200);
     // 20,000 gems for $99.99 is the best rung on the store ladder, and so the
     // most generous rate — not the largest bundle, which is the 40,000 and is
     // fractionally worse per gem.
-    // TCGplayer market prices averaged over Marvel Super Heroes, Secrets of
-    // Strixhaven and Teenage Mutant Ninja Turtles, as of 2026-08-10.
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(
-      Math.round(((116.26 + 135.34 + 112.72) / 3) * 200),
-    );
-    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(
-      Math.round(((440.45 + 494.36 + 440.56) / 3) * 200),
-    );
+    expect(GEMS_PER_USD).toBe(200);
     /*
-     * Pinned outright as well, because the two lines above re-derive the value
-     * exactly as the source does and so agree with it whatever the rate says.
-     * That is why this test passed throughout the period GEMS_PER_USD was 400
-     * — double every other bundle on the ladder — and it is the hole these two
-     * literals close.
+     * The two box values used to be pinned here as literals, and the pins had
+     * a job: a test that re-derived them exactly as the source did agreed
+     * with it whatever the rate said, which is how GEMS_PER_USD sat at 400 —
+     * double every other bundle — with this test green. They are derived
+     * from the shipped feed now and move with it, so the pin that closes that
+     * hole lives in `boxPrices.test.ts` instead: a synthetic $200 box priced
+     * at 40,000 gems, a literal the rate cannot satisfy by agreeing with
+     * itself; and the shipped-copy tests there hold the derived values to the
+     * range a box actually trades in.
      */
-    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(24_288);
-    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(91_691);
   });
 
   it("models Contender Draft as paying nothing below three wins", () => {

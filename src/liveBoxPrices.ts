@@ -7,8 +7,8 @@
  * Same-origin by construction — the path is relative, and the CSP's
  * `connect-src 'self'` would reject anything else. Where the route does not
  * exist (preview deployments, `npm run dev` without the proxy, an outage)
- * this resolves to null and the app stays on its baked-in fallback values;
- * every failure is deliberately indistinguishable from "no feed".
+ * this resolves to null and the app stays on the copy of the feed it shipped
+ * with; every failure is deliberately indistinguishable from "no feed".
  */
 
 import { parseBoxPriceFeed, type BoxPriceFeed } from "./lib";

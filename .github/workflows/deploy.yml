@@ -41,6 +41,33 @@ jobs:
 
       - run: npm ci
 
+      # The app ships a copy of the box-price feed (src/data/box-prices.json)
+      # as its fallback for when /api/box-prices cannot be reached — every
+      # preview, since the Worker's route lives on the production domain only.
+      # This refreshes that copy from the live sources so a deploy ships the
+      # newest feed it could reach, and it runs here, once, before anything
+      # reads the file: the tests, the typecheck and the bundle all see the
+      # same copy, which is the reason it is a step and not part of `npm run
+      # build`. Deliberately not fatal — a source being down is what the
+      # fallback is *for*, so it cannot be a way for main to go red — but not
+      # quiet either: the failing step keeps its red mark and the warning below
+      # says what shipped instead. `npm test` still validates whatever copy is
+      # on disk, refreshed or checked in, and would fail loudly on one the app
+      # could not read.
+      - name: Refresh the shipped box-price feed
+        id: box-prices
+        continue-on-error: true
+        timeout-minutes: 3
+        run: npm run box:prices -- --write
+
+      - name: Note when the checked-in copy shipped instead
+        if: steps.box-prices.outcome == 'failure'
+        run: >-
+          echo "::warning title=Box-price refresh failed::The build ships the
+          checked-in src/data/box-prices.json (generated
+          $(node -p 'require("./src/data/box-prices.json").generatedAt')) rather
+          than a fresh copy. See the step above."
+
       - run: npm test
 
       # `npm run build` is `tsc -b && vite build`, so this typechecks as well as

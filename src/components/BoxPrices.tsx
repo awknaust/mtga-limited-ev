@@ -39,7 +39,7 @@ const byRelease = (a: BoxPriceRow, b: BoxPriceRow): number =>
   (b.releasedAt ?? "").localeCompare(a.releasedAt ?? "");
 
 /**
- * What the two box values are standing on: every set the live feed carries,
+ * What the two box values are standing on: every set the feed carries,
  * priced.
  *
  * The values themselves are two fields in Advanced settings, which is a fine
@@ -54,19 +54,27 @@ const byRelease = (a: BoxPriceRow, b: BoxPriceRow): number =>
  * thing being looked up. A set with neither box priced still gets its row —
  * the feed carries it, and a gap in the data is data.
  *
+ * There is always a feed to show: the app ships a copy of it, and the live
+ * one replaces that when it arrives. Where it has not — previews, dev
+ * without the proxy, an outage — the table is the shipped copy, and the note
+ * above it says so, because "last updated three weeks ago" would otherwise
+ * read as a Worker that has stopped rather than a build that never had one.
+ *
  * `now` is passed rather than read, so the age is a value the caller decides
  * — App stamps it when the dialog opens. Reading the clock during a render
  * would be a lie the React Compiler is entitled to memoise.
  */
 export function BoxPrices({
   feed,
+  live,
   playBoxValueGems,
   collectorBoxValueGems,
   gemsPerUsd,
   now,
 }: {
-  /** Null on previews, in dev without the proxy, and during an outage. */
-  feed: BoxPriceFeed | null;
+  feed: BoxPriceFeed;
+  /** Whether `feed` came from the network, or is the copy the app shipped. */
+  live: boolean;
   /**
    * What the model actually prices a box at — the average of the newest
    * released expansions, or the baked fallback, or whatever the reader typed
@@ -79,16 +87,6 @@ export function BoxPrices({
   gemsPerUsd: number;
   now: Date;
 }) {
-  if (!feed) {
-    return (
-      <p className="mb-0">
-        No live prices here. They are served from the production site, so this
-        build is using the box values baked in when it was built, both of them
-        editable in Advanced settings.
-      </p>
-    );
-  }
-
   const age = feedAgeText(feed.generatedAt, now);
   const stamp = feedStampText(feed.generatedAt);
   /* Sorted here rather than trusted from the feed: the order is the only
@@ -101,6 +99,13 @@ export function BoxPrices({
 
   return (
     <>
+      {!live && (
+        <p>
+          No live prices here — they are served from the production site.
+          These are the prices this build shipped with, and the two box values
+          in Advanced settings are their averages.
+        </p>
+      )}
       {/* Both credited, because the price and the route to it are two
           different claims: the market figures are TCGplayer's, and tcgcsv is
           the public mirror of their API the Worker actually reads. Same

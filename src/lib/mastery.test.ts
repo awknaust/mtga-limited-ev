@@ -141,9 +141,10 @@ describe("mastery reward rates", () => {
   });
 
   /*
-   * Pinned as a literal *and* as the derivation, the way the box values are.
-   * The derivation alone would have happily agreed with itself while the entry
-   * cost was wrong, which is the failure DEFAULT_PLAY_BOX_VALUE_GEMS documents.
+   * Pinned as a literal *and* as the derivation, the way the box values were
+   * while they were typed by hand. The derivation alone would have happily
+   * agreed with itself while the entry cost was wrong, which is the failure
+   * the "converts physical prizes" test in model.test.ts documents.
    */
   it("prices a draft token at the Premier Draft entry it replaces", () => {
     expect(DEFAULT_DRAFT_TOKEN_VALUE_GEMS).toBe(1500);

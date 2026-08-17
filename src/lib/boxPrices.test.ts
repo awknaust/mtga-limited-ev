@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import shipped from "../data/box-prices.json";
 import {
+  BAKED_BOX_PRICES,
   BOX_SAMPLE_SIZE,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
-  DEFAULT_LATEST_SET,
   FALLBACK_BOX_PRICES,
+  GEMS_PER_USD,
   boxPriceTable,
   liveBoxDefaults,
   parseBoxPriceFeed,
@@ -51,25 +53,95 @@ const feed = (boxes: BoxPriceRow[]): BoxPriceFeed => ({
 });
 
 /**
- * The three sets the shipped constants were derived from, priced as the doc
- * comment on PLAY_BOX_USD records them: TCGplayer market as of 2026-08-10.
+ * Three released expansions at their TCGplayer market prices as of
+ * 2026-08-10 — real figures on a real day, so the arithmetic in the tests
+ * that use them can be checked against something outside this file. They
+ * were the basis of the box constants when those were typed by hand; the
+ * constants are derived from the shipped feed now, and these are a fixture.
  */
-const SHIPPED_BASIS = [
+const BASIS = [
   row({ code: "msh", releasedAt: "2026-06-26", playUsd: 116.26, collectorUsd: 440.45 }),
   row({ code: "sos", releasedAt: "2026-04-24", playUsd: 135.34, collectorUsd: 494.36 }),
   row({ code: "tmt", releasedAt: "2026-03-06", playUsd: 112.72, collectorUsd: 440.56 }),
 ];
 
-describe("liveBoxDefaults", () => {
-  it("reproduces the shipped constants from the sets they were derived from", () => {
-    // The tie between the live path and the fallback. If this breaks, the two
-    // rules have diverged and "fallback" no longer means "the same answer,
-    // older" — fix the rule, not the test.
-    const live = liveBoxDefaults(feed(SHIPPED_BASIS), NOW);
-    expect(live?.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
-    expect(live?.collectorBoxValueGems).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
+/*
+ * The copy of the feed the app ships — `src/data/box-prices.json`, written
+ * by `npm run box:prices -- --write` and refreshed by CI before every build.
+ * Nothing here pins a price, a set code or a date from it: the copy moves
+ * with the market on every refresh, and a test that fixed one of its numbers
+ * would go red on the next build for no reason anyone wants to hear about.
+ * What is pinned is the shape of the arrangement — that the copy is a feed,
+ * that the defaults are what the live rules make of it, and that it is read
+ * as of the day it was taken.
+ */
+describe("the shipped copy of the feed", () => {
+  it("is the Worker's payload, and passes the live validator", () => {
+    // Read through `parseBoxPriceFeed` like a fetched one, so it is trusted
+    // exactly as far as the network is and no further.
+    expect(shipped.version).toBe(1);
+    expect(BAKED_BOX_PRICES.feed).toEqual(parseBoxPriceFeed(shipped));
+    expect(BAKED_BOX_PRICES.feed.generatedAt).toBe(shipped.generatedAt);
   });
 
+  it("is read as of the day it was taken, wherever it is read", () => {
+    // The UTC date on the stamp, built as a local day — so the local-date
+    // reading the rules use lands on that calendar day in every zone.
+    const [y, m, d] = shipped.generatedAt.slice(0, 10).split("-").map(Number);
+    expect(BAKED_BOX_PRICES.day.getTime()).toBe(new Date(y, m - 1, d).getTime());
+  });
+
+  it("derives the two defaults by the same rule as the live feed", () => {
+    // The tie between the live path and the fallback. If this breaks, the
+    // fallback has stopped meaning "the same answer, older" — fix the wiring,
+    // not the test.
+    const derived = liveBoxDefaults(BAKED_BOX_PRICES.feed, BAKED_BOX_PRICES.day);
+    expect(derived).not.toBeNull();
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBe(derived?.playBoxValueGems);
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBe(derived?.collectorBoxValueGems);
+    expect(BAKED_BOX_PRICES.defaults).toEqual(derived);
+    // And the rule was actually satisfied — three released expansions, none
+    // of them a presale on the day the copy was taken.
+    const day = shipped.generatedAt.slice(0, 10);
+    expect(BAKED_BOX_PRICES.defaults.sets).toHaveLength(BOX_SAMPLE_SIZE);
+    for (const set of BAKED_BOX_PRICES.defaults.sets) {
+      expect(set.setType).toBe("expansion");
+      expect(set.releasedAt).not.toBeNull();
+      expect(set.releasedAt! <= day).toBe(true);
+    }
+  });
+
+  it("keeps the two defaults in the range a box actually trades in", () => {
+    // A unit check, not a price opinion: the band is wide enough that no
+    // market move reaches it, and a slip that shipped cents, or forgot the
+    // conversion, lands two orders of magnitude outside it either way. Play
+    // boxes have traded from about $100 to $300 and collector boxes from
+    // about $330 to $1,700 over the sets the feed carries.
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBeGreaterThan(50 * GEMS_PER_USD);
+    expect(DEFAULT_PLAY_BOX_VALUE_GEMS).toBeLessThan(600 * GEMS_PER_USD);
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBeGreaterThan(150 * GEMS_PER_USD);
+    expect(DEFAULT_COLLECTOR_BOX_VALUE_GEMS).toBeLessThan(2500 * GEMS_PER_USD);
+  });
+
+  it("is the table the app holds before the live feed, read on its own day", () => {
+    expect(FALLBACK_BOX_PRICES).toBe(BAKED_BOX_PRICES.table);
+    expect(FALLBACK_BOX_PRICES).toEqual(
+      boxPriceTable(BAKED_BOX_PRICES.feed, BAKED_BOX_PRICES.day),
+    );
+    expect(FALLBACK_BOX_PRICES.generatedAt).toBe(shipped.generatedAt);
+    // It prices sets and names the newest — which is what lets a preview say
+    // "a Hobbit box" and price it, rather than "any box" at an average.
+    expect(FALLBACK_BOX_PRICES.sets.length).toBeGreaterThan(0);
+    for (const kind of ["play", "collector"] as const) {
+      const code = FALLBACK_BOX_PRICES.latest[kind];
+      expect(code).toBeDefined();
+      const set = FALLBACK_BOX_PRICES.sets.find((s) => s.code === code);
+      expect(set?.boxes[kind]).toBeGreaterThan(0);
+    }
+  });
+});
+
+describe("liveBoxDefaults", () => {
   it("averages the newest three market prices at 200 gems to the dollar", () => {
     const live = liveBoxDefaults(
       feed([
@@ -87,9 +159,9 @@ describe("liveBoxDefaults", () => {
   });
 
   it("uses market price, never the listing spread", () => {
-    // Same markets as SHIPPED_BASIS but a wildly different ask spread. If any
+    // Same markets as BASIS but a wildly different ask spread. If any
     // low/mid/high leaks into the derivation, the values move.
-    const askew = SHIPPED_BASIS.map((r) => ({
+    const askew = BASIS.map((r) => ({
       ...r,
       boxes: {
         play: { ...r.boxes.play!, low: 1, mid: 9999, high: 99999 },
@@ -97,8 +169,11 @@ describe("liveBoxDefaults", () => {
       },
     }));
     const live = liveBoxDefaults(feed(askew), NOW);
-    expect(live?.playBoxValueGems).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
-    expect(live?.collectorBoxValueGems).toBe(DEFAULT_COLLECTOR_BOX_VALUE_GEMS);
+    // Worked from the three market prices by hand: (116.26 + 135.34 +
+    // 112.72) / 3 = 121.44 a play box, (440.45 + 494.36 + 440.56) / 3 =
+    // 458.457 a collector box, at 200 gems to the dollar.
+    expect(live?.playBoxValueGems).toBe(24_288);
+    expect(live?.collectorBoxValueGems).toBe(91_691);
   });
 
   it("drops a collector-box outlier and reaches past it", () => {
@@ -144,20 +219,20 @@ describe("liveBoxDefaults", () => {
   });
 
   it("returns null rather than averaging fewer than three sets", () => {
-    expect(liveBoxDefaults(feed(SHIPPED_BASIS.slice(0, BOX_SAMPLE_SIZE - 1)), NOW)).toBeNull();
+    expect(liveBoxDefaults(feed(BASIS.slice(0, BOX_SAMPLE_SIZE - 1)), NOW)).toBeNull();
     expect(liveBoxDefaults(feed([]), NOW)).toBeNull();
   });
 
   it("counts a set released today as released", () => {
     const today = row({ code: "new", releasedAt: "2026-08-09" });
-    const live = liveBoxDefaults(feed([today, ...SHIPPED_BASIS]), NOW);
+    const live = liveBoxDefaults(feed([today, ...BASIS]), NOW);
     expect(live?.sets.map((s) => s.code)).toEqual(["new", "msh", "sos"]);
   });
 });
 
 describe("boxPriceTable", () => {
   it("prices every set the feed carries, newest first", () => {
-    const table = boxPriceTable(feed(SHIPPED_BASIS), NOW);
+    const table = boxPriceTable(feed(BASIS), NOW);
     expect(table.sets.map((s) => s.code)).toEqual(["msh", "sos", "tmt"]);
     // Market at 200 gems to the dollar, the same conversion the averages use.
     expect(table.sets[0].boxes).toEqual({
@@ -179,7 +254,7 @@ describe("boxPriceTable", () => {
         row({ code: "pre", releasedAt: "2026-11-13", playUsd: 210 }),
         row({ code: "mh3", setType: "draft_innovation", playUsd: 293 }),
         row({ code: "fin", releasedAt: "2026-05-01", collectorUsd: 1728 }),
-        ...SHIPPED_BASIS,
+        ...BASIS,
       ]),
       NOW,
     );
@@ -195,7 +270,7 @@ describe("boxPriceTable", () => {
         row({ code: "dig", digital: true }),
         row({ code: "tbd", releasedAt: null }),
         row({ code: "none", playUsd: null, collectorUsd: null }),
-        ...SHIPPED_BASIS,
+        ...BASIS,
       ]),
       NOW,
     );
@@ -219,7 +294,7 @@ describe("boxPriceTable", () => {
         row({ code: "pre", releasedAt: "2026-11-13" }),
         row({ code: "mh3", releasedAt: "2026-07-01", setType: "draft_innovation" }),
         row({ code: "new", releasedAt: "2026-06-30", collectorUsd: null }),
-        ...SHIPPED_BASIS,
+        ...BASIS,
       ]),
       NOW,
     );
@@ -239,25 +314,25 @@ describe("boxPriceTable", () => {
 
   /*
    * A feed that priced nothing is no better than no feed, so it resolves the
-   * same way — no prices, but still naming the newest set from the baked
-   * snapshot, since which set an event ships is knowable without the feed.
+   * same way — to the shipped copy's table, which names the newest set and
+   * prices it, rather than to an empty table that would turn every named box
+   * back into "any box".
    */
-  it("falls back to the baked table when the feed prices nothing", () => {
-    expect(boxPriceTable(feed([]), NOW)).toEqual(FALLBACK_BOX_PRICES);
-    expect(boxPriceTable(feed([row({ code: "dig", digital: true })]), NOW)).toEqual(
+  it("falls back to the shipped table when the feed prices nothing", () => {
+    expect(boxPriceTable(feed([]), NOW)).toBe(FALLBACK_BOX_PRICES);
+    expect(boxPriceTable(feed([row({ code: "dig", digital: true })]), NOW)).toBe(
       FALLBACK_BOX_PRICES,
     );
-    // And that table names a set even though it prices none.
-    expect(FALLBACK_BOX_PRICES.sets).toEqual([]);
-    expect(FALLBACK_BOX_PRICES.latest.play).toBe(DEFAULT_LATEST_SET);
+    // And not by accident of the shipped table happening to be empty.
+    expect(FALLBACK_BOX_PRICES.sets.length).toBeGreaterThan(0);
   });
 });
 
 describe("parseBoxPriceFeed", () => {
   // Deep-cloned: several cases below mutate what they are handed, and the
-  // rows in SHIPPED_BASIS are shared with the derivation tests above.
+  // rows in BASIS are shared with the derivation tests above.
   const good = (): Record<string, unknown> =>
-    JSON.parse(JSON.stringify(feed(SHIPPED_BASIS))) as Record<string, unknown>;
+    JSON.parse(JSON.stringify(feed(BASIS))) as Record<string, unknown>;
 
   const firstBoxes = (d: Record<string, unknown>): Record<string, unknown> =>
     (d.boxes as Record<string, unknown>[])[0].boxes as Record<string, unknown>;

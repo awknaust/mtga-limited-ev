@@ -44,6 +44,7 @@ import {
   holdingSlices,
 } from "./components/ValueSplitBar";
 import {
+  BAKED_BOX_PRICES,
   CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
@@ -261,19 +262,23 @@ export default function App() {
   ]);
 
   /*
-   * The feed as fetched, kept for the dialog that shows it — the payload
-   * itself, not the two defaults derived from it, since the table quotes
-   * prices and says nothing about which of them were averaged. Null covers
-   * both "not back yet" and "there is none", which is what the dialog says:
-   * the page never waits on this and never changes shape when it lands.
+   * The feed, kept for the dialog that shows it — the payload itself, not the
+   * two defaults derived from it, since the table quotes prices and says
+   * nothing about which of them were averaged. It starts as the copy the app
+   * shipped with and is replaced if the live one arrives, so the dialog always
+   * has a table to show and only the note above it changes: the page never
+   * waits on the fetch and never changes shape when it lands.
    */
-  const [boxFeed, setBoxFeed] = useState<BoxPriceFeed | null>(null);
+  const [boxFeed, setBoxFeed] = useState<{ feed: BoxPriceFeed; live: boolean }>({
+    feed: BAKED_BOX_PRICES.feed,
+    live: false,
+  });
 
   /*
    * Live box prices, applied once if they arrive. The fetch resolves to null
-   * on previews, in dev without the proxy, and during outages, and the baked
-   * defaults simply stand — nothing here may ever make the app worse than it
-   * was without a network.
+   * on previews, in dev without the proxy, and during outages, and the shipped
+   * copy simply stands — nothing here may ever make the app worse than it was
+   * without a network.
    *
    * Two different things land here. The per-set table is installed outright:
    * it is not a setting anybody chose, it is what the boxes named by the
@@ -294,7 +299,7 @@ export default function App() {
       if (!feed) return;
       // Kept whether or not the averages below could be derived: a feed too
       // thin to average is still the answer to why the values did not move.
-      setBoxFeed(feed);
+      setBoxFeed({ feed, live: true });
       const now = new Date();
       const table = boxPriceTable(feed, now);
       const live = liveBoxDefaults(feed, now);
@@ -2399,7 +2404,8 @@ export default function App() {
             </div>
             <div className="modal-body">
               <BoxPrices
-                feed={boxFeed}
+                feed={boxFeed.feed}
+                live={boxFeed.live}
                 playBoxValueGems={config.playBoxValueGems}
                 collectorBoxValueGems={config.collectorBoxValueGems}
                 gemsPerUsd={gemsPerUsd}

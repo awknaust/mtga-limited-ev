@@ -45,6 +45,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   ARENA_DIRECT,
+  LATEST_SET,
   PREMIER_DRAFT,
   PRIOR_ALPHA,
   PRIOR_BETA,
@@ -58,6 +59,7 @@ import {
   type BankrollConfig,
   type EventConfig,
   type EventStructure,
+  type PayoutBox,
   type PayoutTier,
 } from "./index";
 import betaQuantile from "@stdlib/stats-base-dists-beta-quantile";
@@ -76,8 +78,8 @@ import betaQuantile from "@stdlib/stats-base-dists-beta-quantile";
  * up the leaves, which assumes nothing beyond "a match is won with probability
  * p, independently of the others" — no binomial, no negative binomial, no
  * stdlib. Payouts are read straight off the config's own table rather than
- * through `payoutFor`, and value is assembled from the config's rates rather
- * than through `grossValue`.
+ * through `payoutFor`, and value is assembled from the config's rates and its
+ * price table rather than through `grossValue`.
  *
  * What is still shared is the input — the configs and presets being priced —
  * and stdlib's Beta quantile, which is third-party rather than ours. Sharing
@@ -127,25 +129,39 @@ const gemsAt = (config: EventConfig, wins: number): number =>
   rowAt(config.payouts, wins).gems;
 
 /**
+ * Gems one box is worth, re-derived rather than through `boxValueGems`:
+ * nothing if the generic rate for its kind is zero; otherwise the price the
+ * config's own table carries for the set it names, `latest` resolved through
+ * that table too; and the generic rate where the table has none. The rule is
+ * three lines and the table is input rather than the model's answer, so
+ * reading it keeps this file's promise. It has to be read: a `defaultConfig()`
+ * carries the feed the app shipped with, so a fresh Arena Direct really is
+ * priced set by set here, and pricing its two boxes at one generic rate put
+ * the reference 6,000 gems from the simulation — seven times its own noise —
+ * the day the table stopped being empty.
+ */
+function boxAt(config: EventConfig, box: PayoutBox): number {
+  const generic =
+    box.kind === "play" ? config.playBoxValueGems : config.collectorBoxValueGems;
+  if (generic === 0) return 0;
+  const code = box.set === LATEST_SET ? config.boxPrices.latest[box.kind] : box.set;
+  const table = config.boxPrices.sets.find((s) => s.code === code)?.boxes[box.kind];
+  return table ?? generic;
+}
+
+/**
  * Gem-equivalent value a win count is worth: the gems, everything the tier
- * pays as a count at the config's rate for it, and the cards kept from the
- * pool, which come with the entry rather than the result.
- *
- * Boxes are priced at the two generic rates rather than through
- * `boxValueGems`, keeping this file's promise to re-derive rather than call
- * the code under test. That is the same answer wherever these tests take
- * their configs from `defaultConfig()`, whose price table is empty — a config
- * carrying live prices would need this to look them up, and would be beyond
- * what an independent check can say.
+ * pays as a count at the config's rate for it, each box at its own price, and
+ * the cards kept from the pool, which come with the entry rather than the
+ * result.
  */
 function valueAt(config: EventConfig, wins: number): number {
   const row = rowAt(config.payouts, wins);
-  const boxRate = { play: config.playBoxValueGems, collector: config.collectorBoxValueGems };
   return (
     row.gems +
     row.packs * config.packValueGems +
     (row.playInPoints ?? 0) * config.playInPointValueGems +
-    (row.boxes ?? []).reduce((acc, box) => acc + boxRate[box.kind], 0) +
+    (row.boxes ?? []).reduce((acc, box) => acc + boxAt(config, box), 0) +
     config.draftPacks * config.draftPackValueGems
   );
 }
