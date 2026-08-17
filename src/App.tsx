@@ -75,7 +75,6 @@ import {
   type EventStructure,
   type PayoutBox,
   type PayoutTier,
-  type WinBucket,
 } from "./lib";
 import { fetchBoxPriceFeed } from "./liveBoxPrices";
 import {
@@ -139,21 +138,6 @@ const WIN_RATE_STEPS = [
 /** Bootstrap text colour for a signed figure. */
 const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
 
-/**
- * The widest gap between a simulated frequency and its closed-form probability,
- * in percentage points.
- *
- * The outcome table dropped its simulated columns, and this is what took their
- * place: rather than printing the Monte Carlo's answer beside the exact one on
- * every row, the note under the table states the worst disagreement between
- * them once. The check the two columns performed is the same check — it is
- * being reported rather than left to the reader to do eight times.
- */
-const worstBucketGap = (buckets: readonly WinBucket[]): number =>
-  buckets.reduce(
-    (worst, b) => Math.max(worst, Math.abs(b.probability - b.exactProbability)),
-    0,
-  ) * 100;
 
 
 export default function App() {
@@ -1762,12 +1746,17 @@ export default function App() {
                     Closed form throughout, the simulated columns having been
                     dropped: an "Events" count and a "Simulated" percentage
                     were the Monte Carlo answering, to two decimal places, the
-                    question the column beside them answered exactly. What is
-                    given up by that is the on-screen check, and the note under
-                    the table is where it went — one line stating how far the
-                    simulation is from these figures, rather than two columns
-                    of it. `Chance` therefore reads as itself: `Exact` only
-                    ever earned that name against the column it sat beside.
+                    question the column beside them answered exactly. `Chance`
+                    therefore reads as itself — `Exact` only ever earned that
+                    name against the column it sat beside.
+
+                    So the table no longer carries its own check on the
+                    simulation, and where that check lives is worth knowing
+                    before anyone puts a figure back: `model.test.ts` pins
+                    every bucket to within half a point of the closed form,
+                    and the distribution chart above draws both and names
+                    them. Nothing here is a sampled figure to be checked
+                    anyway — the tiles above are, and they carry the interval.
                   */}
                   <thead>
                     <tr>
@@ -1853,23 +1842,17 @@ export default function App() {
                 The pool, said once. It is in every row's gross and in none of
                 their Pays, being what entering buys rather than what finishing
                 pays — and printing it on all eight rows would be eight
-                statements of one flat figure.
+                statements of one flat figure. A phantom event keeps no pool
+                and gets no line, rather than an empty one.
               */}
-              <div className="form-text">
-                {config.draftPacks > 0 ? (
-                  <>
-                    Every gross also carries the pool you keep — {config.draftPacks}{" "}
-                    {config.draftPacks === 1 ? "pack" : "packs"}&rsquo; worth of
-                    cards, {gemsEq(config.draftPacks * config.draftPackValueGems)} —
-                    which entering pays for however the event goes.{" "}
-                  </>
-                ) : null}
-                These are closed form; the {result.trials.toLocaleString()} simulated
-                events agree with them to within{" "}
-                {worstBucketGap(result.buckets).toFixed(2)} points on any row, and{" "}
-                {gemsEq2(Math.abs(result.meanNet - result.exactMeanNet))} on the
-                total.
-              </div>
+              {config.draftPacks > 0 ? (
+                <div className="form-text">
+                  Every gross also carries the pool you keep — {config.draftPacks}{" "}
+                  {config.draftPacks === 1 ? "pack" : "packs"}&rsquo; worth of cards,{" "}
+                  {gemsEq(config.draftPacks * config.draftPackValueGems)} — which
+                  entering pays for however the event goes.
+                </div>
+              ) : null}
               </SimPending>
               )}
                 </>
