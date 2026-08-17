@@ -22,6 +22,7 @@ import {
 } from "./boxes";
 import {
   HOLDING_KEYS,
+  heldKeys,
   holding,
   holdingRate,
   paysBoxes,
@@ -425,6 +426,24 @@ function labelSamples(config: EventConfig, kept: BankrollRun[]): SampleRun[] {
     if (at && at.label === undefined) at.label = label;
   }
   return samples;
+}
+
+/**
+ * Which holdings a *result* can be asked about, in display order.
+ *
+ * `heldKeys` answers from the config, and the two can disagree for a moment:
+ * a result stays on screen while the next one is simulated, so picking Arena
+ * Direct hands the old result a config whose boxes it has never heard of.
+ * Every reader of `holdings` goes through here rather than trusting the two
+ * to agree — the stale bars simply lose their box segments until the new
+ * result lands, which is what they showed a moment earlier anyway.
+ */
+export function reportedKeys(
+  bankroll: BankrollResult,
+  config: EventConfig,
+  holdingGold = false,
+): HoldingKey[] {
+  return heldKeys(config, holdingGold).filter((key) => key in bankroll.holdings);
 }
 
 /**

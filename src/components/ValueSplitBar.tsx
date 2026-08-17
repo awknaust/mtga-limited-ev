@@ -7,6 +7,7 @@ import {
   grossSplit,
   heldKeys,
   holdingLabel,
+  reportedKeys,
   isBoxHolding,
   type BankrollResult,
   type EventConfig,
@@ -56,7 +57,9 @@ export function holdingSlices(
   bankroll: BankrollResult,
   config: EventConfig,
 ): ValueSlice[] {
-  return heldKeys(config, bankroll.holdings.gold.mean > 0)
+  // The result's own keys, not the config's: the two disagree for the moment
+  // between picking a new event and its simulation landing.
+  return reportedKeys(bankroll, config, bankroll.holdings.gold.mean > 0)
     .map((key) => ({
       key,
       label: holdingLabel(config, key),

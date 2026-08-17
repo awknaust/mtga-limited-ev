@@ -11,9 +11,9 @@ import {
 import { amountText } from "./holdingText";
 import { Stat } from "./Stat";
 import {
-  heldKeys,
   holding,
   holdingLabel,
+  reportedKeys,
   type Bin,
   type BankrollResult,
   type EventConfig,
@@ -326,7 +326,9 @@ export function PayoutBreakdown({
   config: EventConfig;
   m: Money;
 }) {
-  const keys = heldKeys(config, bankroll.holdings.gold.mean > 0);
+  // The result's own keys — see `reportedKeys`. A result outlives the config
+  // that produced it by one simulation.
+  const keys = reportedKeys(bankroll, config, bankroll.holdings.gold.mean > 0);
 
   return (
     <>

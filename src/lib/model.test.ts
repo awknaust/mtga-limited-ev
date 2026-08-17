@@ -59,6 +59,7 @@ import {
   maxRounds,
   heldKeys,
   holdingRate,
+  reportedKeys,
   paidRewards,
   paysBoxes,
   playInPointsFor,
@@ -831,6 +832,28 @@ describe("bankroll", () => {
       "box:play.spm",
       "box:play.msh",
     ]);
+  });
+
+  /*
+   * A result outlives the config that produced it by one simulation: picking
+   * a new event re-renders immediately and the old result stays on screen
+   * until the new one lands. So every reader of `holdings` has to survive
+   * being handed a config whose holdings it has never heard of — which
+   * selecting Arena Direct from Premier Draft does, since the cube's two
+   * boxes are keys no Premier result carries.
+   */
+  it("answers for a config its result has never seen", () => {
+    const premier = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const stale = simulateBankrolls(premier, roll, 50, 7);
+    const cube = configFromPreset(ARENA_DIRECT, defaultConfig());
+
+    // The config wants two box holdings; the result has neither.
+    expect(heldKeys(cube).filter(isBoxHolding)).toHaveLength(2);
+    expect(reportedKeys(stale, cube).filter(isBoxHolding)).toHaveLength(0);
+    // And every key it does report is one the result can answer for.
+    for (const key of reportedKeys(stale, cube, true)) {
+      expect(stale.holdings[key], key).toBeDefined();
+    }
   });
 
   it("counts every reward a run wins, not just packs", () => {
