@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
+import { focusLeftControl } from "./focusOut";
+
 /**
  * A dropdown that picks several things at once, wired for assistive tech and
  * the keyboard.
@@ -142,13 +144,14 @@ export function MultiSelect<K extends string>({
 
   /*
    * Tabbing out of the panel closes it, which is what a disclosure is expected
-   * to do. `relatedTarget` is where focus is going: null when it leaves the
-   * document entirely, which is not a reason to close — switching windows and
-   * coming back should find the panel as it was left.
+   * to do — but only when focus really went somewhere else. `focusLeftControl`
+   * is where the difference is spelled out, and why getting it wrong made All
+   * and None dead to the touch on an iPad.
    */
   const onBlur = (e: React.FocusEvent) => {
-    const to = e.relatedTarget as Node | null;
-    if (to && !root.current?.contains(to)) setOpen(false);
+    if (focusLeftControl(e.relatedTarget as Node | null, root.current, document)) {
+      setOpen(false);
+    }
   };
 
   return (
