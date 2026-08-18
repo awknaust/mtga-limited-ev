@@ -17,7 +17,7 @@
 # and that friction is the point.
 #
 # The one exception is not ours to remove. Web Analytics is enabled on the
-# awknaust.me zone with auto_install, so Cloudflare injects a beacon <script>
+# mtga.fyi zone with auto_install, so Cloudflare injects a beacon <script>
 # into every HTML response at the edge, for browser-like requests only — a
 # plain curl will not show it. That injection happens whether or not this file
 # allows it; all a narrow script-src bought was a CSP violation on every page

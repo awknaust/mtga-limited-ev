@@ -137,7 +137,7 @@ Boundaries that should outlive any refactor:
 
 - **The route is same-origin because the CSP says so.** `connect-src 'self'`
   is not to be amended for this; the Worker's route on
-  `mtga-limited-ev.awknaust.me/api/*` is what makes the fetch legal. Preview
+  `mtga.fyi/api/*` is what makes the fetch legal. Preview
   deploys and offline dev are on other hostnames, match no route, and *fall
   back* to the copy of the feed the app ships — see the next bullet. A missing
   feed must never be worse than an old one. Note the shape of the miss on
@@ -386,9 +386,23 @@ proposed at least once.
 - **Deploy is Cloudflare Pages, not S3 and CloudFront.** It ships from
   `.github/workflows/deploy.yml`: tests, one build, then a direct upload of that
   same artifact, so what ships is what passed. `main` publishes to
-  <https://mtga-limited-ev.awknaust.me>; every other branch gets its own preview
+  <https://mtga.fyi>; every other branch gets its own preview
   URL. Direct uploads do not count against Cloudflare's 500 builds/month, which
   is the point of building in Actions rather than letting Pages do it.
+- **The old hostname redirects; it is not a second home.** The site lived at
+  `mtga-limited-ev.awknaust.me` until August 2026 and that name now 301s to
+  <https://mtga.fyi> through a Single Redirect on the `awknaust.me` zone, path
+  and query preserved. Preserving the query is the whole point: a share link's
+  entire meaning is its query string, so every link handed out before the move
+  still opens the state it was written for. Redirect rules are a terminating
+  action and run ahead of both Workers and Pages, so the old hostname needs no
+  route and no deploy of its own — do not add one back, and do not read its
+  Pages custom domain still being attached as a leftover to tidy, since that is
+  what gives the redirect a proxied record and a valid certificate to answer
+  on. Serving the app from both was considered and dropped: two live origins
+  means two indexable copies with no canonical tag to choose between them,
+  `/api/*` routed on two zones to keep the feed live on each, and Web Analytics
+  to enable per zone.
 - **`index.html` must never be cached.** `public/_headers` makes `/assets/*`
   immutable for a year, safe because Vite fingerprints those filenames, and
   leaves `index.html` on Pages' `max-age=0, must-revalidate`. It is the file

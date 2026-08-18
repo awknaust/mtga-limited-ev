@@ -3,7 +3,7 @@
 What draft and sealed events really pay at your win rate — and where the
 break-even sits.
 
-**<https://mtga-limited-ev.awknaust.me>**
+**<https://mtga.fyi>**
 
 ![The app: win rate, balances and the event's payout schedule on the left; on
 the right a bankroll run, with summary figures, a histogram of events played
