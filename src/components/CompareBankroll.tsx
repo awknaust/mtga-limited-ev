@@ -4,6 +4,7 @@ import { scaleBand, scaleLinear } from "d3";
 import type { BankrollSummary } from "../lib";
 import { approx, gemTick, type Money } from "../format";
 import { CompareHatchDefs, hatchFill } from "./CompareHatch";
+import { rowLabel } from "./compareEvents";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
@@ -16,8 +17,12 @@ const WIDTH = 560;
  * reaching the ceiling has no room to the right of it, and a number that
  * sometimes sits inside the plot and sometimes past its edge is a number the
  * eye has to hunt for down a column of rows.
+ *
+ * The left margin matches the break-even chart's exactly, and has to: the two
+ * are stacked with the same names down the same edge and read across, so a
+ * row's label must start at the same place in both.
  */
-const MARGIN = { top: 30, right: 92, bottom: 42, left: 168 };
+const MARGIN = { top: 30, right: 92, bottom: 42, left: 144 };
 const ROW = 26;
 
 /** How tall the chart will be, so a placeholder can hold its space. */
@@ -237,7 +242,11 @@ export function CompareBankroll({
               textAnchor="end"
               className="chart-tick"
             >
-              {row.name}
+              {/* The whole name, for the one label the margin cannot hold. SVG
+                  renders this as the native tooltip, so nothing is lost to the
+                  clip that the pointer cannot get back. */}
+              <title>{row.name}</title>
+              {rowLabel(row.name)}
             </text>
 
             {row.unaffordable ? null : (

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pickEvents, rankByBreakEven, withBreakEven } from "./compareEvents";
+import { pickEvents, rankByBreakEven, rowLabel, withBreakEven } from "./compareEvents";
 import { CUSTOM_PRESET, PRESETS, breakEvenWinRate, defaultConfig } from "../lib";
 
 const base = defaultConfig();
@@ -89,5 +89,37 @@ describe("withBreakEven and rankByBreakEven", () => {
   it("ranks every selected event exactly once", () => {
     const picked = pickEvents(names, base);
     expect(ranked(picked).map((r) => r.name).sort()).toEqual(picked.map((e) => e.name).sort());
+  });
+});
+
+describe("rowLabel", () => {
+  it("leaves a name that fits exactly as it is", () => {
+    expect(rowLabel("Premier Draft")).toBe("Premier Draft");
+  });
+
+  it("clips a name that does not, with an ellipsis", () => {
+    expect(rowLabel("Traditional Constructed Event")).toBe("Traditional Constructed…");
+  });
+
+  it("never returns a label longer than the cap it exists to enforce", () => {
+    for (const name of [...names, CUSTOM_PRESET]) {
+      expect(rowLabel(name).length).toBeLessThanOrEqual(24);
+    }
+  });
+
+  /*
+   * The constraint the cap is actually chosen from. Several presets are
+   * near-duplicates — the three Arena Directs, the two Play-Ins — and a label
+   * that collapses two of them into one string is worse than a long one: the
+   * chart would show the same name on two rows and look like a bug in the
+   * model rather than in the margin.
+   */
+  it("keeps every preset's label distinct from every other's", () => {
+    const labels = names.map(rowLabel);
+    expect(new Set(labels).size).toBe(names.length);
+  });
+
+  it("leaves no space stranded before the ellipsis", () => {
+    expect(rowLabel("Qualifier Play-In (Bo1) Extra")).not.toMatch(/ …$/);
   });
 });

@@ -81,3 +81,32 @@ export function withBreakEven(picked: readonly CompareEvent[]): CompareRow[] {
 export function rankByBreakEven(rows: readonly CompareRow[]): CompareRow[] {
   return [...rows].sort((a, b) => (a.breakEven ?? Infinity) - (b.breakEven ?? Infinity));
 }
+
+/**
+ * How many characters of an event's name a chart's row label shows.
+ *
+ * Sized from the data rather than from the look of it, because the names are
+ * near-duplicates of each other and a cap that is too tight does not merely
+ * abbreviate — it makes two rows read as the same event. `Qualifier Play-In
+ * (Bo1)` and `(Bo3)` are twenty-three characters that differ in the
+ * twenty-second, so anything under that turns the two into one label twice,
+ * which is worse on a chart whose whole job is telling events apart than a
+ * wide margin ever was. Twenty-four clears that and clips exactly one of
+ * today's sixteen.
+ *
+ * The budget it has to fit inside is the left margin less its gap, measured at
+ * the *larger* of the two sizes `.chart-tick` takes — 11px, which is what
+ * narrow viewports get — where twenty-four characters come to about 132 units
+ * against a 136-unit budget.
+ */
+const LABEL_MAX = 24;
+
+/**
+ * An event's name, clipped to fit a row label.
+ *
+ * The ellipsis is a real one rather than three dots, and the charts pair this
+ * with a `<title>` carrying the whole name, so nothing is actually lost — the
+ * chips above and the table below both spell every name out in full anyway.
+ */
+export const rowLabel = (name: string): string =>
+  name.length > LABEL_MAX ? `${name.slice(0, LABEL_MAX - 1).trimEnd()}\u2026` : name;

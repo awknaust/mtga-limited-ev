@@ -4,13 +4,18 @@ import { scaleBand, scaleLinear } from "d3";
 import { expectedNetAt } from "../lib";
 import { pct } from "../format";
 import { CompareHatchDefs, hatchFill } from "./CompareHatch";
-import type { CompareRow } from "./compareEvents";
+import { rowLabel, type CompareRow } from "./compareEvents";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
-// Room above the bars for the win-rate label, which cannot go below: the tick
-// labels are already there.
-const MARGIN = { top: 22, right: 52, bottom: 42, left: 168 };
+/*
+ * Room above the bars for the win-rate label, which cannot go below: the tick
+ * labels are already there. The left margin is what the names need and no
+ * more — `rowLabel` clips the one that overruns it, so the figure is a budget
+ * rather than a measurement of the longest event's name, and the plot keeps
+ * the difference.
+ */
+const MARGIN = { top: 22, right: 52, bottom: 42, left: 144 };
 const ROW = 26;
 
 /**
@@ -106,7 +111,11 @@ export function BreakEvenChart({
               textAnchor="end"
               className="chart-tick"
             >
-              {row.name}
+              {/* The whole name, for the one label the margin cannot hold. SVG
+                  renders this as the native tooltip, so nothing is lost to the
+                  clip that the pointer cannot get back. */}
+              <title>{row.name}</title>
+              {rowLabel(row.name)}
             </text>
             {row.rate === null ? (
               <text x={4} y={y.bandwidth() / 2} dy="0.32em" className="chart-tick">
