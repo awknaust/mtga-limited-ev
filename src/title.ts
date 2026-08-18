@@ -24,11 +24,18 @@ export const SITE_NAME = "mtga.fyi";
 /**
  * What a bare load is called.
  *
- * The name leads because it is the name, and the descriptor follows it for the
- * benefit of anyone meeting the site in a list of search results, where
- * `mtga.fyi` alone says nothing about what is behind it.
+ * Deliberately the opposite order to every other title here: the name leads,
+ * and the descriptor follows for the benefit of anyone meeting the site in a
+ * list of search results, where `mtga.fyi` alone says nothing about what is
+ * behind it. The reversal below is for a tab strip, which clips the end and so
+ * has to be given what differs first; the bare origin is one page with nothing
+ * to be told apart from.
+ *
+ * `index.html` carries this string too, since it is the title before any
+ * script runs and the one a crawler is served. `title.compat.test.ts` is what
+ * keeps the two copies saying the same thing.
  */
-export const SITE_TITLE = `${SITE_NAME} | MTG Arena event EV`;
+export const SITE_TITLE = `${SITE_NAME} | MTGA Value`;
 
 /*
  * The tabs whose answer is about a single event, and so the ones worth
