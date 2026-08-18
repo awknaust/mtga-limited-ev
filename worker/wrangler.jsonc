@@ -27,7 +27,7 @@
   "preview_urls": false,
 
   "routes": [
-    { "pattern": "mtga-limited-ev.awknaust.me/api/*", "zone_name": "awknaust.me" }
+    { "pattern": "mtga.fyi/api/*", "zone_name": "mtga.fyi" }
   ],
 
   // Daily, at a deliberately odd minute, and after 20:00 UTC because that is
