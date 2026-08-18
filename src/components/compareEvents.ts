@@ -83,30 +83,54 @@ export function rankByBreakEven(rows: readonly CompareRow[]): CompareRow[] {
 }
 
 /**
- * How many characters of an event's name a chart's row label shows.
+ * How many characters of a name fit on one line of a chart's row label.
  *
- * Sized from the data rather than from the look of it, because the names are
- * near-duplicates of each other and a cap that is too tight does not merely
- * abbreviate — it makes two rows read as the same event. `Qualifier Play-In
- * (Bo1)` and `(Bo3)` are twenty-three characters that differ in the
- * twenty-second, so anything under that turns the two into one label twice,
- * which is worse on a chart whose whole job is telling events apart than a
- * wide margin ever was. Twenty-four clears that and clips exactly one of
- * today's sixteen.
+ * Seventeen, and lowering it is what let the margin shrink rather than the
+ * other way round: a tighter cap wraps *more* names, and a wrapped name's
+ * longest line is shorter than the name was. At eighteen, `Premier Cube Draft`
+ * stayed on one line and was the widest thing on the chart by itself; at
+ * seventeen it splits to `Premier` and `Cube Draft`, and the widest line
+ * anything needs becomes `Constructed Event` — which is seventeen characters,
+ * and is the floor. `Traditional Constructed Event` cannot be split into two
+ * lines shorter than that, so no cap below seventeen buys anything except
+ * clipped labels.
  *
- * The budget it has to fit inside is the left margin less its gap, measured at
- * the *larger* of the two sizes `.chart-tick` takes — 11px, which is what
- * narrow viewports get — where twenty-four characters come to about 132 units
- * against a 136-unit budget.
+ * Measured against the budget it has to fit, which is the charts' left margin
+ * less its gap: that line comes to 82 units at 9px and 98 at 11px, the size
+ * narrow viewports get, against 104.
  */
-const LABEL_MAX = 24;
+const LINE_MAX = 17;
+
+/** A line that still will not fit, clipped rather than allowed to overrun. */
+const clip = (line: string): string =>
+  line.length > LINE_MAX ? `${line.slice(0, LINE_MAX - 1).trimEnd()}\u2026` : line;
 
 /**
- * An event's name, clipped to fit a row label.
+ * An event's name as the one or two lines a row label draws it on.
  *
- * The ellipsis is a real one rather than three dots, and the charts pair this
- * with a `<title>` carrying the whole name, so nothing is actually lost — the
- * chips above and the table below both spell every name out in full anyway.
+ * Wrapping rather than clipping, and the reason is what these names are. They
+ * are near-duplicates of one another — three Arena Directs, two Play-Ins, four
+ * Traditional somethings — so a single clipped line has to be long enough to
+ * reach the character the two differ at, which for `Qualifier Play-In (Bo1)`
+ * and `(Bo3)` is the twenty-second. A clip short enough to be worth doing
+ * merges them, and two rows reading as the same event is a worse failure on
+ * this chart than any margin: it looks like the model repeated itself. Wrapping
+ * has no such limit, because the whole name is still there.
+ *
+ * The split is the space that leaves the longer of the two lines shortest,
+ * which is what decides the margin: balanced, the widest line any preset needs
+ * is `Constructed Event`, and the margin is sized for that rather than for
+ * `Traditional Constructed Event`. Splitting at the first space instead would
+ * have made the second line as long as the name nearly always.
+ *
+ * A name with no space in it cannot wrap and is clipped, with the charts
+ * carrying the whole of it in a `<title>` either way.
  */
-export const rowLabel = (name: string): string =>
-  name.length > LABEL_MAX ? `${name.slice(0, LABEL_MAX - 1).trimEnd()}\u2026` : name;
+export function rowLabelLines(name: string): string[] {
+  if (name.length <= LINE_MAX) return [name];
+  const spaces = [...name].flatMap((c, i) => (c === " " ? [i] : []));
+  if (spaces.length === 0) return [clip(name)];
+  const longer = (at: number) => Math.max(at, name.length - at - 1);
+  const at = spaces.reduce((best, i) => (longer(i) < longer(best) ? i : best), spaces[0]);
+  return [clip(name.slice(0, at)), clip(name.slice(at + 1))];
+}

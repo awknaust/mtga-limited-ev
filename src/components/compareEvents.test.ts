@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { pickEvents, rankByBreakEven, rowLabel, withBreakEven } from "./compareEvents";
+import { pickEvents, rankByBreakEven, rowLabelLines, withBreakEven } from "./compareEvents";
 import { CUSTOM_PRESET, PRESETS, breakEvenWinRate, defaultConfig } from "../lib";
 
 const base = defaultConfig();
@@ -92,34 +92,76 @@ describe("withBreakEven and rankByBreakEven", () => {
   });
 });
 
-describe("rowLabel", () => {
-  it("leaves a name that fits exactly as it is", () => {
-    expect(rowLabel("Premier Draft")).toBe("Premier Draft");
+describe("rowLabelLines", () => {
+  it("leaves a short name on one line", () => {
+    expect(rowLabelLines("Premier Draft")).toEqual(["Premier Draft"]);
   });
 
-  it("clips a name that does not, with an ellipsis", () => {
-    expect(rowLabel("Traditional Constructed Event")).toBe("Traditional Constructed…");
+  /*
+   * The cap is one character below the widest line any preset needs, so that
+   * this name wraps rather than setting the margin single-handed. It is the
+   * measurement the margin was chosen from; changing the cap moves it.
+   */
+  it("wraps the name that would otherwise be the widest line on the chart", () => {
+    expect(rowLabelLines("Premier Cube Draft")).toEqual(["Premier", "Cube Draft"]);
   });
 
-  it("never returns a label longer than the cap it exists to enforce", () => {
+  it("cannot make any preset's longest line shorter than Constructed Event", () => {
+    // The floor: `Traditional Constructed Event` has no two-line split with a
+    // shorter long half, so no smaller cap helps and a smaller one only clips.
+    const longest = Math.max(...names.flatMap((n) => rowLabelLines(n).map((l) => l.length)));
+    expect(longest).toBe("Constructed Event".length);
+  });
+
+  it("splits a long one where the longer line comes out shortest", () => {
+    // Not at the first space, which would leave "Constructed Event" paired
+    // with "Traditional" the other way round and a 23-character second line.
+    expect(rowLabelLines("Traditional Constructed Event")).toEqual([
+      "Traditional",
+      "Constructed Event",
+    ]);
+    expect(rowLabelLines("Qualifier Play-In (Bo1)")).toEqual(["Qualifier", "Play-In (Bo1)"]);
+  });
+
+  it("keeps every character of every preset's name", () => {
     for (const name of [...names, CUSTOM_PRESET]) {
-      expect(rowLabel(name).length).toBeLessThanOrEqual(24);
+      expect(rowLabelLines(name).join(" ")).toBe(name);
+    }
+  });
+
+  it("never draws a line wider than the margin was sized for", () => {
+    for (const name of [...names, CUSTOM_PRESET]) {
+      for (const line of rowLabelLines(name)) expect(line.length).toBeLessThanOrEqual(17);
+    }
+  });
+
+  it("never needs more than the two lines a row has height for", () => {
+    for (const name of [...names, CUSTOM_PRESET]) {
+      expect(rowLabelLines(name).length).toBeLessThanOrEqual(2);
     }
   });
 
   /*
-   * The constraint the cap is actually chosen from. Several presets are
-   * near-duplicates — the three Arena Directs, the two Play-Ins — and a label
-   * that collapses two of them into one string is worse than a long one: the
-   * chart would show the same name on two rows and look like a bug in the
-   * model rather than in the margin.
+   * What wrapping buys over clipping, and the reason for it. Several presets
+   * differ only in a trailing parenthetical, and a label that collapsed two of
+   * them would show one name on two rows — which reads as the model repeating
+   * itself rather than as a chart running out of room.
    */
   it("keeps every preset's label distinct from every other's", () => {
-    const labels = names.map(rowLabel);
+    const labels = names.map((n) => rowLabelLines(n).join("\n"));
     expect(new Set(labels).size).toBe(names.length);
   });
 
-  it("leaves no space stranded before the ellipsis", () => {
-    expect(rowLabel("Qualifier Play-In (Bo1) Extra")).not.toMatch(/ …$/);
+  it("clips a single word that cannot wrap, rather than overrunning", () => {
+    const lines = rowLabelLines("Supercalifragilisticexpialidocious");
+    expect(lines).toHaveLength(1);
+    expect(lines[0]).toHaveLength(17);
+    expect(lines[0].endsWith("\u2026")).toBe(true);
+  });
+
+  it("leaves no space stranded before an ellipsis", () => {
+    expect(rowLabelLines("Qualifier Play-In (Bo1) Extra").every((l) => !/ \u2026$/.test(l))).toBe(
+      true,
+    );
   });
 });

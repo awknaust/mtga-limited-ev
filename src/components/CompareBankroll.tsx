@@ -4,7 +4,7 @@ import { scaleBand, scaleLinear } from "d3";
 import type { BankrollSummary } from "../lib";
 import { approx, gemTick, type Money } from "../format";
 import { CompareHatchDefs, hatchFill } from "./CompareHatch";
-import { rowLabel } from "./compareEvents";
+import { rowLabelLines } from "./compareEvents";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
@@ -20,9 +20,10 @@ const WIDTH = 560;
  *
  * The left margin matches the break-even chart's exactly, and has to: the two
  * are stacked with the same names down the same edge and read across, so a
- * row's label must start at the same place in both.
+ * row's label must start at the same place in both. It is sized for the widest
+ * *line* a name wraps to rather than for the widest name.
  */
-const MARGIN = { top: 30, right: 92, bottom: 42, left: 144 };
+const MARGIN = { top: 30, right: 92, bottom: 42, left: 112 };
 const ROW = 26;
 
 /** How tall the chart will be, so a placeholder can hold its space. */
@@ -235,19 +236,7 @@ export function CompareBankroll({
 
         {drawn.map((row) => (
           <g key={row.name} transform={`translate(0,${y(row.name) ?? 0})`}>
-            <text
-              x={-8}
-              y={y.bandwidth() / 2}
-              dy="0.32em"
-              textAnchor="end"
-              className="chart-tick"
-            >
-              {/* The whole name, for the one label the margin cannot hold. SVG
-                  renders this as the native tooltip, so nothing is lost to the
-                  clip that the pointer cannot get back. */}
-              <title>{row.name}</title>
-              {rowLabel(row.name)}
-            </text>
+            <RowLabel name={row.name} mid={y.bandwidth() / 2} />
 
             {row.unaffordable ? null : (
               <g className={row.colorClass}>
@@ -320,5 +309,34 @@ export function CompareBankroll({
         </text>
       </g>
     </svg>
+  );
+}
+
+/**
+ * A row's event name, on one line or two.
+ *
+ * SVG does not wrap text, so the lines are `tspan`s placed by hand: both are
+ * pulled back to the same `x` because a `tspan` otherwise continues from where
+ * the last one ended, and the pair is shifted up half a line so that two lines
+ * straddle the row's middle exactly as one line sits on it.
+ *
+ * The `<title>` is the whole name whatever the lines do — the tooltip a pointer
+ * gets, and the only place a clipped name survives.
+ */
+function RowLabel({ name, mid }: { name: string; mid: number }) {
+  const lines = rowLabelLines(name);
+  return (
+    <text x={-8} y={mid} dy="0.32em" textAnchor="end" className="chart-tick">
+      <title>{name}</title>
+      {lines.length === 1 ? (
+        lines[0]
+      ) : (
+        lines.map((line, i) => (
+          <tspan key={line} x={-8} dy={i === 0 ? "-0.55em" : "1.1em"}>
+            {line}
+          </tspan>
+        ))
+      )}
+    </text>
   );
 }
