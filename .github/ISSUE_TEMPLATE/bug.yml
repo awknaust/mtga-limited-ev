@@ -1,0 +1,25 @@
+name: Bug report
+description: Something in the app is wrong or broken.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-expected
+    attributes:
+      label: What did you expect instead?
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: What browser were you using?
+      placeholder: Firefox on Android, Safari on an iPad, ...
+    validations:
+      required: false
