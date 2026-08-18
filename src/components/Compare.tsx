@@ -50,7 +50,7 @@ export function Compare({
    * for the same reason: it is a glance at one chart rather than part of the
    * comparison being shared. Which events are compared *is* in the link.
    */
-  const [mode, setMode] = useState<CurveMode>("event");
+  const [mode, setMode] = useState<CurveMode>("roi");
 
   /*
    * "Custom" names the sidebar's own config, which is already what `config` is

@@ -23,8 +23,10 @@ import {
   BOX_KINDS,
   CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
+  PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
+  QUICK_DRAFT,
   SEALED,
   TRADITIONAL_DRAFT,
   masteryBySlug,
@@ -128,18 +130,29 @@ export const SIM_LIMITS = {
 } as const;
 
 /**
- * The events the Compare tab opens on.
+ * The events the Compare tab opens on: the limited events a player picking
+ * something to queue is usually picking between.
  *
- * Three, so the chart opens legible and the reader adds rather than prunes —
- * sixteen lines at once is a shape nobody can read, and the selector is right
- * there. Which three is a judgement about what is usually being weighed up, not
- * a claim about which is worth playing; the tab exists because that second
- * question is the reader's rates to answer.
+ * Five, which the chart can still label at the ends — sixteen lines at once is
+ * a shape nobody can read, and the selector is right there for the rest. Which
+ * five is a judgement about what is usually being weighed up, not a claim about
+ * which is worth playing; the tab exists because that second question is the
+ * reader's own rates to answer.
+ *
+ * In `PRESETS` order, which is the order `normalizeCompare` puts any selection
+ * in. A default written in some other order would draw one way on a fresh load
+ * and another after a link round-trip.
  *
  * By reference to the presets rather than by string, so renaming one moves this
- * with it instead of silently emptying the default.
+ * with it instead of silently dropping it from the default.
  */
-const DEFAULT_COMPARE: string[] = [PREMIER_DRAFT.name, TRADITIONAL_DRAFT.name, SEALED.name];
+const DEFAULT_COMPARE: string[] = [
+  PREMIER_DRAFT.name,
+  QUICK_DRAFT.name,
+  TRADITIONAL_DRAFT.name,
+  PICK_TWO_DRAFT.name,
+  SEALED.name,
+];
 
 /**
  * A compare selection in canonical form: deduped, and in `PRESETS` order with

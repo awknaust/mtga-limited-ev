@@ -388,7 +388,7 @@ describe("the defaults are the contract", () => {
       bankroll   gems=3000 gold=0 points=0 maxEvents=20
       sim        runs=10000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=200
-      compare    Premier Draft, Traditional Draft, Sealed"
+      compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
     `);
   });
 });

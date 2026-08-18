@@ -21,11 +21,24 @@ const STEPS = 120;
 /** Past this many lines, names at the ends collide faster than they inform. */
 const MAX_END_LABELS = 8;
 
-export type CurveMode = "event" | "roi";
+export type CurveMode = "roi" | "net";
 
+/**
+ * ROI leads, and is what the chart opens on.
+ *
+ * The events differ in entry by more than an order of magnitude — a few hundred
+ * gems to eight thousand — so plotted in gems the dear ones own the axis and
+ * the cheap ones are a flat line along the bottom whatever they are doing. As a
+ * share of the entry they are all on one scale, which is the comparison the tab
+ * is for. Net in gems is still a click away, and is the better axis once the
+ * selection is events of a similar price.
+ */
 export const CURVE_MODES: readonly { key: CurveMode; label: string }[] = [
-  { key: "event", label: "Per event" },
   { key: "roi", label: "ROI" },
+  // "Net", as the table's column and the axis below both call it. The
+  // per-event part is what the whole tab is, so naming it here said nothing
+  // and said it in a third vocabulary.
+  { key: "net", label: "Net" },
 ];
 
 /**
@@ -43,7 +56,7 @@ export const CURVE_MODES: readonly { key: CurveMode; label: string }[] = [
  */
 function valueAt(config: EventConfig, rate: number, mode: CurveMode): number | null {
   const net = expectedNetAt(config, rate);
-  if (mode === "event") return net;
+  if (mode === "net") return net;
   const entry = effectiveEntryGems({ ...config, winRate: rate });
   return entry > 0 ? net / entry : null;
 }
