@@ -70,8 +70,8 @@ const COLUMNS: Column[] = [
     key: "roi",
     help: STAT_HELP.roi,
     label: "ROI",
-    // Null is a fully gold-funded entry: no gems staked, so no share of them
-    // returned. An em dash rather than 0%, which would read as breaking even.
+    // Null is a free event: no gems staked, so no share of them returned. An
+    // em dash rather than 0%, which would read as breaking even.
     cell: (r) => (r.roi === null ? "—" : pct(r.roi)),
     sortBy: (r) => r.roi,
   },
@@ -111,9 +111,9 @@ export function CompareTable({
       name,
       colorClass: compareSeries(name).colorClass,
       net: e.meanNet,
-      // `eventExpectation` reports 0 for a zero entry, which is a sentinel and
+      // `eventExpectation` reports 0 for a free event, which is a sentinel and
       // not a rate; the table says so rather than printing it.
-      roi: e.entryGems > 0 ? e.roi : null,
+      roi: config.entryCostGems > 0 ? e.roi : null,
       breakEven,
       rounds: e.meanRounds,
     };

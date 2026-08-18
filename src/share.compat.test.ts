@@ -38,8 +38,8 @@ import {
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   EMPTY_BOX_PRICES,
   PRESETS,
-  effectiveEntryGems,
   goldPerEvent,
+  goldValueGems,
   grossValue,
   maxPossibleWins,
 } from "./lib";
@@ -64,10 +64,12 @@ function fingerprint(state: ShareState): string {
      * Derived rather than stored, and that is the point. A link pins inputs,
      * but what a reader cares about is the answer, and the two can come apart:
      * moving daily-win gold onto the ladder changed what `goldPerDay=0` means
-     * without touching any field recorded above. Pinning the entry the model
-     * actually charges closes that gap.
+     * without touching any field recorded above. Pinning what the model
+     * credits an entry closes that gap. This line used to pin the entry the
+     * gold *discounted*; gold is counted as earnings now, so it pins the
+     * credit instead — the same gold, on the other side of the ledger.
      */
-    `charges    ${effectiveEntryGems(c).toFixed(1)} gems (${goldPerEvent(c).toFixed(1)} gold/event)`,
+    `credits    ${goldPerEvent(c).toFixed(1)} gold/event = ${goldValueGems(c).toFixed(1)} gems`,
     `payouts    ${encodePayouts(c.payouts)}`,
     `bankroll   gems=${state.startingGems} gold=${state.startingGold} points=${state.startingPlayInPoints} maxEvents=${state.maxEvents}`,
     `sim        runs=${state.bankrollRuns} seed=${state.seed}`,
@@ -383,7 +385,7 @@ describe("the defaults are the contract", () => {
       draft      3 packs @ 23
       values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
       gold       other=600/day over 1 events, goldPer10k=1500
-      charges    1336.7 gems (1088.8 gold/event)
+      credits    1088.8 gold/event = 163.3 gems
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3400 gold=5000 points=0 maxEvents=20
       sim        runs=10000 seed=1
@@ -448,16 +450,20 @@ describe("the captured corpus", () => {
   it("keeps an old positional box link worth exactly what it was worth", () => {
     const { config } = decodeShareState(CORPUS[6][1]);
     // From demo 5's own parameters: 132 a pack, 250 a point, 60,000 a play
-    // box, 250,000 a collector box, and four draft packs at 110.
-    const pool = 4 * 110;
-    expect(grossValue(config, 0)).toBe(10 + 1 * 132 + pool);
+    // box, 250,000 a collector box, and four draft packs at 110 — plus the
+    // day's gold, which every entry is credited since gold became earnings
+    // rather than a discount on the entry. That move is the one deliberate
+    // shift in what these links are worth; the box terms did not move.
+    const flat = 4 * 110 + goldValueGems(config);
+    expect(grossValue(config, 0)).toBeCloseTo(10 + 1 * 132 + flat, 9);
     // `4000-3-0-1` — three packs and one play box.
-    expect(grossValue(config, 3)).toBe(4000 + 3 * 132 + 60_000 + pool);
+    expect(grossValue(config, 3)).toBeCloseTo(4000 + 3 * 132 + 60_000 + flat, 9);
     // `5000-4-0-0-2` — four packs and two collector boxes.
-    expect(grossValue(config, 4)).toBe(5000 + 4 * 132 + 2 * 250_000 + pool);
+    expect(grossValue(config, 4)).toBeCloseTo(5000 + 4 * 132 + 2 * 250_000 + flat, 9);
     // `12000-6-4-0-3` — six packs, four points and three collector boxes.
-    expect(grossValue(config, 5)).toBe(
-      12_000 + 6 * 132 + 4 * 250 + 3 * 250_000 + pool,
+    expect(grossValue(config, 5)).toBeCloseTo(
+      12_000 + 6 * 132 + 4 * 250 + 3 * 250_000 + flat,
+      9,
     );
   });
 
@@ -474,23 +480,36 @@ describe("the captured corpus", () => {
       ...decodeShareState(search).config,
       boxPrices: EMPTY_BOX_PRICES,
     });
+    // Plus the day's gold in every row, which every entry has been credited
+    // since gold became earnings rather than a discount on the entry — the
+    // one deliberate shift in what these links are worth. The box terms did
+    // not move.
     const play = bare("?preset=arena-direct-play");
-    expect(grossValue(play, 6)).toBe(
-      DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems,
+    expect(grossValue(play, 6)).toBeCloseTo(
+      DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems + goldValueGems(play),
+      9,
     );
-    expect(grossValue(play, 7)).toBe(
-      2 * DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems,
+    expect(grossValue(play, 7)).toBeCloseTo(
+      2 * DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems + goldValueGems(play),
+      9,
     );
 
     const collector = bare("?preset=arena-direct-collector");
-    expect(grossValue(collector, 7)).toBe(
-      DEFAULT_COLLECTOR_BOX_VALUE_GEMS + 6 * collector.draftPackValueGems,
+    expect(grossValue(collector, 7)).toBeCloseTo(
+      DEFAULT_COLLECTOR_BOX_VALUE_GEMS +
+        6 * collector.draftPackValueGems +
+        goldValueGems(collector),
+      9,
     );
 
-    // The cube is phantom, so nothing but the boxes is in its top two rows.
+    // The cube is phantom, so nothing but the boxes and the day's gold is in
+    // its top two rows.
     const cube = bare("?preset=arena-direct-cube");
-    expect(grossValue(cube, 6)).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
-    expect(grossValue(cube, 7)).toBe(2 * DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(grossValue(cube, 6)).toBeCloseTo(DEFAULT_PLAY_BOX_VALUE_GEMS + goldValueGems(cube), 9);
+    expect(grossValue(cube, 7)).toBeCloseTo(
+      2 * DEFAULT_PLAY_BOX_VALUE_GEMS + goldValueGems(cube),
+      9,
+    );
   });
 
   it.each(CORPUS)("holds the model's invariants for %s", (_name, search) => {

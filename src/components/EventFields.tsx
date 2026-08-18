@@ -341,7 +341,7 @@ export function EventFields({
             Entry cost (gold)
             <InfoTip
               label="About the gold entry"
-              content="The entry price in gold, for events that take it. Set 0 for events that do not. Gold builds up as you play and pays the entry whenever there is enough."
+              content="The entry price in gold, for events that take it. Set 0 for events that do not. A bankroll run pays in gold whenever enough has built up; the per-event figures price the entry in gems and count gold earned as winnings."
             />
           </label>
           <GoldInput

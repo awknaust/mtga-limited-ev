@@ -1,6 +1,6 @@
 import { line, scaleLinear } from "d3";
 
-import { effectiveEntryGems, expectedNetAt, type EventConfig } from "../lib";
+import { expectedNetAt, type EventConfig } from "../lib";
 import { gemTick, pct, type Money } from "../format";
 import { compareSeries } from "./compareSeries";
 
@@ -44,21 +44,18 @@ export const CURVE_MODES: readonly { key: CurveMode; label: string }[] = [
 /**
  * What one mode plots, at one win rate.
  *
- * ROI divides by the entry *at that rate*, not at the config's own. The
- * effective entry moves with the win rate — winning more climbs the daily gold
- * ladder, which pays for more of the next entry — so a swept numerator over a
- * fixed denominator would price every point but one against an entry belonging
- * to some other win rate.
+ * ROI divides by the gem price of the entry, which is the same at every point
+ * on the curve. Gold moves with the win rate — winning more climbs the daily
+ * ladder — but it moves in the *numerator*, as earnings inside the net, so
+ * there is no entry to re-derive per point.
  *
- * Null is "no answer here", not zero: an entry gold has covered entirely has no
- * gems staked to return a share of, and plotting 0 would read as breaking even
- * exactly.
+ * Null is "no answer here", not zero: a free event has no gems staked to
+ * return a share of, and plotting 0 would read as breaking even exactly.
  */
 function valueAt(config: EventConfig, rate: number, mode: CurveMode): number | null {
   const net = expectedNetAt(config, rate);
   if (mode === "net") return net;
-  const entry = effectiveEntryGems({ ...config, winRate: rate });
-  return entry > 0 ? net / entry : null;
+  return config.entryCostGems > 0 ? net / config.entryCostGems : null;
 }
 
 /**
@@ -109,8 +106,8 @@ export function CompareCurveChart({
   }));
 
   // A series with nothing to plot is named rather than silently missing: in ROI
-  // mode a fully gold-funded entry has no defined return, and a reader who
-  // selected it deserves to be told why its line is absent.
+  // mode a free event has no defined return, and a reader who selected it
+  // deserves to be told why its line is absent.
   const omitted = series.filter((s) => s.points.every((p) => p.value === null));
   const drawn = series.filter((s) => s.points.some((p) => p.value !== null));
 
@@ -125,9 +122,8 @@ export function CompareCurveChart({
     .range([innerH, 0]);
 
   const path = line<{ rate: number; value: number | null }>()
-    // Gaps break the line rather than being interpolated across. A ROI curve
-    // can stop being defined partway up the axis, where gold starts covering
-    // the whole entry, and a segment bridging that would be invented.
+    // Gaps break the line rather than being interpolated across, so a point
+    // with no answer is a gap and never a segment invented to bridge it.
     .defined((p) => p.value !== null)
     .x((p) => x(p.rate))
     .y((p) => y(p.value ?? 0));
@@ -280,8 +276,8 @@ export function CompareCurveChart({
       </svg>
       {omitted.length > 0 && (
         <p className="form-text">
-          No line for {omitted.map((s) => s.name).join(", ")}: gold covers the whole
-          entry at these rates, so there are no gems staked to return a share of.
+          No line for {omitted.map((s) => s.name).join(", ")}: the entry is free, so
+          there are no gems staked to return a share of.
         </p>
       )}
       {!showLabels && (

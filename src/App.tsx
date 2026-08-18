@@ -60,6 +60,7 @@ import {
   eventExpectation,
   expectedNetAt,
   goldPerEvent,
+  goldValueGems,
   matchWinRate,
   netInterval,
   CREDIBLE_LEVEL,
@@ -1094,6 +1095,24 @@ export default function App({
     : [];
 
   /*
+   * What every entry is credited whatever its finish — the cards kept from
+   * the pool and the gold a day's play earns — each as a count in its own
+   * unit and what that comes to at the rates on the left. Named under the
+   * outcome table, whose rows show only what varies by finish: without this
+   * the gross on every row carries an amount the table never accounts for.
+   * A credit is listed whenever there is any of it, even at a rate of zero,
+   * so the reader sees it counted and priced at nothing rather than absent.
+   */
+  const entryCredits: string[] = [
+    config.draftPacks > 0
+      ? `the pool you keep, ${config.draftPacks} ${config.draftPacks === 1 ? "pack" : "packs"}’ worth of cards (${gemsEq(config.draftPacks * config.draftPackValueGems)})`
+      : null,
+    goldPerEvent(config) > 0
+      ? `${Math.round(goldPerEvent(config)).toLocaleString()} gold from a day's play (${gemsEq(goldValueGems(config))})`
+      : null,
+  ].filter((s): s is string => s !== null);
+
+  /*
    * As on the bankroll strip, each tile carries a popover explaining the
    * statistic in plain terms — what was averaged, over what, and how to read
    * it — for a reader the bare label would leave behind. Every figure here is
@@ -1143,16 +1162,13 @@ export default function App({
       label: "ROI",
       value: pct(event.roi),
       /*
-       * Marked ≈, and converting with the toggle, because this is what ROI
-       * divides by rather than a price anyone was quoted: `entryGems` is the
-       * entry discounted by the share of entries gold pays for, so it lands
-       * between the gem price and zero and equals neither. The no-gold
-       * wording quotes the same statistic, which is why it is marked too.
+       * A real gem figure rather than a valuation: the divisor is the entry
+       * as Arena quotes it, so it stays in gems whatever the toggle says.
+       * Gold used to discount this figure, which left the divisor a number
+       * nobody was ever charged; it is counted as earnings now, in the net
+       * above the line, and the line itself is the sticker price.
        */
-      hint:
-        event.goldEntryFraction > 0
-          ? `of ${gemsEq(event.entryGems)} paid · ${pct(event.goldEntryFraction)} entries free`
-          : `of ${gemsEq(config.entryCostGems)} entry`,
+      hint: `of ${gems(config.entryCostGems)} entry`,
       tone: signClass(event.roi),
       help: STAT_HELP.roi,
     },
@@ -1806,20 +1822,23 @@ export default function App({
                 </table>
               </div>
               {/*
-                The pool, said once. It is in every row's gross and in none of
-                their Pays, being what entering buys rather than what finishing
-                pays — and printing it on all eight rows would be eight
-                statements of one flat figure. A phantom event keeps no pool
-                and gets no line, rather than an empty one.
+                What entering buys rather than what finishing pays, said once:
+                the pool you keep and the gold a day's play credits the entry.
+                Both are in every row's gross and in none of their Pays, and
+                printing them on all eight rows would be eight statements of
+                two flat figures — gold in particular used to reach these
+                figures nowhere a reader could see. The entry is named too, so
+                gross, net and the price are three figures a reader can add
+                up: real gems for the price, ≈ for the valuations, as
+                everywhere. A credit is listed whenever there is any of it,
+                even at a rate of zero, so it reads as counted and priced at
+                nothing rather than absent.
               */}
-              {config.draftPacks > 0 ? (
-                <div className="form-text">
-                  Every gross also carries the pool you keep — {config.draftPacks}{" "}
-                  {config.draftPacks === 1 ? "pack" : "packs"}&rsquo; worth of cards,{" "}
-                  {gemsEq(config.draftPacks * config.draftPackValueGems)} — which
-                  entering pays for however the event goes.
-                </div>
-              ) : null}
+              <div className="form-text">
+                {entryCredits.length > 0 &&
+                  `Every gross also carries what entering pays for however the event goes — ${entryCredits.join(", and ")}. `}
+                Net is gross less the {gems(config.entryCostGems)} entry.
+              </div>
                 </>
               )}
               </TabPanel>
@@ -2260,7 +2279,7 @@ export default function App({
                       Other gold per day
                       <InfoTip
                         label="About other gold per day"
-                        content="Gold from quests and play outside this event, counted toward entries. Defaults to 600, about one daily quest. Gold from the event's own wins is counted separately, off the daily-win ladder."
+                        content="Gold from quests and play outside this event, credited across the day's events. Defaults to 600, about one daily quest. Gold from the event's own wins is counted separately, off the daily-win ladder."
                       />
                     </label>
                     <GoldInput
@@ -2286,8 +2305,15 @@ export default function App({
                     />
                   </div>
                   <div className="col-12">
+                    {/*
+                      What the two fields above come to, and what the rate
+                      below makes of it — the figure that lands in every
+                      per-event gross, so it is worth seeing here as gold and
+                      as gems both.
+                    */}
                     <div className="form-text mt-0">
-                      {Math.round(goldPerEvent(config)).toLocaleString()} gold per event.
+                      {Math.round(goldPerEvent(config)).toLocaleString()} gold per event
+                      {goldPerEvent(config) > 0 && `, counted as ${gemsEq(goldValueGems(config))}`}.
                     </div>
                   </div>
                   <div className="col-6">
@@ -2295,7 +2321,7 @@ export default function App({
                       Gems per 10,000 gold
                       <InfoTip
                         label="About the gold exchange rate"
-                        content="What leftover gold counts as worth. Every event priced in both uses the same gold-to-gem ratio, so Arena sets this rate itself. Set 0 to count unspent gold as worthless."
+                        content="What gold counts as worth — the gold each event is credited, and any balance a run is left holding. Every event priced in both uses the same gold-to-gem ratio, so Arena sets this rate itself. Set 0 to count gold as worthless."
                       />
                     </label>
                     <GemInput

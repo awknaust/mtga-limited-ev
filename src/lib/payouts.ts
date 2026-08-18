@@ -41,9 +41,11 @@ export function qualifierTokensFor(config: EventConfig, wins: number): number {
 /**
  * Gross value in gems for a given win count.
  *
- * Includes the cards kept from the pool, which are not a payout tier reward —
- * you get them for entering, however the event goes — so they are flat across
- * every win count.
+ * Two of its terms are not payout tier rewards and are flat across every win
+ * count: the cards kept from the pool, which you get for entering however the
+ * event goes, and the gold a day's play credits the entry — see
+ * `goldValueGems`. Both are earnings of the entry, so both sit in the gross,
+ * and net is then simply gross less the gem price.
  */
 export function grossValue(config: EventConfig, wins: number): number {
   const tier = payoutFor(config, wins);
@@ -55,6 +57,7 @@ export function grossValue(config: EventConfig, wins: number): number {
   );
   return (
     config.draftPacks * config.draftPackValueGems +
+    goldValueGems(config) +
     tier.gems +
     tier.packs * config.packValueGems +
     (tier.mythicPacks ?? 0) * config.mythicPackValueGems +
@@ -84,10 +87,11 @@ function meanOverWins(config: EventConfig): (of: (wins: number) => number) => nu
  * realise the value. This takes the same terms and reports them separately,
  * weighted by how often each win count happens.
  *
- * Keyed by holding so it lines up with the bankroll breakdown, which means
- * gold appears and is always zero: gold accrues daily rather than being paid
- * by a ladder, so no part of an event's gross is gold. Callers drop the empty
- * entries.
+ * Keyed by holding so it lines up with the bankroll breakdown. Gold is the
+ * one entry that is not read off the ladder: it is the per-event credit at
+ * the config's rate, the same figure `grossValue` adds, so it is flat across
+ * win counts and zero wherever gold is priced at nothing. Callers drop the
+ * empty entries.
  *
  * These sum to `eventExpectation(config).meanGross` by construction, since
  * they are that same sum with the weights distributed over its terms and the
@@ -101,8 +105,9 @@ export function grossSplit(config: EventConfig): Record<HoldingKey, number> {
   const priced = priceTiers(config);
   return {
     gems: mean((wins) => payoutFor(config, wins).gems),
-    // Never part of a gross: nothing on a payout ladder pays gold.
-    gold: 0,
+    // Credited to the entry rather than paid by a ladder row, so not a mean
+    // over the win counts — the same flat term `grossValue` carries.
+    gold: goldValueGems(config),
     packs: mean((wins) => payoutFor(config, wins).packs) * config.packValueGems,
     mythicPacks:
       mean((wins) => mythicPacksFor(config, wins)) * config.mythicPackValueGems,
@@ -139,7 +144,7 @@ export function grossCounts(config: EventConfig): Record<HoldingKey, number> {
   const priced = priceTiers(config);
   return {
     gems: mean((wins) => payoutFor(config, wins).gems),
-    gold: 0,
+    gold: goldPerEvent(config),
     packs: mean((wins) => payoutFor(config, wins).packs),
     mythicPacks: mean((wins) => mythicPacksFor(config, wins)),
     cubePacks: mean((wins) => cubePacksFor(config, wins)),
@@ -195,47 +200,52 @@ export function goldPerEvent(config: EventConfig): number {
 }
 
 /**
- * Long-run share of entries that gold covers.
+ * What the gold credited to one event is worth, in gems.
  *
- * Gold accrues at its long-run average rate, so over many entries it funds
- * `goldPerEvent / entryCostGold` of them and gems cover the rest. This is the
- * limit the bankroll simulation converges to, and the two are checked against
- * each other.
+ * `goldPerEvent` at the config's exchange rate — the same rate that prices a
+ * leftover gold balance on the Bankroll tab and that the About tab lists
+ * beside every other reward. One rate for gold wherever it appears, so a rate
+ * of 0 says gold is worth nothing everywhere rather than in one place.
  *
- * That rate now moves with the win rate, since a better player wins more of
- * the daily ladder. It is still an average over runs rather than a function of
- * any one run's result, which is what keeps `netValue` a function of the win
- * count alone.
+ * Gold used to enter the per-event figures as a *discount on the entry*
+ * instead: the long-run share of entries the accrual could pay for, at the
+ * event's own gold price, taken off the gem price before net was struck. That
+ * was the same arithmetic for every dual-priced preset — 10,000 gold against
+ * 1,500 gems is the rate — but it split gold from every other reward. Gross
+ * left it out, net folded it in, ROI divided by a discounted entry, and the
+ * outcome table never named it, so gross less net came to a figure that was
+ * not the entry anyone was quoted. Counting it as earnings puts every gold
+ * figure on the same side of the ledger as the packs: gross includes it, net
+ * is gross less the full gem price, and ROI divides by that price.
+ *
+ * Two things follow that the discount could not say. An event that takes no
+ * gold — Sealed, Arena Direct — is credited the gold its play earns all the
+ * same, since a day of daily wins is worth the same whichever queue paid it,
+ * which is what the Bankroll tab already assumed. And there is no cap at the
+ * entry price: earning more gold than an entry costs is more gold, not a free
+ * entry and change thrown away.
+ *
+ * Flat across win counts, like the cards kept from the pool: it is a long-run
+ * average per event, not what one finish paid, and `goldPerEvent` says why.
+ * `eventsPerDay: 0` still prices an event in gems alone.
  */
-export function goldFundedFraction(config: EventConfig): number {
-  const perEvent = goldPerEvent(config);
-  if (config.entryCostGold <= 0 || perEvent <= 0) return 0;
-  return Math.min(1, perEvent / config.entryCostGold);
+export function goldValueGems(config: EventConfig): number {
+  return (goldPerEvent(config) * config.gemsPer10kGold) / 10000;
 }
 
 /**
- * Gems actually paid per entry on average, once gold has covered its share.
+ * Net result in gems for a given win count: the gross, gold included, less
+ * the gem price of the entry.
  *
- * Play-in points are deliberately absent, and the asymmetry with gold is the
- * point rather than an oversight. Gold is a *flow*: it accrues daily whether or
- * not you enter, so over many entries a fixed share of them is gold-funded and
- * that share belongs in a per-event figure. Points are a *stock* — no event
- * here both pays them and charges them, so a balance drains and never refills,
- * and the long-run share of entries they cover is zero. A banked stock changes
- * how far a bankroll goes, which is the bankroll simulation's question; it does
- * not change what an entry costs in the steady state, which is this one.
- */
-export function effectiveEntryGems(config: EventConfig): number {
-  return config.entryCostGems * (1 - goldFundedFraction(config));
-}
-
-/**
- * Net result in gems for a given win count, against the effective entry.
- *
- * Whether an entry is gold-funded is independent of how the event goes, so
- * charging every outcome the average entry leaves the expectation unchanged
- * and keeps net a function of the win count alone.
+ * The gem price and nothing else. Gold is on the earnings side, above. The
+ * play-in points a Qualifier Play-In charges are deliberately not here either:
+ * gold is a *flow* that accrues daily whether or not you enter, and so
+ * belongs in a per-event figure, but points are a *stock* — no event here
+ * both pays them and charges them, so a balance drains and never refills. A
+ * banked stock changes how far a bankroll goes, which is the bankroll
+ * simulation's question; it does not change what an entry costs in the
+ * steady state, which is this one.
  */
 export function netValue(config: EventConfig, wins: number): number {
-  return grossValue(config, wins) - effectiveEntryGems(config);
+  return grossValue(config, wins) - config.entryCostGems;
 }
