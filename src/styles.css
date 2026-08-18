@@ -1314,3 +1314,275 @@ button.box-add:focus-visible {
     animation: none;
   }
 }
+
+/*
+ * The Compare tab.
+ *
+ * One hue per event, held in `--series` for the same reason the holdings hold
+ * theirs in `--slice`: several elements need each colour — the line, the bar,
+ * the scatter dot, the chip and the table swatch — and a strict CSP rules out
+ * setting it from the markup. The ramp is positional here rather than named,
+ * because what it keys off is the preset's index and not a fixed vocabulary of
+ * rewards; `compareSeries.ts` owns that mapping and its test checks the classes
+ * below exist for every value it can return.
+ *
+ * Eight hues, as far apart as a dark background allows. A ninth event reuses
+ * the first hue with a dashed line, which is the second channel the ramp
+ * carries.
+ */
+.compare-series-0 {
+  --series: #60a5fa;
+}
+
+.compare-series-1 {
+  --series: #fbbf24;
+}
+
+.compare-series-2 {
+  --series: #34d399;
+}
+
+.compare-series-3 {
+  --series: #f472b6;
+}
+
+.compare-series-4 {
+  --series: #a78bfa;
+}
+
+.compare-series-5 {
+  --series: #fb923c;
+}
+
+.compare-series-6 {
+  --series: #22d3ee;
+}
+
+.compare-series-7 {
+  --series: #a3e635;
+}
+
+/* The reader's own ladder, which is not one of the sixteen and should not look
+   like one of them. Near-white, so it reads as the odd one out it is. */
+.compare-series-custom {
+  --series: #e2e8f0;
+}
+
+.compare-line {
+  fill: none;
+  stroke: var(--series);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.compare-bar {
+  fill: var(--series);
+}
+
+.compare-end-label {
+  fill: var(--series);
+  font-size: 10px;
+}
+
+/*
+ * Where the reader's own win rate falls.
+ *
+ * Its own mark rather than `.chart-breakeven`, because the Long-term value
+ * chart draws both and two amber dashes would be two of the same thing. This
+ * is chrome — "you are here" — so it takes the secondary colour rather than a
+ * signal one, and a longer dash keeps the two apart at a glance.
+ */
+.chart-rate {
+  stroke: var(--bs-secondary-color);
+  stroke-dasharray: 6 4;
+}
+
+.chart-rate-label {
+  fill: var(--bs-secondary-color);
+  font-size: 10px;
+}
+
+@media (min-width: 576px) {
+  .chart-rate-label {
+    font-size: 9px;
+  }
+}
+
+@media (min-width: 576px) {
+  .compare-end-label {
+    font-size: 9px;
+  }
+}
+
+/* The selection, which doubles as the charts' legend. */
+.compare-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compare-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  padding: 0.2em 0.5em;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--app-raised);
+  color: var(--bs-body-color);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+/* A chip removes its own event, so hover warns rather than lifts — the call
+   the payout row's chips already made. */
+.compare-chip:hover,
+.compare-chip:focus-visible {
+  border-color: var(--bs-danger);
+  color: var(--bs-danger);
+}
+
+.compare-chip-swatch {
+  display: inline-block;
+  width: 0.7em;
+  height: 0.7em;
+  border-radius: 2px;
+  background: var(--series);
+}
+
+.compare-sort {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.compare-sort:hover,
+.compare-sort:focus-visible {
+  color: var(--bs-body-color);
+  text-decoration: underline;
+}
+
+/*
+ * The sortable-but-unsorted arrow, dimmed so a header of them does not read as
+ * four things demanding attention. It brightens with the header it sits in, so
+ * hovering a column still says the arrow is the control.
+ */
+.compare-sort-idle {
+  opacity: 0.35;
+}
+
+.compare-sort:hover .compare-sort-idle,
+.compare-sort:focus-visible .compare-sort-idle {
+  opacity: 0.8;
+}
+
+.compare-table th {
+  white-space: nowrap;
+}
+
+/* The swatch and the name are one thing, and need the gap the chips have —
+   without it the block runs into the first letter. */
+.compare-event {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
+}
+
+/* Keeps the sort control and its popover button on one line at the right-hand
+   edge, where the figures they head are aligned. */
+.compare-head {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/*
+ * The multi-select.
+ *
+ * Positioned rather than floated into the top layer: unlike `PickerDialog`,
+ * which has to escape the payout table's horizontal scroller, this sits at the
+ * top of a tab panel with nothing clipping it.
+ */
+.multiselect {
+  position: relative;
+}
+
+.multiselect-panel {
+  position: absolute;
+  z-index: 5;
+  top: calc(100% + 0.25rem);
+  left: 0;
+  right: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  background: var(--bs-card-bg);
+  box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 40%);
+}
+
+.multiselect-actions {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--bs-border-color);
+}
+
+/*
+ * Scrolls past about a dozen options. The list is sixteen events today and the
+ * panel must not run off the bottom of a laptop screen.
+ */
+.multiselect-list {
+  max-height: 17rem;
+  overflow-y: auto;
+  padding: 0.25rem;
+}
+
+.multiselect-list:focus-visible {
+  outline: 2px solid var(--bs-focus-ring-color);
+  outline-offset: -2px;
+}
+
+.multiselect-group-label {
+  padding: 0.4rem 0.5rem 0.2rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.multiselect-option {
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+  padding: 0.3rem 0.5rem;
+  border-radius: var(--bs-border-radius);
+  cursor: pointer;
+}
+
+.multiselect-option:hover {
+  background: var(--app-raised);
+}
+
+/*
+ * Where the arrow keys are, which is not where focus is — the listbox holds
+ * focus and points at this through `aria-activedescendant`. It needs to be
+ * visible enough to follow while walking the list, so it is drawn as the focus
+ * ring it stands in for rather than as a hover.
+ */
+.multiselect-option.is-active {
+  background: var(--app-raised);
+  outline: 2px solid var(--bs-focus-ring-color);
+  outline-offset: -2px;
+}
+
+.multiselect-option[aria-selected="true"] {
+  color: var(--bs-body-color);
+}

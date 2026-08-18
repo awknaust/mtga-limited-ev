@@ -12,7 +12,8 @@ charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1000-0-cube.2_2200-0-cube.7
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything a custom ladder paying mythic packs resolves to 1`] = `
@@ -27,7 +28,8 @@ charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1400-3_4200-10-mythic.4
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything arena direct with boxes valued at nothing resolves to 1`] = `
@@ -42,7 +44,8 @@ charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything arena direct — physical boxes in the ladder resolves to 1`] = `
@@ -57,7 +60,8 @@ charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything bankroll only resolves to 1`] = `
@@ -72,7 +76,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=20000 gold=15000 points=0 maxEvents=200
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything bare origin resolves to 1`] = `
@@ -87,7 +92,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything counts above the ceilings resolves to 1`] = `
@@ -102,7 +108,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=2000
 sim        runs=999999 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything custom elimination shape resolves to 1`] = `
@@ -117,7 +124,8 @@ charges    1354.8 gems (968.3 gold/event)
 payouts    0-0_100-1_200-2_400-3_800-4_1600-5
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything custom ladder naming its boxes resolves to 1`] = `
@@ -132,7 +140,8 @@ charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_0-0-play.msh_0-0-play.latest-collector.spm
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything custom ladder paying a qualifier token resolves to 1`] = `
@@ -147,7 +156,8 @@ charges    1372.2 gems (851.9 gold/event)
 payouts    0-0_0-0_0-0_6000-0-token.1
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything demo 2 — premier, gems only, no gold resolves to 1`] = `
@@ -162,7 +172,8 @@ charges    1426.7 gems (488.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=event unit=gems gemsPerUsd=200"
+display    tab=event unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything demo 3 — quick, gems only, no gold resolves to 1`] = `
@@ -177,7 +188,8 @@ charges    676.7 gems (488.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=event unit=gems gemsPerUsd=200"
+display    tab=event unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything demo 4 — premier at the post's card values resolves to 1`] = `
@@ -192,7 +204,8 @@ charges    1426.7 gems (488.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=event unit=gems gemsPerUsd=200"
+display    tab=event unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything demo 5 — full custom worst case resolves to 1`] = `
@@ -207,7 +220,8 @@ charges    1131.2 gems (750.0 gold/event)
 payouts    10-1_20-1_300-2-1_4000-3-play_5000-4-collector-collector_12000-6-4-collector-collector-collector
 bankroll   gems=12000 gold=5000 points=0 maxEvents=50
 sim        runs=10000 seed=77
-display    tab=event unit=usd gemsPerUsd=350"
+display    tab=event unit=usd gemsPerUsd=350
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything display only resolves to 1`] = `
@@ -222,7 +236,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=about unit=usd gemsPerUsd=350"
+display    tab=about unit=usd gemsPerUsd=350
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything every kind of pack at once, in an order the encoder would not write resolves to 1`] = `
@@ -237,7 +252,8 @@ charges    1366.9 gems (887.2 gold/event)
 payouts    0-0_0-0_500-3-mythic.4-cube.5
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything mastery rates, cosmetics priced resolves to 1`] = `
@@ -252,7 +268,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=mastery unit=gems gemsPerUsd=200"
+display    tab=mastery unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything mastery tab resolves to 1`] = `
@@ -267,7 +284,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=mastery unit=gems gemsPerUsd=200"
+display    tab=mastery unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything one slider moved resolves to 1`] = `
@@ -282,7 +300,8 @@ charges    1327.5 gems (1150.0 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything preset switch only resolves to 1`] = `
@@ -297,7 +316,8 @@ charges    586.7 gems (1088.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything qualifier play-in — points in, token out resolves to 1`] = `
@@ -312,7 +332,8 @@ charges    3804.3 gems (978.5 gold/event)
 payouts    500-0_1000-0_1500-0_3000-0_4500-0_6000-0_6000-0-token.1
 bankroll   gems=3000 gold=0 points=60 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything the cube ladder as it was spelled before cube packs existed resolves to 1`] = `
@@ -327,7 +348,8 @@ charges    1361.1 gems (926.3 gold/event)
 payouts    50-1_100-1_250-2_2200-7
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything the old fold, where mythic packs were spelled as packs resolves to 1`] = `
@@ -342,7 +364,8 @@ charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1400-3_4200-14
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything traditional draft — bo3, fixed rounds, play-in points resolves to 1`] = `
@@ -357,7 +380,8 @@ charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-6-2
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the captured corpus > pins everything unspent gold counted as worthless resolves to 1`] = `
@@ -372,7 +396,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=arena-direct-collector resolves to 1`] = `
@@ -387,7 +412,8 @@ charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_14400-32_0-0-collector.latest
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=arena-direct-cube resolves to 1`] = `
@@ -402,7 +428,8 @@ charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=arena-direct-play resolves to 1`] = `
@@ -417,7 +444,8 @@ charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=constructed-event resolves to 1`] = `
@@ -432,7 +460,8 @@ charges    211.7 gems (1088.8 gold/event)
 payouts    25-0_50-0_75-1_200-1_300-1_400-2_450-2_500-3-1
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=contender-draft resolves to 1`] = `
@@ -447,7 +476,8 @@ charges    2836.7 gems (1088.8 gold/event)
 payouts    0-0_0-0_0-0_1400-3_2800-6_3200-8_4200-10-mythic.4_7200-12-mythic.10
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=pick-two-draft resolves to 1`] = `
@@ -462,7 +492,8 @@ charges    757.2 gems (951.9 gold/event)
 payouts    50-1_150-1_800-1_1000-2_1300-3
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=premier-cube-draft resolves to 1`] = `
@@ -477,7 +508,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-0-cube.1_100-0-cube.1_250-0-cube.2_1000-0-cube.2_1400-0-cube.3_1600-0-cube.5_1800-0-cube.6_2200-0-cube.7
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=premier-draft resolves to 1`] = `
@@ -492,7 +524,8 @@ charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=qualifier-play-in-bo1 resolves to 1`] = `
@@ -507,7 +540,8 @@ charges    3804.3 gems (978.5 gold/event)
 payouts    500-0_1000-0_1500-0_3000-0_4500-0_6000-0_6000-0-token.1
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=qualifier-play-in-bo3 resolves to 1`] = `
@@ -522,7 +556,8 @@ charges    3827.8 gems (861.0 gold/event)
 payouts    500-0_2000-0_4500-0_6000-0_6000-0-token.1
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=quick-draft resolves to 1`] = `
@@ -537,7 +572,8 @@ charges    586.7 gems (1088.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=sealed resolves to 1`] = `
@@ -552,7 +588,8 @@ charges    2000.0 gems (1088.8 gold/event)
 payouts    200-3_400-3_600-3_1200-3_1400-3_1600-3_2000-3_2200-3
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=traditional-constructed-event resolves to 1`] = `
@@ -567,7 +604,8 @@ charges    596.3 gems (1025.0 gold/event)
 payouts    50-1_100-1_150-2_600-2_800-2_1000-3-4
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=traditional-cube-draft resolves to 1`] = `
@@ -582,7 +620,8 @@ charges    1362.8 gems (915.0 gold/event)
 payouts    0-0-cube.1_250-0-cube.1_1000-0-cube.3_2500-0-cube.5
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=traditional-draft resolves to 1`] = `
@@ -597,7 +636,8 @@ charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-6-2
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
 exports[`the preset definitions are the contract > pins what ?preset=traditional-sealed resolves to 1`] = `
@@ -612,5 +652,6 @@ charges    2000.0 gems (951.9 gold/event)
 payouts    200-1_500-2_1200-3_1800-4_2200-5
 bankroll   gems=3000 gold=0 points=0 maxEvents=20
 sim        runs=10000 seed=1
-display    tab=bankroll unit=gems gemsPerUsd=200"
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;

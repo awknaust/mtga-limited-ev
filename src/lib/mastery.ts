@@ -58,12 +58,21 @@ export const MASTERY_REWARD_LABELS: Record<MasteryRewardKind, string> = {
   gold: "Gold",
   packs: "Packs",
   draftToken: "Player Draft tokens",
-  // "Mythic ICR" as the track itself prints it, and as the Advanced field is
-  // already labelled. "Rare cards" is not the odd one out it looks like: the
-  // level 6 row pays four copies of a named card, not a random rare, so an ICR
-  // is the one thing it is not. See `rareCard` in types.ts.
+  /*
+   * "Mythic ICR" as the track itself prints it, and as the Advanced field is
+   * already labelled.
+   *
+   * The rare one is not literally an ICR — the level 6 row pays four copies of
+   * a card Wizards names, where an ICR is a random card of a rarity — and it
+   * was labelled "Rare cards" for a while on that ground. It reads as the
+   * three rarities of one reward, which is how it is priced: a rate per card
+   * that the reader sets, with no term in the model that knows or cares which
+   * card arrives. The distinction is real and changes no figure, so it lives
+   * in the key and in `rareCard`'s doc comment rather than in a label that
+   * made one row of three look like a mistake.
+   */
   mythicIcr: "Mythic ICRs",
-  rareCard: "Rare cards",
+  rareCard: "Rare ICRs",
   uncommonIcr: "Uncommon ICRs",
   orbs: "Mastery Orbs",
   cardStyles: "Card styles",

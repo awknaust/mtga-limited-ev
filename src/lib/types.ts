@@ -134,8 +134,38 @@ export type RoundsStructure = {
 export type EventStructure = EliminationStructure | RoundsStructure;
 
 /** A named event definition, as stored in src/data/presets. */
+/**
+ * The kinds of event there are, in the order they are offered.
+ *
+ * A fact about the event rather than about any screen: Sealed is a sealed
+ * event whether or not anything is grouping it. What each key is *called* is
+ * presentation and lives with the component that shows it — this is the key
+ * and the order, which is what has to be agreed on.
+ *
+ * The order is the one `PRESETS` already sits in, and the reasoning for it is
+ * in the comments there.
+ */
+export const EVENT_GROUPS = [
+  "draft",
+  "sealed",
+  "direct",
+  "constructed",
+  "play-in",
+] as const;
+
+export type EventGroup = (typeof EVENT_GROUPS)[number];
+
 export type EventPreset = {
   name: string;
+  /**
+   * Which kind of event this is.
+   *
+   * Required, and that is the point: a new preset that names no group is a
+   * compile error in the file being written, rather than a list somewhere else
+   * that quietly stopped covering everything. It is why this is here and not
+   * in the tab that groups by it.
+   */
+  group: EventGroup;
   entryCostGems: number;
   /** Gold price, where the event takes gold. Absent means gems only. */
   entryCostGold?: number;
@@ -276,11 +306,20 @@ export type EventConfig = {
   /**
    * Gem value of one rare card award.
    *
-   * Named a card rather than an ICR because that is what it is: the only track
-   * row paying these is level 6's four copies of Gandalf, Party Guest, a card
-   * Wizards names. An ICR is a random card of a rarity, so calling this one
-   * would claim the pass pays something it does not. The sibling fields are
-   * ICRs and say so.
+   * The field is `rareCard` and not `rareIcr` because a card is what it is: the
+   * only track row paying these is level 6's four copies of Gandalf, Party
+   * Guest, a card Wizards names, where an ICR is a random card of a rarity.
+   *
+   * On screen it is labelled a Rare ICR alongside the mythic and uncommon
+   * ones, which is a deliberate choice and not an oversight to correct back.
+   * All three are priced the same way — a rate per card that the reader sets —
+   * and no term in the model asks which card arrives, so the distinction
+   * changes no figure the app reports. Three labels, one of which quietly
+   * disagreed with the other two, cost more in confusion than the precision
+   * bought. It is recorded here instead, where length is free.
+   *
+   * The name stays: it is in the URL as `rareCardValue`, which
+   * `share.compat.test.ts` pins, and it is what the reward actually is.
    */
   rareCardValueGems: number;
   /** Gem value of one uncommon individual card reward. */

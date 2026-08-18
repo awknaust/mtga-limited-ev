@@ -40,6 +40,7 @@ import type { EventPreset } from "../../lib/types";
  */
 export const QUALIFIER_PLAY_IN_BO1 = {
   name: "Qualifier Play-In (Bo1)",
+  group: "play-in",
   entryCostGems: 4000,
   entryCostGold: 20000,
   entryCostPlayInPoints: 20,

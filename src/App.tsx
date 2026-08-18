@@ -13,6 +13,7 @@ import {
 import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
 import { BoxPrices } from "./components/BoxPrices";
+import { Compare } from "./components/Compare";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventFields } from "./components/EventFields";
@@ -37,6 +38,7 @@ import { SectionHeading } from "./components/SectionHeading";
 import { SimPending } from "./components/SimPending";
 import { Stat, type StatTile } from "./components/Stat";
 import { StatStrip } from "./components/StatStrip";
+import { STAT_HELP } from "./components/statHelp";
 import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
 import {
@@ -114,6 +116,7 @@ const CONFIDENCE_CHOICES = [
 const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
   { key: "event" as const, label: "Long-term value" },
+  { key: "compare" as const, label: "Compare" },
   { key: "mastery" as const, label: "Mastery" },
   { key: "about" as const, label: "About" },
 ];
@@ -232,6 +235,10 @@ export default function App({
   const [tab, setTab] = useState<Tab>(initial.tab);
   // Which Set Mastery season the Mastery tab prices.
   const [masterySlug, setMasterySlug] = useState(initial.masterySlug);
+  // Which events the Compare tab draws. In the link, unlike the y-axis mode
+  // below it: which events are being weighed up is the question being asked,
+  // and the thing worth sending someone.
+  const [compareSelection, setCompareSelection] = useState(initial.compareSelection);
   // Resolved here rather than in the tab, since the picker sits beside the
   // event and the tab is only one of the two things reading it.
   const masteryTrack = masteryBySlug(masterySlug) ?? CURRENT_MASTERY_TRACK;
@@ -277,6 +284,7 @@ export default function App({
     maxEvents,
     tab,
     masterySlug,
+    compareSelection,
     unit,
     gemsPerUsd,
   });
@@ -309,6 +317,7 @@ export default function App({
     maxEvents,
     tab,
     masterySlug,
+    compareSelection,
     unit,
     gemsPerUsd,
   ]);
@@ -756,13 +765,6 @@ export default function App({
   };
 
   const breakEvenShown = breakEven;
-  // Restates the event being priced, for the Results heading — the numbers
-  // below are meaningless without it.
-  const structureSummary =
-    structure.kind === "rounds"
-      ? `${structure.rounds} round${structure.rounds === 1 ? "" : "s"} played in full`
-      : `to ${structure.maxWins} win${structure.maxWins === 1 ? "" : "s"} or ${structure.maxLosses} loss${structure.maxLosses === 1 ? "" : "es"}`;
-
   /*
    * Bankroll tile building tolerates a result that has not arrived:
    * `bankroll` is null until the first simulation lands, and every tile list
@@ -1057,8 +1059,10 @@ export default function App({
         : "exact, at a win rate you called certain",
       tone: signClass(event.meanNet),
       help: {
-        label: "What expected net means",
-        content: `What one entry wins or loses on average, after the entry fee. Marked ≈ because packs and other rewards are priced at your rates, not paid as gems.${
+        ...STAT_HELP.net,
+        // The shared sentence, plus what only a tile with a range under it can
+        // say. The Compare tab's heading takes the sentence alone.
+        content: `${STAT_HELP.net.content}${
           netBand
             ? ` The range underneath covers ${pct(CREDIBLE_LEVEL, 0)} of what your win-rate record allows.`
             : ""
@@ -1073,11 +1077,7 @@ export default function App({
       // Which of those it is, though, the popover cannot say — a gross that is
       // mostly gems and one that is mostly packs read alike as a number.
       children: <ValueSplitBar slices={grossSlices(config)} m={m} />,
-      help: {
-        label: "What expected gross means",
-        content:
-          "What one event pays back on average, before the entry fee. Packs and other rewards are counted at your rates.",
-      },
+      help: STAT_HELP.gross,
     },
     ...boxTiles,
     {
@@ -1096,11 +1096,7 @@ export default function App({
           ? `of ${gemsEq(event.entryGems)} paid · ${pct(event.goldEntryFraction)} entries free`
           : `of ${gemsEq(config.entryCostGems)} entry`,
       tone: signClass(event.roi),
-      help: {
-        label: "What ROI means",
-        content:
-          "Expected net as a share of the entry fee. At −10%, an average entry gives back 90 for every 100 paid; positive means it more than pays for itself.",
-      },
+      help: STAT_HELP.roi,
     },
     {
       key: "break-even",
@@ -1110,33 +1106,21 @@ export default function App({
         pProfitable !== null && breakEvenShown !== null
           ? `${pct(pProfitable)} chance you are above it`
           : breakEvenHint,
-      help: {
-        label: "What break-even win rate means",
-        content:
-          "The match win rate at which the average event exactly pays back its entry. Win more often and the event makes money on average; less often and it loses.",
-      },
+      help: STAT_HELP.breakEven,
     },
     {
       key: "p-profit",
       label: "P(profit)",
       value: pct(event.probProfit),
       hint: "of events end net positive",
-      help: {
-        label: "What P(profit) means",
-        content:
-          "The chance one event ends worth more than its entry. It can be under 50% even when the event is profitable on average, because a few big finishes carry the average.",
-      },
+      help: STAT_HELP.probProfit,
     },
     {
       key: "matches",
       label: "Matches",
       value: event.meanRounds.toFixed(2),
       hint: `max ${maxRounds(structure)}`,
-      help: {
-        label: "What matches per event means",
-        content:
-          "How many matches one event lasts on average.",
-      },
+      help: STAT_HELP.matches,
     },
   ];
 
@@ -1469,17 +1453,20 @@ export default function App({
                 active={tab}
                 onSelect={setTab}
                 label="Results"
+                /*
+                 * Only the spinner, and only while one is running: it is the
+                 * one thing here that has to be visible from a tab other than
+                 * the one dimming, so it cannot live in the panel. The event
+                 * and its structure used to sit beside it, restating the
+                 * sidebar two inches away.
+                 */
                 trailing={
-                  <span className="section-note">
-                    {presetName} · {structureSummary}
-                    {/* Visible from any tab, unlike the dimmed panel itself. */}
-                    {bankrollPending && (
-                      <span
-                        className="spinner-border spinner-border-sm ms-2 text-secondary"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </span>
+                  bankrollPending ? (
+                    <span
+                      className="spinner-border spinner-border-sm text-secondary"
+                      aria-hidden="true"
+                    />
+                  ) : undefined
                 }
               />
 
@@ -1497,6 +1484,14 @@ export default function App({
                 />
               ) : tab === "mastery" ? (
                 <Mastery track={masteryTrack} config={config} m={m} />
+              ) : tab === "compare" ? (
+                <Compare
+                  config={config}
+                  presetName={presetName}
+                  selection={compareSelection}
+                  onSelectionChange={setCompareSelection}
+                  m={m}
+                />
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">
@@ -2055,9 +2050,9 @@ export default function App({
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.rareCardValue} className="form-label">
-                      Rare card value ({m.label})
+                      Rare ICR value ({m.label})
                       <InfoTip
-                        label="About rare card value"
+                        label="About rare ICR value"
                         content="Arena's duplicate-protection payout for a rare you already hold four of: 20 gems."
                       />
                     </label>

@@ -72,6 +72,14 @@ function fingerprint(state: ShareState): string {
     `bankroll   gems=${state.startingGems} gold=${state.startingGold} points=${state.startingPlayInPoints} maxEvents=${state.maxEvents}`,
     `sim        runs=${state.bankrollRuns} seed=${state.seed}`,
     `display    tab=${state.tab} unit=${state.unit} gemsPerUsd=${state.gemsPerUsd}`,
+    /*
+     * Here for the same reason the derived entry above is. No link in the
+     * corpus carries a `compare` parameter — they all predate the tab — so
+     * every one of them resolves to whatever the default selection happens to
+     * be, and changing that default silently changes what all of them show.
+     * Recorded, so moving it takes a decision.
+     */
+    `compare    ${state.compareSelection.join(", ") || "(none)"}`,
   ].join("\n");
 }
 
@@ -249,6 +257,8 @@ describe("the parameter names are the contract", () => {
       // The only season there is, so it cannot differ from the default and
       // cannot appear in the link. The names list below says as much.
       masterySlug: CURRENT_MASTERY_TRACK.slug,
+      // Anything but the default three, so the parameter is emitted at all.
+      compareSelection: [PRESETS[1].name],
       unit: "usd",
       gemsPerUsd: 17,
     };
@@ -268,6 +278,7 @@ describe("the parameter names are the contract", () => {
       "cardStyleValue",
       "collectorBoxValue",
       "companionValue",
+      "compare",
       "confMatches",
       "cubePackValue",
       "draftPackValue",
@@ -376,7 +387,8 @@ describe("the defaults are the contract", () => {
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3000 gold=0 points=0 maxEvents=20
       sim        runs=10000 seed=1
-      display    tab=bankroll unit=gems gemsPerUsd=200"
+      display    tab=bankroll unit=gems gemsPerUsd=200
+      compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
     `);
   });
 });

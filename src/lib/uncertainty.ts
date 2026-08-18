@@ -136,17 +136,40 @@ export function drawWinRate(
   return betaQuantile(uniform, posterior.alpha, posterior.beta);
 }
 
+/**
+ * Both posterior figures from one sweep.
+ *
+ * Private, and the shared body of the two exported functions below rather than
+ * a third way to ask: they are folds over the same `DRAWS` evaluations, and
+ * writing each out separately is how two definitions of the same quantile come
+ * to disagree. Callers name the figure they want; neither has to know the other
+ * exists.
+ */
+type NetSummary = {
+  /** Central credible interval on expected net; null if the rate is certain. */
+  interval: [lo: number, hi: number] | null;
+  /** Share of the posterior where the event is worth entering; null if certain. */
+  probProfitable: number | null;
+};
+
+function netSummary(config: EventConfig, level = CREDIBLE_LEVEL): NetSummary {
+  const posterior = winRatePosterior(config);
+  if (!posterior) return { interval: null, probProfitable: null };
+  const nets = sortedNets(config, posterior);
+  const at = (q: number) => nets[Math.min(nets.length - 1, Math.floor(q * nets.length))];
+  const tail = (1 - level) / 2;
+  return {
+    interval: [at(tail), at(1 - tail)],
+    probProfitable: nets.filter((n) => n > 0).length / nets.length,
+  };
+}
+
 /** Central credible interval on expected net, or null if the rate is certain. */
 export function netInterval(
   config: EventConfig,
   level = CREDIBLE_LEVEL,
 ): [lo: number, hi: number] | null {
-  const posterior = winRatePosterior(config);
-  if (!posterior) return null;
-  const nets = sortedNets(config, posterior);
-  const at = (q: number) => nets[Math.min(nets.length - 1, Math.floor(q * nets.length))];
-  const tail = (1 - level) / 2;
-  return [at(tail), at(1 - tail)];
+  return netSummary(config, level).interval;
 }
 
 /**
@@ -159,8 +182,5 @@ export function netInterval(
  * curve only ever rises.
  */
 export function probProfitable(config: EventConfig): number | null {
-  const posterior = winRatePosterior(config);
-  if (!posterior) return null;
-  const nets = sortedNets(config, posterior);
-  return nets.filter((n) => n > 0).length / nets.length;
+  return netSummary(config).probProfitable;
 }

@@ -3,6 +3,7 @@ import type { EventPreset } from "../../lib/types";
 /** Premier Draft: 1,500 gems (or 10,000 gold), BO1, to 7 wins or 3 losses. */
 export const PREMIER_DRAFT = {
   name: "Premier Draft",
+  group: "draft",
   entryCostGems: 1500,
   entryCostGold: 10000,
   draftPacks: 3,

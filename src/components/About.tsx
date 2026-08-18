@@ -161,7 +161,7 @@ export function About({
               <td>{show(m, config.mythicIcrValueGems)} each</td>
             </tr>
             <tr>
-              <td>Rare card</td>
+              <td>Rare ICR</td>
               <td>{show(m, config.rareCardValueGems)} each</td>
             </tr>
             <tr>
