@@ -185,22 +185,29 @@ export function defaultShareState(): ShareState {
     /*
      * A plausible wallet rather than a multiple of one entry: gems enough for
      * two Premier Drafts and change, gold enough for one Quick Draft but not
-     * the 10,000 a Premier costs, and exactly the twenty points a Play-In
-     * takes. Chosen figures rather than derived ones, and what they have to be
-     * is a balance someone could be holding — the Bankroll tab asks what
-     * happens to a real one, and a balance that divides evenly into entries
-     * reads as a worked example instead.
+     * the 10,000 a Premier costs. Chosen figures rather than derived ones, and
+     * what they have to be is a balance someone could be holding — the
+     * Bankroll tab asks what happens to a real one, and a balance that divides
+     * evenly into entries reads as a worked example instead.
      *
-     * The gold and the points are non-zero because they are inputs someone
-     * has to be shown to know they exist. Premier Draft spends neither — its
-     * gold price is 10,000, above the 5,000 here — so both sit in the
-     * starting-bankroll tile at the rates in Advanced settings until the
-     * reader switches to an event that takes them, which spends both ahead of
-     * gems (see `bankroll.ts`).
+     * The gold is non-zero because it is an input someone has to be shown to
+     * know it exists, and showing it costs nothing: Premier Draft's gold door
+     * is 10,000, so it sits in the starting-bankroll tile until a run earns
+     * its way up to an entry or the reader switches to an event that takes it,
+     * and from then on it is spent ahead of gems (see `bankroll.ts`).
+     *
+     * The points do not get the same treatment, and the asymmetry is the
+     * point. They are priced at DEFAULT_PLAY_IN_POINT_VALUE_GEMS, the
+     * Play-In's gem door over its twenty points, so a Play-In's worth of them
+     * would be the larger part of the starting bankroll on an event that
+     * cannot spend them. `startingValue` counts them and a run hands them
+     * back untouched, so the net would be unchanged and the ROI would not:
+     * the tab would lead with a return measured against a stake that was
+     * never at risk. Zero until the reader says otherwise.
      */
     startingGems: 3400,
     startingGold: 5000,
-    startingPlayInPoints: 20,
+    startingPlayInPoints: 0,
     maxEvents: 20,
     tab: "bankroll",
     masterySlug: CURRENT_MASTERY_TRACK.slug,

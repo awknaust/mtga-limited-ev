@@ -385,7 +385,7 @@ describe("the defaults are the contract", () => {
       gold       other=600/day over 1 events, goldPer10k=1500
       charges    1336.7 gems (1088.8 gold/event)
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-      bankroll   gems=3400 gold=5000 points=20 maxEvents=20
+      bankroll   gems=3400 gold=5000 points=0 maxEvents=20
       sim        runs=10000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=200
       compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
