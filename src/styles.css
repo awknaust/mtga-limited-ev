@@ -1426,6 +1426,17 @@ button.box-add:focus-visible {
   stroke-linecap: butt;
 }
 
+/*
+ * The slashes over a second-lap event's fill. The card's own background, so a
+ * hatched bar is its colour with gaps in it rather than a paler colour — see
+ * `CompareHatch.tsx`. Wide enough to read at a glance against the ~19px rows,
+ * thin enough that a bar stays mostly itself.
+ */
+.compare-hatch-line {
+  stroke: var(--bs-card-bg);
+  stroke-width: 2.25;
+}
+
 .compare-end-label {
   fill: var(--series);
   font-size: 10px;

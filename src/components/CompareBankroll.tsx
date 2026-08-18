@@ -1,7 +1,9 @@
+import { useId } from "react";
 import { scaleBand, scaleLinear } from "d3";
 
 import type { BankrollSummary } from "../lib";
 import { approx, gemTick, type Money } from "../format";
+import { CompareHatchDefs, hatchFill } from "./CompareHatch";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
@@ -57,13 +59,19 @@ const toneOf = (value: number, start: number): string =>
  * against the same stream of draws, so the difference between two rows is the
  * events and not the luck.
  *
- * **A box plot, because the summary is already five numbers.** The simulation
- * reports p5, p25, the median, p75 and p95, which is exactly the five a box
- * plot draws, so nothing here is a new derivation or a re-binning of one — the
- * whiskers are the outer pair, the box the inner pair, the line the median.
- * The shape also says the thing a single span cannot: how much of the spread
- * is the middle half and how much is the tail, which on these distributions is
- * most of it.
+ * **A percentile box plot, deliberately, and not a Tukey one.** The whiskers
+ * reach p5 and p95 rather than 1.5×IQR, and nothing is drawn as an outlier.
+ * Two reasons, and both would still hold if the shape were free. Tukey's
+ * fences are computed from the values themselves, and `BankrollSummary`
+ * carries five percentiles precisely so the values do not have to cross the
+ * worker boundary — reinstating them is the ~4.3 MB the second request kind
+ * exists to avoid. And these distributions are discrete and hard right-skewed:
+ * events played is an integer under a ceiling, and ending value has a long
+ * tail wherever a ladder pays a box. At ten thousand runs the fences would
+ * class thousands of them as outliers, and one row per event would become a
+ * smear of dots. What is drawn is five numbers the simulation already reports,
+ * which is why the caption says which five rather than leaving the reader to
+ * assume the usual ones.
  *
  * **Two measures, one at a time.** How long the balance lasted and what it was
  * worth at the end are different questions in different units, and a reader has
@@ -103,18 +111,20 @@ export function CompareBankroll({
   m: Money;
 }) {
   const events = mode === "events";
+  const hatchId = `${useId()}-hatch`;
 
   const drawn = rows.map(({ name, summary }) => ({
     name,
     ...compareSeries(name),
     span: events ? summary.eventPercentiles : summary.valuePercentiles,
     /*
-     * No run played an event, so the balance never covered a single entry. In
-     * the events chart a zero-width bar would read as an event that ended
-     * instantly rather than one that was never entered, so these are labelled
-     * instead — the call `BreakEvenChart` already makes for a bar it cannot
-     * draw. The value chart needs no such rescue: an untouched balance lands
-     * its mark on the starting-balance line, which is exactly the truth.
+     * No run played an event, so the balance never covered a single entry, and
+     * the whole distribution is a point at zero. Nothing is drawn: a box and a
+     * median line stacked on the axis origin is a mark that has to be squinted
+     * at and then means nothing anyway, where an empty row beside a plain 0 in
+     * the figures column says it at a glance. The value chart needs no such
+     * case — an untouched balance lands its box on the starting-balance line,
+     * which is exactly the truth.
      */
     unaffordable: events && summary.meanEvents === 0,
     figure: events
@@ -172,6 +182,7 @@ export function CompareBankroll({
           : "What a run is worth at the end, from one starting balance, per event"
       }
     >
+      <CompareHatchDefs id={hatchId} />
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
         {ticks.map((t) => (
           <g key={t} transform={`translate(${x(t)},0)`}>
@@ -229,11 +240,7 @@ export function CompareBankroll({
               {row.name}
             </text>
 
-            {row.unaffordable ? (
-              <text x={4} y={y.bandwidth() / 2} dy="0.32em" className="chart-tick">
-                no entry affordable
-              </text>
-            ) : (
+            {row.unaffordable ? null : (
               <g className={row.colorClass}>
                 {/* Whiskers to p5 and p95 — the middle nineteen runs in
                     twenty — capped at each end so the reach is a mark rather
@@ -265,6 +272,18 @@ export function CompareBankroll({
                   rx={2}
                   className="compare-box"
                 />
+                {/* Over the fill, same geometry: the box keeps its colour and
+                    the slashes are cut out of it. */}
+                {row.hatched && (
+                  <rect
+                    x={x(row.span.p25)}
+                    width={Math.max(1, x(row.span.p75) - x(row.span.p25))}
+                    height={boxH}
+                    y={mid - boxH / 2}
+                    rx={2}
+                    fill={hatchFill(hatchId, true)}
+                  />
+                )}
                 <line
                   x1={x(row.span.p50)}
                   x2={x(row.span.p50)}

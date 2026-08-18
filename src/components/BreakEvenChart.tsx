@@ -1,8 +1,10 @@
+import { useId } from "react";
 import { scaleBand, scaleLinear } from "d3";
 
 import { expectedNetAt } from "../lib";
 import { pct } from "../format";
 import type { CompareRow } from "./Compare";
+import { CompareHatchDefs, hatchFill } from "./CompareHatch";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
@@ -49,6 +51,7 @@ export function BreakEvenChart({
    */
   rateBand: [lo: number, hi: number] | null;
 }) {
+  const hatchId = `${useId()}-hatch`;
   const rows = given.map(({ name, config, breakEven: rate }) => ({
     name,
     rate,
@@ -73,6 +76,7 @@ export function BreakEvenChart({
       role="img"
       aria-label="Match win rate each event breaks even at"
     >
+      <CompareHatchDefs id={hatchId} />
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
         {/* Behind the bars, so a bar ending inside it stays readable. */}
         {rateBand && (
@@ -121,6 +125,17 @@ export function BreakEvenChart({
                   rx={3}
                   className={`compare-bar ${row.colorClass}`}
                 />
+                {/* Over the fill, same geometry: the bar keeps its colour and
+                    the slashes are cut out of it. */}
+                {row.hatched && (
+                  <rect
+                    x={0}
+                    width={Math.max(0, x(row.rate))}
+                    height={y.bandwidth()}
+                    rx={3}
+                    fill={hatchFill(hatchId, true)}
+                  />
+                )}
                 <text
                   x={x(row.rate) + 6}
                   y={y.bandwidth() / 2}
