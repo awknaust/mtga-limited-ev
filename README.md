@@ -1,6 +1,6 @@
-# MTGA Limited EV
+# mtga.fyi
 
-What draft and sealed events really pay at your win rate — and where the
+What MTG Arena events and passes really pay at your win rate, and where the
 break-even sits.
 
 **<https://mtga.fyi>**
@@ -10,7 +10,7 @@ the right a bankroll run, with summary figures, a histogram of events played
 before running out, the distribution of ending value, and one sampled run
 broken out match by match.](docs/screenshot.png)
 
-Give it a win rate and it works out what an MTG Arena limited event returns:
+Give it a win rate and it works out what an MTG Arena event returns:
 the entry cost against gems, packs, gold, play-in points and physical boxes.
 
 It also runs a bankroll forward: from a starting balance it replays the event,
