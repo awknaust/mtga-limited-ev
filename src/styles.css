@@ -905,6 +905,20 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * A figure judged against a baseline, in SVG. Bootstrap's `.text-success` and
+ * `.text-danger` set `color`, which SVG text ignores — it paints with `fill` —
+ * so the same two meanings need their own rules rather than the utility
+ * classes the tiles use for the identical judgement.
+ */
+.chart-value-up {
+  fill: var(--bs-success);
+}
+
+.chart-value-down {
+  fill: var(--bs-danger);
+}
+
 /* A titled box of related inputs — the Advanced groups, and the bankroll
  * fields in the main column. */
 .adv-group {
@@ -1030,6 +1044,21 @@ body {
 .chart-band {
   fill: var(--bs-primary);
   opacity: 0.1;
+}
+
+/*
+ * "Simulating…" in the results strip, the one thing on the page that has to be
+ * visible from a tab other than the one whose figures are dimming. It carries
+ * no delay, unlike the dim it accompanies: a debounced keystroke has to look
+ * answered at once, and the words are what say what the spinner is for.
+ */
+.sim-running {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  white-space: nowrap;
 }
 
 /*
@@ -1377,6 +1406,50 @@ button.box-add:focus-visible {
 
 .compare-bar {
   fill: var(--series);
+}
+
+/*
+ * The bankroll grid's box plots. One hue per event, at the strength the bars
+ * directly above it carry.
+ *
+ * The box takes the event's colour outright, exactly as `.compare-bar` does —
+ * the break-even chart is stacked immediately above this one with the same
+ * names down the same margin, and a box drawn at half strength read as a
+ * washed-out, greyer version of the bar two inches away rather than as the
+ * same event. Holding it back was to keep the median findable, and the median
+ * no longer needs the help: it takes the body colour rather than the series
+ * one, which is the classic treatment and here a necessary one, since a median
+ * in the hue of the box it sits inside is a line nobody can find.
+ *
+ * The whiskers are the same colour drawn thin. Weight, not opacity, is what
+ * separates the middle half from the tails — a colour diluted toward the
+ * background reads as a different colour, where a thinner line of the same one
+ * reads as less of the same thing.
+ */
+.compare-whisker {
+  stroke: var(--series);
+  stroke-width: 1.25;
+}
+
+.compare-box {
+  fill: var(--series);
+}
+
+.compare-median {
+  stroke: var(--bs-body-color);
+  stroke-width: 2;
+  stroke-linecap: butt;
+}
+
+/*
+ * The slashes over a second-lap event's fill. The card's own background, so a
+ * hatched bar is its colour with gaps in it rather than a paler colour — see
+ * `CompareHatch.tsx`. Wide enough to read at a glance against the ~19px rows,
+ * thin enough that a bar stays mostly itself.
+ */
+.compare-hatch-line {
+  stroke: var(--bs-card-bg);
+  stroke-width: 2.25;
 }
 
 .compare-end-label {

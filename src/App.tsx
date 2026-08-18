@@ -14,6 +14,7 @@ import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
 import { BoxPrices } from "./components/BoxPrices";
 import { Compare } from "./components/Compare";
+import { pickEvents } from "./components/compareEvents";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventFields } from "./components/EventFields";
@@ -85,7 +86,7 @@ import {
   type ShareState,
   type Tab,
 } from "./share";
-import { useSimulateBankrolls } from "./hooks/useSimulation";
+import { useSimulateBankrolls, useSimulateCompare } from "./hooks/useSimulation";
 
 /** An event the current balance cannot enter, and what to do about it. */
 type TopUp = {
@@ -591,9 +592,14 @@ export default function App({
    * editor's "Copy from…" changes the config under the same name, and is
    * held with the rest of that dialog's edits.
    */
-  const bankrollParams = useMemo(
+  /*
+   * One object for the knobs, because two tabs read them: the Bankroll tab's
+   * single-event run and the Compare tab's grid. Memoised separately from the
+   * config so a preset pick, which moves `config` and nothing else, does not
+   * hand the grid a fresh identity for values that did not change.
+   */
+  const bankrollKnobs = useMemo(
     () => ({
-      config,
       startingGems,
       startingGold,
       startingPlayInPoints,
@@ -601,15 +607,11 @@ export default function App({
       runs: bankrollRuns,
       seed,
     }),
-    [
-      config,
-      startingGems,
-      startingGold,
-      startingPlayInPoints,
-      maxEvents,
-      bankrollRuns,
-      seed,
-    ],
+    [startingGems, startingGold, startingPlayInPoints, maxEvents, bankrollRuns, seed],
+  );
+  const bankrollParams = useMemo(
+    () => ({ config, ...bankrollKnobs }),
+    [config, bankrollKnobs],
   );
   const {
     result: bankroll,
@@ -619,6 +621,45 @@ export default function App({
     hold: advancedOpen || editorOpen,
     flushOn: presetName,
   });
+  /*
+   * The Compare tab's bankroll grid, run from here rather than from inside the
+   * tab, and run whichever tab is showing.
+   *
+   * Both halves of that are deliberate. Every simulation starts on the change
+   * that made it stale, not on the tab switch that reveals it, so a reader who
+   * adjusts a rate and then goes looking for the comparison usually finds it
+   * already computed — the wait happens while they are reading something else.
+   * It costs worker time for a reader who never opens the tab, and that is the
+   * trade being made: cores are idle and attention is not. And kept out of the
+   * tab's own component, a settled grid survives the unmount that switching
+   * tabs causes, so a stale answer stays on screen while the new one computes
+   * rather than the panel blanking for as long as the run takes.
+   *
+   * `pickEvents` runs on every render, tab or no tab — a spread per selected
+   * event, measured in single-digit microseconds — and buys the memo identity
+   * the debounce compares on.
+   */
+  const comparePicked = useMemo(
+    () => pickEvents(compareSelection, config),
+    [compareSelection, config],
+  );
+  const compareParams = useMemo(
+    () => ({ events: comparePicked, ...bankrollKnobs }),
+    [comparePicked, bankrollKnobs],
+  );
+  const compareGrid = useSimulateCompare(compareParams, {
+    hold: advancedOpen || editorOpen,
+    flushOn: presetName,
+  });
+  /*
+   * Every lane, not just the bankroll's: both simulations run from any tab, so
+   * a spinner reading only one of them is silent through work that is
+   * genuinely happening. Same timing as the panels it accompanies — true from
+   * the keystroke, through the debounce, until the run for the current values
+   * lands — which is what makes a debounced keystroke look answered rather
+   * than ignored.
+   */
+  const simulating = bankrollPending || compareGrid.pending;
   /*
    * What one entry is worth, exactly. A sum over the outcome distribution
    * rather than a simulation, so it needs no worker, no debounce, no
@@ -1461,11 +1502,14 @@ export default function App({
                  * sidebar two inches away.
                  */
                 trailing={
-                  bankrollPending ? (
-                    <span
-                      className="spinner-border spinner-border-sm text-secondary"
-                      aria-hidden="true"
-                    />
+                  simulating ? (
+                    <span className="sim-running" role="status">
+                      <span
+                        className="spinner-border spinner-border-sm"
+                        aria-hidden="true"
+                      />
+                      Simulating…
+                    </span>
                   ) : undefined
                 }
               />
@@ -1490,6 +1534,9 @@ export default function App({
                   presetName={presetName}
                   selection={compareSelection}
                   onSelectionChange={setCompareSelection}
+                  picked={comparePicked}
+                  grid={compareGrid}
+                  knobs={bankrollKnobs}
                   m={m}
                 />
               ) : tab === "bankroll" ? (

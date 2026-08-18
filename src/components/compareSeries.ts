@@ -56,27 +56,46 @@ export function compareGroups(presets: readonly EventPreset[]): CompareGroup[] {
 export const COMPARE_GROUPS: CompareGroup[] = compareGroups(PRESETS);
 
 /**
- * How many hues the ramp carries, and the dash patterns that extend it.
+ * How many hues the ramp carries, and the treatments that extend it.
  *
- * Eight is about as many lines as can be told apart by colour at once, and the
- * dash is a second channel rather than a decoration: eight hues times two
- * patterns is sixteen distinct series, which is exactly `PRESETS.length` today.
+ * Eight is about as many series as can be told apart by colour at once, and a
+ * lap's treatment is a second channel rather than a decoration: eight hues
+ * times two laps is sixteen distinct series, which is exactly `PRESETS.length`
+ * today.
  *
  * That the two numbers meet exactly is why the uniqueness test matters. A
  * seventeenth preset has nowhere to go, and the test says so on the build that
- * adds it; the fix is one more entry in `DASHES` (worth eight more series) or
- * one more hue, plus the matching `.compare-series-*` rule in `styles.css`.
+ * adds it; the fix is one more entry in `LAPS` (worth eight more series) or one
+ * more hue, plus the matching `.compare-series-*` rule in `styles.css`.
  */
 const RAMP_LENGTH = 8;
 
-/** `stroke-dasharray` per lap through the ramp; `null` is a solid line. */
-const DASHES: (string | null)[] = [null, "6 4"];
+/**
+ * What each lap through the ramp looks like, in both the channels a chart here
+ * can use.
+ *
+ * Two channels rather than one because the tab draws two kinds of mark and
+ * neither treatment carries to the other: a `stroke-dasharray` means nothing to
+ * a filled box, and a hatch means nothing to a plotted line. They are one entry
+ * per lap rather than two parallel arrays so that a lap cannot be half added —
+ * the failure that would ship a curve telling two events apart and a bar chart
+ * beneath it that could not.
+ */
+type Lap = {
+  /** `stroke-dasharray` for a plotted line; null is solid. */
+  dash: string | null;
+  /** Whether a filled shape is slashed through; see `CompareHatch`. */
+  hatched: boolean;
+};
 
-export type CompareSeries = {
+const LAPS: Lap[] = [
+  { dash: null, hatched: false },
+  { dash: "6 4", hatched: true },
+];
+
+export type CompareSeries = Lap & {
   /** Carries the hue as `--series`; see the `.compare-series-*` rules. */
   colorClass: string;
-  /** `stroke-dasharray`, or null for a solid line. */
-  dash: string | null;
 };
 
 /**
@@ -93,16 +112,17 @@ export type CompareSeries = {
  * exactly one of it.
  */
 export function compareSeries(name: string): CompareSeries {
-  if (name === CUSTOM_PRESET) return { colorClass: "compare-series-custom", dash: null };
+  const own = { colorClass: "compare-series-custom", ...LAPS[0] };
+  if (name === CUSTOM_PRESET) return own;
   const i = PRESETS.findIndex((p) => p.name === name);
   // An unknown name is not a thrown error: the selector and the codec both
   // filter to known presets already, so reaching here means a caller found a
   // way past them, and a drawn line in the fallback colour is a better failure
   // than a blank tab.
-  if (i < 0) return { colorClass: "compare-series-custom", dash: null };
+  if (i < 0) return own;
   return {
     colorClass: `compare-series-${i % RAMP_LENGTH}`,
-    dash: DASHES[Math.floor(i / RAMP_LENGTH) % DASHES.length],
+    ...LAPS[Math.floor(i / RAMP_LENGTH) % LAPS.length],
   };
 }
 

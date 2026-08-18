@@ -87,19 +87,46 @@ describe("grouping the events", () => {
 });
 
 describe("every event is drawn distinguishably", () => {
-  it("gives no two presets the same colour and dash", () => {
+  it("gives no two presets the same colour and lap treatment", () => {
     const seen = new Map<string, string>();
     for (const preset of PRESETS) {
-      const { colorClass, dash } = compareSeries(preset.name);
-      const signature = `${colorClass}|${dash ?? "solid"}`;
+      const { colorClass, dash, hatched } = compareSeries(preset.name);
+      const signature = `${colorClass}|${dash ?? "solid"}|${hatched ? "hatched" : "plain"}`;
       const clash = seen.get(signature);
       expect(
         clash,
         `${preset.name} and ${clash} would draw identically. The ramp is full: ` +
-          "add a dash pattern to DASHES, or a hue and its .compare-series-* rule.",
+          "add a lap to LAPS, or a hue and its .compare-series-* rule.",
       ).toBeUndefined();
       seen.set(signature, preset.name);
     }
+  });
+
+  /*
+   * The two channels have to move together. A lap that changed the dash and not
+   * the hatch would tell two events apart on the curve and leave the bar charts
+   * beneath it drawing them identically — and the signature test above would
+   * pass throughout, because the dash alone already separates them.
+   */
+  it("separates two events sharing a hue in both channels, not just one", () => {
+    const sharing = new Map<string, string[]>();
+    for (const preset of PRESETS) {
+      const { colorClass } = compareSeries(preset.name);
+      sharing.set(colorClass, [...(sharing.get(colorClass) ?? []), preset.name]);
+    }
+    const shared = [...sharing.values()].filter((names) => names.length > 1);
+    // Today the ramp is exactly half the preset count, so this is not vacuous.
+    expect(shared.length).toBeGreaterThan(0);
+    for (const names of shared) {
+      const dashes = new Set(names.map((n) => compareSeries(n).dash ?? "solid"));
+      const fills = new Set(names.map((n) => compareSeries(n).hatched));
+      expect(dashes.size, `${names.join(" and ")} draw the same line`).toBe(names.length);
+      expect(fills.size, `${names.join(" and ")} draw the same fill`).toBe(names.length);
+    }
+  });
+
+  it("draws the hatch in a colour the stylesheet defines", () => {
+    expect(CSS).toMatch(/\.compare-hatch-line\s*\{/);
   });
 
   it("keeps the reader's own ladder apart from every preset", () => {

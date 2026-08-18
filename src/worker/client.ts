@@ -5,16 +5,28 @@
  * cache and the dedupe, and workers are stateless one-job executors that
  * stay warm between dispatches.
  *
- * There is one kind today, the bankroll, since the per-event figures are
- * closed form and never leave the main thread. The pool is still keyed by
- * kind: two kinds must never queue behind each other, and this is where a
- * second one would get its own lane. Within a pool, workers spawn lazily up
- * to `maxWorkersPerKind` — capacity above the first worker costs nothing
- * until two jobs of the same kind actually overlap. The default is 1, which
- * is today's workload exactly: every parameter change supersedes the previous
- * request, so the queue is never deeper than the run being canceled. Raise
- * the cap when a real multi-request workload (a preset sweep, a comparison
- * grid) arrives; the dispatch, tests and cancellation already support it.
+ * Two kinds, and the pool is keyed by them because two kinds must never queue
+ * behind each other: the Compare tab's grid is sixteen bankrolls' worth of
+ * work at its widest, and the Bankroll tab's own run has its own lane and does
+ * not wait behind it. Within a pool, workers spawn lazily up to
+ * `maxWorkersPerKind`, so capacity costs nothing until jobs of the same kind
+ * actually overlap.
+ *
+ * The bankroll kind never overlaps — every parameter change supersedes the
+ * previous request, so its queue is never deeper than the run being canceled,
+ * and it spawns one worker and stops. The grid is the reason the cap is above
+ * one: `simulateCompare` submits **one job per event** rather than one job for
+ * the selection, so a sixteen-event grid is sixteen jobs that a pool of four
+ * lanes chews through four at a time. Raising the cap without that split would
+ * have bought nothing at all, since a single job cannot be run by two workers.
+ *
+ * Splitting per event rather than into `maxWorkers` chunks is about the cache
+ * rather than the parallelism. A chunk boundary moves whenever the selection
+ * changes, so every job would miss; one event per job means adding a
+ * seventeenth to a sixteen-event selection recomputes exactly one of them and
+ * reads the rest out of cache. What the caller sees is unchanged — one handle,
+ * one promise, one cancel — because the split is a dispatch policy and not
+ * part of the contract.
  *
  * A submission returns a handle rather than a promise alone. `cancel()`
  * settles the caller's promise immediately and tells the worker fire-and-
@@ -30,12 +42,18 @@ import { wrap } from "comlink";
 import type { Endpoint, Remote } from "comlink";
 
 import type { BankrollConfig, BankrollResult } from "../lib/bankroll";
+import type { BankrollSummary } from "../lib/bankrollGrid";
 import type { EventConfig } from "../lib/types";
 import { requestKey } from "./keys";
 import { abortError } from "./protocol";
-import type { SimulationApi, SimulationHandle, SimulationRequest } from "./protocol";
+import type {
+  ResultOf,
+  SimulationApi,
+  SimulationHandle,
+  SimulationRequest,
+  SimulationResult,
+} from "./protocol";
 
-type SimulationResult = BankrollResult;
 type Kind = SimulationRequest["kind"];
 
 /** What the pool needs from a worker; a seam the tests fill with ports. */
@@ -75,12 +93,40 @@ type Lane = {
 };
 
 /**
- * Sized per result shape: a worst-case BankrollResult is ~4.3 MB of
- * example-run logs, so four entries bound the cache near 17 MB while
- * covering the switch-away-and-back the cache exists for. Settled successes
- * only; errors and canceled runs are never cached.
+ * Sized per result shape, which is why it is a figure per kind rather than one
+ * number. A worst-case BankrollResult is ~4.3 MB of example-run logs, so four
+ * entries bound that cache near 17 MB while covering the switch-away-and-back
+ * the cache exists for.
+ *
+ * A compare entry is one event's summary — a few hundred bytes, no logs — so
+ * that cache is sized by how many answers are worth keeping rather than by
+ * memory. Sixty-four is four full selections' worth at the widest, which spans
+ * a session of adding, removing and re-adding events without recomputing one
+ * that has already been answered.
+ *
+ * Settled successes only; errors and canceled runs are never cached.
  */
-const CACHE_MAX: Record<Kind, number> = { bankrolls: 4 };
+const CACHE_MAX: Record<Kind, number> = { bankrolls: 4, compare: 64 };
+
+/**
+ * How many workers one kind may run at once.
+ *
+ * Four, and never the whole machine. Only the grid can use more than one — it
+ * is the one workload that is many jobs at once — and past about four the gain
+ * flattens: the events are unequal, so the longest of them bounds the tail
+ * however many lanes are spare.
+ *
+ * One core is left out of the count deliberately. Both simulations run from
+ * any tab, so a grid at full stretch is these lanes plus the bankroll's plus
+ * the main thread, and on a small machine claiming every core makes the page
+ * that dispatched the work compete with it to paint the result. On anything
+ * large the subtraction never binds. `hardwareConcurrency` is missing on
+ * nothing current, but a stated fallback beats `NaN` lanes if it ever is.
+ */
+const DEFAULT_MAX_WORKERS = Math.max(
+  1,
+  Math.min(4, (globalThis.navigator?.hardwareConcurrency ?? 4) - 1),
+);
 
 class KindPool {
   private readonly lanes: Lane[] = [];
@@ -201,11 +247,13 @@ export class SimulationClient {
   private readonly factory: WorkerFactory;
   private readonly maxWorkersPerKind: number;
   private readonly pools = new Map<Kind, KindPool>();
+  /** Live multi-job submissions, by the id of the handle that joined them. */
+  private readonly composites = new Map<string, () => void>();
   private counter = 0;
 
   constructor(factory: WorkerFactory = defaultFactory, opts?: { maxWorkersPerKind?: number }) {
     this.factory = factory;
-    this.maxWorkersPerKind = opts?.maxWorkersPerKind ?? 1;
+    this.maxWorkersPerKind = opts?.maxWorkersPerKind ?? DEFAULT_MAX_WORKERS;
   }
 
   simulateBankrolls(
@@ -217,7 +265,55 @@ export class SimulationClient {
     return this.submit({ kind: "bankrolls", config, bankroll, runs, seed });
   }
 
+  /**
+   * Several events under one balance and one seed.
+   *
+   * One job per event, joined back into one handle — see the note at the top
+   * of this file for why the split is per event and not per lane. The seed is
+   * the same number in every job, which is what keeps the common random
+   * numbers common: each event replays the same stream whether it was computed
+   * beside its neighbours or read out of the cache from an hour ago.
+   *
+   * `Promise.all` preserves order, so the joined result is still positional
+   * against `configs`. An empty selection resolves to an empty grid without
+   * touching a worker, which is the one case the split answers for free.
+   */
+  simulateCompare(
+    configs: EventConfig[],
+    bankroll: BankrollConfig,
+    runs: number,
+    seed: number,
+  ): SimulationHandle<BankrollSummary[]> {
+    const shards = configs.map((config) =>
+      this.submit({ kind: "compare", configs: [config], bankroll, runs, seed }),
+    );
+    const id = `grid-${this.counter++}`;
+    const cancel = () => {
+      this.composites.delete(id);
+      for (const shard of shards) shard.cancel();
+    };
+    this.composites.set(id, cancel);
+    const promise = Promise.all(shards.map((s) => s.promise)).then(
+      (parts) => {
+        this.composites.delete(id);
+        return parts.flat();
+      },
+      (e: unknown) => {
+        // One shard failing makes the grid unanswerable, so the rest are work
+        // nobody will read. Cancel them rather than leaving lanes busy.
+        cancel();
+        throw e;
+      },
+    );
+    return { id, promise, cancel };
+  }
+
   cancel(id: string): void {
+    const composite = this.composites.get(id);
+    if (composite) {
+      composite();
+      return;
+    }
     for (const pool of this.pools.values()) {
       if (pool.cancel(id)) return;
     }
@@ -227,6 +323,7 @@ export class SimulationClient {
   dispose(): void {
     for (const pool of this.pools.values()) pool.dispose();
     this.pools.clear();
+    this.composites.clear();
   }
 
   private pool(kind: Kind): KindPool {
@@ -238,7 +335,9 @@ export class SimulationClient {
     return pool;
   }
 
-  private submit(request: SimulationRequest): SimulationHandle<SimulationResult> {
+  private submit<R extends SimulationRequest>(
+    request: R,
+  ): SimulationHandle<ResultOf[R["kind"]]> {
     const id = `sim-${this.counter++}`;
     // The declared contract is a rejection, never a sync throw — a
     // malformed request fails key computation before any promise exists.
@@ -270,7 +369,18 @@ export class SimulationClient {
       };
       pool.enqueue(job);
     });
-    return { id, promise, cancel: () => this.cancel(id) };
+    /*
+     * The one narrowing in the pool, and it is the tag that makes it true: a
+     * request enters exactly one kind's lane, and the backend's `generatorOf`
+     * switches on the same tag. Below this line everything — the queue, the
+     * cache, the lanes — holds the union, which is what lets one dispatcher
+     * serve both kinds without being generic all the way down.
+     */
+    return {
+      id,
+      promise: promise as Promise<ResultOf[R["kind"]]>,
+      cancel: () => this.cancel(id),
+    };
   }
 }
 

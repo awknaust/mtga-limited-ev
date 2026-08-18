@@ -14,8 +14,9 @@
  * is a broken dispatcher, and is rejected as such rather than queued.
  */
 
-import { simulateBankrollsSteps, type BankrollResult } from "../lib/bankroll";
-import { abortError, type SimulationApi, type SimulationRequest } from "./protocol";
+import { simulateBankrollsSteps } from "../lib/bankroll";
+import { simulateBankrollGridSteps } from "../lib/bankrollGrid";
+import { abortError, type SimulationApi, type SimulationRequest, type SimulationResult } from "./protocol";
 
 /**
  * How long a run may compute between event-loop pings.
@@ -70,7 +71,7 @@ export class SimulationBackend implements SimulationApi {
     this.pingIntervalMs = opts?.pingIntervalMs ?? PING_INTERVAL_MS;
   }
 
-  async run(id: string, request: SimulationRequest): Promise<BankrollResult> {
+  async run(id: string, request: SimulationRequest): Promise<SimulationResult> {
     if (this.running !== null) {
       throw new Error(`backend already running ${this.running}; dispatcher sent ${id}`);
     }
@@ -106,9 +107,24 @@ export class SimulationBackend implements SimulationApi {
   }
 }
 
-// A direct import from the model module, never the src/lib barrel: the
-// barrel re-exports presets, and presets would drag src/data into the worker
-// chunk for nothing.
-function generatorOf(request: SimulationRequest): Generator<number, BankrollResult> {
-  return simulateBankrollsSteps(request.config, request.bankroll, request.runs, request.seed);
+/**
+ * The one place a kind decides anything in the worker.
+ *
+ * Both kinds are the same generator contract — yield a progress count, return
+ * a result — so the drain loop above never learns which it is running, and a
+ * grid is cancelable at the same ~10 ms boundary a single event is.
+ *
+ * Direct imports from the model modules, never the src/lib barrel: the barrel
+ * re-exports presets, and presets would drag src/data into the worker chunk
+ * for nothing.
+ */
+function generatorOf(request: SimulationRequest): Generator<number, SimulationResult> {
+  return request.kind === "compare"
+    ? simulateBankrollGridSteps(
+        request.configs,
+        request.bankroll,
+        request.runs,
+        request.seed,
+      )
+    : simulateBankrollsSteps(request.config, request.bankroll, request.runs, request.seed);
 }

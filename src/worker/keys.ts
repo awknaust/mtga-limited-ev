@@ -21,11 +21,17 @@
  * list has an order the model does not read: two play boxes swapped in the
  * editor pay exactly what they paid before. They are sorted here so that
  * rearranging them is free, and an absent list and an empty one agree.
+ *
+ * A grid's `configs` are the opposite case and are deliberately left alone.
+ * Its result is positional — `summaries[i]` answers for `configs[i]` — so two
+ * orders are two different answers and must be two different keys. Sorting
+ * them for a cache hit would hand back the previous order's rows under the new
+ * order's labels, which is the one failure a comparison cannot survive.
  */
 
 import stringify from "fast-json-stable-stringify";
 
-import type { PayoutBox, PayoutTier } from "../lib/types";
+import type { EventConfig, PayoutBox, PayoutTier } from "../lib/types";
 import type { SimulationRequest } from "./protocol";
 
 /** Sortable identity of a box: its kind, then the set it names. */
@@ -45,10 +51,19 @@ const normalizeTier = (t: PayoutTier): NormalTier => ({
   boxes: (t.boxes ?? []).map(boxId).sort(),
 });
 
+/** A config with every tier normalized, ready to serialize. */
+type NormalConfig = Omit<EventConfig, "payouts"> & { payouts: NormalTier[] };
+
+const normalizeConfig = (c: EventConfig): NormalConfig => ({
+  ...c,
+  payouts: c.payouts.map(normalizeTier),
+});
+
 /** The whole request as one key; `kind` keeps request shapes apart. */
 export function requestKey(req: SimulationRequest): string {
-  return stringify({
-    ...req,
-    config: { ...req.config, payouts: req.config.payouts.map(normalizeTier) },
-  });
+  return stringify(
+    req.kind === "compare"
+      ? { ...req, configs: req.configs.map(normalizeConfig) }
+      : { ...req, config: normalizeConfig(req.config) },
+  );
 }

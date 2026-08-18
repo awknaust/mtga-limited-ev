@@ -1,13 +1,22 @@
+import { useId } from "react";
 import { scaleBand, scaleLinear } from "d3";
 
-import { breakEvenWinRate, expectedNetAt, type EventConfig } from "../lib";
+import { expectedNetAt } from "../lib";
 import { pct } from "../format";
+import { CompareHatchDefs, hatchFill } from "./CompareHatch";
+import { rowLabelLines, type CompareRow } from "./compareEvents";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
-// Room above the bars for the win-rate label, which cannot go below: the tick
-// labels are already there.
-const MARGIN = { top: 22, right: 52, bottom: 42, left: 168 };
+/*
+ * Room above the bars for the win-rate label, which cannot go below: the tick
+ * labels are already there. The left margin is sized for the widest *line* a
+ * name wraps to rather than for the widest name — `rowLabelLines` splits them
+ * where the longer half comes out shortest — so it is a budget rather than a
+ * measurement of `Traditional Constructed Event`, and the plot keeps the
+ * difference.
+ */
+const MARGIN = { top: 22, right: 52, bottom: 42, left: 112 };
 const ROW = 26;
 
 /**
@@ -25,13 +34,19 @@ const ROW = 26;
  * signature is a rate and widening it to carry a reason would be a change to
  * the model for a caption's sake. They are labelled rather than dropped — a
  * missing row reads as an event that was never selected.
+ *
+ * Rows arrive ordered and are drawn in the order given. The sort used to live
+ * here, and moved out when a second chart on the tab grew rows of its own: two
+ * charts stacked with the same events down the left must agree about which is
+ * on top, and the only way two orderings stay the same is by being one.
  */
 export function BreakEvenChart({
-  configs,
+  rows: given,
   winRate,
   rateBand,
 }: {
-  configs: readonly { name: string; config: EventConfig }[];
+  /** Ordered by `Compare`; see `CompareRow`. */
+  rows: readonly CompareRow[];
   /** The reader's own rate, drawn across the bars as the line to clear. */
   winRate: number;
   /**
@@ -42,20 +57,13 @@ export function BreakEvenChart({
    */
   rateBand: [lo: number, hi: number] | null;
 }) {
-  const rows = configs
-    .map(({ name, config }) => {
-      const rate = breakEvenWinRate(config);
-      return {
-        name,
-        rate,
-        alwaysAhead: rate === null && expectedNetAt(config, 0) >= 0,
-        ...compareSeries(name),
-      };
-    })
-    // Ascending, so the easiest bar to clear is at the top. An event with no
-    // break-even sorts to the end whichever kind of null it is; the label says
-    // which.
-    .sort((a, b) => (a.rate ?? Infinity) - (b.rate ?? Infinity));
+  const hatchId = `${useId()}-hatch`;
+  const rows = given.map(({ name, config, breakEven: rate }) => ({
+    name,
+    rate,
+    alwaysAhead: rate === null && expectedNetAt(config, 0) >= 0,
+    ...compareSeries(name),
+  }));
 
   const inner = WIDTH - MARGIN.left - MARGIN.right;
   const innerH = rows.length * ROW;
@@ -74,6 +82,7 @@ export function BreakEvenChart({
       role="img"
       aria-label="Match win rate each event breaks even at"
     >
+      <CompareHatchDefs id={hatchId} />
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
         {/* Behind the bars, so a bar ending inside it stays readable. */}
         {rateBand && (
@@ -96,15 +105,7 @@ export function BreakEvenChart({
 
         {rows.map((row) => (
           <g key={row.name} transform={`translate(0,${y(row.name) ?? 0})`}>
-            <text
-              x={-8}
-              y={y.bandwidth() / 2}
-              dy="0.32em"
-              textAnchor="end"
-              className="chart-tick"
-            >
-              {row.name}
-            </text>
+            <RowLabel name={row.name} mid={y.bandwidth() / 2} />
             {row.rate === null ? (
               <text x={4} y={y.bandwidth() / 2} dy="0.32em" className="chart-tick">
                 {row.alwaysAhead ? "ahead at any rate" : "never breaks even"}
@@ -122,6 +123,17 @@ export function BreakEvenChart({
                   rx={3}
                   className={`compare-bar ${row.colorClass}`}
                 />
+                {/* Over the fill, same geometry: the bar keeps its colour and
+                    the slashes are cut out of it. */}
+                {row.hatched && (
+                  <rect
+                    x={0}
+                    width={Math.max(0, x(row.rate))}
+                    height={y.bandwidth()}
+                    rx={3}
+                    fill={hatchFill(hatchId, true)}
+                  />
+                )}
                 <text
                   x={x(row.rate) + 6}
                   y={y.bandwidth() / 2}
@@ -152,5 +164,34 @@ export function BreakEvenChart({
         </text>
       </g>
     </svg>
+  );
+}
+
+/**
+ * A row's event name, on one line or two.
+ *
+ * SVG does not wrap text, so the lines are `tspan`s placed by hand: both are
+ * pulled back to the same `x` because a `tspan` otherwise continues from where
+ * the last one ended, and the pair is shifted up half a line so that two lines
+ * straddle the row's middle exactly as one line sits on it.
+ *
+ * The `<title>` is the whole name whatever the lines do — the tooltip a pointer
+ * gets, and the only place a clipped name survives.
+ */
+function RowLabel({ name, mid }: { name: string; mid: number }) {
+  const lines = rowLabelLines(name);
+  return (
+    <text x={-8} y={mid} dy="0.32em" textAnchor="end" className="chart-tick">
+      <title>{name}</title>
+      {lines.length === 1 ? (
+        lines[0]
+      ) : (
+        lines.map((line, i) => (
+          <tspan key={line} x={-8} dy={i === 0 ? "-0.55em" : "1.1em"}>
+            {line}
+          </tspan>
+        ))
+      )}
+    </text>
   );
 }
