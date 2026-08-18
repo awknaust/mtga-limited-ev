@@ -3,8 +3,8 @@ import { scaleBand, scaleLinear } from "d3";
 
 import { expectedNetAt } from "../lib";
 import { pct } from "../format";
-import type { CompareRow } from "./Compare";
 import { CompareHatchDefs, hatchFill } from "./CompareHatch";
+import type { CompareRow } from "./compareEvents";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;

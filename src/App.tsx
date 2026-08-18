@@ -14,6 +14,7 @@ import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
 import { BoxPrices } from "./components/BoxPrices";
 import { Compare } from "./components/Compare";
+import { pickEvents } from "./components/compareEvents";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventFields } from "./components/EventFields";
@@ -85,7 +86,7 @@ import {
   type ShareState,
   type Tab,
 } from "./share";
-import { useSimulateBankrolls } from "./hooks/useSimulation";
+import { useSimulateBankrolls, useSimulateCompare } from "./hooks/useSimulation";
 
 /** An event the current balance cannot enter, and what to do about it. */
 type TopUp = {
@@ -620,6 +621,40 @@ export default function App({
     hold: advancedOpen || editorOpen,
     flushOn: presetName,
   });
+  /*
+   * The Compare tab's bankroll grid, run from here rather than from inside the
+   * tab, and held while the reader is looking at another one.
+   *
+   * Two things follow, and the second is why it is here at all. Held, it costs
+   * a reader who never opens that tab nothing — it is the one simulation
+   * nothing else on the page reads. And kept out of the tab's own component, a
+   * settled grid survives the unmount that switching tabs causes, so coming
+   * back to Compare shows the last answer dimmed while the new one computes
+   * rather than a blank panel for as long as the run takes.
+   *
+   * `pickEvents` runs on every render, tab or no tab, which is a spread per
+   * selected event and buys the memo identity the debounce compares on.
+   */
+  const comparePicked = useMemo(
+    () => pickEvents(compareSelection, config),
+    [compareSelection, config],
+  );
+  const compareParams = useMemo(
+    () => ({ events: comparePicked, ...bankrollKnobs }),
+    [comparePicked, bankrollKnobs],
+  );
+  const compareHeld = tab !== "compare" || advancedOpen || editorOpen;
+  const compareGrid = useSimulateCompare(compareParams, {
+    hold: compareHeld,
+    flushOn: presetName,
+  });
+  /*
+   * Whether any worker is actually working, which is what the strip's spinner
+   * says. Not simply "some result is stale": the grid is stale the whole time
+   * the reader is on another tab, and nothing is running for it — a spinner
+   * turning for a job nobody submitted is a spinner that means nothing.
+   */
+  const simulating = bankrollPending || (compareGrid.pending && !compareHeld);
   /*
    * What one entry is worth, exactly. A sum over the outcome distribution
    * rather than a simulation, so it needs no worker, no debounce, no
@@ -1462,11 +1497,14 @@ export default function App({
                  * sidebar two inches away.
                  */
                 trailing={
-                  bankrollPending ? (
-                    <span
-                      className="spinner-border spinner-border-sm text-secondary"
-                      aria-hidden="true"
-                    />
+                  simulating ? (
+                    <span className="sim-running" role="status">
+                      <span
+                        className="spinner-border spinner-border-sm"
+                        aria-hidden="true"
+                      />
+                      Simulating…
+                    </span>
                   ) : undefined
                 }
               />
@@ -1491,8 +1529,9 @@ export default function App({
                   presetName={presetName}
                   selection={compareSelection}
                   onSelectionChange={setCompareSelection}
+                  picked={comparePicked}
+                  grid={compareGrid}
                   knobs={bankrollKnobs}
-                  hold={advancedOpen || editorOpen}
                   m={m}
                 />
               ) : tab === "bankroll" ? (

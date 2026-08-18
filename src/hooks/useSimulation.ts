@@ -73,12 +73,37 @@ export type BankrollKnobs = {
 
 export type BankrollSimParams = BankrollKnobs & { config: EventConfig };
 
-/** The same, for several events at once; `configs` order is the result's. */
-export type CompareSimParams = BankrollKnobs & { configs: EventConfig[] };
+/**
+ * The same, for several events at once.
+ *
+ * Carries the names as well as the configs, and `submitCompare` drops them on
+ * the way to the worker — the model has never known event names and this does
+ * not change that. What they are for is the way back: paired with
+ * `resultParams` below, they let a caller label a settled grid with the
+ * selection it was actually computed for, rather than with whatever is
+ * selected by the time it renders. That is what lets a stale grid stay on
+ * screen while a fresh one computes, instead of blanking.
+ *
+ * Order is the result's order.
+ */
+export type CompareSimParams = BankrollKnobs & {
+  events: readonly { name: string; config: EventConfig }[];
+};
 
-export type SimulationState<T> = {
+export type SimulationState<T, P> = {
   /** The last settled result; null only before the first ever settles. */
   result: T | null;
+  /**
+   * The params `result` was computed for, which are not the live ones whenever
+   * `pending` is true.
+   *
+   * A stale result is still a true answer to the question it was asked, and a
+   * caller that renders one has to know which question that was. Without this
+   * the only safe thing to do with a superseded result is drop it, which is a
+   * blank panel for as long as the recompute takes — and at a high trial count
+   * that is seconds.
+   */
+  resultParams: P | null;
   /** True from a params change until the run for those params settles. */
   pending: boolean;
   /** The last failure, kept beside the stale result; cleared by a success. */
@@ -96,13 +121,18 @@ const submitBankrolls = (p: BankrollSimParams): SimulationHandle<BankrollResult>
   simulationClient.simulateBankrolls(p.config, bankrollOf(p), p.runs, p.seed);
 
 const submitCompare = (p: CompareSimParams): SimulationHandle<BankrollSummary[]> =>
-  simulationClient.simulateCompare(p.configs, bankrollOf(p), p.runs, p.seed);
+  simulationClient.simulateCompare(
+    p.events.map((e) => e.config),
+    bankrollOf(p),
+    p.runs,
+    p.seed,
+  );
 
 function useSimulation<P, T>(
   params: P,
   submit: (p: P) => SimulationHandle<T>,
   timing: Timing,
-): SimulationState<T> {
+): SimulationState<T, P> {
   const submitted = useDebouncedValue(params, SIM_DEBOUNCE_MS, timing);
   const [settled, setSettled] = useState<{ result: T | null; error: unknown; params: P | null }>({
     result: null,
@@ -124,6 +154,7 @@ function useSimulation<P, T>(
   }, [submitted, submit]);
   return {
     result: settled.result,
+    resultParams: settled.params,
     /*
      * Against the live params, not the submitted ones. The debounce hands
      * back the very object it was given, so once the run for the current
@@ -144,7 +175,7 @@ function useSimulation<P, T>(
 export function useSimulateBankrolls(
   params: BankrollSimParams,
   timing: Timing,
-): SimulationState<BankrollResult> {
+): SimulationState<BankrollResult, BankrollSimParams> {
   return useSimulation(params, submitBankrolls, timing);
 }
 
@@ -160,11 +191,16 @@ export function useSimulateBankrolls(
  * Special-casing it here would be a second path through the cache, the cancel
  * and the pending flag for a job that costs nothing to run.
  *
+ * Held while the reader is on another tab — see the call site. The grid is the
+ * one simulation nothing off its own tab reads, so running it for a reader who
+ * never opens the Compare tab is worker time spent on nothing; holding rather
+ * than unmounting is what keeps the last answer on screen when they come back.
+ *
  * @param timing As `useSimulateBankrolls`.
  */
 export function useSimulateCompare(
   params: CompareSimParams,
   timing: Timing,
-): SimulationState<BankrollSummary[]> {
+): SimulationState<BankrollSummary[], CompareSimParams> {
   return useSimulation(params, submitCompare, timing);
 }

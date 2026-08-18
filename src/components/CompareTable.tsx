@@ -1,8 +1,9 @@
 import { useState } from "react";
 
-import { breakEvenWinRate, eventExpectation, type EventConfig } from "../lib";
+import { eventExpectation } from "../lib";
 import { pct, type Money } from "../format";
 import { InfoTip } from "./InfoTip";
+import type { CompareRow } from "./compareEvents";
 import { compareSeries } from "./compareSeries";
 import { STAT_HELP, type StatHelp } from "./statHelp";
 
@@ -91,15 +92,20 @@ const COLUMNS: Column[] = [
 ];
 
 export function CompareTable({
-  configs,
+  rows: given,
   m,
 }: {
-  configs: readonly { name: string; config: EventConfig }[];
+  /**
+   * In selection order, carrying the break-even rate `Compare` computed for the
+   * chart above — the same figure, not a second bisection of the same
+   * expectation. It is the most expensive thing this tab computes.
+   */
+  rows: readonly CompareRow[];
   m: Money;
 }) {
   const [sort, setSort] = useState<{ key: string; desc: boolean } | null>(null);
 
-  const rows: Row[] = configs.map(({ name, config }) => {
+  const rows: Row[] = given.map(({ name, config, breakEven }) => {
     const e = eventExpectation(config);
     return {
       name,
@@ -108,7 +114,7 @@ export function CompareTable({
       // `eventExpectation` reports 0 for a zero entry, which is a sentinel and
       // not a rate; the table says so rather than printing it.
       roi: e.entryGems > 0 ? e.roi : null,
-      breakEven: breakEvenWinRate(config),
+      breakEven,
       rounds: e.meanRounds,
     };
   });

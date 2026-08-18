@@ -1,16 +1,17 @@
 import { useId, useMemo, useState } from "react";
 
 import {
-  CUSTOM_PRESET,
-  PRESETS,
-  breakEvenWinRate,
-  configFromPreset,
   startingValue,
   winRateInterval,
   winRatePosterior,
+  type BankrollSummary,
   type EventConfig,
 } from "../lib";
-import { useSimulateCompare, type BankrollKnobs } from "../hooks/useSimulation";
+import type {
+  BankrollKnobs,
+  CompareSimParams,
+  SimulationState,
+} from "../hooks/useSimulation";
 import type { Money } from "../format";
 import { BreakEvenChart } from "./BreakEvenChart";
 import {
@@ -21,24 +22,11 @@ import {
 } from "./CompareBankroll";
 import { CompareCurveChart, CURVE_MODES, type CurveMode } from "./CompareCurveChart";
 import { CompareSelector } from "./CompareSelector";
+import { rankByBreakEven, withBreakEven, type CompareEvent } from "./compareEvents";
 import { CompareTable } from "./CompareTable";
 import { SectionHeading } from "./SectionHeading";
 import { SimPending } from "./SimPending";
 import { Tabs, TabPanel } from "./Tabs";
-
-/**
- * One event as the two ranked charts draw it: the config they price, and the
- * break-even rate they are both ordered by.
- *
- * The rate is computed here rather than inside the chart that plots it because
- * two charts need the ordering and only one of them needs the figure — and a
- * bisection run twice per event per render is a bisection run once too often.
- */
-export type CompareRow = {
-  name: string;
-  config: EventConfig;
-  breakEven: number | null;
-};
 
 /**
  * Several events under one set of the reader's own rates.
@@ -60,8 +48,9 @@ export function Compare({
   presetName,
   selection,
   onSelectionChange,
+  picked,
+  grid,
   knobs,
-  hold,
   m,
 }: {
   /** The sidebar's config: the rates every event here is priced with. */
@@ -69,14 +58,16 @@ export function Compare({
   presetName: string;
   selection: string[];
   onSelectionChange: (next: string[]) => void;
+  /** `pickEvents(selection, config)`, computed by `App` so the grid can be. */
+  picked: readonly CompareEvent[];
+  /** The bankroll grid, run and held by `App` across tab switches. */
+  grid: SimulationState<BankrollSummary[], CompareSimParams>;
   /**
    * The Bankroll tab's own controls, driving the grid below unchanged. This
    * tab adds none of its own and puts nothing in the link: a starting balance
    * is a fact about the reader, not about which events they are comparing.
    */
   knobs: BankrollKnobs;
-  /** A dialog is open and holding its edits; see `Timing`. */
-  hold: boolean;
   m: Money;
 }) {
   const uid = useId();
@@ -90,60 +81,16 @@ export function Compare({
   const [rollMode, setRollMode] = useState<BankrollMode>("events");
 
   /*
-   * "Custom" names the sidebar's own config, which is already what `config` is
-   * — so it needs no preset applied, and there is no preset to apply. Every
-   * other entry takes its event fields from the named preset and keeps the
-   * rates it was handed.
+   * The order the two bar charts share; `rankByBreakEven` says why it is one
+   * order rather than each chart's own.
    *
-   * Memoised for the grid's sake and only that: everything else here is
-   * recomputed per render anyway, but the simulation's params debounce on
-   * object identity, and a fresh array every render would restart the wait on
-   * every keystroke and never submit.
+   * The curve above and the table below are deliberately not in it. The curve
+   * has no rows to order, and the table opens in selection order and then ranks
+   * by whichever column the reader decides settles it, which is that table's
+   * whole point.
    */
-  const picked = useMemo(
-    () =>
-      selection
-        .map((name) => {
-          if (name === CUSTOM_PRESET) return { name: "Custom", config };
-          const preset = PRESETS.find((p) => p.name === name);
-          return preset ? { name, config: configFromPreset(preset, config) } : null;
-        })
-        .filter((c): c is { name: string; config: EventConfig } => c !== null),
-    [selection, config],
-  );
-
-  /*
-   * The order the two ranked charts share, easiest bar to clear at the top. An
-   * event with no break-even sorts to the end whichever kind of null it is; the
-   * chart's own label says which.
-   *
-   * Both bar charts stack the same names down the same left margin, so a reader
-   * comparing a row's break-even against how far their balance went in it is
-   * reading across two charts — and would read across the wrong row if the two
-   * disagreed. The sort is stable, so events the ranking cannot separate keep
-   * the order the chips show them in.
-   *
-   * The curve above and the table below are deliberately not in this order.
-   * The curve has no rows to order, and the table opens in selection order and
-   * then ranks by whichever column the reader decides settles it, which is that
-   * table's whole point.
-   */
-  const ranked: CompareRow[] = useMemo(
-    () =>
-      picked
-        .map((p) => ({ ...p, breakEven: breakEvenWinRate(p.config) }))
-        .sort((a, b) => (a.breakEven ?? Infinity) - (b.breakEven ?? Infinity)),
-    [picked],
-  );
-
-  const compareParams = useMemo(
-    () => ({ configs: picked.map((p) => p.config), ...knobs }),
-    [picked, knobs],
-  );
-  const { result: grid, pending: gridPending, error: gridError } = useSimulateCompare(
-    compareParams,
-    { hold, flushOn: presetName },
-  );
+  const rows = useMemo(() => withBreakEven(picked), [picked]);
+  const ranked = useMemo(() => rankByBreakEven(rows), [rows]);
 
   /*
    * The reader's own win rate as an interval, shared by every chart that plots
@@ -162,24 +109,28 @@ export function Compare({
   );
 
   /*
-   * A settled grid is only this selection's grid when it has a row per event.
-   * Between a selection change and the run for it landing, the previous run's
-   * rows are one event short or one long, and rendering them zipped against
-   * the new names would label an event with another's numbers — which is worse
-   * than a moment of shimmer. A width match is exact rather than heuristic:
-   * the rows are positional, so same length means same request.
+   * The settled grid, labelled with the selection it was *computed for* rather
+   * than the one showing now.
    *
-   * Zipped against `picked`, which is the order the request went out in, and
-   * then drawn in `ranked` order. The request keeps the canonical order on
-   * purpose: it is the cache key, and a key that moved with a display decision
-   * would recompute a grid to redraw it.
+   * Those differ for as long as a recompute takes, and at a high trial count
+   * that is seconds. Labelling by the current selection would put one event's
+   * numbers under another's name, so the earlier version dropped the result
+   * instead and rendered a blank — which is how adding a sixteenth event, or
+   * changing the win rate on another tab, wiped the chart rather than dimming
+   * it. Both are answered the same way: the rows are the old answer, correctly
+   * labelled, and `SimPending` says they are stale.
+   *
+   * Drawn in `ranked` order where a row is still selected, and after it where
+   * one is not — an event on its way out sinks to the bottom for the moment it
+   * takes to go.
    */
   const gridRows = (() => {
-    if (grid === null || grid.length !== picked.length) return null;
+    const events = grid.resultParams?.events;
+    if (grid.result === null || events === undefined) return null;
     const rank = new Map(ranked.map((r, i) => [r.name, i]));
-    return picked
-      .map((p, i) => ({ name: p.name, summary: grid[i] }))
-      .sort((a, b) => (rank.get(a.name) ?? 0) - (rank.get(b.name) ?? 0));
+    return events
+      .map((e, i) => ({ name: e.name, summary: grid.result![i] }))
+      .sort((a, b) => (rank.get(a.name) ?? Infinity) - (rank.get(b.name) ?? Infinity));
   })();
 
   return (
@@ -229,9 +180,9 @@ export function Compare({
             subtitle="Each event played out from the same starting balance until it runs dry. The box holds the middle half of runs and the whiskers the middle 90%; the line is where one typically lands."
             className="mt-4"
           />
-          {gridError != null && (
+          {grid.error != null && (
             <div className="alert alert-warning" role="alert">
-              {grid === null
+              {grid.result === null
                 ? "The bankroll grid failed to run. Adjust any input to retry."
                 : "The bankroll grid failed — showing previous results. Adjust any input to retry."}
             </div>
@@ -266,7 +217,7 @@ export function Compare({
                   />
                 </div>
               ) : (
-                <SimPending pending={gridPending}>
+                <SimPending pending={grid.pending}>
                   <CompareBankroll
                     rows={gridRows}
                     mode={rollMode}
@@ -284,7 +235,7 @@ export function Compare({
             subtitle="Sort by whichever column you think decides it."
             className="mt-4"
           />
-          <CompareTable configs={picked} m={m} />
+          <CompareTable rows={rows} m={m} />
         </>
       )}
     </>

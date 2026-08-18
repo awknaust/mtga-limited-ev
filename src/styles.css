@@ -1047,6 +1047,21 @@ body {
 }
 
 /*
+ * "Simulating…" in the results strip, the one thing on the page that has to be
+ * visible from a tab other than the one whose figures are dimming. It carries
+ * no delay, unlike the dim it accompanies: a debounced keystroke has to look
+ * answered at once, and the words are what say what the spinner is for.
+ */
+.sim-running {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--bs-secondary-color);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/*
  * Loading states for the worker-run bankroll simulation.
  *
  * Two shapes share one sweep animation. `.shimmer` blocks are the first-load
