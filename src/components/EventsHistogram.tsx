@@ -79,6 +79,7 @@ export function EventsHistogram({
             y={y(b.count / total)}
             width={Math.max(1, x(size) - x(0) - 1)}
             height={innerH - y(b.count / total)}
+            rx={3}
             className="chart-bar"
           />
         ))}

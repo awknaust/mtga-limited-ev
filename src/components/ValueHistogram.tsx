@@ -65,6 +65,7 @@ export function ValueHistogram({
             y={y(b.count / total)}
             width={Math.max(1, x(b.to) - x(b.from) - 1)}
             height={innerH - y(b.count / total)}
+            rx={3}
             className="chart-bar"
           />
         ))}
