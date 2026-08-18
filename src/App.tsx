@@ -308,6 +308,7 @@ export default function App({
     startingPlayInPoints,
     maxEvents,
     tab,
+    masterySlug,
     unit,
     gemsPerUsd,
   ]);
