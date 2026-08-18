@@ -10,7 +10,7 @@ values     pack=22 mythicPack=37 cubePack=60 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1000-0-cube.2_2200-0-cube.7
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -26,7 +26,7 @@ values     pack=22 mythicPack=45 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1400-3_4200-10-mythic.4
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -42,7 +42,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=0 co
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -58,7 +58,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -74,7 +74,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=20000 gold=15000 points=0 maxEvents=200
+bankroll   gems=20000 gold=15000 points=20 maxEvents=200
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -90,7 +90,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -106,7 +106,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=2000
+bankroll   gems=3400 gold=5000 points=20 maxEvents=2000
 sim        runs=999999 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -122,7 +122,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1354.8 gems (968.3 gold/event)
 payouts    0-0_100-1_200-2_400-3_800-4_1600-5
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -138,7 +138,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_0-0-play.msh_0-0-play.latest-collector.spm
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -154,7 +154,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=4830 playBox=2
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1372.2 gems (851.9 gold/event)
 payouts    0-0_0-0_0-0_6000-0-token.1
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -170,7 +170,7 @@ values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collB
 gold       other=0/day over 1 events, goldPer10k=1500
 charges    1426.7 gems (488.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -186,7 +186,7 @@ values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collB
 gold       other=0/day over 1 events, goldPer10k=1500
 charges    676.7 gems (488.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -202,7 +202,7 @@ values     pack=132 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=298
 gold       other=0/day over 1 events, goldPer10k=1500
 charges    1426.7 gems (488.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=event unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -218,7 +218,7 @@ values     pack=132 mythicPack=37 cubePack=51 playIn=250 qualToken=0 playBox=600
 gold       other=900/day over 2 events, goldPer10k=2000
 charges    1131.2 gems (750.0 gold/event)
 payouts    10-1_20-1_300-2-1_4000-3-play_5000-4-collector-collector_12000-6-4-collector-collector-collector
-bankroll   gems=12000 gold=5000 points=0 maxEvents=50
+bankroll   gems=12000 gold=5000 points=20 maxEvents=50
 sim        runs=10000 seed=77
 display    tab=event unit=usd gemsPerUsd=350
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -234,7 +234,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=about unit=usd gemsPerUsd=350
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -250,7 +250,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1366.9 gems (887.2 gold/event)
 payouts    0-0_0-0_500-3-mythic.4-cube.5
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -266,7 +266,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=mastery unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -282,7 +282,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=mastery unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -298,7 +298,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1327.5 gems (1150.0 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -314,7 +314,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    586.7 gems (1088.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -330,7 +330,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    3804.3 gems (978.5 gold/event)
 payouts    500-0_1000-0_1500-0_3000-0_4500-0_6000-0_6000-0-token.1
-bankroll   gems=3000 gold=0 points=60 maxEvents=20
+bankroll   gems=3400 gold=5000 points=60 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -346,7 +346,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    50-1_100-1_250-2_2200-7
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -362,7 +362,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1361.1 gems (926.3 gold/event)
 payouts    0-0_0-0_1400-3_4200-14
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -378,7 +378,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-6-2
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -394,7 +394,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=0
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -410,7 +410,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_14400-32_0-0-collector.latest
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -426,7 +426,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -442,7 +442,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    8000.0 gems (984.9 gold/event)
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -458,7 +458,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    211.7 gems (1088.8 gold/event)
 payouts    25-0_50-0_75-1_200-1_300-1_400-2_450-2_500-3-1
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -474,7 +474,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    2836.7 gems (1088.8 gold/event)
 payouts    0-0_0-0_0-0_1400-3_2800-6_3200-8_4200-10-mythic.4_7200-12-mythic.10
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -490,7 +490,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    757.2 gems (951.9 gold/event)
 payouts    50-1_150-1_800-1_1000-2_1300-3
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -506,7 +506,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-0-cube.1_100-0-cube.1_250-0-cube.2_1000-0-cube.2_1400-0-cube.3_1600-0-cube.5_1800-0-cube.6_2200-0-cube.7
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -522,7 +522,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1336.7 gems (1088.8 gold/event)
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -538,7 +538,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    3804.3 gems (978.5 gold/event)
 payouts    500-0_1000-0_1500-0_3000-0_4500-0_6000-0_6000-0-token.1
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -554,7 +554,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    3827.8 gems (861.0 gold/event)
 payouts    500-0_2000-0_4500-0_6000-0_6000-0-token.1
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -570,7 +570,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    586.7 gems (1088.8 gold/event)
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -586,7 +586,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    2000.0 gems (1088.8 gold/event)
 payouts    200-3_400-3_600-3_1200-3_1400-3_1600-3_2000-3_2200-3
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -602,7 +602,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    596.3 gems (1025.0 gold/event)
 payouts    50-1_100-1_150-2_600-2_800-2_1000-3-4
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -618,7 +618,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1362.8 gems (915.0 gold/event)
 payouts    0-0-cube.1_250-0-cube.1_1000-0-cube.3_2500-0-cube.5
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -634,7 +634,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    1362.8 gems (915.0 gold/event)
 payouts    0-1_250-1_1000-3_2500-6-2
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -650,7 +650,7 @@ values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=2986
 gold       other=600/day over 1 events, goldPer10k=1500
 charges    2000.0 gems (951.9 gold/event)
 payouts    200-1_500-2_1200-3_1800-4_2200-5
-bankroll   gems=3000 gold=0 points=0 maxEvents=20
+bankroll   gems=3400 gold=5000 points=20 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"

@@ -86,17 +86,19 @@ export type ShareState = {
  * with this module would be silently written into every link.
  */
 /**
- * Starting gems, counted in entries to the event the app opens on.
+ * The balance the top-up prompt offers, counted in entries to the event being
+ * switched to.
  *
  * Two rather than a round number of gems, because what decides whether the
  * Bankroll tab says anything is how many times you can play, not the balance
  * itself. One entry busts at the first bad event and the histogram collapses
  * to a single bar; two is the smallest balance that can survive one.
  *
- * The coupling runs the other way too, and is the cost of deriving it:
- * repricing the opening preset now moves this figure, and with it every saved
- * link that did not spell out `startGems`. `share.compat.test.ts` is what makes
- * that audible.
+ * It priced the opening balance too until that became a wallet rather than a
+ * multiple of one entry — see `defaultShareState`. What it offers now is still
+ * derived from the event, which is the point: the prompt fires because the
+ * balance in hand does not cover *that* event, so the figure it suggests has
+ * to be in that event's own units.
  */
 export const STARTING_ENTRIES = 2;
 
@@ -173,19 +175,32 @@ export function normalizeCompare(names: readonly string[]): string[] {
 }
 
 export function defaultShareState(): ShareState {
-  // The event the app opens on, which the starting balance is priced against.
+  // The event the app opens on.
   const opening = PRESETS[0];
   return {
     presetName: opening.name,
     config: defaultConfig(),
     bankrollRuns: 10_000,
     seed: 1,
-    startingGems: STARTING_ENTRIES * opening.entryCostGems,
-    startingGold: 0,
-    // Zero, like the gold: the app opens on a draft, which has no use for
-    // points, and a balance nothing spends would be noise in the tile that
-    // prices the starting bankroll.
-    startingPlayInPoints: 0,
+    /*
+     * A plausible wallet rather than a multiple of one entry: gems enough for
+     * two Premier Drafts and change, gold enough for one Quick Draft but not
+     * the 10,000 a Premier costs, and exactly the twenty points a Play-In
+     * takes. Chosen figures rather than derived ones, and what they have to be
+     * is a balance someone could be holding — the Bankroll tab asks what
+     * happens to a real one, and a balance that divides evenly into entries
+     * reads as a worked example instead.
+     *
+     * The gold and the points are non-zero because they are inputs someone
+     * has to be shown to know they exist. Premier Draft spends neither — its
+     * gold price is 10,000, above the 5,000 here — so both sit in the
+     * starting-bankroll tile at the rates in Advanced settings until the
+     * reader switches to an event that takes them, which spends both ahead of
+     * gems (see `bankroll.ts`).
+     */
+    startingGems: 3400,
+    startingGold: 5000,
+    startingPlayInPoints: 20,
     maxEvents: 20,
     tab: "bankroll",
     masterySlug: CURRENT_MASTERY_TRACK.slug,

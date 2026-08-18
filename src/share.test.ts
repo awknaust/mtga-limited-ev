@@ -330,7 +330,7 @@ describe("resetting advanced settings", () => {
       bankrollRuns: 2_500,
       seed: 7,
       startingGems: 12_000,
-      startingGold: 5_000,
+      startingGold: 7_500,
       startingPlayInPoints: 40,
       maxEvents: 50,
       tab: "event",
