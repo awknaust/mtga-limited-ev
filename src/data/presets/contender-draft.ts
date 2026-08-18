@@ -31,6 +31,7 @@ import type { EventPreset } from "../../lib/types";
  */
 export const CONTENDER_DRAFT = {
   name: "Contender Draft",
+  group: "draft",
   entryCostGems: 3000,
   entryCostGold: 20000,
   draftPacks: 3,

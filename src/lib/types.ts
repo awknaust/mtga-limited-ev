@@ -134,8 +134,38 @@ export type RoundsStructure = {
 export type EventStructure = EliminationStructure | RoundsStructure;
 
 /** A named event definition, as stored in src/data/presets. */
+/**
+ * The kinds of event there are, in the order they are offered.
+ *
+ * A fact about the event rather than about any screen: Sealed is a sealed
+ * event whether or not anything is grouping it. What each key is *called* is
+ * presentation and lives with the component that shows it — this is the key
+ * and the order, which is what has to be agreed on.
+ *
+ * The order is the one `PRESETS` already sits in, and the reasoning for it is
+ * in the comments there.
+ */
+export const EVENT_GROUPS = [
+  "draft",
+  "sealed",
+  "direct",
+  "constructed",
+  "play-in",
+] as const;
+
+export type EventGroup = (typeof EVENT_GROUPS)[number];
+
 export type EventPreset = {
   name: string;
+  /**
+   * Which kind of event this is.
+   *
+   * Required, and that is the point: a new preset that names no group is a
+   * compile error in the file being written, rather than a list somewhere else
+   * that quietly stopped covering everything. It is why this is here and not
+   * in the tab that groups by it.
+   */
+  group: EventGroup;
   entryCostGems: number;
   /** Gold price, where the event takes gold. Absent means gems only. */
   entryCostGold?: number;

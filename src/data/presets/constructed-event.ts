@@ -35,6 +35,7 @@ import type { EventPreset } from "../../lib/types";
  */
 export const CONSTRUCTED_EVENT = {
   name: "Constructed Event",
+  group: "constructed",
   entryCostGems: 375,
   entryCostGold: 2500,
   draftPacks: 0,

@@ -31,6 +31,7 @@ import type { EventPreset } from "../../lib/types";
  */
 export const SEALED = {
   name: "Sealed",
+  group: "sealed",
   entryCostGems: 2000,
   draftPacks: 6,
   structure: { kind: "elimination", maxWins: 7, maxLosses: 3 },

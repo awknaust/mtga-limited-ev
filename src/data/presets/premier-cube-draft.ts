@@ -27,6 +27,7 @@ import type { EventPreset } from "../../lib/types";
  */
 export const PREMIER_CUBE_DRAFT = {
   name: "Premier Cube Draft",
+  group: "draft",
   entryCostGems: 1500,
   entryCostGold: 10000,
   draftPacks: 0,

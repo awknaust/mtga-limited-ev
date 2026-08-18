@@ -20,6 +20,7 @@ import type { EventPreset } from "../../lib/types";
  */
 export const PICK_TWO_DRAFT = {
   name: "Pick Two Draft",
+  group: "draft",
   entryCostGems: 900,
   entryCostGold: 6000,
   draftPacks: 3,

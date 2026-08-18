@@ -29,6 +29,7 @@ import type { EventPreset } from "../../lib/types";
  */
 export const QUICK_DRAFT = {
   name: "Quick Draft",
+  group: "draft",
   entryCostGems: 750,
   entryCostGold: 5000,
   draftPacks: 3,

@@ -5,9 +5,10 @@ import { describe, expect, it } from "vitest";
 import {
   COMPARE_GROUPS,
   COMPARE_SERIES_CLASSES,
+  compareGroups,
   compareSeries,
 } from "./compareSeries";
-import { CUSTOM_PRESET, PRESETS } from "../lib";
+import { CUSTOM_PRESET, EVENT_GROUPS, PRESETS, type EventPreset } from "../lib";
 
 /*
  * The two lists the Compare tab depends on and cannot check for itself.
@@ -30,21 +31,58 @@ const DEFINED = new Set(
   [...CSS.matchAll(/\.(compare-series-[A-Za-z0-9]+)\s*\{/g)].map((m) => m[1]),
 );
 
-describe("every event is offered", () => {
-  const grouped = COMPARE_GROUPS.flatMap((g) => g.names);
+/** A preset stripped to what the grouping reads. */
+const stub = (name: string, group: EventPreset["group"]): EventPreset => ({
+  name,
+  group,
+  entryCostGems: 0,
+  structure: { kind: "rounds", rounds: 1 },
+  payouts: [{ wins: 0, gems: 0, packs: 0 }],
+});
 
-  it.each(PRESETS.map((p) => p.name))("lists %s in exactly one group", (name) => {
-    expect(grouped.filter((n) => n === name)).toEqual([name]);
+describe("grouping the events", () => {
+  /*
+   * Driven with made-up presets rather than the real ones, because the
+   * interesting cases are ones today's data does not contain: a group holding a
+   * single event, and a group holding none. Asserting against `PRESETS` alone
+   * cannot see either — every real group has at least two members, so a
+   * drop-rule that discarded singletons would pass unnoticed until the day
+   * somebody added one.
+   */
+  it("keeps a group holding a single event", () => {
+    const groups = compareGroups([stub("Only One", "sealed"), stub("A", "draft")]);
+    expect(groups.map((g) => g.names)).toEqual([["A"], ["Only One"]]);
   });
 
-  it("offers nothing that is not a preset", () => {
-    for (const name of grouped) {
-      expect(PRESETS.map((p) => p.name)).toContain(name);
-    }
+  it("drops a group holding none, rather than rendering it empty", () => {
+    const groups = compareGroups([stub("A", "draft")]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0].names).toEqual(["A"]);
   });
 
-  it("offers every preset and no more", () => {
-    expect(grouped.length).toBe(PRESETS.length);
+  it("orders groups as EVENT_GROUPS does, whatever order the presets came in", () => {
+    const backwards = [...EVENT_GROUPS].reverse().map((g, i) => stub(`e${i}`, g));
+    const labels = compareGroups(backwards).map((g) => g.label);
+    expect(labels).toEqual(compareGroups([...backwards].reverse()).map((g) => g.label));
+    // ...and that shared order is EVENT_GROUPS', not either input's.
+    expect(compareGroups(backwards).map((g) => g.names[0])).toEqual(
+      EVENT_GROUPS.map((g) => backwards.find((p) => p.group === g)!.name),
+    );
+  });
+
+  it("keeps events in the order they were given, within a group", () => {
+    const groups = compareGroups([stub("B", "draft"), stub("A", "draft")]);
+    expect(groups[0].names).toEqual(["B", "A"]);
+  });
+
+  it("offers every real preset exactly once", () => {
+    expect(COMPARE_GROUPS.flatMap((g) => g.names).sort()).toEqual(
+      PRESETS.map((p) => p.name).sort(),
+    );
+  });
+
+  it("names every group it offers", () => {
+    for (const group of COMPARE_GROUPS) expect(group.label).not.toBe("");
   });
 });
 

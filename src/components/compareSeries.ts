@@ -1,36 +1,9 @@
-/**
- * Which events the Compare tab offers, how they are grouped, and what each one
- * is drawn in.
- *
- * Presentation, so it lives here rather than in `src/lib` — the model has no
- * opinion about colour, and `src/lib` stays free of anything a stylesheet reads.
- *
- * Two things are kept honest by `compareSeries.test.ts` rather than by care:
- * every preset appears in exactly one group, and every preset gets a
- * (colour, dash) pair no other preset has. Both fail loudly when an event is
- * added, which is the point — the alternative is an event that silently never
- * appears in the selector, or two lines a reader cannot tell apart.
- */
-
 import {
-  ARENA_DIRECT,
-  ARENA_DIRECT_COLLECTOR,
-  ARENA_DIRECT_PLAY,
-  CONSTRUCTED_EVENT,
-  CONTENDER_DRAFT,
   CUSTOM_PRESET,
-  PICK_TWO_DRAFT,
-  PREMIER_CUBE_DRAFT,
-  PREMIER_DRAFT,
+  EVENT_GROUPS,
   PRESETS,
-  QUALIFIER_PLAY_IN_BO1,
-  QUALIFIER_PLAY_IN_BO3,
-  QUICK_DRAFT,
-  SEALED,
-  TRADITIONAL_CONSTRUCTED_EVENT,
-  TRADITIONAL_CUBE_DRAFT,
-  TRADITIONAL_DRAFT,
-  TRADITIONAL_SEALED,
+  type EventGroup,
+  type EventPreset,
 } from "../lib";
 
 export type CompareGroup = {
@@ -40,42 +13,47 @@ export type CompareGroup = {
 };
 
 /**
- * The selector's groups, following the ordering already argued for in
- * `presets.ts` — drafts, sealed, the Directs together, the two constructed
- * events, then the Play-Ins.
+ * What each group is called on screen.
  *
- * By reference to each preset rather than by string, so a rename moves the
- * grouping with it instead of dropping an event out of the selector. A group is
- * a label and nothing more: it says what kind of event these are, not which is
- * worth entering.
+ * The only part of the grouping that is presentation: the keys and their order
+ * are on the preset and in `EVENT_GROUPS`, because which kind of event
+ * something is is a fact about the event. A label says nothing about which is
+ * worth entering — it says what kind of thing it is.
+ *
+ * Typed against `EventGroup`, so adding a group to the model without naming it
+ * here does not compile.
  */
-export const COMPARE_GROUPS: CompareGroup[] = [
-  {
-    label: "Draft",
-    names: [
-      PREMIER_DRAFT.name,
-      QUICK_DRAFT.name,
-      TRADITIONAL_DRAFT.name,
-      PREMIER_CUBE_DRAFT.name,
-      TRADITIONAL_CUBE_DRAFT.name,
-      PICK_TWO_DRAFT.name,
-      CONTENDER_DRAFT.name,
-    ],
-  },
-  { label: "Sealed", names: [SEALED.name, TRADITIONAL_SEALED.name] },
-  {
-    label: "Arena Direct",
-    names: [ARENA_DIRECT.name, ARENA_DIRECT_PLAY.name, ARENA_DIRECT_COLLECTOR.name],
-  },
-  {
-    label: "Constructed",
-    names: [CONSTRUCTED_EVENT.name, TRADITIONAL_CONSTRUCTED_EVENT.name],
-  },
-  {
-    label: "Qualifier Play-In",
-    names: [QUALIFIER_PLAY_IN_BO1.name, QUALIFIER_PLAY_IN_BO3.name],
-  },
-];
+const GROUP_LABELS: Record<EventGroup, string> = {
+  draft: "Draft",
+  sealed: "Sealed",
+  direct: "Arena Direct",
+  constructed: "Constructed",
+  "play-in": "Qualifier Play-In",
+};
+
+/**
+ * The selector's groups, derived rather than listed.
+ *
+ * Every preset names its own group, so this cannot omit one, cannot list one
+ * twice, and cannot name something that is not a preset — the three things the
+ * hand-written version needed a test to promise. Adding an event now means
+ * adding its file and nothing else, and forgetting the group is a compile
+ * error in that file rather than a failure somewhere else.
+ *
+ * Groups come out in `EVENT_GROUPS` order and presets within a group in
+ * `PRESETS` order, both of which are already deliberate.
+ *
+ * A group nothing is in is dropped rather than rendered empty, which is what
+ * lets a group exist in the model before any event uses it.
+ */
+export function compareGroups(presets: readonly EventPreset[]): CompareGroup[] {
+  return EVENT_GROUPS.map((group) => ({
+    label: GROUP_LABELS[group],
+    names: presets.filter((p) => p.group === group).map((p) => p.name),
+  })).filter((g) => g.names.length > 0);
+}
+
+export const COMPARE_GROUPS: CompareGroup[] = compareGroups(PRESETS);
 
 /**
  * How many hues the ramp carries, and the dash patterns that extend it.
