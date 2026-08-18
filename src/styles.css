@@ -1037,6 +1037,18 @@ body {
 }
 
 /*
+ * The Fan Content notice. Quieter than the links above it because it is a
+ * required attribution rather than something to read — but quieter by size
+ * only. It was briefly --bs-tertiary-color too, which measured 4.35:1 against
+ * the footer's background and so missed AA for text this size; the secondary
+ * colour the rest of the footer uses is 6.34:1. A required notice is a poor
+ * place to be the least legible thing on the page.
+ */
+.site-footer .site-legal {
+  font-size: 0.75rem;
+}
+
+/*
  * The win rates a record supports, behind the EV curve. Deliberately faint: it
  * is context for the line rather than a mark of its own, and it spans most of
  * the axis on a short record.
