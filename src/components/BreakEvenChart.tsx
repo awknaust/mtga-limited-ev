@@ -115,6 +115,11 @@ export function BreakEvenChart({
                   x={0}
                   width={Math.max(0, x(row.rate))}
                   height={y.bandwidth()}
+                  // The radius every other bar in the app carries. Rows here
+                  // are ~19px, the same as the outcome chart's, so 3px lands
+                  // the same; SVG clamps the radius to half the width, so a
+                  // bar shorter than 6px stays a sliver rather than a blob.
+                  rx={3}
                   className={`compare-bar ${row.colorClass}`}
                 />
                 <text

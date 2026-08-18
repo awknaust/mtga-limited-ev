@@ -77,11 +77,6 @@ export function Compare({
 
   return (
     <>
-      <div className="form-text mb-2">
-        Every event below is priced with the rates in the sidebar — your win rate,
-        your pack and box values, your gold. Change one and every line moves.
-      </div>
-
       <CompareSelector
         selection={selection}
         onChange={onSelectionChange}
