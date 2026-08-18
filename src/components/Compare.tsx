@@ -1,12 +1,19 @@
 import { useId, useState } from "react";
 
-import { CUSTOM_PRESET, PRESETS, configFromPreset, type EventConfig } from "../lib";
+import {
+  CUSTOM_PRESET,
+  PRESETS,
+  configFromPreset,
+  netSummary,
+  winRateInterval,
+  winRatePosterior,
+  type EventConfig,
+} from "../lib";
 import type { Money } from "../format";
 import { BreakEvenChart } from "./BreakEvenChart";
 import { CompareCurveChart, CURVE_MODES, type CurveMode } from "./CompareCurveChart";
 import { CompareSelector } from "./CompareSelector";
 import { CompareTable } from "./CompareTable";
-import { RiskReturnChart } from "./RiskReturnChart";
 import { SectionHeading } from "./SectionHeading";
 import { Tabs, TabPanel } from "./Tabs";
 
@@ -52,13 +59,35 @@ export function Compare({
    * other entry takes its event fields from the named preset and keeps the
    * rates it was handed.
    */
-  const configs = selection
+  const picked = selection
     .map((name) => {
       if (name === CUSTOM_PRESET) return { name: "Custom", config };
       const preset = PRESETS.find((p) => p.name === name);
       return preset ? { name, config: configFromPreset(preset, config) } : null;
     })
     .filter((c): c is { name: string; config: EventConfig } => c !== null);
+
+  /*
+   * Each event's uncertainty, from one posterior sweep rather than two.
+   *
+   * `netInterval` and `probProfitable` are each a fold over the same 400
+   * quantiles, so asking for them by name walks the posterior twice per event
+   * — measured at about 96 ms a render across sixteen events, which a win-rate
+   * slider pays on every step. `netSummary` returns both from one pass.
+   */
+  const configs = picked.map((e) => {
+    const { interval, probProfitable } = netSummary(e.config);
+    return { ...e, netBand: interval, pAbove: probProfitable };
+  });
+
+  /*
+   * The reader's own win rate as an interval, shared by every chart that plots
+   * against it. One band for the tab, not one per event: it comes from the win
+   * rate and match count in the sidebar, and which event is being compared
+   * does not change how well they play. Null when the rate was called certain.
+   */
+  const posterior = winRatePosterior(config);
+  const rateBand = posterior ? winRateInterval(posterior) : null;
 
   return (
     <>
@@ -97,6 +126,7 @@ export function Compare({
                 configs={configs}
                 mode={mode}
                 winRate={config.winRate}
+                rateBand={rateBand}
                 m={m}
               />
             </TabPanel>
@@ -107,14 +137,7 @@ export function Compare({
             subtitle="What each event needs before it stops costing gems. The dashed line is your rate."
             className="mt-4"
           />
-          <BreakEvenChart configs={configs} winRate={config.winRate} />
-
-          <SectionHeading
-            title="Risk against return"
-            subtitle="Expected net against how widely one event's result varies around it."
-            className="mt-4"
-          />
-          <RiskReturnChart configs={configs} m={m} />
+          <BreakEvenChart configs={configs} winRate={config.winRate} rateBand={rateBand} />
 
           <SectionHeading
             title="All figures"

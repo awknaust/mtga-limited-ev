@@ -1,12 +1,7 @@
 import { line, scaleLinear } from "d3";
 
-import {
-  effectiveEntryGems,
-  expectedNetAt,
-  meanRoundsPerEvent,
-  type EventConfig,
-} from "../lib";
-import { gemTick, type Money } from "../format";
+import { effectiveEntryGems, expectedNetAt, type EventConfig } from "../lib";
+import { gemTick, pct, type Money } from "../format";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
@@ -26,33 +21,31 @@ const STEPS = 120;
 /** Past this many lines, names at the ends collide faster than they inform. */
 const MAX_END_LABELS = 8;
 
-export type CurveMode = "event" | "match" | "roi";
+export type CurveMode = "event" | "roi";
 
 export const CURVE_MODES: readonly { key: CurveMode; label: string }[] = [
   { key: "event", label: "Per event" },
-  { key: "match", label: "Per match" },
   { key: "roi", label: "ROI" },
 ];
 
 /**
  * What one mode plots, at one win rate.
  *
- * The rate is substituted into the config for the divisors too, not only for
- * the numerator. Both of them move with it — a higher win rate plays more
- * matches and earns more gold, which lowers the effective entry — so dividing a
- * swept numerator by a fixed denominator would price every point but one
- * against a divisor belonging to some other win rate.
+ * ROI divides by the entry *at that rate*, not at the config's own. The
+ * effective entry moves with the win rate — winning more climbs the daily gold
+ * ladder, which pays for more of the next entry — so a swept numerator over a
+ * fixed denominator would price every point but one against an entry belonging
+ * to some other win rate.
  *
- * Null is "no answer here", not zero. In ROI that is an entry gold has covered
- * entirely: there are no gems staked to return a multiple of, and plotting 0
- * would read as breaking even exactly.
+ * Null is "no answer here", not zero: an entry gold has covered entirely has no
+ * gems staked to return a share of, and plotting 0 would read as breaking even
+ * exactly.
  */
 function valueAt(config: EventConfig, rate: number, mode: CurveMode): number | null {
   const net = expectedNetAt(config, rate);
   if (mode === "event") return net;
-  const at = { ...config, winRate: rate };
-  const divisor = mode === "match" ? meanRoundsPerEvent(at) : effectiveEntryGems(at);
-  return divisor > 0 ? net / divisor : null;
+  const entry = effectiveEntryGems({ ...config, winRate: rate });
+  return entry > 0 ? net / entry : null;
 }
 
 /**
@@ -69,6 +62,7 @@ export function CompareCurveChart({
   configs,
   mode,
   winRate,
+  rateBand,
   m,
 }: {
   /** One per selected event, in the order they are drawn and listed. */
@@ -76,6 +70,15 @@ export function CompareCurveChart({
   mode: CurveMode;
   /** The reader's own rate, marked on the axis. */
   winRate: number;
+  /**
+   * Win rates the record supports, shaded behind every line. Null if certain.
+   *
+   * One band for the whole chart rather than one per event, and that is not a
+   * simplification: it is a statement about the reader, drawn from the win rate
+   * and the match count they entered, and both are shared by everything here.
+   * Which event is being compared does not change how well they play.
+   */
+  rateBand: [lo: number, hi: number] | null;
   m: Money;
 }) {
   const inner = WIDTH - MARGIN.left - MARGIN.right;
@@ -119,8 +122,7 @@ export function CompareCurveChart({
   const tick = (t: number): string =>
     mode === "roi" ? `${Math.round(t * 100)}%` : gemTick(m, t);
 
-  const axisLabel =
-    mode === "roi" ? "Return on entry" : mode === "match" ? "Net per match ≈" : "Expected net ≈";
+  const axisLabel = mode === "roi" ? "Return on entry" : "Expected net ≈";
 
   /*
    * Where each line ends, pushed apart so two close finishes stay two labels.
@@ -174,18 +176,52 @@ export function CompareCurveChart({
             </g>
           ))}
 
+          {/*
+            The win rates the record supports. Drawn first so every line reads
+            on top of it, and clamped to the plotted domain — a short record can
+            put the band's edge past either end of the axis.
+
+            It is what stops the crossings being read as more than they are: a
+            line that overtakes another inside this band has overtaken it at a
+            rate the record cannot tell apart from the reader's own.
+          */}
+          {rateBand && (
+            <rect
+              x={x(Math.max(rateBand[0], FROM))}
+              width={Math.max(
+                0,
+                x(Math.min(rateBand[1], TO)) - x(Math.max(rateBand[0], FROM)),
+              )}
+              y={0}
+              height={innerH}
+              className="chart-band"
+            />
+          )}
+
           <line x1={0} x2={inner} y1={y(0)} y2={y(0)} className="chart-zero" />
 
           {/* The reader's own rate: the vertical slice of this chart they are
-              actually standing on. */}
+              actually standing on, labelled so the slice has a number. */}
           {winRate >= FROM && winRate <= TO && (
-            <line
-              x1={x(winRate)}
-              x2={x(winRate)}
-              y1={0}
-              y2={innerH}
-              className="chart-breakeven"
-            />
+            <>
+              <line
+                x1={x(winRate)}
+                x2={x(winRate)}
+                y1={0}
+                y2={innerH}
+                className="chart-rate"
+              />
+              <text
+                x={x(winRate)}
+                y={-2}
+                // Swings to the left of the line near the right-hand end, where
+                // a centred label would run under the series names.
+                textAnchor={winRate > FROM + (TO - FROM) * 0.85 ? "end" : "middle"}
+                className="chart-rate-label"
+              >
+                {pct(winRate, 1)}
+              </text>
+            </>
           )}
 
           {drawn.map((s) => (

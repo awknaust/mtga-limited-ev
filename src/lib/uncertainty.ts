@@ -136,17 +136,45 @@ export function drawWinRate(
   return betaQuantile(uniform, posterior.alpha, posterior.beta);
 }
 
+/**
+ * Both posterior figures from one sweep.
+ *
+ * `netInterval` and `probProfitable` are each a fold over the same `DRAWS`
+ * evaluations, and asking for them separately walks the posterior twice. That
+ * is a rounding error for the one event the Long-term value tab prices, and it
+ * is not for the Compare tab, which asks for both for every event on screen:
+ * at sixteen events the second sweep was measured costing about 48 ms a render,
+ * which a win-rate slider pays on every step.
+ *
+ * The two functions below stay, as the callers that want one figure should not
+ * have to name the other, and they now read off this so there is one definition
+ * of each rather than two that agree by inspection.
+ */
+export type NetSummary = {
+  /** Central credible interval on expected net; null if the rate is certain. */
+  interval: [lo: number, hi: number] | null;
+  /** Share of the posterior where the event is worth entering; null if certain. */
+  probProfitable: number | null;
+};
+
+export function netSummary(config: EventConfig, level = CREDIBLE_LEVEL): NetSummary {
+  const posterior = winRatePosterior(config);
+  if (!posterior) return { interval: null, probProfitable: null };
+  const nets = sortedNets(config, posterior);
+  const at = (q: number) => nets[Math.min(nets.length - 1, Math.floor(q * nets.length))];
+  const tail = (1 - level) / 2;
+  return {
+    interval: [at(tail), at(1 - tail)],
+    probProfitable: nets.filter((n) => n > 0).length / nets.length,
+  };
+}
+
 /** Central credible interval on expected net, or null if the rate is certain. */
 export function netInterval(
   config: EventConfig,
   level = CREDIBLE_LEVEL,
 ): [lo: number, hi: number] | null {
-  const posterior = winRatePosterior(config);
-  if (!posterior) return null;
-  const nets = sortedNets(config, posterior);
-  const at = (q: number) => nets[Math.min(nets.length - 1, Math.floor(q * nets.length))];
-  const tail = (1 - level) / 2;
-  return [at(tail), at(1 - tail)];
+  return netSummary(config, level).interval;
 }
 
 /**
@@ -159,8 +187,5 @@ export function netInterval(
  * curve only ever rises.
  */
 export function probProfitable(config: EventConfig): number | null {
-  const posterior = winRatePosterior(config);
-  if (!posterior) return null;
-  const nets = sortedNets(config, posterior);
-  return nets.filter((n) => n > 0).length / nets.length;
+  return netSummary(config).probProfitable;
 }

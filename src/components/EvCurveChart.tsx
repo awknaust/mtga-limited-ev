@@ -1,7 +1,7 @@
 import { line, scaleLinear } from "d3";
 
 import { expectedNetAt, type EventConfig } from "../lib";
-import { approx, gemTick, type Money } from "../format";
+import { approx, gemTick, pct, type Money } from "../format";
 
 const WIDTH = 560;
 const HEIGHT = 262;
@@ -110,6 +110,28 @@ export function EvCurveChart({
             y2={innerH}
             className="chart-breakeven"
           />
+        )}
+
+        {/*
+          The rate the reader entered, as a rule and a number.
+
+          The dot below already marks the point, but only against the vertical
+          axis: reading its win rate off meant tracing down to the ticks and
+          guessing between them. Its own mark rather than the break-even dash
+          above, which is amber and means something else entirely.
+        */}
+        {current >= x.domain()[0] && current <= x.domain()[1] && (
+          <>
+            <line x1={x(current)} x2={x(current)} y1={0} y2={innerH} className="chart-rate" />
+            <text
+              x={x(current)}
+              y={-2}
+              textAnchor={current > TO - (TO - FROM) * 0.1 ? "end" : "middle"}
+              className="chart-rate-label"
+            >
+              {pct(current, 1)}
+            </text>
+          </>
         )}
 
         <path d={path ?? undefined} className="chart-line" />

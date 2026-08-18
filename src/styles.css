@@ -1379,21 +1379,41 @@ button.box-add:focus-visible {
   fill: var(--series);
 }
 
-.compare-dot {
-  fill: var(--series);
-}
-
 .compare-end-label {
   fill: var(--series);
   font-size: 10px;
 }
 
-/* Joins a scatter label to the dot it names, where clearing another label has
-   moved the two apart. Thin and dimmed: it is a pointer, not a mark. */
-.compare-leader {
-  stroke: var(--series);
-  stroke-width: 1;
-  opacity: 0.5;
+/* The plausible range under a figure in the table. */
+.compare-range {
+  display: block;
+  color: var(--bs-secondary-color);
+  font-size: 0.75em;
+  white-space: nowrap;
+}
+
+/*
+ * Where the reader's own win rate falls.
+ *
+ * Its own mark rather than `.chart-breakeven`, because the Long-term value
+ * chart draws both and two amber dashes would be two of the same thing. This
+ * is chrome — "you are here" — so it takes the secondary colour rather than a
+ * signal one, and a longer dash keeps the two apart at a glance.
+ */
+.chart-rate {
+  stroke: var(--bs-secondary-color);
+  stroke-dasharray: 6 4;
+}
+
+.chart-rate-label {
+  fill: var(--bs-secondary-color);
+  font-size: 10px;
+}
+
+@media (min-width: 576px) {
+  .chart-rate-label {
+    font-size: 9px;
+  }
 }
 
 @media (min-width: 576px) {

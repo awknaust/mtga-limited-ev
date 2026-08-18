@@ -1,10 +1,13 @@
 import { scaleBand, scaleLinear } from "d3";
 
 import { breakEvenWinRate, expectedNetAt, type EventConfig } from "../lib";
+import { pct } from "../format";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
-const MARGIN = { top: 8, right: 52, bottom: 42, left: 168 };
+// Room above the bars for the win-rate label, which cannot go below: the tick
+// labels are already there.
+const MARGIN = { top: 22, right: 52, bottom: 42, left: 168 };
 const ROW = 26;
 
 /**
@@ -26,10 +29,18 @@ const ROW = 26;
 export function BreakEvenChart({
   configs,
   winRate,
+  rateBand,
 }: {
   configs: readonly { name: string; config: EventConfig }[];
   /** The reader's own rate, drawn across the bars as the line to clear. */
   winRate: number;
+  /**
+   * Win rates the record supports, on the same axis the bars are measured in —
+   * which is what makes this chart honest rather than merely tidy. A bar ending
+   * inside the band is an event whose break-even the record cannot place above
+   * or below the reader; only a bar clear of the band is settled either way.
+   */
+  rateBand: [lo: number, hi: number] | null;
 }) {
   const rows = configs
     .map(({ name, config }) => {
@@ -64,6 +75,16 @@ export function BreakEvenChart({
       aria-label="Match win rate each event breaks even at"
     >
       <g transform={`translate(${MARGIN.left},${MARGIN.top})`}>
+        {/* Behind the bars, so a bar ending inside it stays readable. */}
+        {rateBand && (
+          <rect
+            x={x(rateBand[0])}
+            width={Math.max(0, x(rateBand[1]) - x(rateBand[0]))}
+            y={-4}
+            height={innerH + 4}
+            className="chart-band"
+          />
+        )}
         {x.ticks(6).map((t) => (
           <g key={t} transform={`translate(${x(t)},0)`}>
             <line y1={0} y2={innerH} className="chart-gridline" />
@@ -111,7 +132,15 @@ export function BreakEvenChart({
 
         {/* Where the reader stands. A bar ending left of this line is an event
             the rate they entered already clears. */}
-        <line x1={x(winRate)} x2={x(winRate)} y1={-4} y2={innerH} className="chart-breakeven" />
+        <line x1={x(winRate)} x2={x(winRate)} y1={-4} y2={innerH} className="chart-rate" />
+        <text
+          x={x(winRate)}
+          y={-8}
+          textAnchor={winRate > 0.85 ? "end" : "middle"}
+          className="chart-rate-label"
+        >
+          {pct(winRate, 1)}
+        </text>
 
         <text x={inner / 2} y={innerH + 36} textAnchor="middle" className="chart-axis-label">
           Break-even match win rate
