@@ -13,7 +13,7 @@ import { describe, expect, it } from "vitest";
 import { defaultConfig } from "../lib/presets";
 import type { EventConfig } from "../lib/types";
 import { requestKey } from "./keys";
-import type { BankrollsRequest } from "./protocol";
+import type { BankrollsRequest, CompareRequest } from "./protocol";
 
 const bankRequest = (config: EventConfig = defaultConfig()): BankrollsRequest => ({
   kind: "bankrolls",
@@ -79,6 +79,14 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   companionValueGems: 5,
   payouts: [{ wins: 0, gems: 999, packs: 0 }],
 };
+
+const gridRequest = (configs: EventConfig[]): CompareRequest => ({
+  kind: "compare",
+  configs,
+  bankroll: bankRequest().bankroll,
+  runs: 1000,
+  seed: 1,
+});
 
 describe("requestKey", () => {
   it("is identical for structurally equal requests", () => {
@@ -206,5 +214,44 @@ describe("requestKey", () => {
         requestKey({ ...roll, bankroll: { ...roll.bankroll, ...patch } }),
       ).not.toBe(requestKey(roll));
     }
+  });
+
+  it("keeps a grid's key apart from a single event's", () => {
+    // Same numbers, same lone config, different question. The two shapes
+    // already serialize apart on `config` versus `configs`, so this is not
+    // what the `kind` tag is carrying — it is here because the day the pools
+    // are ever merged, this is the assertion that has to still hold.
+    expect(requestKey(gridRequest([defaultConfig()]))).not.toBe(requestKey(bankRequest()));
+  });
+
+  it("normalizes every config in a grid, not just the first", () => {
+    const bare = { ...defaultConfig(), payouts: [{ wins: 0, gems: 10, packs: 1 }] };
+    const spelled = {
+      ...defaultConfig(),
+      payouts: [{ wins: 0, gems: 10, packs: 1, playInPoints: 0, boxes: [] }],
+    };
+    // Absent and explicit-zero are the same simulation wherever in the grid
+    // they sit; a normalizer applied to configs[0] alone would miss this.
+    expect(requestKey(gridRequest([bare, spelled]))).toBe(requestKey(gridRequest([bare, bare])));
+    expect(requestKey(gridRequest([spelled, bare]))).toBe(requestKey(gridRequest([bare, bare])));
+  });
+
+  it("keeps two orders of the same grid apart, since the answer is positional", () => {
+    const a = defaultConfig();
+    const b = { ...defaultConfig(), entryCostGems: 750 };
+    expect(requestKey(gridRequest([a, b]))).not.toBe(requestKey(gridRequest([b, a])));
+  });
+
+  it("moves when any one config in the grid moves", () => {
+    const a = defaultConfig();
+    const b = { ...defaultConfig(), entryCostGems: 750 };
+    const moved = { ...b, entryCostGems: 751 };
+    expect(requestKey(gridRequest([a, moved]))).not.toBe(requestKey(gridRequest([a, b])));
+  });
+
+  it("keeps a grid of one apart from a grid of two", () => {
+    const a = defaultConfig();
+    expect(requestKey(gridRequest([a]))).not.toBe(requestKey(gridRequest([a, a])));
+    expect(requestKey(gridRequest([]))).not.toBe(requestKey(gridRequest([a])));
   });
 });

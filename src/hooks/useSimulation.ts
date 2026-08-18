@@ -13,13 +13,15 @@
  * atomic — no render can pair this keystroke's runs with the last one's
  * seed — and the effect needs exactly one dependency.
  *
- * Only the bankroll goes through here. The per-event figures are closed
- * form and computed in render.
+ * Only the bankrolls go through here — the single event's, and the Compare
+ * tab's grid of them. Every per-event figure is closed form and computed in
+ * render.
  */
 
 import { useEffect, useState } from "react";
 
 import type { BankrollResult } from "../lib/bankroll";
+import type { BankrollSummary } from "../lib/bankrollGrid";
 import type { EventConfig } from "../lib/types";
 import { simulationClient } from "../worker/client";
 import { isAbortError } from "../worker/protocol";
@@ -53,8 +55,14 @@ import { useDebouncedValue, type Timing } from "./useDebouncedValue";
  */
 const SIM_DEBOUNCE_MS = 300;
 
-export type BankrollSimParams = {
-  config: EventConfig;
+/**
+ * The knobs both simulations share: the starting balance, the ceiling, the
+ * trial count and the seed. One object because the Compare tab reads exactly
+ * the same ones the Bankroll tab does and adds no URL state of its own — the
+ * grid is a second reading of the balance already entered, not a second set
+ * of controls.
+ */
+export type BankrollKnobs = {
   startingGems: number;
   startingGold: number;
   startingPlayInPoints: number;
@@ -62,6 +70,11 @@ export type BankrollSimParams = {
   runs: number;
   seed: number;
 };
+
+export type BankrollSimParams = BankrollKnobs & { config: EventConfig };
+
+/** The same, for several events at once; `configs` order is the result's. */
+export type CompareSimParams = BankrollKnobs & { configs: EventConfig[] };
 
 export type SimulationState<T> = {
   /** The last settled result; null only before the first ever settles. */
@@ -72,18 +85,18 @@ export type SimulationState<T> = {
   error: unknown;
 };
 
+const bankrollOf = (p: BankrollKnobs) => ({
+  startingGems: p.startingGems,
+  startingGold: p.startingGold,
+  startingPlayInPoints: p.startingPlayInPoints,
+  maxEvents: p.maxEvents,
+});
+
 const submitBankrolls = (p: BankrollSimParams): SimulationHandle<BankrollResult> =>
-  simulationClient.simulateBankrolls(
-    p.config,
-    {
-      startingGems: p.startingGems,
-      startingGold: p.startingGold,
-      startingPlayInPoints: p.startingPlayInPoints,
-      maxEvents: p.maxEvents,
-    },
-    p.runs,
-    p.seed,
-  );
+  simulationClient.simulateBankrolls(p.config, bankrollOf(p), p.runs, p.seed);
+
+const submitCompare = (p: CompareSimParams): SimulationHandle<BankrollSummary[]> =>
+  simulationClient.simulateCompare(p.configs, bankrollOf(p), p.runs, p.seed);
 
 function useSimulation<P, T>(
   params: P,
@@ -133,4 +146,25 @@ export function useSimulateBankrolls(
   timing: Timing,
 ): SimulationState<BankrollResult> {
   return useSimulation(params, submitBankrolls, timing);
+}
+
+/**
+ * The Compare tab's grid: the same balance played out in each selected event,
+ * under one seed.
+ *
+ * Same debounce, same hold, same flush as the single-event run, because the
+ * inputs are the same inputs — a keystroke in the starting balance makes both
+ * stale at once and neither should recompute until the typing stops.
+ *
+ * An empty selection goes to the worker like any other and comes back empty.
+ * Special-casing it here would be a second path through the cache, the cancel
+ * and the pending flag for a job that costs nothing to run.
+ *
+ * @param timing As `useSimulateBankrolls`.
+ */
+export function useSimulateCompare(
+  params: CompareSimParams,
+  timing: Timing,
+): SimulationState<BankrollSummary[]> {
+  return useSimulation(params, submitCompare, timing);
 }

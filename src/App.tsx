@@ -591,9 +591,14 @@ export default function App({
    * editor's "Copy from…" changes the config under the same name, and is
    * held with the rest of that dialog's edits.
    */
-  const bankrollParams = useMemo(
+  /*
+   * One object for the knobs, because two tabs read them: the Bankroll tab's
+   * single-event run and the Compare tab's grid. Memoised separately from the
+   * config so a preset pick, which moves `config` and nothing else, does not
+   * hand the grid a fresh identity for values that did not change.
+   */
+  const bankrollKnobs = useMemo(
     () => ({
-      config,
       startingGems,
       startingGold,
       startingPlayInPoints,
@@ -601,15 +606,11 @@ export default function App({
       runs: bankrollRuns,
       seed,
     }),
-    [
-      config,
-      startingGems,
-      startingGold,
-      startingPlayInPoints,
-      maxEvents,
-      bankrollRuns,
-      seed,
-    ],
+    [startingGems, startingGold, startingPlayInPoints, maxEvents, bankrollRuns, seed],
+  );
+  const bankrollParams = useMemo(
+    () => ({ config, ...bankrollKnobs }),
+    [config, bankrollKnobs],
   );
   const {
     result: bankroll,
@@ -1490,6 +1491,8 @@ export default function App({
                   presetName={presetName}
                   selection={compareSelection}
                   onSelectionChange={setCompareSelection}
+                  knobs={bankrollKnobs}
+                  hold={advancedOpen || editorOpen}
                   m={m}
                 />
               ) : tab === "bankroll" ? (

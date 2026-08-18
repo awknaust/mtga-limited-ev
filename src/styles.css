@@ -905,6 +905,20 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/*
+ * A figure judged against a baseline, in SVG. Bootstrap's `.text-success` and
+ * `.text-danger` set `color`, which SVG text ignores — it paints with `fill` —
+ * so the same two meanings need their own rules rather than the utility
+ * classes the tiles use for the identical judgement.
+ */
+.chart-value-up {
+  fill: var(--bs-success);
+}
+
+.chart-value-down {
+  fill: var(--bs-danger);
+}
+
 /* A titled box of related inputs — the Advanced groups, and the bankroll
  * fields in the main column. */
 .adv-group {
@@ -1377,6 +1391,33 @@ button.box-add:focus-visible {
 
 .compare-bar {
   fill: var(--series);
+}
+
+/*
+ * The bankroll grid's box plots. One hue per event, three weights of it.
+ *
+ * The whiskers reach p5 and p95 at half strength, the box holds the middle
+ * half at a fill the event's colour is still recognisable in, and the median
+ * takes the body colour rather than the series one — the classic treatment,
+ * and here a necessary one: a median in the same hue as the box it sits inside
+ * is a line nobody can find. A second hue for the box would have been a second
+ * vocabulary for a reader who has already learnt this one from the curve.
+ */
+.compare-whisker {
+  stroke: var(--series);
+  stroke-width: 1.25;
+  opacity: 0.65;
+}
+
+.compare-box {
+  fill: var(--series);
+  opacity: 0.5;
+}
+
+.compare-median {
+  stroke: var(--bs-body-color);
+  stroke-width: 2;
+  stroke-linecap: butt;
 }
 
 .compare-end-label {

@@ -5,16 +5,15 @@
  * cache and the dedupe, and workers are stateless one-job executors that
  * stay warm between dispatches.
  *
- * There is one kind today, the bankroll, since the per-event figures are
- * closed form and never leave the main thread. The pool is still keyed by
- * kind: two kinds must never queue behind each other, and this is where a
- * second one would get its own lane. Within a pool, workers spawn lazily up
- * to `maxWorkersPerKind` — capacity above the first worker costs nothing
- * until two jobs of the same kind actually overlap. The default is 1, which
- * is today's workload exactly: every parameter change supersedes the previous
- * request, so the queue is never deeper than the run being canceled. Raise
- * the cap when a real multi-request workload (a preset sweep, a comparison
- * grid) arrives; the dispatch, tests and cancellation already support it.
+ * Two kinds, and the pool is keyed by them because two kinds must never queue
+ * behind each other: the Compare tab's grid is sixteen bankrolls' worth of
+ * work at its widest, and the Bankroll tab's own run has its own lane and does
+ * not wait behind it. Within a pool, workers spawn lazily up to
+ * `maxWorkersPerKind` — capacity above the first worker costs nothing until
+ * two jobs of the *same* kind actually overlap. The default is 1, which is
+ * still the workload exactly: every parameter change supersedes the previous
+ * request of its kind, so a queue is never deeper than the run being
+ * canceled, and the grid is one job rather than N.
  *
  * A submission returns a handle rather than a promise alone. `cancel()`
  * settles the caller's promise immediately and tells the worker fire-and-
@@ -30,12 +29,18 @@ import { wrap } from "comlink";
 import type { Endpoint, Remote } from "comlink";
 
 import type { BankrollConfig, BankrollResult } from "../lib/bankroll";
+import type { BankrollSummary } from "../lib/bankrollGrid";
 import type { EventConfig } from "../lib/types";
 import { requestKey } from "./keys";
 import { abortError } from "./protocol";
-import type { SimulationApi, SimulationHandle, SimulationRequest } from "./protocol";
+import type {
+  ResultOf,
+  SimulationApi,
+  SimulationHandle,
+  SimulationRequest,
+  SimulationResult,
+} from "./protocol";
 
-type SimulationResult = BankrollResult;
 type Kind = SimulationRequest["kind"];
 
 /** What the pool needs from a worker; a seam the tests fill with ports. */
@@ -75,12 +80,16 @@ type Lane = {
 };
 
 /**
- * Sized per result shape: a worst-case BankrollResult is ~4.3 MB of
- * example-run logs, so four entries bound the cache near 17 MB while
- * covering the switch-away-and-back the cache exists for. Settled successes
- * only; errors and canceled runs are never cached.
+ * Sized per result shape, which is why it is a figure per kind rather than
+ * one number. A worst-case BankrollResult is ~4.3 MB of example-run logs, so
+ * four entries bound that cache near 17 MB while covering the
+ * switch-away-and-back the cache exists for. A grid carries no logs at all —
+ * sixteen summaries is a few kilobytes — so its cache is sized by how many
+ * selections a reader passes through rather than by memory, and sixteen holds
+ * a whole session of adding and removing events. Settled successes only;
+ * errors and canceled runs are never cached.
  */
-const CACHE_MAX: Record<Kind, number> = { bankrolls: 4 };
+const CACHE_MAX: Record<Kind, number> = { bankrolls: 4, compare: 16 };
 
 class KindPool {
   private readonly lanes: Lane[] = [];
@@ -217,6 +226,21 @@ export class SimulationClient {
     return this.submit({ kind: "bankrolls", config, bankroll, runs, seed });
   }
 
+  /**
+   * Several events under one balance and one seed, as one job.
+   *
+   * `configs` order is the result's order and part of the cache key; the
+   * caller keeps the names.
+   */
+  simulateCompare(
+    configs: EventConfig[],
+    bankroll: BankrollConfig,
+    runs: number,
+    seed: number,
+  ): SimulationHandle<BankrollSummary[]> {
+    return this.submit({ kind: "compare", configs, bankroll, runs, seed });
+  }
+
   cancel(id: string): void {
     for (const pool of this.pools.values()) {
       if (pool.cancel(id)) return;
@@ -238,7 +262,9 @@ export class SimulationClient {
     return pool;
   }
 
-  private submit(request: SimulationRequest): SimulationHandle<SimulationResult> {
+  private submit<R extends SimulationRequest>(
+    request: R,
+  ): SimulationHandle<ResultOf[R["kind"]]> {
     const id = `sim-${this.counter++}`;
     // The declared contract is a rejection, never a sync throw — a
     // malformed request fails key computation before any promise exists.
@@ -270,7 +296,18 @@ export class SimulationClient {
       };
       pool.enqueue(job);
     });
-    return { id, promise, cancel: () => this.cancel(id) };
+    /*
+     * The one narrowing in the pool, and it is the tag that makes it true: a
+     * request enters exactly one kind's lane, and the backend's `generatorOf`
+     * switches on the same tag. Below this line everything — the queue, the
+     * cache, the lanes — holds the union, which is what lets one dispatcher
+     * serve both kinds without being generic all the way down.
+     */
+    return {
+      id,
+      promise: promise as Promise<ResultOf[R["kind"]]>,
+      cancel: () => this.cancel(id),
+    };
   }
 }
 

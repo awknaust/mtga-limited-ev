@@ -1,7 +1,8 @@
 import { scaleBand, scaleLinear } from "d3";
 
-import { breakEvenWinRate, expectedNetAt, type EventConfig } from "../lib";
+import { expectedNetAt } from "../lib";
 import { pct } from "../format";
+import type { CompareRow } from "./Compare";
 import { compareSeries } from "./compareSeries";
 
 const WIDTH = 560;
@@ -25,13 +26,19 @@ const ROW = 26;
  * signature is a rate and widening it to carry a reason would be a change to
  * the model for a caption's sake. They are labelled rather than dropped — a
  * missing row reads as an event that was never selected.
+ *
+ * Rows arrive ordered and are drawn in the order given. The sort used to live
+ * here, and moved out when a second chart on the tab grew rows of its own: two
+ * charts stacked with the same events down the left must agree about which is
+ * on top, and the only way two orderings stay the same is by being one.
  */
 export function BreakEvenChart({
-  configs,
+  rows: given,
   winRate,
   rateBand,
 }: {
-  configs: readonly { name: string; config: EventConfig }[];
+  /** Ordered by `Compare`; see `CompareRow`. */
+  rows: readonly CompareRow[];
   /** The reader's own rate, drawn across the bars as the line to clear. */
   winRate: number;
   /**
@@ -42,20 +49,12 @@ export function BreakEvenChart({
    */
   rateBand: [lo: number, hi: number] | null;
 }) {
-  const rows = configs
-    .map(({ name, config }) => {
-      const rate = breakEvenWinRate(config);
-      return {
-        name,
-        rate,
-        alwaysAhead: rate === null && expectedNetAt(config, 0) >= 0,
-        ...compareSeries(name),
-      };
-    })
-    // Ascending, so the easiest bar to clear is at the top. An event with no
-    // break-even sorts to the end whichever kind of null it is; the label says
-    // which.
-    .sort((a, b) => (a.rate ?? Infinity) - (b.rate ?? Infinity));
+  const rows = given.map(({ name, config, breakEven: rate }) => ({
+    name,
+    rate,
+    alwaysAhead: rate === null && expectedNetAt(config, 0) >= 0,
+    ...compareSeries(name),
+  }));
 
   const inner = WIDTH - MARGIN.left - MARGIN.right;
   const innerH = rows.length * ROW;

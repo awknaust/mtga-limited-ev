@@ -11,11 +11,12 @@
 import { describe, expect, it } from "vitest";
 
 import { simulateBankrolls } from "../lib/bankroll";
-import { defaultConfig } from "../lib/presets";
+import { simulateBankrollGrid } from "../lib/bankrollGrid";
+import { PRESETS, configFromPreset, defaultConfig } from "../lib/presets";
 import type { PayoutTier } from "../lib/types";
 import { SimulationBackend } from "./backend";
 import { isAbortError } from "./protocol";
-import type { BankrollsRequest } from "./protocol";
+import type { BankrollsRequest, CompareRequest } from "./protocol";
 
 const config = defaultConfig();
 const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 20 };
@@ -23,6 +24,17 @@ const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, max
 const bank = (runs: number, seed = 1): BankrollsRequest => ({
   kind: "bankrolls",
   config,
+  bankroll: roll,
+  runs,
+  seed,
+});
+
+/** Three real ladders, so a grid's rows differ from one another. */
+const grid3 = PRESETS.slice(0, 3).map((p) => configFromPreset(p, config));
+
+const grid = (runs: number, seed = 1, configs = grid3): CompareRequest => ({
+  kind: "compare",
+  configs,
   bankroll: roll,
   runs,
   seed,
@@ -96,5 +108,38 @@ describe("SimulationBackend", () => {
     await expect(backend.run("b", bank(200))).rejects.toThrow(/already running/);
     // The dispatcher bug is reported without harming the job in flight.
     await expect(first).resolves.toEqual(simulateBankrolls(config, roll, 3000));
+  });
+
+  it("resolves a grid to exactly what the model computes", async () => {
+    const { backend } = testBackend();
+    await expect(backend.run("a", grid(200, 7))).resolves.toEqual(
+      simulateBankrollGrid(grid3, roll, 200, 7),
+    );
+  });
+
+  /*
+   * The reason the grid is one job rather than three: a cancel lands at a
+   * chunk boundary wherever in the grid the run happens to be, so a
+   * sixteen-event grid stops as promptly as a one-event bankroll does.
+   */
+  it("stops a canceled grid at the next chunk boundary, then serves again", async () => {
+    const { backend, pings } = testBackend((n, b) => {
+      if (n === 2) b.cancel("a");
+    });
+    await expect(backend.run("a", grid(5000))).rejects.toSatisfy(isAbortError);
+    expect(pings()).toBe(2);
+    await expect(backend.run("b", grid(200, 2))).resolves.toEqual(
+      simulateBankrollGrid(grid3, roll, 200, 2),
+    );
+  });
+
+  it("runs the two kinds through one backend without either learning of the other", async () => {
+    const { backend } = testBackend();
+    await expect(backend.run("a", grid(200, 7))).resolves.toEqual(
+      simulateBankrollGrid(grid3, roll, 200, 7),
+    );
+    await expect(backend.run("b", bank(200, 7))).resolves.toEqual(
+      simulateBankrolls(config, roll, 200, 7),
+    );
   });
 });

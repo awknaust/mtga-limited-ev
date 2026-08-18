@@ -12,7 +12,8 @@ import { afterEach, describe, expect, it } from "vitest";
 import { expose } from "comlink";
 
 import { simulateBankrolls } from "../lib/bankroll";
-import { defaultConfig } from "../lib/presets";
+import { simulateBankrollGrid } from "../lib/bankrollGrid";
+import { PRESETS, configFromPreset, defaultConfig } from "../lib/presets";
 import type { EventConfig } from "../lib/types";
 import { SimulationBackend } from "./backend";
 import { SimulationClient } from "./client";
@@ -23,6 +24,11 @@ const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, max
 
 /** The model's own answer, for a submission to be compared against. */
 const expected = (runs: number, seed = 1) => simulateBankrolls(config, roll, runs, seed);
+
+/** Three real ladders, and the grid the model makes of them. */
+const grid3 = PRESETS.slice(0, 3).map((p) => configFromPreset(p, config));
+const expectedGrid = (runs: number, seed = 1, configs = grid3) =>
+  simulateBankrollGrid(configs, roll, runs, seed);
 
 /**
  * A factory spawning backend-on-a-channel "workers", instrumented: how many
@@ -191,5 +197,78 @@ describe("SimulationClient", () => {
     await expect(client.simulateBankrolls(config, roll, 200, 1).promise).resolves.toEqual(
       expected(200),
     );
+  });
+
+  it("returns a grid whose rows cross the boundary intact", async () => {
+    const { client } = openHarness();
+    const handle = client.simulateCompare(grid3, roll, 200, 7);
+    await expect(handle.promise).resolves.toEqual(expectedGrid(200, 7));
+  });
+
+  /*
+   * The property the per-kind lanes exist for, and the reason the grid is a
+   * second kind rather than N bankrolls: at a cap of one worker per kind, the
+   * Compare tab's grid and the Bankroll tab's own run still overlap. Queued
+   * behind each other, whichever arrived second would wait out the first.
+   */
+  it("does not queue a grid behind a bankroll, or the reverse", async () => {
+    const { client, spawns, peak } = openHarness();
+    const bank = client.simulateBankrolls(config, roll, 300, 1);
+    const compare = client.simulateCompare(grid3, roll, 300, 1);
+    // One lane each, spawned on submit rather than after the other settles.
+    expect(spawns()).toBe(2);
+    await expect(bank.promise).resolves.toEqual(expected(300));
+    await expect(compare.promise).resolves.toEqual(expectedGrid(300));
+    expect(peak()).toBe(2);
+  });
+
+  it("serves a repeat of a settled grid from cache, without a dispatch", async () => {
+    const { client, runs } = openHarness();
+    const first = await client.simulateCompare(grid3, roll, 200, 1).promise;
+    expect(runs()).toBe(1);
+    await expect(client.simulateCompare(grid3, roll, 200, 1).promise).resolves.toEqual(first);
+    expect(runs()).toBe(1);
+  });
+
+  /*
+   * Sixteen entries, against the bankroll's four: a grid carries no example
+   * runs, so the cache is sized by how many selections a reader passes through
+   * rather than by megabytes. Adding events one at a time — the ordinary way a
+   * selection is built — must find the earlier ones still cached.
+   */
+  it("keeps every step of a widening selection cached", async () => {
+    const { client, runs } = openHarness();
+    const widths = grid3.map((_, i) => grid3.slice(0, i + 1));
+    for (const configs of widths) await client.simulateCompare(configs, roll, 200, 1).promise;
+    expect(runs()).toBe(widths.length);
+    // Every width back, in reverse, with nothing recomputed.
+    for (const configs of [...widths].reverse()) {
+      await expect(client.simulateCompare(configs, roll, 200, 1).promise).resolves.toEqual(
+        expectedGrid(200, 1, configs),
+      );
+    }
+    expect(runs()).toBe(widths.length);
+  });
+
+  it("cancels a grid without touching the bankroll lane's run", async () => {
+    const { client } = openHarness();
+    const bank = client.simulateBankrolls(config, roll, 300, 1);
+    const compare = client.simulateCompare(grid3, roll, 5000, 1);
+    // Leaving the Compare tab mid-grid, with the other tab's run in flight.
+    compare.cancel();
+    await expect(compare.promise).rejects.toSatisfy(isAbortError);
+    await expect(bank.promise).resolves.toEqual(expected(300));
+  });
+
+  it("does not serve a grid of one from the bankroll it already ran", async () => {
+    const { client, runs } = openHarness();
+    // Same numbers, same lone config, different question — and two answers of
+    // different shapes, so one standing in for the other is not a stale figure
+    // but a render against fields that are not there.
+    await client.simulateBankrolls(config, roll, 200, 1).promise;
+    await expect(client.simulateCompare([config], roll, 200, 1).promise).resolves.toEqual(
+      expectedGrid(200, 1, [config]),
+    );
+    expect(runs()).toBe(2);
   });
 });
