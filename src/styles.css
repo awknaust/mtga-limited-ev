@@ -1394,24 +1394,30 @@ button.box-add:focus-visible {
 }
 
 /*
- * The bankroll grid's box plots. One hue per event, three weights of it.
+ * The bankroll grid's box plots. One hue per event, at the strength the bars
+ * directly above it carry.
  *
- * The whiskers reach p5 and p95 at half strength, the box holds the middle
- * half at a fill the event's colour is still recognisable in, and the median
- * takes the body colour rather than the series one — the classic treatment,
- * and here a necessary one: a median in the same hue as the box it sits inside
- * is a line nobody can find. A second hue for the box would have been a second
- * vocabulary for a reader who has already learnt this one from the curve.
+ * The box takes the event's colour outright, exactly as `.compare-bar` does —
+ * the break-even chart is stacked immediately above this one with the same
+ * names down the same margin, and a box drawn at half strength read as a
+ * washed-out, greyer version of the bar two inches away rather than as the
+ * same event. Holding it back was to keep the median findable, and the median
+ * no longer needs the help: it takes the body colour rather than the series
+ * one, which is the classic treatment and here a necessary one, since a median
+ * in the hue of the box it sits inside is a line nobody can find.
+ *
+ * The whiskers are the same colour drawn thin. Weight, not opacity, is what
+ * separates the middle half from the tails — a colour diluted toward the
+ * background reads as a different colour, where a thinner line of the same one
+ * reads as less of the same thing.
  */
 .compare-whisker {
   stroke: var(--series);
   stroke-width: 1.25;
-  opacity: 0.65;
 }
 
 .compare-box {
   fill: var(--series);
-  opacity: 0.5;
 }
 
 .compare-median {
