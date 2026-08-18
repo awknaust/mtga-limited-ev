@@ -86,6 +86,7 @@ import {
   type ShareState,
   type Tab,
 } from "./share";
+import { SITE_NAME, pageTitle } from "./title";
 import { useSimulateBankrolls, useSimulateCompare } from "./hooks/useSimulation";
 
 /** An event the current balance cannot enter, and what to do about it. */
@@ -307,6 +308,22 @@ export default function App({
       "",
       `${pathname}${query ? `?${query}` : ""}${hash}`,
     );
+    /*
+     * The title rides on the same query the URL does, so the two never
+     * disagree about what is being looked at and "no query" means one thing
+     * in both: the bare origin, which keeps the site's own title.
+     *
+     * Guarded because this effect runs on every keystroke, and an assignment
+     * to `document.title` replaces a text node whether or not the string
+     * moved.
+     */
+    const title = pageTitle({
+      tab,
+      tabLabel: RESULT_TABS.find((t) => t.key === tab)?.label ?? tab,
+      eventName: presetName,
+      isDefault: query === "",
+    });
+    if (document.title !== title) document.title = title;
   }, [
     presetName,
     config,
@@ -1169,7 +1186,7 @@ export default function App({
     <div className="container-xl py-4">
       <header className="mb-4 d-flex flex-wrap align-items-start justify-content-between gap-2">
         <div>
-          <h1 className="h3 mb-1">MTGA Limited EV</h1>
+          <h1 className="h3 mb-1">{SITE_NAME}</h1>
           <p className="text-body-secondary mb-0">
             The quest for going infinite: an analyzer for the value of MTGA
             events and passes.
@@ -1843,7 +1860,7 @@ export default function App({
           nothing here carries a Wizards logo or mark, which it does not permit.
         */}
         <p className="site-legal mb-0 mt-3">
-          MTGA Limited EV is unofficial Fan Content permitted under the{" "}
+          {SITE_NAME} is unofficial Fan Content permitted under the{" "}
           <a
             className="link-secondary"
             href="https://company.wizards.com/en/legal/fancontentpolicy"
