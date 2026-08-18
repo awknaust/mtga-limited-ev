@@ -9,11 +9,24 @@
  * behind each other: the Compare tab's grid is sixteen bankrolls' worth of
  * work at its widest, and the Bankroll tab's own run has its own lane and does
  * not wait behind it. Within a pool, workers spawn lazily up to
- * `maxWorkersPerKind` — capacity above the first worker costs nothing until
- * two jobs of the *same* kind actually overlap. The default is 1, which is
- * still the workload exactly: every parameter change supersedes the previous
- * request of its kind, so a queue is never deeper than the run being
- * canceled, and the grid is one job rather than N.
+ * `maxWorkersPerKind`, so capacity costs nothing until jobs of the same kind
+ * actually overlap.
+ *
+ * The bankroll kind never overlaps — every parameter change supersedes the
+ * previous request, so its queue is never deeper than the run being canceled,
+ * and it spawns one worker and stops. The grid is the reason the cap is above
+ * one: `simulateCompare` submits **one job per event** rather than one job for
+ * the selection, so a sixteen-event grid is sixteen jobs that a pool of four
+ * lanes chews through four at a time. Raising the cap without that split would
+ * have bought nothing at all, since a single job cannot be run by two workers.
+ *
+ * Splitting per event rather than into `maxWorkers` chunks is about the cache
+ * rather than the parallelism. A chunk boundary moves whenever the selection
+ * changes, so every job would miss; one event per job means adding a
+ * seventeenth to a sixteen-event selection recomputes exactly one of them and
+ * reads the rest out of cache. What the caller sees is unchanged — one handle,
+ * one promise, one cancel — because the split is a dispatch policy and not
+ * part of the contract.
  *
  * A submission returns a handle rather than a promise alone. `cancel()`
  * settles the caller's promise immediately and tells the worker fire-and-
@@ -80,16 +93,34 @@ type Lane = {
 };
 
 /**
- * Sized per result shape, which is why it is a figure per kind rather than
- * one number. A worst-case BankrollResult is ~4.3 MB of example-run logs, so
- * four entries bound that cache near 17 MB while covering the
- * switch-away-and-back the cache exists for. A grid carries no logs at all —
- * sixteen summaries is a few kilobytes — so its cache is sized by how many
- * selections a reader passes through rather than by memory, and sixteen holds
- * a whole session of adding and removing events. Settled successes only;
- * errors and canceled runs are never cached.
+ * Sized per result shape, which is why it is a figure per kind rather than one
+ * number. A worst-case BankrollResult is ~4.3 MB of example-run logs, so four
+ * entries bound that cache near 17 MB while covering the switch-away-and-back
+ * the cache exists for.
+ *
+ * A compare entry is one event's summary — a few hundred bytes, no logs — so
+ * that cache is sized by how many answers are worth keeping rather than by
+ * memory. Sixty-four is four full selections' worth at the widest, which spans
+ * a session of adding, removing and re-adding events without recomputing one
+ * that has already been answered.
+ *
+ * Settled successes only; errors and canceled runs are never cached.
  */
-const CACHE_MAX: Record<Kind, number> = { bankrolls: 4, compare: 16 };
+const CACHE_MAX: Record<Kind, number> = { bankrolls: 4, compare: 64 };
+
+/**
+ * How many workers one kind may run at once.
+ *
+ * Four, bounded by what the machine actually has. Only the grid can use them —
+ * it is the one workload that is many jobs at once — and past about four the
+ * gain flattens while the page competes with itself for cores it also needs to
+ * render. `hardwareConcurrency` is missing on nothing current, but a stated
+ * fallback beats `NaN` lanes if it ever is.
+ */
+const DEFAULT_MAX_WORKERS = Math.max(
+  1,
+  Math.min(4, globalThis.navigator?.hardwareConcurrency ?? 4),
+);
 
 class KindPool {
   private readonly lanes: Lane[] = [];
@@ -210,11 +241,13 @@ export class SimulationClient {
   private readonly factory: WorkerFactory;
   private readonly maxWorkersPerKind: number;
   private readonly pools = new Map<Kind, KindPool>();
+  /** Live multi-job submissions, by the id of the handle that joined them. */
+  private readonly composites = new Map<string, () => void>();
   private counter = 0;
 
   constructor(factory: WorkerFactory = defaultFactory, opts?: { maxWorkersPerKind?: number }) {
     this.factory = factory;
-    this.maxWorkersPerKind = opts?.maxWorkersPerKind ?? 1;
+    this.maxWorkersPerKind = opts?.maxWorkersPerKind ?? DEFAULT_MAX_WORKERS;
   }
 
   simulateBankrolls(
@@ -227,10 +260,17 @@ export class SimulationClient {
   }
 
   /**
-   * Several events under one balance and one seed, as one job.
+   * Several events under one balance and one seed.
    *
-   * `configs` order is the result's order and part of the cache key; the
-   * caller keeps the names.
+   * One job per event, joined back into one handle — see the note at the top
+   * of this file for why the split is per event and not per lane. The seed is
+   * the same number in every job, which is what keeps the common random
+   * numbers common: each event replays the same stream whether it was computed
+   * beside its neighbours or read out of the cache from an hour ago.
+   *
+   * `Promise.all` preserves order, so the joined result is still positional
+   * against `configs`. An empty selection resolves to an empty grid without
+   * touching a worker, which is the one case the split answers for free.
    */
   simulateCompare(
     configs: EventConfig[],
@@ -238,10 +278,36 @@ export class SimulationClient {
     runs: number,
     seed: number,
   ): SimulationHandle<BankrollSummary[]> {
-    return this.submit({ kind: "compare", configs, bankroll, runs, seed });
+    const shards = configs.map((config) =>
+      this.submit({ kind: "compare", configs: [config], bankroll, runs, seed }),
+    );
+    const id = `grid-${this.counter++}`;
+    const cancel = () => {
+      this.composites.delete(id);
+      for (const shard of shards) shard.cancel();
+    };
+    this.composites.set(id, cancel);
+    const promise = Promise.all(shards.map((s) => s.promise)).then(
+      (parts) => {
+        this.composites.delete(id);
+        return parts.flat();
+      },
+      (e: unknown) => {
+        // One shard failing makes the grid unanswerable, so the rest are work
+        // nobody will read. Cancel them rather than leaving lanes busy.
+        cancel();
+        throw e;
+      },
+    );
+    return { id, promise, cancel };
   }
 
   cancel(id: string): void {
+    const composite = this.composites.get(id);
+    if (composite) {
+      composite();
+      return;
+    }
     for (const pool of this.pools.values()) {
       if (pool.cancel(id)) return;
     }
@@ -251,6 +317,7 @@ export class SimulationClient {
   dispose(): void {
     for (const pool of this.pools.values()) pool.dispose();
     this.pools.clear();
+    this.composites.clear();
   }
 
   private pool(kind: Kind): KindPool {
