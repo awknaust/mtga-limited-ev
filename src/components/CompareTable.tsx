@@ -2,7 +2,9 @@ import { useState } from "react";
 
 import { breakEvenWinRate, eventExpectation, type EventConfig } from "../lib";
 import { pct, type Money } from "../format";
+import { InfoTip } from "./InfoTip";
 import { compareSeries } from "./compareSeries";
+import { STAT_HELP, type StatHelp } from "./statHelp";
 
 /**
  * The compared figures, exactly.
@@ -28,8 +30,6 @@ type Row = {
   name: string;
   colorClass: string;
   net: number;
-  /** Credible interval on `net`; null where the win rate was called certain. */
-  netBand: [lo: number, hi: number] | null;
   roi: number | null;
   breakEven: number | null;
   rounds: number;
@@ -38,6 +38,12 @@ type Row = {
 type Column = {
   key: string;
   label: string;
+  /**
+   * The popover on the heading, and the same words the Long-term value tab's
+   * tile uses — one definition in `statHelp.ts`, since two explanations of one
+   * statistic only stay the same by being the same.
+   */
+  help: StatHelp;
   /** How the cell reads. */
   cell: (row: Row, m: Money) => React.ReactNode;
   /** What it sorts on; null sorts last whichever way the column points. */
@@ -47,24 +53,21 @@ type Column = {
 const COLUMNS: Column[] = [
   {
     key: "net",
-    label: "Net / event",
-    // The range under the figure is the expected-net tile's "plausibly …"
-    // hint, in the one column wide enough to carry it.
-    cell: (r, m) =>
-      r.netBand === null ? (
-        m.fmt(r.net)
-      ) : (
-        <>
-          {m.fmt(r.net)}
-          <span className="compare-range">
-            {m.fmt(r.netBand[0])} to {m.fmt(r.netBand[1])}
-          </span>
-        </>
-      ),
+    help: STAT_HELP.net,
+    /*
+     * The ≈ is on the heading rather than on every figure, which is the call
+     * the EV curve's axis label already makes: declared once, and left to the
+     * cells to carry the unit. It is not decoration — a net is only ever as
+     * exact as the reader's own pack and box values make it, and a column of
+     * gem signs with no ≈ anywhere would claim otherwise.
+     */
+    label: "Net ≈",
+    cell: (r, m) => m.fmt(r.net),
     sortBy: (r) => r.net,
   },
   {
     key: "roi",
+    help: STAT_HELP.roi,
     label: "ROI",
     // Null is a fully gold-funded entry: no gems staked, so no share of them
     // returned. An em dash rather than 0%, which would read as breaking even.
@@ -73,13 +76,15 @@ const COLUMNS: Column[] = [
   },
   {
     key: "breakEven",
+    help: STAT_HELP.breakEven,
     label: "Break-even",
     cell: (r) => (r.breakEven === null ? "—" : pct(r.breakEven)),
     sortBy: (r) => r.breakEven,
   },
   {
     key: "rounds",
-    label: "E[matches]",
+    help: STAT_HELP.matches,
+    label: "Matches",
     cell: (r) => r.rounds.toFixed(1),
     sortBy: (r) => r.rounds,
   },
@@ -89,22 +94,17 @@ export function CompareTable({
   configs,
   m,
 }: {
-  configs: readonly {
-    name: string;
-    config: EventConfig;
-    netBand: [lo: number, hi: number] | null;
-  }[];
+  configs: readonly { name: string; config: EventConfig }[];
   m: Money;
 }) {
   const [sort, setSort] = useState<{ key: string; desc: boolean } | null>(null);
 
-  const rows: Row[] = configs.map(({ name, config, netBand }) => {
+  const rows: Row[] = configs.map(({ name, config }) => {
     const e = eventExpectation(config);
     return {
       name,
       colorClass: compareSeries(name).colorClass,
       net: e.meanNet,
-      netBand,
       // `eventExpectation` reports 0 for a zero entry, which is a sentinel and
       // not a rate; the table says so rather than printing it.
       roi: e.entryGems > 0 ? e.roi : null,
@@ -146,6 +146,9 @@ export function CompareTable({
                   className="text-end"
                   aria-sort={active ? (sort.desc ? "descending" : "ascending") : "none"}
                 >
+                  {/* The tip sits beside the sort button rather than inside it:
+                      it is a button itself, and one cannot nest in another. */}
+                  <span className="compare-head">
                   <button type="button" className="compare-sort" onClick={() => onSort(c.key)}>
                     {c.label}
                     {/*
@@ -167,6 +170,8 @@ export function CompareTable({
                       aria-hidden="true"
                     />
                   </button>
+                    <InfoTip label={c.help.label} content={c.help.content} />
+                  </span>
                 </th>
               );
             })}

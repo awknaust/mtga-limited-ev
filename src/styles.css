@@ -1384,14 +1384,6 @@ button.box-add:focus-visible {
   font-size: 10px;
 }
 
-/* The plausible range under a figure in the table. */
-.compare-range {
-  display: block;
-  color: var(--bs-secondary-color);
-  font-size: 0.75em;
-  white-space: nowrap;
-}
-
 /*
  * Where the reader's own win rate falls.
  *
@@ -1504,6 +1496,14 @@ button.box-add:focus-visible {
   gap: 0.45em;
 }
 
+/* Keeps the sort control and its popover button on one line at the right-hand
+   edge, where the figures they head are aligned. */
+.compare-head {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
 /*
  * The multi-select.
  *
@@ -1513,18 +1513,6 @@ button.box-add:focus-visible {
  */
 .multiselect {
   position: relative;
-}
-
-.multiselect-trigger::after {
-  /* The caret a `form-select` draws from its background image, which is lost
-     the moment this stops being a real select. */
-  content: "";
-  position: absolute;
-  right: 0.75rem;
-  top: 50%;
-  border: 0.3em solid transparent;
-  border-top-color: currentcolor;
-  transform: translateY(-0.15em);
 }
 
 .multiselect-panel {

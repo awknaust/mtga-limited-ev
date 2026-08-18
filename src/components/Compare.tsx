@@ -4,7 +4,6 @@ import {
   CUSTOM_PRESET,
   PRESETS,
   configFromPreset,
-  netInterval,
   winRateInterval,
   winRatePosterior,
   type EventConfig,
@@ -68,15 +67,6 @@ export function Compare({
     .filter((c): c is { name: string; config: EventConfig } => c !== null);
 
   /*
-   * The plausible range on each event's expected net, for the table.
-   *
-   * One posterior sweep of 400 quantiles per event, which is the bulk of what
-   * this tab costs to render: about 3 ms an event, against 39 ms for the page
-   * around it. It is why the tab opens on three events rather than sixteen.
-   */
-  const configs = picked.map((e) => ({ ...e, netBand: netInterval(e.config) }));
-
-  /*
    * The reader's own win rate as an interval, shared by every chart that plots
    * against it. One band for the tab, not one per event: it comes from the win
    * rate and match count in the sidebar, and which event is being compared
@@ -98,16 +88,13 @@ export function Compare({
         presetName={presetName}
       />
 
-      {configs.length === 0 ? (
+      {picked.length === 0 ? (
         <p className="text-secondary my-4">
           No events selected. Pick some above to compare them.
         </p>
       ) : (
         <>
-          <SectionHeading
-            title="Value against win rate"
-            subtitle="Where two lines cross is the win rate at which one event overtakes the other."
-          />
+          <SectionHeading title="Value against win rate" />
           <div className="switch-panel">
             <Tabs
               group={`${uid}-mode`}
@@ -119,7 +106,7 @@ export function Compare({
             />
             <TabPanel group={`${uid}-mode`} active={mode}>
               <CompareCurveChart
-                configs={configs}
+                configs={picked}
                 mode={mode}
                 winRate={config.winRate}
                 rateBand={rateBand}
@@ -133,14 +120,14 @@ export function Compare({
             subtitle="What each event needs before it stops costing gems. The dashed line is your rate."
             className="mt-4"
           />
-          <BreakEvenChart configs={configs} winRate={config.winRate} rateBand={rateBand} />
+          <BreakEvenChart configs={picked} winRate={config.winRate} rateBand={rateBand} />
 
           <SectionHeading
             title="All figures"
             subtitle="Sort by whichever column you think decides it."
             className="mt-4"
           />
-          <CompareTable configs={configs} m={m} />
+          <CompareTable configs={picked} m={m} />
         </>
       )}
     </>

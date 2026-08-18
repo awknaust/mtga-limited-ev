@@ -38,6 +38,7 @@ import { SectionHeading } from "./components/SectionHeading";
 import { SimPending } from "./components/SimPending";
 import { Stat, type StatTile } from "./components/Stat";
 import { StatStrip } from "./components/StatStrip";
+import { STAT_HELP } from "./components/statHelp";
 import { Tabs, TabPanel } from "./components/Tabs";
 import { ValueHistogram } from "./components/ValueHistogram";
 import {
@@ -1065,8 +1066,10 @@ export default function App({
         : "exact, at a win rate you called certain",
       tone: signClass(event.meanNet),
       help: {
-        label: "What expected net means",
-        content: `What one entry wins or loses on average, after the entry fee. Marked ≈ because packs and other rewards are priced at your rates, not paid as gems.${
+        ...STAT_HELP.net,
+        // The shared sentence, plus what only a tile with a range under it can
+        // say. The Compare tab's heading takes the sentence alone.
+        content: `${STAT_HELP.net.content}${
           netBand
             ? ` The range underneath covers ${pct(CREDIBLE_LEVEL, 0)} of what your win-rate record allows.`
             : ""
@@ -1081,11 +1084,7 @@ export default function App({
       // Which of those it is, though, the popover cannot say — a gross that is
       // mostly gems and one that is mostly packs read alike as a number.
       children: <ValueSplitBar slices={grossSlices(config)} m={m} />,
-      help: {
-        label: "What expected gross means",
-        content:
-          "What one event pays back on average, before the entry fee. Packs and other rewards are counted at your rates.",
-      },
+      help: STAT_HELP.gross,
     },
     ...boxTiles,
     {
@@ -1104,11 +1103,7 @@ export default function App({
           ? `of ${gemsEq(event.entryGems)} paid · ${pct(event.goldEntryFraction)} entries free`
           : `of ${gemsEq(config.entryCostGems)} entry`,
       tone: signClass(event.roi),
-      help: {
-        label: "What ROI means",
-        content:
-          "Expected net as a share of the entry fee. At −10%, an average entry gives back 90 for every 100 paid; positive means it more than pays for itself.",
-      },
+      help: STAT_HELP.roi,
     },
     {
       key: "break-even",
@@ -1118,33 +1113,21 @@ export default function App({
         pProfitable !== null && breakEvenShown !== null
           ? `${pct(pProfitable)} chance you are above it`
           : breakEvenHint,
-      help: {
-        label: "What break-even win rate means",
-        content:
-          "The match win rate at which the average event exactly pays back its entry. Win more often and the event makes money on average; less often and it loses.",
-      },
+      help: STAT_HELP.breakEven,
     },
     {
       key: "p-profit",
       label: "P(profit)",
       value: pct(event.probProfit),
       hint: "of events end net positive",
-      help: {
-        label: "What P(profit) means",
-        content:
-          "The chance one event ends worth more than its entry. It can be under 50% even when the event is profitable on average, because a few big finishes carry the average.",
-      },
+      help: STAT_HELP.probProfit,
     },
     {
       key: "matches",
       label: "Matches",
       value: event.meanRounds.toFixed(2),
       hint: `max ${maxRounds(structure)}`,
-      help: {
-        label: "What matches per event means",
-        content:
-          "How many matches one event lasts on average.",
-      },
+      help: STAT_HELP.matches,
     },
   ];
 
