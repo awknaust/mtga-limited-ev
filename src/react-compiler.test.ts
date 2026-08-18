@@ -86,7 +86,18 @@ describe("React Compiler", () => {
     // Without this an empty file, or a glob that stopped matching, would pass
     // by finding nothing to complain about.
     expect(events.length).toBeGreaterThan(0);
-  });
+  },
+  /*
+   * Well past what this costs, because what it costs is not the point. The
+   * largest file here is `App.tsx`, which Babel and the compiler take about a
+   * second and a half to get through on their own — but these files run beside
+   * the rest of the suite, and `bankroll.validation.test.ts` alone is sixteen
+   * seconds of a core. Under that contention a second and a half has been seen
+   * to take six, which was intermittently failing the *default* five, and a
+   * correctness check reporting a timeout says nothing true about whether the
+   * compiler bailed out. Long enough that only a genuine hang reaches it.
+   */
+  30_000);
 
   it("is looking at the components that exist", () => {
     // Cheap check that the glob still resolves, so the suite above cannot
