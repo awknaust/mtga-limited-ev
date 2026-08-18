@@ -4,7 +4,7 @@ import {
   CUSTOM_PRESET,
   PRESETS,
   configFromPreset,
-  netSummary,
+  netInterval,
   winRateInterval,
   winRatePosterior,
   type EventConfig,
@@ -68,17 +68,13 @@ export function Compare({
     .filter((c): c is { name: string; config: EventConfig } => c !== null);
 
   /*
-   * Each event's uncertainty, from one posterior sweep rather than two.
+   * The plausible range on each event's expected net, for the table.
    *
-   * `netInterval` and `probProfitable` are each a fold over the same 400
-   * quantiles, so asking for them by name walks the posterior twice per event
-   * — measured at about 96 ms a render across sixteen events, which a win-rate
-   * slider pays on every step. `netSummary` returns both from one pass.
+   * One posterior sweep of 400 quantiles per event, which is the bulk of what
+   * this tab costs to render: about 3 ms an event, against 39 ms for the page
+   * around it. It is why the tab opens on three events rather than sixteen.
    */
-  const configs = picked.map((e) => {
-    const { interval, probProfitable } = netSummary(e.config);
-    return { ...e, netBand: interval, pAbove: probProfitable };
-  });
+  const configs = picked.map((e) => ({ ...e, netBand: netInterval(e.config) }));
 
   /*
    * The reader's own win rate as an interval, shared by every chart that plots

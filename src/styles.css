@@ -1478,8 +1478,30 @@ button.box-add:focus-visible {
   text-decoration: underline;
 }
 
+/*
+ * The sortable-but-unsorted arrow, dimmed so a header of them does not read as
+ * four things demanding attention. It brightens with the header it sits in, so
+ * hovering a column still says the arrow is the control.
+ */
+.compare-sort-idle {
+  opacity: 0.35;
+}
+
+.compare-sort:hover .compare-sort-idle,
+.compare-sort:focus-visible .compare-sort-idle {
+  opacity: 0.8;
+}
+
 .compare-table th {
   white-space: nowrap;
+}
+
+/* The swatch and the name are one thing, and need the gap the chips have —
+   without it the block runs into the first letter. */
+.compare-event {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45em;
 }
 
 /*

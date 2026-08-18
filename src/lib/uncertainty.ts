@@ -139,25 +139,20 @@ export function drawWinRate(
 /**
  * Both posterior figures from one sweep.
  *
- * `netInterval` and `probProfitable` are each a fold over the same `DRAWS`
- * evaluations, and asking for them separately walks the posterior twice. That
- * is a rounding error for the one event the Long-term value tab prices, and it
- * is not for the Compare tab, which asks for both for every event on screen:
- * at sixteen events the second sweep was measured costing about 48 ms a render,
- * which a win-rate slider pays on every step.
- *
- * The two functions below stay, as the callers that want one figure should not
- * have to name the other, and they now read off this so there is one definition
- * of each rather than two that agree by inspection.
+ * Private, and the shared body of the two exported functions below rather than
+ * a third way to ask: they are folds over the same `DRAWS` evaluations, and
+ * writing each out separately is how two definitions of the same quantile come
+ * to disagree. Callers name the figure they want; neither has to know the other
+ * exists.
  */
-export type NetSummary = {
+type NetSummary = {
   /** Central credible interval on expected net; null if the rate is certain. */
   interval: [lo: number, hi: number] | null;
   /** Share of the posterior where the event is worth entering; null if certain. */
   probProfitable: number | null;
 };
 
-export function netSummary(config: EventConfig, level = CREDIBLE_LEVEL): NetSummary {
+function netSummary(config: EventConfig, level = CREDIBLE_LEVEL): NetSummary {
   const posterior = winRatePosterior(config);
   if (!posterior) return { interval: null, probProfitable: null };
   const nets = sortedNets(config, posterior);

@@ -175,35 +175,6 @@ export function expectedNetAt(config: EventConfig, winRate: number): number {
 }
 
 /**
- * Standard deviation of one event's net gems, at the config's own win rate.
- *
- * The sum `expectedNet` takes, carried to the second moment. The outcome
- * distribution is exact, so the spread around the mean is closed form too and
- * needs no sampling — like everything else here, and unlike the bankroll.
- *
- * It answers what a mean cannot: two ladders can return the same gems per entry
- * and hand them over in very differently sized pieces, and the size of the
- * pieces is what a reader with a finite balance feels. What to make of that is
- * theirs; this only measures it.
- *
- * The `Math.max` guards the subtraction, not the maths. `E[X²] − E[X]²` cannot
- * be negative in exact arithmetic, but it lands a few ulps under zero in
- * floating point on a ladder that pays the same at every rung — where the
- * answer is zero, and `Math.sqrt` of a tiny negative is `NaN`.
- */
-export function netStdDev(config: EventConfig): number {
-  const dist = exactDistribution(matchWinRate(config), config.structure);
-  let mean = 0;
-  let second = 0;
-  for (let wins = 0; wins < dist.length; wins++) {
-    const net = netValue(config, wins);
-    mean += dist[wins] * net;
-    second += dist[wins] * net * net;
-  }
-  return Math.sqrt(Math.max(0, second - mean * mean));
-}
-
-/**
  * Chance that a single event pays a prize at all, at a given win rate.
  *
  * A win count either pays the thing or it does not, so the answer is the weight
