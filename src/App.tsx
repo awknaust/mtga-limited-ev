@@ -765,13 +765,6 @@ export default function App({
   };
 
   const breakEvenShown = breakEven;
-  // Restates the event being priced, for the Results heading — the numbers
-  // below are meaningless without it.
-  const structureSummary =
-    structure.kind === "rounds"
-      ? `${structure.rounds} round${structure.rounds === 1 ? "" : "s"} played in full`
-      : `to ${structure.maxWins} win${structure.maxWins === 1 ? "" : "s"} or ${structure.maxLosses} loss${structure.maxLosses === 1 ? "" : "es"}`;
-
   /*
    * Bankroll tile building tolerates a result that has not arrived:
    * `bankroll` is null until the first simulation lands, and every tile list
@@ -1460,17 +1453,20 @@ export default function App({
                 active={tab}
                 onSelect={setTab}
                 label="Results"
+                /*
+                 * Only the spinner, and only while one is running: it is the
+                 * one thing here that has to be visible from a tab other than
+                 * the one dimming, so it cannot live in the panel. The event
+                 * and its structure used to sit beside it, restating the
+                 * sidebar two inches away.
+                 */
                 trailing={
-                  <span className="section-note">
-                    {presetName} · {structureSummary}
-                    {/* Visible from any tab, unlike the dimmed panel itself. */}
-                    {bankrollPending && (
-                      <span
-                        className="spinner-border spinner-border-sm ms-2 text-secondary"
-                        aria-hidden="true"
-                      />
-                    )}
-                  </span>
+                  bankrollPending ? (
+                    <span
+                      className="spinner-border spinner-border-sm text-secondary"
+                      aria-hidden="true"
+                    />
+                  ) : undefined
                 }
               />
 
