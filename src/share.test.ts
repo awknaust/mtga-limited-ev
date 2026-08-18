@@ -127,6 +127,76 @@ describe("the mastery season", () => {
   });
 });
 
+describe("the compare selection", () => {
+  const compareOf = (search: string) => decodeShareState(search).compareSelection;
+
+  it("writes nothing while it is the default", () => {
+    expect(encodeShareState(defaultShareState())).not.toContain("compare");
+  });
+
+  it("round-trips a selection", () => {
+    const picked = [QUICK_DRAFT.name, SEALED.name];
+    expect(roundTrip(withState({ compareSelection: picked })).compareSelection).toEqual(
+      picked,
+    );
+  });
+
+  /*
+   * The trap this parameter carries, pinned from both ends.
+   *
+   * "None selected" and "not in the link" are different states, and the empty
+   * one is reachable — the selector has a None button. Since it encodes to the
+   * empty string, `params.get("compare")` returns `""`, which is falsy: a
+   * decoder testing truthiness rather than null springs it back to the default
+   * three, and the reader's link silently shows three events they deselected.
+   */
+  it("keeps an empty selection apart from an absent one", () => {
+    const empty = withState({ compareSelection: [] });
+    // Written at all, rather than omitted as an unchanged value would be.
+    expect(encodeShareState(empty)).toContain("compare=");
+    expect(roundTrip(empty).compareSelection).toEqual([]);
+    // ...and the absent case still means the default, not none.
+    expect(compareOf("")).toEqual(defaultShareState().compareSelection);
+    expect(compareOf("?compare=")).toEqual([]);
+  });
+
+  /*
+   * Held in `PRESETS` order however it was assembled, so toggling an event off
+   * and back on does not move its line to the end of the chart or rewrite the
+   * link for no change of meaning.
+   */
+  it("is a set in preset order, not the order things were picked", () => {
+    const backwards = withState({ compareSelection: [SEALED.name, QUICK_DRAFT.name] });
+    const forwards = withState({ compareSelection: [QUICK_DRAFT.name, SEALED.name] });
+    expect(encodeShareState(backwards)).toBe(encodeShareState(forwards));
+    expect(roundTrip(backwards).compareSelection).toEqual([
+      QUICK_DRAFT.name,
+      SEALED.name,
+    ]);
+  });
+
+  it("drops a duplicate rather than drawing the line twice", () => {
+    const doubled = withState({ compareSelection: [SEALED.name, SEALED.name] });
+    expect(roundTrip(doubled).compareSelection).toEqual([SEALED.name]);
+  });
+
+  /*
+   * A link written by a build carrying an event this one does not still opens,
+   * with the events it knows — the same degradation an unknown parameter gets.
+   */
+  it("keeps the events it knows and drops the ones it does not", () => {
+    expect(compareOf("?compare=quick-draft_some-future-event_sealed")).toEqual([
+      QUICK_DRAFT.name,
+      SEALED.name,
+    ]);
+    expect(compareOf("?compare=nothing-by-this-name")).toEqual([]);
+  });
+
+  it("carries the reader's own ladder", () => {
+    expect(compareOf("?compare=custom_sealed")).toEqual([CUSTOM_PRESET, SEALED.name]);
+  });
+});
+
 describe("round trips", () => {
   it("restores an untouched load from an empty query", () => {
     expect(decodeShareState("")).toEqual(defaultShareState());

@@ -23,7 +23,10 @@ import {
   BOX_KINDS,
   CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
+  PREMIER_DRAFT,
   PRESETS,
+  SEALED,
+  TRADITIONAL_DRAFT,
   masteryBySlug,
   configFromPreset,
   defaultConfig,
@@ -36,7 +39,7 @@ import {
   type PayoutTier,
 } from "./lib";
 
-export type Tab = "bankroll" | "event" | "mastery" | "about";
+export type Tab = "bankroll" | "event" | "mastery" | "about" | "compare";
 
 /** Everything a link restores. */
 export type ShareState = {
@@ -58,6 +61,19 @@ export type ShareState = {
    * relabelling, and it is what the URL carries either way.
    */
   masterySlug: string;
+  /**
+   * Which events the Compare tab draws, by preset name, `CUSTOM_PRESET`
+   * included where the reader's own ladder is one of them.
+   *
+   * Names rather than slugs, like `presetName` — the slug is a spelling the URL
+   * uses and nothing else reads. Held in `PRESETS` order however it was picked,
+   * so the chart's series order is stable under toggling and a link does not
+   * change because two events were chosen in the other order.
+   *
+   * The empty list is a real value, and distinct from the default: see
+   * `encodeShareState`.
+   */
+  compareSelection: string[];
   unit: Unit;
   gemsPerUsd: number;
 };
@@ -111,6 +127,38 @@ export const SIM_LIMITS = {
   maxEvents: 2_000,
 } as const;
 
+/**
+ * The events the Compare tab opens on.
+ *
+ * Three, so the chart opens legible and the reader adds rather than prunes —
+ * sixteen lines at once is a shape nobody can read, and the selector is right
+ * there. Which three is a judgement about what is usually being weighed up, not
+ * a claim about which is worth playing; the tab exists because that second
+ * question is the reader's rates to answer.
+ *
+ * By reference to the presets rather than by string, so renaming one moves this
+ * with it instead of silently emptying the default.
+ */
+const DEFAULT_COMPARE: string[] = [PREMIER_DRAFT.name, TRADITIONAL_DRAFT.name, SEALED.name];
+
+/**
+ * A compare selection in canonical form: deduped, and in `PRESETS` order with
+ * `CUSTOM_PRESET` — which is in no such order — ahead of them.
+ *
+ * Applied on the way in and on the way out, so the selection is a set that
+ * happens to have an order rather than a sequence that has to be preserved.
+ * That is what keeps toggling an event off and on from moving its line to the
+ * end of the chart, and keeps two readers who picked the same events in
+ * different orders on the same link.
+ */
+export function normalizeCompare(names: readonly string[]): string[] {
+  const rank = (name: string): number =>
+    name === CUSTOM_PRESET ? -1 : PRESETS.findIndex((p) => p.name === name);
+  return [...new Set(names)]
+    .filter((name) => name === CUSTOM_PRESET || PRESETS.some((p) => p.name === name))
+    .sort((a, b) => rank(a) - rank(b));
+}
+
 export function defaultShareState(): ShareState {
   // The event the app opens on, which the starting balance is priced against.
   const opening = PRESETS[0];
@@ -128,6 +176,7 @@ export function defaultShareState(): ShareState {
     maxEvents: 20,
     tab: "bankroll",
     masterySlug: CURRENT_MASTERY_TRACK.slug,
+    compareSelection: DEFAULT_COMPARE,
     unit: "gems",
     gemsPerUsd: 200,
   };
@@ -184,6 +233,11 @@ export function resetAdvanced(state: ShareState): ShareState {
     // Where the page is pointed, which is not a setting to restore.
     tab: state.tab,
     masterySlug: state.masterySlug,
+    // Which events are being compared is the same kind of thing as which tab is
+    // open: a question the reader is asking, not a value the dialog owns. Reset
+    // would otherwise empty the Compare tab back to its three from a button
+    // that names none of this.
+    compareSelection: state.compareSelection,
     unit: state.unit,
   };
 }
@@ -207,10 +261,23 @@ export const presetSlug = (name: string): string =>
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-|-$/g, "");
 
-const presetBySlug = (slug: string): string | null => {
+export const presetBySlug = (slug: string): string | null => {
   if (slug === presetSlug(CUSTOM_PRESET)) return CUSTOM_PRESET;
   return PRESETS.find((p) => presetSlug(p.name) === slug)?.name ?? null;
 };
+
+/**
+ * A compare selection as it is spelled in a link: slugs joined with `_`.
+ *
+ * The separator is the one `encodePayouts` puts between rows, for the same
+ * reason — `-` is unavailable, since it is already inside every slug.
+ *
+ * The empty selection encodes to the empty string, which is a value and not an
+ * absence. `encodeShareState` writes it as a bare `compare=`; see the note
+ * there about what that costs the decoder.
+ */
+const encodeCompare = (names: readonly string[]): string =>
+  normalizeCompare(names).map(presetSlug).join("_");
 
 /**
  * The config a preset implies on a fresh load, which is what its parameters are
@@ -492,6 +559,23 @@ export function encodeShareState(state: ShareState): string {
   if (state.masterySlug !== fallback.masterySlug) {
     params.set("mastery", state.masterySlug);
   }
+
+  /*
+   * The one parameter whose *empty* value carries meaning, so it is the one
+   * place the delta rule needs saying out loud.
+   *
+   * Three selections have to stay distinct: the default three, some other set,
+   * and none at all — which the selector's None button reaches, and which is a
+   * legitimate thing to link to. Absent means the default, as everywhere else
+   * here; a bare `compare=` means none. The cost lands on the decoder, where
+   * `params.get("compare")` returns `""` for that — falsy, and testing it for
+   * truthiness rather than for null silently springs an empty selection back to
+   * the default. `decodeShareState` tests `=== null`; `share.test.ts` pins it
+   * both ways.
+   */
+  const compare = encodeCompare(state.compareSelection);
+  if (compare !== encodeCompare(fallback.compareSelection)) params.set("compare", compare);
+
   if (state.unit !== fallback.unit) params.set("unit", state.unit);
 
   return params.toString();
@@ -587,7 +671,12 @@ export function decodeShareState(search: string): ShareState {
      * missing from here compiles cleanly and silently falls back to Bankroll,
      * so the list and the union have to be kept in step by hand.
      */
-    tab: oneOf<Tab>(params, "tab", ["bankroll", "event", "mastery", "about"], fallback.tab),
+    tab: oneOf<Tab>(
+      params,
+      "tab",
+      ["bankroll", "event", "mastery", "about", "compare"],
+      fallback.tab,
+    ),
     /*
      * Checked against the tracks that exist rather than taken as written, so a
      * link naming a season this build does not carry falls back to the current
@@ -595,6 +684,22 @@ export function decodeShareState(search: string): ShareState {
      */
     masterySlug:
       masteryBySlug(params.get("mastery") ?? "")?.slug ?? fallback.masterySlug,
+    /*
+     * `=== null` and not `??`, deliberately: a bare `compare=` is the empty
+     * selection and must survive as one, and it is falsy. See the note in the
+     * encoder.
+     *
+     * Unknown slugs drop rather than throw, so a link written by a build
+     * carrying an event this one does not still opens — with the events it
+     * does know, which is the same degradation an unknown parameter gets.
+     */
+    compareSelection: (() => {
+      const raw = params.get("compare");
+      if (raw === null) return fallback.compareSelection;
+      return normalizeCompare(
+        raw.split("_").map(presetBySlug).filter((name): name is string => name !== null),
+      );
+    })(),
     unit: oneOf<Unit>(params, "unit", ["gems", "usd"], fallback.unit),
     gemsPerUsd: numberFrom(params, "gemsPerUsd", fallback.gemsPerUsd, { min: 1 }),
   };

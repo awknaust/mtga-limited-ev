@@ -13,6 +13,7 @@ import {
 import { stepWinRate } from "./winRate";
 import { About } from "./components/About";
 import { BoxPrices } from "./components/BoxPrices";
+import { Compare } from "./components/Compare";
 import { DistributionChart } from "./components/DistributionChart";
 import { EvCurveChart } from "./components/EvCurveChart";
 import { EventFields } from "./components/EventFields";
@@ -114,6 +115,7 @@ const CONFIDENCE_CHOICES = [
 const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
   { key: "event" as const, label: "Long-term value" },
+  { key: "compare" as const, label: "Compare" },
   { key: "mastery" as const, label: "Mastery" },
   { key: "about" as const, label: "About" },
 ];
@@ -232,6 +234,10 @@ export default function App({
   const [tab, setTab] = useState<Tab>(initial.tab);
   // Which Set Mastery season the Mastery tab prices.
   const [masterySlug, setMasterySlug] = useState(initial.masterySlug);
+  // Which events the Compare tab draws. In the link, unlike the y-axis mode
+  // below it: which events are being weighed up is the question being asked,
+  // and the thing worth sending someone.
+  const [compareSelection, setCompareSelection] = useState(initial.compareSelection);
   // Resolved here rather than in the tab, since the picker sits beside the
   // event and the tab is only one of the two things reading it.
   const masteryTrack = masteryBySlug(masterySlug) ?? CURRENT_MASTERY_TRACK;
@@ -277,6 +283,7 @@ export default function App({
     maxEvents,
     tab,
     masterySlug,
+    compareSelection,
     unit,
     gemsPerUsd,
   });
@@ -309,6 +316,7 @@ export default function App({
     maxEvents,
     tab,
     masterySlug,
+    compareSelection,
     unit,
     gemsPerUsd,
   ]);
@@ -1497,6 +1505,14 @@ export default function App({
                 />
               ) : tab === "mastery" ? (
                 <Mastery track={masteryTrack} config={config} m={m} />
+              ) : tab === "compare" ? (
+                <Compare
+                  config={config}
+                  presetName={presetName}
+                  selection={compareSelection}
+                  onSelectionChange={setCompareSelection}
+                  m={m}
+                />
               ) : tab === "bankroll" ? (
                 <>
                   <div className="form-text mb-2">

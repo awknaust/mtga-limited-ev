@@ -28,6 +28,7 @@ import {
   TRADITIONAL_DRAFT,
   boxChancePerEvent,
   breakEvenWinRate,
+  netStdDev,
   configFromPreset,
   defaultConfig,
   eventExpectation,
@@ -566,6 +567,78 @@ describe("breakEvenWinRate", () => {
 
   it("returns null when the event is profitable at any win rate", () => {
     expect(breakEvenWinRate({ ...defaultConfig(), entryCostGems: 0 })).toBeNull();
+  });
+});
+
+describe("netStdDev", () => {
+  /*
+   * One round, one rung that pays and one that does not, so the outcome is a
+   * scaled coin flip and the answer can be worked out on paper:
+   *
+   *     E[X]  = p·w
+   *     E[X²] = p·w²
+   *     Var   = p·w² − (p·w)² = p(1 − p)w²
+   *     SD    = w·√(p(1 − p))
+   *
+   * At p = ½ and w = 100 that is 100 × ½ = 50 exactly.
+   */
+  const flip = (winGems: number, p: number): EventConfig => ({
+    ...defaultConfig(),
+    winRate: p,
+    structure: { kind: "rounds", rounds: 1 },
+    payouts: [
+      { wins: 0, gems: 0, packs: 0 },
+      { wins: 1, gems: winGems, packs: 0 },
+    ],
+  });
+
+  it("is w·√(p(1−p)) on a single-round two-rung ladder", () => {
+    expect(netStdDev(flip(100, 0.5))).toBeCloseTo(50, 10);
+    // p = ¼, w = 200: 200 × √(3/16) = √7500 = 86.6025…
+    expect(netStdDev(flip(200, 0.25))).toBeCloseTo(Math.sqrt(7500), 10);
+  });
+
+  /*
+   * The entry is charged once whatever happens, so it slides every outcome by
+   * the same amount and cannot change the spread around them. Worth pinning
+   * rather than assuming: it is what lets the scatter put a 750-gem event and
+   * an 8,000-gem one on one axis without the axis being mostly entry cost.
+   */
+  it("is unmoved by the entry cost, which shifts every outcome alike", () => {
+    const cheap = flip(100, 0.5);
+    const dear = { ...cheap, entryCostGems: 5000 };
+    expect(netStdDev(dear)).toBeCloseTo(netStdDev(cheap), 10);
+    // ...and the means really do differ, so the check above is not vacuous.
+    expect(expectedNet(dear)).toBeLessThan(expectedNet(cheap));
+  });
+
+  it("is exactly zero on a ladder that pays the same at every rung", () => {
+    const flat: EventConfig = {
+      ...defaultConfig(),
+      winRate: 0.5,
+      structure: { kind: "rounds", rounds: 2 },
+      payouts: [
+        { wins: 0, gems: 250, packs: 0 },
+        { wins: 1, gems: 250, packs: 0 },
+        { wins: 2, gems: 250, packs: 0 },
+      ],
+    };
+    // Not `toBeCloseTo`: the guard in `netStdDev` exists so this is 0 and not
+    // NaN from the square root of a negative few ulps.
+    expect(netStdDev(flat)).toBe(0);
+  });
+
+  it("agrees with a direct sum over the outcome rows", () => {
+    // The same quantity by the other route, over the rows `eventExpectation`
+    // already reports, so the closed form is checked against the table the tab
+    // renders rather than only against itself.
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    const { outcomes, meanNet } = eventExpectation(config);
+    const variance = outcomes.reduce(
+      (acc, o) => acc + o.probability * (o.netGems - meanNet) ** 2,
+      0,
+    );
+    expect(netStdDev(config)).toBeCloseTo(Math.sqrt(variance), 8);
   });
 });
 
