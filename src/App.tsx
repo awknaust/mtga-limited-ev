@@ -2050,9 +2050,9 @@ export default function App({
                   </div>
                   <div className="col-6">
                     <label htmlFor={ids.rareCardValue} className="form-label">
-                      Rare card value ({m.label})
+                      Rare ICR value ({m.label})
                       <InfoTip
-                        label="About rare card value"
+                        label="About rare ICR value"
                         content="Arena's duplicate-protection payout for a rare you already hold four of: 20 gems."
                       />
                     </label>

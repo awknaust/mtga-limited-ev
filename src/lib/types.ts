@@ -306,11 +306,20 @@ export type EventConfig = {
   /**
    * Gem value of one rare card award.
    *
-   * Named a card rather than an ICR because that is what it is: the only track
-   * row paying these is level 6's four copies of Gandalf, Party Guest, a card
-   * Wizards names. An ICR is a random card of a rarity, so calling this one
-   * would claim the pass pays something it does not. The sibling fields are
-   * ICRs and say so.
+   * The field is `rareCard` and not `rareIcr` because a card is what it is: the
+   * only track row paying these is level 6's four copies of Gandalf, Party
+   * Guest, a card Wizards names, where an ICR is a random card of a rarity.
+   *
+   * On screen it is labelled a Rare ICR alongside the mythic and uncommon
+   * ones, which is a deliberate choice and not an oversight to correct back.
+   * All three are priced the same way — a rate per card that the reader sets —
+   * and no term in the model asks which card arrives, so the distinction
+   * changes no figure the app reports. Three labels, one of which quietly
+   * disagreed with the other two, cost more in confusion than the precision
+   * bought. It is recorded here instead, where length is free.
+   *
+   * The name stays: it is in the URL as `rareCardValue`, which
+   * `share.compat.test.ts` pins, and it is what the reward actually is.
    */
   rareCardValueGems: number;
   /** Gem value of one uncommon individual card reward. */
