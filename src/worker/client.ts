@@ -111,15 +111,21 @@ const CACHE_MAX: Record<Kind, number> = { bankrolls: 4, compare: 64 };
 /**
  * How many workers one kind may run at once.
  *
- * Four, bounded by what the machine actually has. Only the grid can use them —
- * it is the one workload that is many jobs at once — and past about four the
- * gain flattens while the page competes with itself for cores it also needs to
- * render. `hardwareConcurrency` is missing on nothing current, but a stated
- * fallback beats `NaN` lanes if it ever is.
+ * Four, and never the whole machine. Only the grid can use more than one — it
+ * is the one workload that is many jobs at once — and past about four the gain
+ * flattens: the events are unequal, so the longest of them bounds the tail
+ * however many lanes are spare.
+ *
+ * One core is left out of the count deliberately. Both simulations run from
+ * any tab, so a grid at full stretch is these lanes plus the bankroll's plus
+ * the main thread, and on a small machine claiming every core makes the page
+ * that dispatched the work compete with it to paint the result. On anything
+ * large the subtraction never binds. `hardwareConcurrency` is missing on
+ * nothing current, but a stated fallback beats `NaN` lanes if it ever is.
  */
 const DEFAULT_MAX_WORKERS = Math.max(
   1,
-  Math.min(4, globalThis.navigator?.hardwareConcurrency ?? 4),
+  Math.min(4, (globalThis.navigator?.hardwareConcurrency ?? 4) - 1),
 );
 
 class KindPool {

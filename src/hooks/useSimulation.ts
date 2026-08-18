@@ -191,10 +191,9 @@ export function useSimulateBankrolls(
  * Special-casing it here would be a second path through the cache, the cancel
  * and the pending flag for a job that costs nothing to run.
  *
- * Held while the reader is on another tab — see the call site. The grid is the
- * one simulation nothing off its own tab reads, so running it for a reader who
- * never opens the Compare tab is worker time spent on nothing; holding rather
- * than unmounting is what keeps the last answer on screen when they come back.
+ * Runs from whichever tab is showing, like the single-event bankroll it is
+ * made of — a simulation starts on the change that made it stale, not on the
+ * tab switch that reveals it. See the call site for the trade that makes.
  *
  * @param timing As `useSimulateBankrolls`.
  */
