@@ -15,6 +15,7 @@ import type { Unit } from "./format";
 import {
   CURRENT_MASTERY_TRACK,
   CUSTOM_PRESET,
+  GEMS_PER_USD,
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
@@ -199,7 +200,9 @@ export function defaultShareState(): ShareState {
     masterySlug: CURRENT_MASTERY_TRACK.slug,
     compareSelection: DEFAULT_COMPARE,
     unit: "gems",
-    gemsPerUsd: 200,
+    // The same rate the box values are converted at, so the Display field's
+    // default and the constant behind it cannot drift apart.
+    gemsPerUsd: GEMS_PER_USD,
   };
 }
 

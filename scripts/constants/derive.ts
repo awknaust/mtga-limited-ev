@@ -12,7 +12,7 @@ import type { BoxPriceFeed, FeedSet } from "../box-prices/feed.ts";
 import { isoDate } from "../shared/dates.ts";
 import { SourceError } from "../shared/http.ts";
 import type { ScryfallSet } from "../shared/scryfall.ts";
-import type { MythicRateEntry } from "./wizards.ts";
+import type { CubePrizePack, MythicRateEntry } from "./wizards.ts";
 
 /**
  * How far back a set still counts as recent, for picking the mythic rate.
@@ -42,6 +42,50 @@ export const rareSlotGems = (
  */
 export const wildcardShare = (wildcards: { rare: number; mythic: number }): number =>
   1 / wildcards.rare + 1 / wildcards.mythic;
+
+/**
+ * What a Mythic Booster's rare slot is worth to a complete collection.
+ *
+ * The slot is a mythic for certain, so the only adjustment left is the
+ * wildcard one, taken at the same rate as an ordinary pack's — both wildcards
+ * that can take the slot, which is `wildcardShare`. The page's own sentence
+ * names only a rare wildcard; the registry prints what that narrower reading
+ * would give, so the choice stays visible.
+ */
+export const mythicSlotGems = (
+  mythicDupeGems: number,
+  wildcards: { rare: number; mythic: number },
+): number => mythicDupeGems * (1 - wildcardShare(wildcards));
+
+export type CubePackValue = {
+  timeless: number;
+  bonusSheet: number;
+  flexRare: number;
+  total: number;
+};
+
+/**
+ * What a Cube Prize Pack is worth to a complete collection, slot by slot.
+ *
+ * Three slots pay: the Timeless rare (upgrading at its own rate), the bonus
+ * sheet rare (at its), and the flex slot's Timeless-rare share, taken at the
+ * rare buyout with no upgrade because the page names none for it. The flex
+ * slot's uncommon share is worth nothing, like every uncommon here, and its
+ * bonus-sheet share is priced at nothing too — that half's rarity mix is a
+ * card list the parser hands on uncounted rather than a rate, and pricing it
+ * would be a change to the rule rather than a re-reading of the inputs. So
+ * this is a floor, and the registry says so beside the list.
+ */
+export function cubePackGems(
+  rareDupeGems: number,
+  mythicDupeGems: number,
+  pack: CubePrizePack,
+): CubePackValue {
+  const timeless = rareSlotGems(rareDupeGems, mythicDupeGems, pack.timelessMythicRate);
+  const bonusSheet = rareSlotGems(rareDupeGems, mythicDupeGems, pack.bonusSheetMythicRate);
+  const flexRare = (pack.flex.timelessRarePct / 100) * rareDupeGems;
+  return { timeless, bonusSheet, flexRare, total: timeless + bonusSheet + flexRare };
+}
 
 export type MythicRateSummary = {
   rate: number;
