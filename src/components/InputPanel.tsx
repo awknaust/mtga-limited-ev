@@ -419,7 +419,7 @@ export function InputPanel({
               the reader's own.
             */}
             {!isCustom && (
-              <p className="form-text mb-0 mt-2">
+              <p className="form-text text-center mb-0 mt-2">
                 <a
                   className="link-secondary"
                   href={wrongNumberIssueUrl({
