@@ -1,4 +1,4 @@
-import { REAL_GEMS, approx, type Money } from "../format";
+import { REAL_GEMS, approx, signClass, type Money } from "../format";
 import { masteryValue, type EventConfig, type MasteryTrack } from "../lib";
 import { SectionHeading } from "./SectionHeading";
 import { StatStrip } from "./StatStrip";
@@ -42,7 +42,6 @@ export function Mastery({
   // The price is a real amount somebody was quoted, so it never converts and
   // never takes the ≈. The one figure on this tab the unit toggle cannot reach.
   const price = REAL_GEMS.fmt(track.priceGems);
-  const signClass = (n: number): string => (n >= 0 ? "text-success" : "text-danger");
   // Counts, not valuations: 4,000 gold is a count of gold and takes a separator
   // like any four-digit figure, but never a gem sign and never the ≈.
   const count = (n: number): string => (n ? n.toLocaleString() : "—");
