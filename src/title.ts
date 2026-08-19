@@ -16,7 +16,7 @@
  * Pure, like `share.ts`. App.tsx owns the assignment to `document.title`.
  */
 
-import type { Tab } from "./share";
+import type { Tab } from "./state";
 
 /** The site's name, as it appears in the title, the heading and the notice. */
 export const SITE_NAME = "mtga.fyi";

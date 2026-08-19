@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { money, type Unit } from "./format";
+import { money } from "./format";
 import { AdvancedDialog } from "./components/AdvancedDialog";
 import { BoxPricesDialog } from "./components/BoxPricesDialog";
 import { pickEvents } from "./components/compareEvents";
@@ -20,17 +20,9 @@ import {
   winRatePosterior,
   withLiveBoxPrices,
   type BoxPriceFeed,
-  type EventConfig,
 } from "./lib";
-import {
-  STARTING_ENTRIES,
-  decodeShareState,
-  encodeShareState,
-  isAdvancedDefault,
-  resetAdvanced,
-  type ShareState,
-  type Tab,
-} from "./share";
+import { decodeShareState, encodeShareState, isAdvancedDefault } from "./share";
+import { STARTING_ENTRIES, resetAdvanced, type ShareState } from "./state";
 import { SITE_NAME, pageTitle } from "./title";
 import { useModal } from "./hooks/useModal";
 import { useSimulateBankrolls, useSimulateCompare } from "./hooks/useSimulation";
@@ -58,41 +50,65 @@ export default function App({
   /*
    * The query string is the only place state persists. It is read once here
    * and written back on every change, so the address bar always describes what
-   * is on screen and is shareable as it stands. Defaults live in share.ts
-   * rather than in these initialisers: a default that disagreed with the one
-   * the encoder measures against would be written into every link.
+   * is on screen and is shareable as it stands. Defaults live in state.ts
+   * rather than in this initialiser: a default that disagreed with the one the
+   * encoder measures against would be written into every link.
+   *
+   * One `ShareState` rather than a field per `useState`, because every field
+   * of it is written to the URL together and the effect below has to depend on
+   * all of them. Thirteen states meant a thirteen-name dependency list that
+   * nothing checked: a field added to `ShareState` is a type error until
+   * `defaultShareState` and the decoder account for it, and was *no* error at
+   * all if it never reached that list — the link would simply stop following
+   * that one field. Now the effect depends on the object.
    *
    * The live feed is applied here, to the decoded state, so the first state is
    * the priced one. It supplies the per-set table and nothing else: the two
    * generic box values are the build's own and only the reader moves them, so
    * a fresh load reads as untouched and writes nothing into the link.
    */
-  const [initial] = useState(() => {
+  const [state, setState] = useState<ShareState>(() => {
     const decoded = decodeShareState(window.location.search);
     return boxFeed === null
       ? decoded
       : { ...decoded, config: withLiveBoxPrices(decoded.config, boxFeed, new Date()) };
   });
-  const [config, setConfig] = useState<EventConfig>(initial.config);
-  const [bankrollRuns, setBankrollRuns] = useState(initial.bankrollRuns);
-  const [seed, setSeed] = useState(initial.seed);
-  const [presetName, setPresetName] = useState(initial.presetName);
-  const [startingGems, setStartingGems] = useState(initial.startingGems);
-  const [startingGold, setStartingGold] = useState(initial.startingGold);
-  // Only the Qualifier Play-Ins spend these, and nothing here refills them.
-  const [startingPlayInPoints, setStartingPlayInPoints] = useState(
-    initial.startingPlayInPoints,
-  );
-  // Where the player stops, not a numerical guard — a run that never busts has
-  // to end somewhere, and how long you intend to play is a real input.
-  const [maxEvents, setMaxEvents] = useState(initial.maxEvents);
-  const [tab, setTab] = useState<Tab>(initial.tab);
-  // Which Set Mastery season the Mastery tab prices.
-  const [masterySlug, setMasterySlug] = useState(initial.masterySlug);
-  // Which events the Compare tab draws. In the link, unlike the y-axis mode
-  // inside it: which events are being weighed up is the question being asked,
-  // and the thing worth sending someone.
-  const [compareSelection, setCompareSelection] = useState(initial.compareSelection);
+  /**
+   * A field or two at a time, which is how every control here edits.
+   *
+   * Functional, so two patches raised from one event cannot lose each other —
+   * and so a handler never has to close over the state it is about to replace.
+   */
+  const patch = (fields: Partial<ShareState>) =>
+    setState((current) => ({ ...current, ...fields }));
+  /*
+   * Read back out under the names the panels below take, so what each of them
+   * is handed reads at the call site rather than being spelled `state.` at
+   * every use.
+   */
+  const {
+    config,
+    presetName,
+    bankrollRuns,
+    seed,
+    startingGems,
+    startingGold,
+    // Only the Qualifier Play-Ins spend these, and nothing here refills them.
+    startingPlayInPoints,
+    // Where the player stops, not a numerical guard — a run that never busts
+    // has to end somewhere, and how long you intend to play is a real input.
+    maxEvents,
+    tab,
+    // Which Set Mastery season the Mastery tab prices.
+    masterySlug,
+    // Which events the Compare tab draws. In the link, unlike the y-axis mode
+    // inside it: which events are being weighed up is the question being
+    // asked, and the thing worth sending someone.
+    compareSelection,
+    unit,
+    // 20,000 gems for $99.99 is the largest bundle, so the best rate on offer.
+    gemsPerUsd,
+  } = state;
   // Resolved here rather than in the tab, since the picker sits beside the
   // event and the tab is only one of the two things reading it.
   const masteryTrack = masteryBySlug(masterySlug) ?? CURRENT_MASTERY_TRACK;
@@ -104,37 +120,10 @@ export default function App({
    * shared. Held here rather than in the tab, which a tab switch unmounts.
    */
   const [view, setView] = useState<"value" | "breakdown">("value");
-  const [unit, setUnit] = useState<Unit>(initial.unit);
-  // 20,000 gems for $99.99 is the largest bundle, so the best rate on offer.
-  const [gemsPerUsd, setGemsPerUsd] = useState(initial.gemsPerUsd);
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   // Set when a preset switch lands on an event the balance cannot enter. Not
   // in the URL: it describes a moment, not a configuration worth sharing.
   const [topUp, setTopUp] = useState<TopUp | null>(null);
-
-  /**
-   * Everything a link carries, as the one object three things here take.
-   *
-   * A function rather than a value so the effect below keeps a dependency list
-   * of plain numbers and strings: an object built in the render body is a new
-   * one every time unless the compiler memoises it, and a silent bailout would
-   * turn that effect into a history write per render.
-   */
-  const shareState = (): ShareState => ({
-    presetName,
-    config,
-    bankrollRuns,
-    seed,
-    startingGems,
-    startingGold,
-    startingPlayInPoints,
-    maxEvents,
-    tab,
-    masterySlug,
-    compareSelection,
-    unit,
-    gemsPerUsd,
-  });
 
   /*
    * replaceState, not pushState: these are live-edited fields, and a history
@@ -146,7 +135,7 @@ export default function App({
    * decode above already handles.
    */
   useEffect(() => {
-    const query = encodeShareState(shareState());
+    const query = encodeShareState(state);
     const { pathname, hash } = window.location;
     window.history.replaceState(
       null,
@@ -169,21 +158,9 @@ export default function App({
       isDefault: query === "",
     });
     if (document.title !== title) document.title = title;
-  }, [
-    presetName,
-    config,
-    bankrollRuns,
-    seed,
-    startingGems,
-    startingGold,
-    startingPlayInPoints,
-    maxEvents,
-    tab,
-    masterySlug,
-    compareSelection,
-    unit,
-    gemsPerUsd,
-  ]);
+    // One dependency, which is the point: `tab` and `presetName` are read off
+    // the same object, so there is no list to keep in step with `ShareState`.
+  }, [state]);
 
   const copyTimer = useRef<number | null>(null);
   useEffect(
@@ -357,13 +334,18 @@ export default function App({
 
   /** Presets load their own values; "Custom" keeps whatever is on screen. */
   const applyPreset = (name: string) => {
-    setPresetName(name);
     const preset = PRESETS.find((p) => p.name === name);
-    if (!preset) return;
+    // Custom, which has no definition of its own to load.
+    if (!preset) {
+      patch({ presetName: name });
+      return;
+    }
     // Read off the config rather than the preset, so the prompt below asks the
     // same three prices the model does — absent and zero already normalised.
     const next = configFromPreset(preset, config);
-    setConfig(next);
+    // Name and ladder in one write: they are one move, and a link written
+    // between two of them would name an event it did not carry.
+    patch({ presetName: name, config: next });
 
     /*
      * Switching to an event you cannot afford produces a page of zeroes: the
@@ -393,30 +375,16 @@ export default function App({
     });
   };
 
-  /**
+  /*
    * Advanced settings back to their defaults, from the dialog's own footer.
    *
-   * `resetAdvanced` decides where the line falls; this only puts back what it
-   * returns. Every field is handed to its setter rather than the ones the
-   * dialog happens to show today, so moving a field into it stays a change in
-   * share.ts alone — React drops a set to the value already held, which is
-   * what makes the unchanged ones free.
+   * `resetAdvanced` decides where the line falls, and it is already a
+   * `ShareState` to a `ShareState`, so it *is* the updater — which is the
+   * whole of it now. It used to hand every field to its own setter, and what
+   * that cost was a list: a field moved into the dialog was restored only if
+   * someone remembered to come back here and add a thirteenth call.
    */
-  const resetAdvancedSettings = () => {
-    const next = resetAdvanced(shareState());
-    setPresetName(next.presetName);
-    setConfig(next.config);
-    setBankrollRuns(next.bankrollRuns);
-    setSeed(next.seed);
-    setStartingGems(next.startingGems);
-    setStartingGold(next.startingGold);
-    setStartingPlayInPoints(next.startingPlayInPoints);
-    setMaxEvents(next.maxEvents);
-    setTab(next.tab);
-    setMasterySlug(next.masterySlug);
-    setUnit(next.unit);
-    setGemsPerUsd(next.gemsPerUsd);
-  };
+  const resetAdvancedSettings = () => setState(resetAdvanced);
 
   return (
     <div className="container-xl py-4">
@@ -452,38 +420,38 @@ export default function App({
       <div className="row g-3 align-items-start">
         <InputPanel
           config={config}
-          onConfigChange={setConfig}
+          onConfigChange={(config) => patch({ config })}
           m={m}
           unit={unit}
-          onUnitChange={setUnit}
+          onUnitChange={(unit) => patch({ unit })}
           gemsPerUsd={gemsPerUsd}
           startValue={startValue}
           startingGems={startingGems}
-          onStartingGemsChange={setStartingGems}
+          onStartingGemsChange={(startingGems) => patch({ startingGems })}
           startingGold={startingGold}
-          onStartingGoldChange={setStartingGold}
+          onStartingGoldChange={(startingGold) => patch({ startingGold })}
           startingPlayInPoints={startingPlayInPoints}
-          onStartingPlayInPointsChange={setStartingPlayInPoints}
+          onStartingPlayInPointsChange={(points) => patch({ startingPlayInPoints: points })}
           maxEvents={maxEvents}
-          onMaxEventsChange={setMaxEvents}
+          onMaxEventsChange={(maxEvents) => patch({ maxEvents })}
           presetName={presetName}
           onPresetChange={applyPreset}
           masteryTrack={masteryTrack}
-          onMasterySlugChange={setMasterySlug}
+          onMasterySlugChange={(masterySlug) => patch({ masterySlug })}
           onEditEvent={showEditor}
           onAdvanced={showAdvanced}
         />
 
         <ResultsPanel
           tab={tab}
-          onTabChange={setTab}
+          onTabChange={(tab) => patch({ tab })}
           simulating={simulating}
           config={config}
           m={m}
           presetName={presetName}
           masteryTrack={masteryTrack}
           compareSelection={compareSelection}
-          onCompareSelectionChange={setCompareSelection}
+          onCompareSelectionChange={(compareSelection) => patch({ compareSelection })}
           comparePicked={comparePicked}
           compareGrid={compareGrid}
           bankrollKnobs={bankrollKnobs}
@@ -504,16 +472,16 @@ export default function App({
       <AdvancedDialog
         ref={advancedRef}
         config={config}
-        onConfigChange={setConfig}
+        onConfigChange={(config) => patch({ config })}
         m={m}
         rateBand={rateBand}
         gemsPerUsd={gemsPerUsd}
-        onGemsPerUsdChange={setGemsPerUsd}
+        onGemsPerUsdChange={(gemsPerUsd) => patch({ gemsPerUsd })}
         bankrollRuns={bankrollRuns}
-        onBankrollRunsChange={setBankrollRuns}
+        onBankrollRunsChange={(bankrollRuns) => patch({ bankrollRuns })}
         seed={seed}
-        onSeedChange={setSeed}
-        isDefault={isAdvancedDefault(shareState())}
+        onSeedChange={(seed) => patch({ seed })}
+        isDefault={isAdvancedDefault(state)}
         onReset={resetAdvancedSettings}
       />
 
@@ -521,7 +489,7 @@ export default function App({
         ref={editorRef}
         isCustom={presetName === CUSTOM_PRESET}
         config={config}
-        onChange={setConfig}
+        onChange={(config) => patch({ config })}
       />
 
       <BoxPricesDialog
@@ -537,7 +505,7 @@ export default function App({
         topUp={topUp}
         startingGems={startingGems}
         onAccept={(gems) => {
-          setStartingGems(gems);
+          patch({ startingGems: gems });
           hideTopUp();
         }}
       />

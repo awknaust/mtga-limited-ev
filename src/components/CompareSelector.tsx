@@ -1,5 +1,5 @@
 import { CUSTOM_PRESET } from "../lib";
-import { normalizeCompare } from "../share";
+import { normalizeCompare } from "../state";
 import { MultiSelect, type MultiSelectGroup } from "./MultiSelect";
 import { COMPARE_GROUPS, compareSeries } from "./compareSeries";
 

@@ -1,6 +1,6 @@
 import { Dialog } from "./Dialog";
 import { REAL_GEMS } from "../format";
-import { STARTING_ENTRIES } from "../share";
+import { STARTING_ENTRIES } from "../state";
 
 /** An event the current balance cannot enter, and what to do about it. */
 export type TopUp = {
