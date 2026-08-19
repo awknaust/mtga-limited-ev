@@ -1,3 +1,4 @@
+import { BUG_REPORT_URL, REPO_URL } from "../report";
 import { SITE_NAME } from "../title";
 
 /** Where the source is, how to report a bug, and Wizards' required notice. */
@@ -7,7 +8,7 @@ export function SiteFooter() {
       <p className="mb-0">
         <a
           className="link-secondary"
-          href="https://github.com/awknaust/mtga-limited-ev"
+          href={REPO_URL}
           target="_blank"
           rel="noreferrer"
         >
@@ -19,7 +20,7 @@ export function SiteFooter() {
         </span>
         <a
           className="link-secondary"
-          href="https://github.com/awknaust/mtga-limited-ev/issues/new?template=bug.yml"
+          href={BUG_REPORT_URL}
           target="_blank"
           rel="noreferrer"
         >

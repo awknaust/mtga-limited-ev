@@ -20,6 +20,7 @@ import {
   type EventConfig,
   type MasteryTrack,
 } from "../lib";
+import { wrongNumberIssueUrl } from "../report";
 import { SIM_LIMITS } from "../state";
 
 /*
@@ -65,6 +66,7 @@ export function InputPanel({
   onMasterySlugChange,
   onEditEvent,
   onAdvanced,
+  shareUrl,
 }: {
   config: EventConfig;
   onConfigChange: (config: EventConfig) => void;
@@ -95,6 +97,13 @@ export function InputPanel({
   onEditEvent: () => void;
   /** Raises the values and assumptions dialog. */
   onAdvanced: () => void;
+  /**
+   * The page's own link as it stands, for the wrong-number report to carry.
+   * `App` builds it from the same state the address bar shows, rather than
+   * this reading `window.location`, which is written after the render that
+   * would read it and so is one edit behind.
+   */
+  shareUrl: string;
 }) {
   const set = <K extends keyof EventConfig>(key: K, value: EventConfig[K]) =>
     onConfigChange({ ...config, [key]: value });
@@ -402,6 +411,29 @@ export function InputPanel({
             {/* Locked whichever event is chosen. The editor is the dialog
                 the button above opens, and this is what it wrote. */}
             <EventFields config={config} locked onChange={onConfigChange} />
+            {/*
+              A preset's ladder is transcribed, not published, so the reader
+              looking at it is the check it gets; this is the shortest way
+              from noticing to telling, and it arrives with the event and
+              this page's link filled in. Not on Custom, whose numbers are
+              the reader's own.
+            */}
+            {!isCustom && (
+              <p className="form-text text-center mb-0 mt-2">
+                <a
+                  className="link-secondary"
+                  href={wrongNumberIssueUrl({
+                    eventName: presetName,
+                    link: shareUrl,
+                  })}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  <i className="bi bi-flag me-1" aria-hidden="true" />
+                  Report a wrong number
+                </a>
+              </p>
+            )}
           </details>
         </div>
       </div>
