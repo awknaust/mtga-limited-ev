@@ -6,7 +6,7 @@
  * produced by `registry.ts` and is only being formatted.
  */
 
-import type { ConstantDef, ConstantResult, ConstantValue } from "./registry.ts";
+import type { ConstantResult, ConstantValue, NamedConstantDef } from "./registry.ts";
 
 /** A computed constant, carrying everything the renderers need. */
 export type NamedResult = ConstantResult & {
@@ -61,14 +61,24 @@ function table(columns: Column[], rows: string[][]): string {
   ].join("\n");
 }
 
-/** The default output: what each constant should be. */
+/** `asOf` as printed: the date, or a dash for a value with no dated input. */
+const displayAsOf = (result: ConstantResult): string => result.asOf ?? "—";
+
+/**
+ * The default output: what each constant should be, and as of when.
+ *
+ * The date sits before the value so that the one value allowed to overflow
+ * its column (DAILY_WIN_GOLD, see `maxWidth`) runs off the end of its line
+ * rather than through the middle of it.
+ */
 export function renderTable(results: NamedResult[]): string {
   return table(
     [
       { header: "Constant", align: "left" },
+      { header: "As of", align: "left" },
       { header: "Value", align: "right", maxWidth: 24 },
     ],
-    results.map((r) => [r.name, displayValue(r)]),
+    results.map((r) => [r.name, displayAsOf(r), displayValue(r)]),
   );
 }
 
@@ -81,6 +91,7 @@ export function renderVerbose(results: NamedResult[]): string {
         heading,
         "─".repeat(heading.length),
         result.summary,
+        `as of ${displayAsOf(result)}`,
         "",
         ...result.explain.map((line) => `  ${line}`),
       ].join("\n");
@@ -103,6 +114,7 @@ export function renderJson(
     constants[result.name] = {
       value: result.value,
       display: displayValue(result),
+      asOf: result.asOf,
       summary: result.summary,
       sources: result.sourceUrls,
       ...(opts.verbose ? { derivation: result.explain } : {}),
@@ -112,7 +124,7 @@ export function renderJson(
 }
 
 /** `--list`: the names, without fetching anything. */
-export function renderList(constants: ConstantDef[]): string {
+export function renderList(constants: NamedConstantDef[]): string {
   return table(
     [
       { header: "Constant", align: "left" },

@@ -246,11 +246,32 @@ and memoised, so `GEMS_PER_USD` alone touches the network not at all and the
 feed is only fetched when a box constant was asked for. A constant is one entry
 in `registry.ts` carrying its own `compute` and its own explanation, and every
 output mode is a fold over that list — adding one means adding an entry and
-nothing else. Figures only in the client live in `by-hand.ts` with the date
-each was last confirmed, and `--verbose` prints them in full. That file going
-stale is not hypothetical: the gem ladder carried a bundle Arena had already
-replaced, and nothing surfaced it because only the rate derived from it was
-ever on screen.
+nothing else. **The list is the Values & assumptions dialog's inventory, and
+the compiler holds it complete**: `ConstantName` is every numeric export of
+`src/lib/presets.ts` and `src/lib/boxes.ts`, read through `import type` and
+nothing else, and `REGISTRY` must `satisfies Record<ConstantName,
+ConstantDef>` — so a default added to the app without an entry, or an entry
+whose name matches no export, fails `tsc -p scripts` inside `npm run build`.
+`explain` is a non-empty tuple type for the same reason, and `asOf` — the
+run date for a fetched source, the by-hand `checkedOn` for a client figure,
+`null` for a choice — is required alongside it. Keep that import
+type-only: the tool must never run app code or learn a constant's current
+value, which is why it has no exit code for "a number moved". The four with
+nothing to fetch — the win-rate match count, events per day, and the two
+zero-by-refusal values (qualifier token, cosmetics) — are entries all the
+same, printing the figure and its reasoning so the inventory has no holes; a
+run cannot move them and says so. `registry.test.ts` then runs every entry
+against stubbed sources, since the types cannot see a `compute` that throws
+or returns `NaN`. Figures only in the client
+live in `by-hand.ts` with the date each was last confirmed, and `--verbose`
+prints them in full. That file going stale is not hypothetical: the gem ladder
+carried a bundle Arena had already replaced, and nothing surfaced it because
+only the rate derived from it was ever on screen — and its play-in record once
+named the Arena Open and cited its terms, a page that never mentions play-in
+points, while the figures (which were the Qualifier Play-In's) printed fine.
+`wizards.test.ts` holds the drop-rates parsers to a fixture in the page's own
+markup, so a parser that would price from the wrong section fails there rather
+than against the live page.
 
 **`scripts/box-prices/`** is the feed: `tcgcsv.ts` reads TCGplayer's mirror,
 `select.ts` picks which sets are worth two requests (a budget, never a

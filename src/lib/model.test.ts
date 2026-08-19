@@ -1635,9 +1635,15 @@ describe("gold earnings", () => {
   it("credits an event the gold its own wins generate", () => {
     // Isolated from the daily quest, which is a budget rather than something
     // the event earns — see the default below.
-    const config = { ...configFromPreset(PREMIER_DRAFT, defaultConfig()), otherGoldPerDay: 0 };
+    // One event a day, so the figure is the ladder read for a single event's
+    // wins; the default is two (pinned below), which splits the day's gold.
+    const config = {
+      ...configFromPreset(PREMIER_DRAFT, defaultConfig()),
+      otherGoldPerDay: 0,
+      eventsPerDay: 1,
+    };
     expect(config.entryCostGold).toBe(10000);
-    expect(config.eventsPerDay).toBe(DEFAULT_EVENTS_PER_DAY);
+    expect(DEFAULT_EVENTS_PER_DAY).toBe(2);
     // A 55% win rate averages 3.39 wins, which is 489 gold off the ladder —
     // not the 750 a full day pays, and not the 1,350 the model used to credit.
     expect(meanWinsPerEvent(config)).toBeCloseTo(3.39, 2);
@@ -1717,7 +1723,9 @@ describe("gold earnings", () => {
     // with the quest drawn — so it is pinned on its own rather than buried in
     // a total.
     expect(DEFAULT_OTHER_GOLD_PER_DAY).toBe(600);
-    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    // At one event a day the whole quest lands on that event; the default of
+    // two halves it, which the "divided across the day" test below covers.
+    const config = { ...configFromPreset(PREMIER_DRAFT, defaultConfig()), eventsPerDay: 1 };
     expect(config.otherGoldPerDay).toBe(600);
     expect(goldPerEvent(config)).toBeCloseTo(489 + 600, 0);
     expect(goldPerEvent({ ...config, otherGoldPerDay: 0 })).toBeCloseTo(489, 0);
@@ -1763,7 +1771,7 @@ describe("gold earnings", () => {
   });
 
   it("adds gold earned outside the event on top, divided across the day", () => {
-    const base = { ...defaultConfig(), otherGoldPerDay: 0 };
+    const base = { ...defaultConfig(), otherGoldPerDay: 0, eventsPerDay: 1 };
     const wins = goldPerEvent(base);
     expect(goldPerEvent({ ...base, otherGoldPerDay: 600 })).toBeCloseTo(wins + 600, 6);
     // Divided across the day, because a quest does not come back per event.
@@ -1789,10 +1797,11 @@ describe("gold earnings", () => {
     expect(at(0)).toBe(0);
     expect(at(0.4)).toBeLessThan(at(0.55));
     expect(at(0.55)).toBeLessThan(at(0.7));
-    // The quest is flat, so it shifts the curve without tilting it.
+    // The quest is flat, so it shifts the curve without tilting it — by its
+    // share across the day's events, which at zero wins is all an event gets.
     const withQuest = (winRate: number) =>
       goldPerEvent({ ...base, otherGoldPerDay: 600, winRate });
-    expect(withQuest(0)).toBe(600);
+    expect(withQuest(0)).toBe(600 / base.eventsPerDay);
     expect(withQuest(0.7) - withQuest(0.4)).toBeCloseTo(at(0.7) - at(0.4), 9);
   });
 

@@ -57,17 +57,26 @@ export const DUAL_PRICED_EVENTS = {
 } as const;
 
 /**
- * What a play-in point is worth, priced off what the points are for.
+ * What a play-in point is worth, priced off what the points are for: a
+ * Qualifier Play-In, which takes 20 of them, 4,000 gems or 20,000 gold.
+ *
+ * The Qualifier Play-In, not the Arena Open — the Open costs 5,000 gems or
+ * 25,000 gold and takes no points at all, and this record once named it and
+ * cited its terms, a page on which the words "play-in point" do not appear.
+ * The figures happened to be the Play-In's, so nothing printed wrong; the
+ * provenance did.
  *
  * A replacement-cost figure, not a market one: it holds only if you would have
- * entered the Open anyway. Points you never spend are worth nothing, and points
- * beyond a multiple of the entry are stranded until you collect enough.
+ * entered the Play-In anyway. Points you never spend are worth nothing, and
+ * points beyond a multiple of the entry are stranded until you collect enough.
  */
 export const PLAY_IN_ENTRY = {
-  checkedOn: "2026-08-06",
-  where: "https://magic.wizards.com/en/news/mtg-arena/arena-open-terms-and-conditions",
+  checkedOn: "2026-08-18",
+  where:
+    "https://magic.wizards.com/en/news/mtg-arena/qualifier-play-ins-and-qualifier-weekend-information",
   pointsPerEntry: 20,
   gemsPerEntry: 4_000,
+  goldPerEntry: 20_000,
 } as const;
 
 /**

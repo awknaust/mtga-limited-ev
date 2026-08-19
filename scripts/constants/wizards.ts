@@ -93,6 +93,32 @@ export type DropRates = {
    * the "∞ Uncommon ICR – 5% Upgrade" row.
    */
   masteryUncommonUpgradePct: number;
+  /**
+   * What the page says can displace a Mythic Booster's guaranteed mythic —
+   * "a Rare Wildcard", as printed. Kept as text because the wording is the
+   * point: it names one wildcard where the ordinary pack's rare slot is
+   * displaced by two, and the derivation has to say which reading it took.
+   */
+  mythicBoosterDisplacedBy: string;
+  /** The Cube Prize Pack's contents, slot by slot. */
+  cubePrizePack: CubePrizePack;
+};
+
+export type CubePrizePack = {
+  /** The Timeless rare slot's mythic upgrade rate, as N in "1:N". */
+  timelessMythicRate: number;
+  /** The bonus sheet rare slot's mythic upgrade rate, as N in "1:N". */
+  bonusSheetMythicRate: number;
+  /** The flex slot's three outcomes, in percent, as printed. */
+  flex: { timelessRarePct: number; timelessUncommonPct: number; bonusSheetPct: number };
+  /**
+   * The bonus sheet's card list by rarity, when the page prints one — the text
+   * of each rarity's line, uncounted. Card names carry commas ("Leovold,
+   * Emissary of Trest"), so a split on them is a wrong count rather than a
+   * count, and this parser has no oracle for where one name ends; the lines
+   * are handed on for a person to read. `null` when the page lists no sheet.
+   */
+  bonusSheet: { rarity: string; cards: string }[] | null;
 };
 
 /**
@@ -128,6 +154,14 @@ export function parseDropRates(rawHtml: string): DropRates {
     throw new SourceError("drop rates: mastery uncommon ICR upgrade row not found");
   }
 
+  // The Mythic Booster's one rule: the rare slot is a mythic unless a wildcard
+  // takes it. The apostrophe is whichever the CMS emitted this time.
+  const mythicBooster =
+    /Each Mythic Booster always has a Mythic Rare in the Rare slot, unless it[’']s replaced with (an? [A-Za-z ]*?Wildcard)/i.exec(
+      text,
+    );
+  if (!mythicBooster) throw new SourceError("drop rates: Mythic Booster rule not found");
+
   return {
     rareDupeGems: Number(dupe[1]),
     mythicDupeGems: Number(dupe[2]),
@@ -136,7 +170,82 @@ export function parseDropRates(rawHtml: string): DropRates {
     dailyWinGold: parseDailyWinGold(html),
     icrRareToMythicRate: Number(icr[1]),
     masteryUncommonUpgradePct: Number(masteryUpgrade[1]),
+    mythicBoosterDisplacedBy: mythicBooster[1],
+    cubePrizePack: parseCubePrizePack(html, text),
   };
+}
+
+/**
+ * The Cube Prize Pack section: three paying slots and, when the page prints
+ * one, the bonus sheet those packs draw from.
+ *
+ * Read from the flattened text rather than the list markup, because the
+ * figures sit in nested `<ul>`s two and three deep and the nesting is the part
+ * of this page most likely to be re-flowed. The sentences are the stable
+ * thing. Each is required: a pack whose contents changed shape should stop
+ * the run, not price at whatever slots still matched.
+ */
+function parseCubePrizePack(html: string, text: string): CubePrizePack {
+  const section = /Each Cube Prize Pack contains the following:([\s\S]*?)(?:\*Exceptions|The Cube Prize Pack bonus sheet|$)/i.exec(
+    text,
+  );
+  if (!section) throw new SourceError("drop rates: Cube Prize Pack contents not found");
+  const contents = section[1];
+
+  const need = (what: string, re: RegExp): RegExpExecArray => {
+    const m = re.exec(contents);
+    if (!m) throw new SourceError(`drop rates: Cube Prize Pack ${what} not found`);
+    return m;
+  };
+  const timeless = need(
+    "Timeless rare slot",
+    /1 Timeless Rare or Mythic[\s\S]*?Upgrades to Mythic at a rate of approximately 1:([\d.]+)/i,
+  );
+  const bonus = need(
+    "bonus sheet slot",
+    /1 Cube bonus sheet Rare or Mythic[\s\S]*?Upgrades to bonus sheet Mythic at a rate of approximately 1:([\d.]+)/i,
+  );
+  const flex = need(
+    "flex slot",
+    /1 Flex card that contains:[\s\S]*?Timeless Rare \((\d+)%\)[\s\S]*?Timeless Uncommon \((\d+)%\)[\s\S]*?from the bonus sheet \((\d+)%\)/i,
+  );
+
+  return {
+    timelessMythicRate: Number(timeless[1]),
+    bonusSheetMythicRate: Number(bonus[1]),
+    flex: {
+      timelessRarePct: Number(flex[1]),
+      timelessUncommonPct: Number(flex[2]),
+      bonusSheetPct: Number(flex[3]),
+    },
+    bonusSheet: parseCubeBonusSheet(html),
+  };
+}
+
+/**
+ * The bonus sheet's card list, one `<li>` per rarity, as "Rarity: names".
+ *
+ * Optional, unlike the contents: the sheet is a season's worth of cards and
+ * the page may well stop listing it, and its absence changes nothing the
+ * constant is derived from — see the registry, which prices the flex slot's
+ * bonus-sheet half at nothing either way. A heading with no list under it is
+ * still an error, because that is a page mid-edit rather than a page without.
+ */
+function parseCubeBonusSheet(html: string): CubePrizePack["bonusSheet"] {
+  const anchor = html.indexOf("The Cube Prize Pack bonus sheet contains");
+  if (anchor === -1) return null;
+  const start = html.indexOf("<ul", anchor);
+  const end = html.indexOf("</ul>", start);
+  if (start === -1 || end === -1) {
+    throw new SourceError("drop rates: Cube Prize Pack bonus sheet heading has no list under it");
+  }
+  const lines: { rarity: string; cards: string }[] = [];
+  for (const li of html.slice(start, end).matchAll(/<li\b[^>]*>([\s\S]*?)<\/li>/gi)) {
+    const m = /^([A-Za-z ]+?):\s*(.+)$/.exec(textOf(li[1]));
+    if (m) lines.push({ rarity: m[1], cards: m[2] });
+  }
+  if (lines.length === 0) throw new SourceError("drop rates: Cube Prize Pack bonus sheet list is empty");
+  return lines;
 }
 
 /** The per-set mythic upgrade rates, one `<li>` per rate. */

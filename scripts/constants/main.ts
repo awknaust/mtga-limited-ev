@@ -1,17 +1,28 @@
 #!/usr/bin/env node
 /**
- * Re-derives the sourced constants in `src/lib/presets.ts` from their sources
- * and prints what they should be today.
+ * Re-derives the constants in `src/lib/presets.ts` that stand behind the app's
+ * Values & assumptions dialog and prints what they should be today.
  *
  *     npm run refresh:constants                            every constant
  *     npm run refresh:constants -- GEMS_PER_USD            just one
  *     npm run refresh:constants -- --verbose               with the workings
  *     npm run refresh:constants -- --json
+ *     npm run refresh:constants -- --list                  the inventory, no fetching
  *
  * It reads nothing from the repository and writes nothing to it. Whether a
  * number here should replace the one in `presets.ts` is a judgement — most
  * moves are noise — so that call is left to whoever is reading, and the doc
  * comments they would have to update along with it.
+ *
+ * The list is the dialog's inventory (see `registry.ts`): every default the
+ * reader can edit there is here, including the four that are choices or
+ * refusals with nothing to fetch behind them — those print the figure and its
+ * reasoning so the inventory has no holes, and a run cannot move them.
+ *
+ * Every value carries an "as of" date: the run date if its source was
+ * fetched, the date it was last checked in the client if it is a by-hand
+ * figure, none if it is a choice. It is a column in the table, a line under
+ * `--verbose`, and `asOf` in the JSON.
  *
  * The two generic box constants are here too, and they are the heavy ones:
  * their source is the box-price feed (`scripts/box-prices/`, some forty
@@ -33,8 +44,8 @@ import {
   CONSTANTS,
   UnknownConstantError,
   selectConstants,
-  type ConstantDef,
   type Context,
+  type NamedConstantDef,
 } from "./registry.ts";
 import { renderJson, renderList, renderTable, renderVerbose, type NamedResult } from "./report.ts";
 import { SOURCE_URLS, createSources } from "./sources.ts";
@@ -46,8 +57,9 @@ function buildProgram(): Command {
   return new Command()
     .name("refresh-constants")
     .description(
-      "Re-derive the sourced constants in src/lib/presets.ts from Wizards' drop rates\n" +
-        "and Scryfall, plus the in-client figures recorded in by-hand.ts.",
+      "Re-derive the constants behind the app's Values & assumptions dialog — from\n" +
+        "Wizards' drop rates, Scryfall and the box-price feed, plus the in-client\n" +
+        "figures recorded in by-hand.ts and the few that are choices with no source.",
     )
     .argument("[constant...]", "names to derive, case-insensitive; every constant if none are given")
     .option("--json", "emit JSON instead of a table")
@@ -67,7 +79,7 @@ function buildProgram(): Command {
  * page share one request, and a constant that wants no page makes none. Asking
  * for GEMS_PER_USD alone touches the network zero times.
  */
-async function derive(constants: ConstantDef[], ctx: Context): Promise<NamedResult[]> {
+async function derive(constants: NamedConstantDef[], ctx: Context): Promise<NamedResult[]> {
   return Promise.all(
     constants.map(async (constant) => ({
       name: constant.name,
