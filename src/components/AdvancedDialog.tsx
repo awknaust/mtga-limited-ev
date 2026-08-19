@@ -17,7 +17,7 @@ import {
   goldValueGems,
   type EventConfig,
 } from "../lib";
-import { SIM_LIMITS } from "../share";
+import { SIM_LIMITS } from "../state";
 
 /**
  * What the confidence selector offers, shortest record first.

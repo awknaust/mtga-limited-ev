@@ -26,12 +26,11 @@ import { describe, expect, it } from "vitest";
 
 import {
   decodeShareState,
-  defaultShareState,
   encodePayouts,
   encodeShareState,
   presetSlug,
-  type ShareState,
 } from "./share";
+import { defaultShareState, type ShareState } from "./state";
 import {
   CURRENT_MASTERY_TRACK,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,

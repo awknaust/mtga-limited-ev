@@ -19,7 +19,7 @@ import type {
   EventConfig,
   MasteryTrack,
 } from "../lib";
-import type { Tab } from "../share";
+import type { Tab } from "../state";
 
 /**
  * The tabs, in the order they answer the page's questions: what a balance does

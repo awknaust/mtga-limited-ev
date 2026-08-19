@@ -20,7 +20,7 @@ import {
   type EventConfig,
   type MasteryTrack,
 } from "../lib";
-import { SIM_LIMITS } from "../share";
+import { SIM_LIMITS } from "../state";
 
 /*
  * What the win rate's step buttons move by, in percentage points, grouped as
