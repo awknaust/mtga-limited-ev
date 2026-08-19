@@ -1,0 +1,7 @@
+# Everything here is one page and its query strings; there is nothing to keep
+# a crawler out of. The sitemap names the bare origin, which is the page a
+# search result should land on.
+User-agent: *
+Allow: /
+
+Sitemap: https://mtga.fyi/sitemap.xml

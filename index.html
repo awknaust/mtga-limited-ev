@@ -5,6 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <!--
+      The app's own blue (--bs-primary in styles.css; title.compat.test.ts
+      keeps the two in step). Discord paints a link embed's edge with it, so
+      a pasted link reads as this site's rather than grey; mobile browsers
+      tint their toolbar with it too, which is the trade a brand colour here
+      always is.
+    -->
+    <meta name="theme-color" content="#6ea8fe" />
+    <!--
       The live box-price feed, requested here so it leaves with the HTML and
       rides alongside the bundle download rather than waiting for the script
       to ask for it. main.tsx awaits this same request before the first render,
@@ -18,9 +26,39 @@
     <link rel="preload" href="/api/box-prices" as="fetch" crossorigin />
     <meta
       name="description"
-      content="What MTG Arena events and passes really pay at your win rate, and where the break-even sits."
+      content="The quest to go infinite. An analyzer for the value of Magic: The Gathering Arena events and passes."
     />
     <title>mtga.fyi | MTGA Value</title>
+    <!--
+      The link preview: what Reddit, Discord, Slack and the rest show beside a
+      pasted link, and so most of what a share link looks like to anyone who
+      has not clicked it yet. The image is docs/social/card.svg rendered, and
+      the SVG says how; it is named by absolute URL because scrapers do not
+      resolve relative ones, so a preview deploy shows production's card,
+      which is the same picture.
+
+      There is deliberately no og:url. Facebook reads that as the canonical
+      destination and sends the click there, and every state of this app is
+      one origin plus a query string — a canonical of the bare origin would
+      strip from a shared link the very thing it was written to carry.
+      Twitter's card falls back to og:title, og:description and og:image, so
+      it needs only the card type named.
+    -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="mtga.fyi" />
+    <meta property="og:title" content="mtga.fyi — The quest to go infinite" />
+    <meta
+      property="og:description"
+      content="An analyzer for the value of Magic: The Gathering Arena events and passes."
+    />
+    <meta property="og:image" content="https://mtga.fyi/social-card.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="mtga.fyi — The quest to go infinite. An analyzer for the value of Magic: The Gathering Arena events and passes — beside a chart of return on entry against match win rate for four Arena events."
+    />
+    <meta name="twitter:card" content="summary_large_image" />
   </head>
   <body>
     <div id="root"></div>

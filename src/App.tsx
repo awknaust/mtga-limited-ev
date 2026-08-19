@@ -6,7 +6,7 @@ import { BoxPricesDialog } from "./components/BoxPricesDialog";
 import { pickEvents } from "./components/compareEvents";
 import { CustomEventDialog } from "./components/CustomEventDialog";
 import { InputPanel } from "./components/InputPanel";
-import { RESULT_TABS, ResultsPanel } from "./components/ResultsPanel";
+import { ResultsPanel } from "./components/ResultsPanel";
 import { SiteFooter } from "./components/SiteFooter";
 import { TopUpDialog, type TopUp } from "./components/TopUpDialog";
 import {
@@ -23,6 +23,7 @@ import {
 } from "./lib";
 import { decodeShareState, encodeShareState, isAdvancedDefault } from "./share";
 import { STARTING_ENTRIES, resetAdvanced, type ShareState } from "./state";
+import { RESULT_TABS } from "./tabs";
 import { SITE_NAME, pageTitle } from "./title";
 import { useModal } from "./hooks/useModal";
 import { useSimulateBankrolls, useSimulateCompare } from "./hooks/useSimulation";
@@ -386,13 +387,24 @@ export default function App({
    */
   const resetAdvancedSettings = () => setState(resetAdvanced);
 
+  /*
+   * The link as the address bar will show it once the effect above has run.
+   * Built here, from state, for the wrong-number report to carry: reading
+   * `window.location` during render would hand it the previous edit's URL,
+   * since the effect that writes it runs after this render commits.
+   */
+  const shareQuery = encodeShareState(state);
+  const shareUrl = `${window.location.origin}${window.location.pathname}${
+    shareQuery ? `?${shareQuery}` : ""
+  }`;
+
   return (
     <div className="container-xl py-4">
       <header className="mb-4 d-flex flex-wrap align-items-start justify-content-between gap-2">
         <div>
           <h1 className="h3 mb-1">{SITE_NAME}</h1>
           <p className="text-body-secondary mb-0">
-            The quest for going infinite. An analyzer for the value of
+            The quest to go infinite. An analyzer for the value of
             Magic: The Gathering Arena events and passes.
           </p>
         </div>
@@ -440,6 +452,7 @@ export default function App({
           onMasterySlugChange={(masterySlug) => patch({ masterySlug })}
           onEditEvent={showEditor}
           onAdvanced={showAdvanced}
+          shareUrl={shareUrl}
         />
 
         <ResultsPanel

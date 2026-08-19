@@ -20,22 +20,7 @@ import type {
   MasteryTrack,
 } from "../lib";
 import type { Tab } from "../state";
-
-/**
- * The tabs, in the order they answer the page's questions: what a balance does
- * over a run, what one entry is worth, how the events compare, what the pass
- * pays, and then how all of it is worked out.
- *
- * Exported because the page title names the tab, and the label belongs to the
- * tab rather than to the title.
- */
-export const RESULT_TABS = [
-  { key: "bankroll" as const, label: "Bankroll" },
-  { key: "event" as const, label: "Long-term value" },
-  { key: "compare" as const, label: "Compare" },
-  { key: "mastery" as const, label: "Mastery" },
-  { key: "about" as const, label: "About" },
-];
+import { RESULT_TABS } from "../tabs";
 
 /**
  * The results, beside the column that sets them.

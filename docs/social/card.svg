@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  The link-preview card: what Reddit, Discord, Slack and the rest show beside
+  a pasted mtga.fyi link. index.html names the rendered copy in og:image.
+
+  Render it with librsvg (`port install librsvg` or `brew install librsvg`),
+  from the repository root so the chart resolves:
+
+      rsvg-convert -w 1200 -h 630 -o public/social-card.png docs/social/card.svg
+
+  1200×630 is the size every scraper agrees on; text has to be large because
+  most of them show the card at a third of that. The wordmark and the two
+  sentences under it — the app's own header line, which og:title and
+  og:description in index.html split the same way, with "infinite" spelled
+  as the symbol here and only here — are the message; the chart is proof there is an app behind it, so
+  it is a real screenshot rather than a drawing — the Compare tab's "Value
+  against win rate" chart (chart.png, beside this file), captured with
+  headless Chrome at 2x from
+  ?tab=compare&compare=premier-draft_quick-draft_pick-two-draft_sealed and
+  cropped to the plot. Those four rather than the default five because the
+  chart truncates names over fifteen characters, and an ellipsis on a card is
+  a blemish. Retake it when that chart's look changes; the text stays. The
+  whole plot sits inside the canvas — the last version bled off the right
+  edge and cut the curves. Colours are the app's own: #0f1216 body, #171b21
+  card, #6ea8fe primary.
+
+  It shows four evergreen events at 55% because that is a picture of the
+  app doing its job; nothing here says which is better, and the card is the
+  same picture on every link, whatever state the link opens.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="1200" height="630" viewBox="0 0 1200 630" font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
+  <rect width="1200" height="630" fill="#0f1216"/>
+
+  <!-- wordmark and the app's own two sentences under it, the first as the
+       hook in the primary blue, the second in the secondary grey -->
+  <text x="64" y="256" font-size="92" font-weight="700" fill="#e6eaf0" letter-spacing="-2">mtga.fyi</text>
+  <text x="66" y="316" font-size="32" fill="#6ea8fe">The quest to go <tspan font-size="40">∞</tspan></text>
+  <g font-size="22" fill="#aab2bd">
+    <text x="66" y="366">An analyzer for the value of</text>
+    <text x="66" y="396">Magic: The Gathering Arena</text>
+    <text x="66" y="426">events and passes.</text>
+  </g>
+
+  <!-- the chart, straight onto the card: its background is the card's own
+       #0f1216, so it needs no frame, and without one it can be larger -->
+  <image xlink:href="chart.png" x="412" y="84" width="780" height="462"/>
+</svg>

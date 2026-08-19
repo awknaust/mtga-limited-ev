@@ -1,0 +1,63 @@
+# The form behind the app's "Report a wrong number" link, which arrives here
+# with the event and the link already filled in (src/report.ts builds that
+# URL; the field ids below are what it names). Keep the ids stable, or the
+# prefill quietly stops working.
+name: Wrong number
+description: An entry price, payout, drop rate or other figure does not match the game.
+title: "Wrong number: "
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Wizards publishes the drop rates but not the payout ladders, so the
+        ladders here are transcribed from community sites and the in-game
+        screens, and they go stale. A screenshot of the in-game screen is the
+        best evidence there is — drag one into the evidence box below.
+
+  - type: input
+    id: event
+    attributes:
+      label: Event or pass
+      description: Which event, or which Mastery season.
+      placeholder: Premier Draft
+    validations:
+      required: true
+
+  - type: input
+    id: figure
+    attributes:
+      label: Which figure
+      placeholder: Gems at 5 wins · entry cost in gold · packs at 7 wins · …
+    validations:
+      required: true
+
+  - type: input
+    id: shows
+    attributes:
+      label: What the app shows
+    validations:
+      required: true
+
+  - type: input
+    id: actual
+    attributes:
+      label: What it should be
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: A screenshot of the in-game rewards screen, or a link to where the number is published.
+    validations:
+      required: false
+
+  - type: input
+    id: link
+    attributes:
+      label: Link
+      description: The address of the page you were looking at. Filled in for you if you came from the app.
+    validations:
+      required: false

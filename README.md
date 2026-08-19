@@ -1,7 +1,7 @@
 # mtga.fyi
 
-What MTG Arena events and passes really pay at your win rate, and where the
-break-even sits.
+The quest to go infinite. An analyzer for the value of Magic: The Gathering
+Arena events and passes.
 
 **<https://mtga.fyi>**
 

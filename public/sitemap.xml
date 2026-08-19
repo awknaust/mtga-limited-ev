@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  One URL per tab, and nothing else. The app is a single page whose every
+  state is a query string on it, and the tabs are the states worth a search
+  result of their own: each answers a different question (a bankroll, an
+  event's long-term value, a comparison, a mastery pass, what the rewards
+  count as) and each has its own title (title.ts). The addresses are spelled
+  exactly as share.ts writes them — the bare origin is the Bankroll tab,
+  since a default is never written into a link — and sitemap.test.ts holds
+  this file to the tab strip, so a tab added or renamed there fails a test
+  here rather than dropping out of the index.
+
+  Per-preset links are the next step not taken: they would index each event
+  under its own title, at the cost of sixteen more near-identical entries.
+-->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://mtga.fyi/</loc>
+  </url>
+  <url>
+    <loc>https://mtga.fyi/?tab=event</loc>
+  </url>
+  <url>
+    <loc>https://mtga.fyi/?tab=compare</loc>
+  </url>
+  <url>
+    <loc>https://mtga.fyi/?tab=mastery</loc>
+  </url>
+  <url>
+    <loc>https://mtga.fyi/?tab=about</loc>
+  </url>
+</urlset>
