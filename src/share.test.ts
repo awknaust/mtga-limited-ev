@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  SIM_LIMITS,
   decodePayouts,
   decodeShareState,
-  defaultShareState,
   encodePayouts,
   encodeShareState,
   isAdvancedDefault,
   presetSlug,
+} from "./share";
+import {
+  SIM_LIMITS,
+  defaultShareState,
   resetAdvanced,
   type ShareState,
-} from "./share";
+} from "./state";
 import {
   CUSTOM_PRESET,
   MASTERY_TRACKS,
