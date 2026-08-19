@@ -41,6 +41,7 @@ import {
   goldValueGems,
   grossValue,
   maxPossibleWins,
+  meanGamesPerEvent,
 } from "./lib";
 
 /**
@@ -61,7 +62,7 @@ function fingerprint(state: ShareState): string {
     `entry      ${price(c.entryCostGems)} gems / ${price(c.entryCostGold)} gold / ${price(c.entryCostPlayInPoints)} points`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
     `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} qualToken=${c.qualifierTokenValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
-    `gold       other=${c.otherGoldPerDay}/day over ${c.eventsPerDay} events, goldPer10k=${c.gemsPer10kGold}`,
+    `gold       other=${c.otherGoldPerDay}/day over ${c.gamesPerDay} games at ${c.gamesPerMatch}/match, goldPer10k=${c.gemsPer10kGold}`,
     /*
      * Derived rather than stored, and that is the point. A link pins inputs,
      * but what a reader cares about is the answer, and the two can come apart:
@@ -209,6 +210,22 @@ const CORPUS: [name: string, search: string][] = [
     "custom ladder paying a qualifier token",
     "?preset=custom&maxWins=3&maxLosses=1&payouts=0-0_0-0_0-0_6000-0-token.1&entryPoints=20&qualifierTokenValue=4830",
   ],
+  /*
+   * The day knob in its old unit, written when the field was events rather
+   * than games. An author who wrote `eventsPerDay=1` chose one event a day,
+   * and the decoder honours that by converting at the event's own length —
+   * exactly, for a best-of-one event, so the gold these links credit did not
+   * move when the unit did. Zero still switches gold off entirely.
+   */
+  ["the day knob in its old unit, one event a day", "?eventsPerDay=1"],
+  ["gold priced out, in the old unit", "?eventsPerDay=0"],
+  /*
+   * The retired `format` parameter, which named the match format back when
+   * the win rate was converted per game. Its meaning — this is a best-of-three
+   * event — is what `gamesPerMatch` carries now, so an old custom link that
+   * spelled it out decodes to a day of best-of-three play.
+   */
+  ["a best-of-three day, in the old spellings", "?preset=custom&format=bo3&rounds=3&eventsPerDay=2"],
 ];
 
 describe("the parameter names are the contract", () => {
@@ -232,7 +249,8 @@ describe("the parameter names are the contract", () => {
         entryCostGold: 2,
         entryCostPlayInPoints: 27,
         otherGoldPerDay: 3,
-        eventsPerDay: 4,
+        gamesPerDay: 4,
+        gamesPerMatch: 2.5,
         winRateMatches: 33,
         gemsPer10kGold: 5,
         draftPacks: 6,
@@ -301,7 +319,8 @@ describe("the parameter names are the contract", () => {
       "entry",
       "entryGold",
       "entryPoints",
-      "eventsPerDay",
+      "gamesPerDay",
+      "gamesPerMatch",
       "gemsPerUsd",
       "goldPer10k",
       "goldPerDay",
@@ -343,6 +362,37 @@ describe("the parameter names are the contract", () => {
     const state = decodeShareState("?spendWinnings=1&trials=250000&startGems=20000");
     expect(state.startingGems).toBe(20_000);
     expect(encodeShareState(state)).toBe("startGems=20000");
+  });
+
+  it("reads the day knob's old unit, converting events to games at the event's own length", () => {
+    /*
+     * `eventsPerDay` is legacy rather than retired: the field it set still
+     * exists, in a new unit, so the old spelling is converted instead of
+     * dropped. For a best-of-one event the conversion is exact — n events'
+     * worth of games at the same rate climbs the ladder to the same rung the
+     * old model read — which is what the gold figure below pins: one Premier
+     * Draft a day was 489 gold off the ladder plus the 600 quest, and still is.
+     */
+    const one = decodeShareState("?eventsPerDay=1").config;
+    expect(one.gamesPerDay).toBeCloseTo(meanGamesPerEvent(one), 4);
+    expect(goldPerEvent(one)).toBeCloseTo(1089, 0);
+    // Zero still means gold counts for nothing, as it always did.
+    expect(decodeShareState("?eventsPerDay=0").config.gamesPerDay).toBe(0);
+    expect(goldPerEvent(decodeShareState("?eventsPerDay=0").config)).toBe(0);
+    // The new parameter wins wherever a link carries both.
+    expect(decodeShareState("?eventsPerDay=3&gamesPerDay=7").config.gamesPerDay).toBe(7);
+  });
+
+  it("reads the retired format parameter as the games a match takes", () => {
+    // `format` chose best-of-three back when the win rate converted per game;
+    // choosing best-of-three is exactly what gamesPerMatch says now, so the
+    // old name keeps its old meaning rather than being dropped — and yields
+    // to the new parameter, like the day knob above.
+    expect(decodeShareState("?preset=custom&format=bo3").config.gamesPerMatch).toBe(2.5);
+    expect(decodeShareState("?preset=traditional-draft&format=bo1").config.gamesPerMatch).toBe(1);
+    expect(
+      decodeShareState("?preset=custom&format=bo3&gamesPerMatch=3").config.gamesPerMatch,
+    ).toBe(3);
   });
 
   it("ignores a name it does not know, which is why the list above is frozen", () => {
@@ -396,8 +446,8 @@ describe("the defaults are the contract", () => {
       entry      1500 gems / 10000 gold / none points
       draft      3 packs @ 23
       values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-      gold       other=600/day over 2 events, goldPer10k=1500
-      credits    600.0 gold/event = 90.0 gems
+      gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+      credits    616.0 gold/event = 92.4 gems
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3400 gold=5000 points=0 maxEvents=20
       sim        runs=10000 seed=1

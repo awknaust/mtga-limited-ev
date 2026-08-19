@@ -16,6 +16,7 @@ import type { EventPreset } from "../../lib/types";
 export const TRADITIONAL_DRAFT = {
   name: "Traditional Draft",
   group: "draft",
+  bestOf: 3,
   entryCostGems: 1500,
   entryCostGold: 10000,
   draftPacks: 3,

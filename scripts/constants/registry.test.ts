@@ -131,11 +131,12 @@ describe("the registry", () => {
       "DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS",
       "DEFAULT_COSMETIC_VALUE_GEMS",
       "DEFAULT_WIN_RATE_MATCHES",
+      "BO3_GAMES_PER_MATCH",
     ] as const) {
       expect(r.get(name)!.asOf, name).toBeNull();
     }
     // A choice carries the date it was made, where one is recorded.
-    expect(r.get("DEFAULT_EVENTS_PER_DAY")!.asOf).toBe("2026-08-18");
+    expect(r.get("DEFAULT_GAMES_PER_DAY")!.asOf).toBe("2026-08-19");
     // The check date lives in the field, not the prose. (Other dates — the
     // mythic-rate window, set releases — are derivation inputs and stay.)
     for (const [name, c] of r) expect(c.explain.join("\n"), name).not.toMatch(/checked by hand on/);
@@ -183,7 +184,7 @@ describe("the registry", () => {
     expect(r.get("DEFAULT_PLAY_BOX_VALUE_GEMS")!.explain.join("\n")).toMatch(/PLAY_BOX_USD = \[140\.00, 120\.00, 100\.00\]/);
   });
 
-  it("holds the four unsourced entries at their figures, each saying what kind of number it is", async () => {
+  it("holds the five unsourced entries at their figures, each saying what kind of number it is", async () => {
     const r = await computeAll();
     for (const name of [
       "DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS",
@@ -193,11 +194,16 @@ describe("the registry", () => {
       expect(REGISTRY[name].sources).toEqual([]);
       expect(r.get(name)!.explain[0]).toMatch(/^zero/);
     }
-    for (const name of ["DEFAULT_EVENTS_PER_DAY", "DEFAULT_WIN_RATE_MATCHES"] as const) {
+    for (const name of [
+      "DEFAULT_GAMES_PER_DAY",
+      "BO3_GAMES_PER_MATCH",
+      "DEFAULT_WIN_RATE_MATCHES",
+    ] as const) {
       expect(REGISTRY[name].sources).toEqual([]);
       expect(r.get(name)!.explain[0]).toMatch(/^a modelling choice, not derived from any source/);
     }
-    expect(r.get("DEFAULT_EVENTS_PER_DAY")!.value).toBe(2);
+    expect(r.get("DEFAULT_GAMES_PER_DAY")!.value).toBe(12);
+    expect(r.get("BO3_GAMES_PER_MATCH")!.value).toBe(2.5);
     expect(r.get("DEFAULT_WIN_RATE_MATCHES")!.value).toBe(100);
   });
 });

@@ -158,8 +158,11 @@ export function grossCounts(config: EventConfig): Record<HoldingKey, number> {
 /**
  * Gold from the daily-win ladder for a number of wins in a day.
  *
+ * The wins are game wins — the unit the ladder itself counts, each game of a
+ * best-of-three on its own; see DAILY_WIN_GOLD.
+ *
  * Fractional wins are interpolated within the step they fall in. A win count is
- * an expectation rather than a whole number of matches, and rounding it would put
+ * an expectation rather than a whole number of games, and rounding it would put
  * a visible stair-step in the EV curve where the model has no real
  * discontinuity.
  */
@@ -178,25 +181,85 @@ export function meanWinsPerEvent(config: EventConfig): number {
 }
 
 /**
+ * Mean matches one event lasts, at the config's own win rate.
+ *
+ * Wald's identity, not a sum over the finishing records. The event ends at a
+ * stopping time on a sequence of matches each won with probability `p`, so
+ * the expected wins are `p` times the expected matches, and
+ *
+ *     E[matches] = E[wins] / p
+ *
+ * The right-hand side is a sum over the ordinary win-count distribution —
+ * the same one `meanWinsPerEvent` takes — which is what makes this the
+ * plain-arithmetic answer rather than the ten-row one: a win count does not
+ * fix how many matches were played (7-0 and 7-2 are one row and seven or
+ * nine matches), so summing `wins + losses` over the records was the other
+ * route, and this one needs no records at all.
+ *
+ * The one endpoint the division cannot reach: a player who never wins has
+ * `E[wins] = 0` and `p = 0`, and the identity reads just as well from the
+ * losses' side — `E[matches] = E[losses] / (1 − p)` — where it says they bust
+ * out after exactly `maxLosses` matches. A fixed-rounds event plays every
+ * round whatever `p` is, and comes out at its round count on either side.
+ */
+export function meanRoundsPerEvent(config: EventConfig): number {
+  const p = matchWinRate(config);
+  const { structure } = config;
+  if (structure.kind === "rounds") return structure.rounds;
+  if (p <= 0) return structure.maxLosses;
+  return meanWinsPerEvent(config) / p;
+}
+
+/** Mean games one event lasts: its matches at the games each of them takes. */
+export function meanGamesPerEvent(config: EventConfig): number {
+  return meanRoundsPerEvent(config) * config.gamesPerMatch;
+}
+
+/**
+ * Events a day of `gamesPerDay` games holds, on average.
+ *
+ * The day is an amount of play rather than a number of entries, so how many
+ * events it comes to depends on the event: a best-of-three run of the same
+ * length in matches takes `gamesPerMatch` times the games, and fills the day
+ * `gamesPerMatch` times as fast. This is the divisor the day's gold is spread
+ * across in `goldPerEvent`, and the figure the Advanced dialog shows beside
+ * the knob.
+ */
+export function meanEventsPerDay(config: EventConfig): number {
+  const games = meanGamesPerEvent(config);
+  return games > 0 ? config.gamesPerDay / games : 0;
+}
+
+/**
  * Gold credited to one event.
  *
  * Two sources, and they behave differently enough that lumping them into a
  * flat daily figure was the whole problem. Daily-win gold is *caused by* the
- * event — it comes from the event's own wins, and it saturates once the day's
- * wins reach the ladder's cap. Everything else arrives whether or not you
- * entered, so it is divided across the day's events rather than earned by any
- * of them.
+ * day's play — climbed win by win until the ladder's cap — while everything
+ * else arrives whether or not you entered; both are divided across the events
+ * the day holds rather than earned flat per entry.
  *
- * A day's wins are `eventsPerDay × meanWins`, which is what climbs the ladder;
- * dividing the result back out gives one event's share. So playing more earns
- * more in total and less each, and the second effect only bites near the cap
- * rather than immediately — which a flat figure divided by `eventsPerDay` got
- * backwards.
+ * The day is `gamesPerDay` games, and the ladder counts *game* wins — each
+ * game of a best-of-three on its own (see DAILY_WIN_GOLD) — so a day's wins
+ * are `gamesPerDay × winRate`. For best-of-one that is exact: a round is a
+ * game, and the rate is the rate. For best-of-three the configured match rate
+ * stands in for the per-game rate the ladder strictly wants, the same refusal
+ * to convert between the two that `matchWinRate` records; with matches
+ * counted at BO3_GAMES_PER_MATCH the two rates are close enough that the
+ * stand-in moves the day's gold by less than the rate's own uncertainty.
+ *
+ * One event's share is the day's gold over `meanEventsPerDay`. Playing more
+ * games earns more in total and less per event, and the second effect only
+ * bites near the cap rather than immediately — which a flat figure divided
+ * across the day got backwards. A best-of-three event is credited more per
+ * entry than a best-of-one at the same rate, because its matches take more of
+ * the day: fewer entries split the same gold.
  */
 export function goldPerEvent(config: EventConfig): number {
-  if (config.eventsPerDay <= 0) return 0;
-  const dailyWins = config.eventsPerDay * meanWinsPerEvent(config);
-  return (dailyWinGold(dailyWins) + config.otherGoldPerDay) / config.eventsPerDay;
+  if (config.gamesPerDay <= 0) return 0;
+  const dailyWins = config.gamesPerDay * matchWinRate(config);
+  const perDay = dailyWinGold(dailyWins) + config.otherGoldPerDay;
+  return perDay * (meanGamesPerEvent(config) / config.gamesPerDay);
 }
 
 /**
@@ -227,7 +290,7 @@ export function goldPerEvent(config: EventConfig): number {
  *
  * Flat across win counts, like the cards kept from the pool: it is a long-run
  * average per event, not what one finish paid, and `goldPerEvent` says why.
- * `eventsPerDay: 0` still prices an event in gems alone.
+ * `gamesPerDay: 0` still prices an event in gems alone.
  */
 export function goldValueGems(config: EventConfig): number {
   return (goldPerEvent(config) * config.gemsPer10kGold) / 10000;

@@ -31,13 +31,13 @@
  *
  * Most entries are sourced — Wizards' drop-rates page, Scryfall, the
  * box-price feed — or read off the client and recorded with a date in
- * `by-hand.ts`. Four are neither: DEFAULT_WIN_RATE_MATCHES and
- * DEFAULT_EVENTS_PER_DAY are modelling choices about the reader, and
- * DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS and DEFAULT_COSMETIC_VALUE_GEMS are zeros
- * that refuse to invent a number rather than numbers. Those four have nothing
- * to fetch, so their `compute` returns the figure with the reasoning and no
- * source, and they are here so the inventory has no holes — not because
- * running this can move them.
+ * `by-hand.ts`. Five are neither: DEFAULT_WIN_RATE_MATCHES,
+ * DEFAULT_GAMES_PER_DAY and BO3_GAMES_PER_MATCH are modelling choices about
+ * the reader and the format, and DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS and
+ * DEFAULT_COSMETIC_VALUE_GEMS are zeros that refuse to invent a number rather
+ * than numbers. Those five have nothing to fetch, so their `compute` returns
+ * the figure with the reasoning and no source, and they are here so the
+ * inventory has no holes — not because running this can move them.
  *
  * The two generic box constants are the heavy ones: their data is the
  * box-price feed (`scripts/box-prices/`, fetched in full when they are asked
@@ -567,16 +567,33 @@ export const REGISTRY = {
     },
   },
 
-  DEFAULT_EVENTS_PER_DAY: {
-    summary: "events played a day — a modelling choice",
+  DEFAULT_GAMES_PER_DAY: {
+    summary: "games played a day — a modelling choice",
     sources: [],
     compute() {
       return {
-        value: 2,
-        asOf: "2026-08-18",
+        value: 12,
+        asOf: "2026-08-19",
         explain: [
-          "a modelling choice, not derived from any source: a motivated player can play two events a day,",
-          "  and two is the conservative side of that — each event a day adds is credited less of the day's gold",
+          "a modelling choice, not derived from any source: a game runs about ten minutes, so twelve is",
+          "  roughly two hours of play — about two best-of-one drafts' worth, which is what the",
+          "  two-events-a-day default it replaces said",
+        ],
+      };
+    },
+  },
+
+  BO3_GAMES_PER_MATCH: {
+    summary: "games a best-of-three match is counted as — a modelling choice",
+    sources: [],
+    compute() {
+      return {
+        value: 2.5,
+        asOf: null,
+        explain: [
+          "a modelling choice, not derived from any source: a match runs two or three games and 2.5 is the",
+          "  midpoint; independent games at rate g would say 2 + 2g(1 − g), which is 2.5 at an even rate,",
+          "  and sideboarding is why no per-rate figure is derived",
         ],
       };
     },

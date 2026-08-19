@@ -223,7 +223,7 @@ function gemsOnly(over: Partial<EventConfig> = {}): EventConfig {
   return {
     ...defaultConfig(),
     entryCostGold: null,
-    eventsPerDay: 0,
+    gamesPerDay: 0,
     otherGoldPerDay: 0,
     draftPacks: 0,
     // The rate is a number the player knows, so every run is played at it. The
@@ -845,7 +845,7 @@ describe("Wald's identity", () => {
     const config = {
       ...configFromPreset(preset, defaultConfig()),
       entryCostGold: null,
-      eventsPerDay: 0,
+      gamesPerDay: 0,
       otherGoldPerDay: 0,
       winRateMatches: 0,
       winRate: 0.5,
@@ -876,7 +876,7 @@ describe("Wald's identity", () => {
     const config = {
       ...configFromPreset(PREMIER_DRAFT, defaultConfig()),
       entryCostGold: null,
-      eventsPerDay: 0,
+      gamesPerDay: 0,
       otherGoldPerDay: 0,
       winRateMatches: 0,
       winRate: 0.5,
@@ -937,7 +937,10 @@ describe("gold-funded entries", () => {
     draftPacks: 0,
     entryCostGems: ENTRY_GEMS,
     entryCostGold: GOLD_PRICE,
-    eventsPerDay: 1,
+    // One event's worth of games a day: at a win rate of zero a run is three
+    // straight best-of-one losses, so three games is exactly one event and
+    // the whole of `otherGoldPerDay` lands on it.
+    gamesPerDay: 3,
     // At a win rate of zero the daily-win ladder pays nothing, so this is the
     // whole of the gold income and it is flat.
     otherGoldPerDay: GOLD_PER_EVENT,

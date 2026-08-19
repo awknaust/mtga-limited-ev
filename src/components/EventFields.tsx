@@ -127,6 +127,7 @@ export function EventFields({
     maxWins: `${uid}-max-wins`,
     maxLosses: `${uid}-max-losses`,
     rounds: `${uid}-rounds`,
+    gamesPerMatch: `${uid}-games-per-match`,
     entry: `${uid}-entry`,
     entryGold: `${uid}-entry-gold`,
     entryPoints: `${uid}-entry-points`,
@@ -266,6 +267,23 @@ export function EventFields({
             <option value="elimination">Wins / losses</option>
             <option value="rounds">Fixed rounds</option>
           </select>
+        </div>
+        <div className="col-6">
+          <label htmlFor={ids.gamesPerMatch} className="form-label">
+            Games per match
+            <InfoTip
+              label="About games per match"
+              content="How many games one match takes on average: 1 for best-of-one, about 2.5 for best-of-three. Sets how many of these events a day of games holds when crediting gold."
+            />
+          </label>
+          <NumberInput
+            id={ids.gamesPerMatch}
+            disabled={locked}
+            min={0}
+            fractional
+            value={config.gamesPerMatch}
+            onChange={(n) => set("gamesPerMatch", n)}
+          />
         </div>
       </div>
 

@@ -321,6 +321,13 @@ export const DEFAULT_DRAFT_PACK_VALUE_GEMS = Math.round(160 / 7);
  * event generates is far closer to its own few wins than to the 750 a full day
  * of grinding pays.
  *
+ * A win here is a *game*, not a match: each game taken inside a best-of-three
+ * counts on its own, so a 2–1 match climbs two rungs. Wizards' page publishes
+ * the amounts without spelling out what counts; the per-game counting is the
+ * community-documented behaviour (MTG Arena Zone's daily-wins guide, Draftsim's
+ * daily-rewards page), and it is why `goldPerEvent` climbs this ladder by the
+ * day's game wins rather than its match wins.
+ *
  * @see https://magic.wizards.com/en/mtgarena/drop-rates
  */
 export const DAILY_WIN_GOLD: readonly number[] = [
@@ -355,22 +362,41 @@ export const DAILY_WIN_CAP = DAILY_WIN_GOLD.length;
 export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
 
 /**
- * Events played per day.
+ * Games played per day.
  *
- * Decides how far a day's wins climb DAILY_WIN_GOLD before it caps, and how
- * many events the day's other gold is spread across. Two, set 2026-08-18: a
- * motivated player can play two events a day, and two is the conservative
- * side of that — the ladder front-loads and the quest is one payment, so
- * every event a day adds credits each with less. One event a day at a 55%
- * win rate is about 3.4 wins and 489 gold; two is about 6.8 wins and 600
- * gold for the day, 300 each; five reach the fifteen-win cap and split 750
- * between them. Set 0 to price an event in gems alone.
+ * The day is counted in games rather than events because games are what take
+ * the time: one runs about ten minutes, so twelve is roughly two hours of
+ * play — about two Premier Drafts' worth at the default win rate, which is
+ * what the two-events-a-day default this replaces said (set 2026-08-19).
+ * Decides how far the day's wins climb DAILY_WIN_GOLD before it caps, and
+ * how many events split the day's other gold; `goldPerEvent` turns games
+ * into events at the event's own length, so a best-of-three event fills the
+ * same day with fewer entries than a best-of-one. Twelve games at a 55% win
+ * rate is about 6.6 wins and the full 600 the ladder pays by then; playing
+ * on past twenty-seven reaches the fifteen-win cap and its 750. Set 0 to
+ * price an event in gems alone.
  *
  * A modelling choice, not a sourced figure — nothing on Wizards' pages says
  * how much anyone plays. Changing it moves the meaning of every link that
- * omits `eventsPerDay`, which is what `share.compat.test.ts` fires for.
+ * omits `gamesPerDay`, which is what `share.compat.test.ts` fires for.
  */
-export const DEFAULT_EVENTS_PER_DAY = 2;
+export const DEFAULT_GAMES_PER_DAY = 12;
+
+/**
+ * Games a best-of-three match is counted as.
+ *
+ * A match ends 2–0 in two games or goes the distance in three, so the count
+ * sits between 2 and 3, and 2.5 is the midpoint. It is also where the
+ * arithmetic lands for close rates: independent games at rate g run a match
+ * to 2 + 2g(1 − g) games, which is 2.5 at an even rate and 2.49 at 55%.
+ * Sideboarding breaks the independence, which is why the convention is a
+ * typed constant rather than something derived per rate — the same refusal
+ * `matchWinRate` records for the rate itself.
+ *
+ * Read once, in `configFromPreset`, to fill `gamesPerMatch` for the presets
+ * that declare `bestOf: 3`; a custom event edits the field directly.
+ */
+export const BO3_GAMES_PER_MATCH = 2.5;
 
 /**
  * TCGplayer market prices in USD (read via tcgcsv.com) of the three newest
@@ -533,6 +559,7 @@ export function configFromPreset(preset: EventPreset, base: EventConfig): EventC
     entryCostPlayInPoints: entryPrice(preset.entryCostPlayInPoints),
     draftPacks: preset.draftPacks ?? 0,
     structure: { ...preset.structure },
+    gamesPerMatch: preset.bestOf === 3 ? BO3_GAMES_PER_MATCH : 1,
     payouts: preset.payouts.map(copyTier),
   };
 }
@@ -547,7 +574,9 @@ export function defaultConfig(): EventConfig {
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
     qualifierTokenValueGems: DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
     otherGoldPerDay: DEFAULT_OTHER_GOLD_PER_DAY,
-    eventsPerDay: DEFAULT_EVENTS_PER_DAY,
+    gamesPerDay: DEFAULT_GAMES_PER_DAY,
+    // Overwritten by `configFromPreset` from the preset's `bestOf`.
+    gamesPerMatch: 1,
     gemsPer10kGold: GEMS_PER_10K_GOLD,
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,

@@ -15,6 +15,7 @@ import {
   CREDIBLE_LEVEL,
   goldPerEvent,
   goldValueGems,
+  meanEventsPerDay,
   type EventConfig,
 } from "../lib";
 import { SIM_LIMITS } from "../state";
@@ -111,7 +112,7 @@ export function AdvancedDialog({
     avatarValue: `${uid}-avatar-value`,
     companionValue: `${uid}-companion-value`,
     goldPerDay: `${uid}-gold-per-day`,
-    eventsPerDay: `${uid}-events-per-day`,
+    gamesPerDay: `${uid}-games-per-day`,
     goldRate: `${uid}-gold-rate`,
     gemsPerUsd: `${uid}-gems-per-usd`,
     bankrollRuns: `${uid}-bankroll-runs`,
@@ -533,19 +534,19 @@ export function AdvancedDialog({
             />
           </div>
           <div className="col-6">
-            <label htmlFor={ids.eventsPerDay} className="form-label">
-              Events per day
+            <label htmlFor={ids.gamesPerDay} className="form-label">
+              Games per day
               <InfoTip
-                label="About events per day"
-                content="How far a day's wins climb the daily-win ladder, which stops paying at fifteen. More events a day earn more gold in total but less per event. Set 0 to price the event in gems alone."
+                label="About games per day"
+                content="How many games a day you play, across every event — a best-of-three match is about 2.5 of them. Decides how far the day's wins climb the daily-win ladder, which stops paying at fifteen, and how many events share the day's gold. Set 0 to price the event in gems alone."
               />
             </label>
             <NumberInput
-              id={ids.eventsPerDay}
+              id={ids.gamesPerDay}
               min={0}
               fractional
-              value={config.eventsPerDay}
-              onChange={(n) => set("eventsPerDay", n)}
+              value={config.gamesPerDay}
+              onChange={(n) => set("gamesPerDay", n)}
             />
           </div>
           <div className="col-12">
@@ -553,10 +554,12 @@ export function AdvancedDialog({
               What the two fields above come to, and what the rate
               below makes of it — the figure that lands in every
               per-event gross, so it is worth seeing here as gold and
-              as gems both.
+              as gems both, along with how many events the day's games
+              fill, which is the divisor behind the per-event share.
             */}
             <div className="form-text mt-0">
-              {Math.round(goldPerEvent(config)).toLocaleString()} gold per event
+              {approx(`${meanEventsPerDay(config).toLocaleString(undefined, { maximumFractionDigits: 1 })} events a day`)}
+              ; {Math.round(goldPerEvent(config)).toLocaleString()} gold per event
               {goldPerEvent(config) > 0 && `, counted as ${gemsEq(goldValueGems(config))}`}.
             </div>
           </div>
