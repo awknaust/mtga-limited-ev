@@ -49,13 +49,14 @@ export const CURVE_MODES: readonly { key: CurveMode; label: string }[] = [
  * ladder — but it moves in the *numerator*, as earnings inside the net, so
  * there is no entry to re-derive per point.
  *
- * Null is "no answer here", not zero: a free event has no gems staked to
- * return a share of, and plotting 0 would read as breaking even exactly.
+ * Null is "no answer here", not zero: an event that takes no gems has none
+ * staked to return a share of, and plotting 0 would read as breaking even
+ * exactly.
  */
 function valueAt(config: EventConfig, rate: number, mode: CurveMode): number | null {
   const net = expectedNetAt(config, rate);
   if (mode === "net") return net;
-  return config.entryCostGems > 0 ? net / config.entryCostGems : null;
+  return config.entryCostGems === null ? null : net / config.entryCostGems;
 }
 
 /**

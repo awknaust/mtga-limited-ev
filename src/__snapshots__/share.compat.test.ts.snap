@@ -4,7 +4,7 @@ exports[`the captured corpus > pins everything a custom ladder paying cube packs
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=60 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -20,7 +20,7 @@ exports[`the captured corpus > pins everything a custom ladder paying mythic pac
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=45 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -36,7 +36,7 @@ exports[`the captured corpus > pins everything arena direct with boxes valued at
 "preset     Arena Direct (Play)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold / 0 points
+entry      8000 gems / none gold / none points
 draft      6 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=0 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -52,7 +52,7 @@ exports[`the captured corpus > pins everything arena direct — physical boxes i
 "preset     Arena Direct (Cube)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold / 0 points
+entry      8000 gems / none gold / none points
 draft      0 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -68,7 +68,7 @@ exports[`the captured corpus > pins everything bankroll only resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -84,7 +84,7 @@ exports[`the captured corpus > pins everything bare origin resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -100,7 +100,7 @@ exports[`the captured corpus > pins everything counts above the ceilings resolve
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -116,7 +116,7 @@ exports[`the captured corpus > pins everything custom elimination shape resolves
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":5,"maxLosses":2}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -132,7 +132,7 @@ exports[`the captured corpus > pins everything custom ladder naming its boxes re
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -164,7 +164,7 @@ exports[`the captured corpus > pins everything demo 2 — premier, gems only, no
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 0
 values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collBox=0
 gold       other=0/day over 1 events, goldPer10k=1500
@@ -180,7 +180,7 @@ exports[`the captured corpus > pins everything demo 3 — quick, gems only, no g
 "preset     Quick Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      750 gems / 5000 gold / 0 points
+entry      750 gems / 5000 gold / none points
 draft      3 packs @ 0
 values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collBox=0
 gold       other=0/day over 1 events, goldPer10k=1500
@@ -196,7 +196,7 @@ exports[`the captured corpus > pins everything demo 4 — premier at the post's 
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 110
 values     pack=132 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=0/day over 1 events, goldPer10k=1500
@@ -212,7 +212,7 @@ exports[`the captured corpus > pins everything demo 5 — full custom worst case
 "preset     Custom
 winRate    0.6125 over 100 matches
 structure  {"kind":"rounds","rounds":5}
-entry      1234 gems / 9000 gold / 0 points
+entry      1234 gems / 9000 gold / none points
 draft      4 packs @ 110
 values     pack=132 mythicPack=37 cubePack=51 playIn=250 qualToken=0 playBox=60000 collBox=250000
 gold       other=900/day over 2 events, goldPer10k=2000
@@ -228,7 +228,7 @@ exports[`the captured corpus > pins everything display only resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -244,7 +244,7 @@ exports[`the captured corpus > pins everything every kind of pack at once, in an
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":2,"maxLosses":2}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -256,11 +256,43 @@ display    tab=bankroll unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
+exports[`the captured corpus > pins everything gold price cleared, in the new one resolves to 1`] = `
+"preset     Premier Draft
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
+entry      1500 gems / none gold / none points
+draft      3 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
+gold       other=600/day over 1 events, goldPer10k=1500
+credits    1088.8 gold/event = 163.3 gems
+payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
+bankroll   gems=3400 gold=5000 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
+`;
+
+exports[`the captured corpus > pins everything gold price cleared, in the old spelling resolves to 1`] = `
+"preset     Premier Draft
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
+entry      1500 gems / none gold / none points
+draft      3 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
+gold       other=600/day over 1 events, goldPer10k=1500
+credits    1088.8 gold/event = 163.3 gems
+payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
+bankroll   gems=3400 gold=5000 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
+`;
+
 exports[`the captured corpus > pins everything mastery rates, cosmetics priced resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -276,7 +308,7 @@ exports[`the captured corpus > pins everything mastery tab resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -288,11 +320,27 @@ display    tab=mastery unit=gems gemsPerUsd=200
 compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
 `;
 
+exports[`the captured corpus > pins everything no price named in any currency, which is a free entry resolves to 1`] = `
+"preset     Premier Draft
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
+entry      none gems / none gold / none points
+draft      3 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
+gold       other=600/day over 1 events, goldPer10k=1500
+credits    1088.8 gold/event = 163.3 gems
+payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
+bankroll   gems=3400 gold=5000 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
+`;
+
 exports[`the captured corpus > pins everything one slider moved resolves to 1`] = `
 "preset     Premier Draft
 winRate    0.62 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -308,7 +356,7 @@ exports[`the captured corpus > pins everything preset switch only resolves to 1`
 "preset     Quick Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      750 gems / 5000 gold / 0 points
+entry      750 gems / 5000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -340,7 +388,7 @@ exports[`the captured corpus > pins everything the cube ladder as it was spelled
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -356,7 +404,7 @@ exports[`the captured corpus > pins everything the old fold, where mythic packs 
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -372,7 +420,7 @@ exports[`the captured corpus > pins everything traditional draft — bo3, fixed 
 "preset     Traditional Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -388,7 +436,7 @@ exports[`the captured corpus > pins everything unspent gold counted as worthless
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=0
@@ -404,7 +452,7 @@ exports[`the preset definitions are the contract > pins what ?preset=arena-direc
 "preset     Arena Direct (Collector)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold / 0 points
+entry      8000 gems / none gold / none points
 draft      6 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -420,7 +468,7 @@ exports[`the preset definitions are the contract > pins what ?preset=arena-direc
 "preset     Arena Direct (Cube)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold / 0 points
+entry      8000 gems / none gold / none points
 draft      0 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -436,7 +484,7 @@ exports[`the preset definitions are the contract > pins what ?preset=arena-direc
 "preset     Arena Direct (Play)
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
-entry      8000 gems / 0 gold / 0 points
+entry      8000 gems / none gold / none points
 draft      6 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -452,7 +500,7 @@ exports[`the preset definitions are the contract > pins what ?preset=constructed
 "preset     Constructed Event
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      375 gems / 2500 gold / 0 points
+entry      375 gems / 2500 gold / none points
 draft      0 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -468,7 +516,7 @@ exports[`the preset definitions are the contract > pins what ?preset=contender-d
 "preset     Contender Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      3000 gems / 20000 gold / 0 points
+entry      3000 gems / 20000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -484,7 +532,7 @@ exports[`the preset definitions are the contract > pins what ?preset=pick-two-dr
 "preset     Pick Two Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":4,"maxLosses":2}
-entry      900 gems / 6000 gold / 0 points
+entry      900 gems / 6000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -500,7 +548,7 @@ exports[`the preset definitions are the contract > pins what ?preset=premier-cub
 "preset     Premier Cube Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      0 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -516,7 +564,7 @@ exports[`the preset definitions are the contract > pins what ?preset=premier-dra
 "preset     Premier Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -564,7 +612,7 @@ exports[`the preset definitions are the contract > pins what ?preset=quick-draft
 "preset     Quick Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      750 gems / 5000 gold / 0 points
+entry      750 gems / 5000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -580,7 +628,7 @@ exports[`the preset definitions are the contract > pins what ?preset=sealed reso
 "preset     Sealed
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-entry      2000 gems / 0 gold / 0 points
+entry      2000 gems / none gold / none points
 draft      6 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -596,7 +644,7 @@ exports[`the preset definitions are the contract > pins what ?preset=traditional
 "preset     Traditional Constructed Event
 winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":5}
-entry      750 gems / 5000 gold / 0 points
+entry      750 gems / 5000 gold / none points
 draft      0 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -612,7 +660,7 @@ exports[`the preset definitions are the contract > pins what ?preset=traditional
 "preset     Traditional Cube Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      0 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -628,7 +676,7 @@ exports[`the preset definitions are the contract > pins what ?preset=traditional
 "preset     Traditional Draft
 winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
-entry      1500 gems / 10000 gold / 0 points
+entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500
@@ -644,7 +692,7 @@ exports[`the preset definitions are the contract > pins what ?preset=traditional
 "preset     Traditional Sealed
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":4,"maxLosses":2}
-entry      2000 gems / 0 gold / 0 points
+entry      2000 gems / none gold / none points
 draft      6 packs @ 23
 values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
 gold       other=600/day over 1 events, goldPer10k=1500

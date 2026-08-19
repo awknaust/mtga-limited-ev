@@ -274,6 +274,44 @@ describe("round trips", () => {
     expect(encodeShareState(state)).toBe("goldPer10k=0");
     expect(roundTrip(state).config.gemsPer10kGold).toBe(0);
   });
+
+  it("writes a cleared entry price as a token, not as a zero", () => {
+    // Premier Draft takes gold; a link that shuts that door has to say so,
+    // and `0` is the spelling it had before there was a word for it.
+    const state = withState({
+      config: { ...defaultConfig(), entryCostGold: null },
+    });
+    expect(encodeShareState(state)).toBe("entryGold=none");
+    expect(roundTrip(state).config.entryCostGold).toBeNull();
+  });
+
+  it("reads the old zero spelling as the same closed door", () => {
+    const written = decodeShareState("entryGold=none").config;
+    const old = decodeShareState("entryGold=0").config;
+    expect(old.entryCostGold).toBeNull();
+    expect(old.entryCostGold).toBe(written.entryCostGold);
+  });
+
+  it("keeps a price out of the link while it is the preset's own", () => {
+    // Sealed takes no gold, so a Sealed link says nothing about gold — the
+    // absence is the preset's, and the delta is empty.
+    const state = withState({
+      presetName: SEALED.name,
+      config: configFromPreset(SEALED, defaultConfig()),
+    });
+    expect(encodeShareState(state)).toBe("preset=sealed");
+    const back = roundTrip(state).config;
+    expect(back.entryCostGold).toBeNull();
+    expect(back.entryCostPlayInPoints).toBeNull();
+  });
+
+  it("round-trips an event that takes no gems", () => {
+    const state = withState({
+      config: { ...defaultConfig(), entryCostGems: null },
+    });
+    expect(encodeShareState(state)).toBe("entry=none");
+    expect(roundTrip(state).config.entryCostGems).toBeNull();
+  });
 });
 
 describe("resetting advanced settings", () => {
@@ -776,7 +814,7 @@ describe("input from a URL is not trusted", () => {
 
   it("rejects a negative amount rather than feeding it to the model", () => {
     expect(decodePayouts("50--1")).toBeNull();
-    expect(decodeShareState("entry=-500").config.entryCostGems).toBe(0);
+    expect(decodeShareState("entry=-500").config.entryCostGems).toBeNull();
   });
 
   it("keeps a row per reachable win count however the two disagree", () => {

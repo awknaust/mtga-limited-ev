@@ -52,11 +52,14 @@ import {
  */
 function fingerprint(state: ShareState): string {
   const c = state.config;
+  // A price or no price at all, spelled the way a link spells it — "none"
+  // rather than a bare `null`, so the two readings are told apart on sight.
+  const price = (p: number | null): string => (p === null ? "none" : String(p));
   return [
     `preset     ${state.presetName}`,
     `winRate    ${c.winRate} over ${c.winRateMatches} matches`,
     `structure  ${JSON.stringify(c.structure)}`,
-    `entry      ${c.entryCostGems} gems / ${c.entryCostGold} gold / ${c.entryCostPlayInPoints} points`,
+    `entry      ${price(c.entryCostGems)} gems / ${price(c.entryCostGold)} gold / ${price(c.entryCostPlayInPoints)} points`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
     `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} qualToken=${c.qualifierTokenValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
     `gold       other=${c.otherGoldPerDay}/day over ${c.eventsPerDay} events, goldPer10k=${c.gemsPer10kGold}`,
@@ -111,6 +114,16 @@ const CORPUS: [name: string, search: string][] = [
   ["traditional draft — bo3, fixed rounds, play-in points", "?preset=traditional-draft"],
   ["arena direct — physical boxes in the ladder", "?preset=arena-direct-cube"],
   ["unspent gold counted as worthless", "?goldPer10k=0"],
+  /*
+   * The three entry prices, which a link could only spell as a number until
+   * a price could be absent. Zero was how a cleared one was written, and it
+   * still decodes to the same thing it always meant — a currency the event
+   * does not take — so these three pin that the change of spelling was not a
+   * change of meaning.
+   */
+  ["gold price cleared, in the old spelling", "?entryGold=0"],
+  ["gold price cleared, in the new one", "?entryGold=none"],
+  ["no price named in any currency, which is a free entry", "?entry=0&entryGold=0"],
   ["display only", "?tab=about&unit=usd&gemsPerUsd=350"],
   ["bankroll only", "?startGems=20000&startGold=15000&maxEvents=200&spendWinnings=1"],
   ["custom elimination shape", "?preset=custom&maxWins=5&maxLosses=2&payouts=0-0_100-1_200-2_400-3_800-4_1600-5"],
@@ -381,7 +394,7 @@ describe("the defaults are the contract", () => {
       "preset     Premier Draft
       winRate    0.55 over 100 matches
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
-      entry      1500 gems / 10000 gold / 0 points
+      entry      1500 gems / 10000 gold / none points
       draft      3 packs @ 23
       values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
       gold       other=600/day over 1 events, goldPer10k=1500
@@ -566,7 +579,13 @@ describe("a link that arrives damaged", () => {
     expect(Number.isFinite(state.config.winRate)).toBe(true);
     expect(Number.isFinite(state.maxEvents)).toBe(true);
     expect(state.maxEvents).toBeGreaterThanOrEqual(1);
-    expect(state.config.entryCostGems).toBeGreaterThanOrEqual(0);
+    /*
+     * A price or no price at all, never a number the model cannot use: a
+     * negative amount is damage, and it lands on the absence rather than on a
+     * gem price below zero.
+     */
+    const entry = state.config.entryCostGems;
+    expect(entry === null || (Number.isFinite(entry) && entry > 0)).toBe(true);
     expect(state.config.payouts).toHaveLength(
       maxPossibleWins(state.config.structure) + 1,
     );

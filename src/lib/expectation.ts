@@ -109,8 +109,10 @@ export function eventExpectation(config: EventConfig): EventExpectation {
     meanRounds: meanRoundsPerEvent(config),
     probProfit: mean((o) => (o.netGems > 0 ? 1 : 0)),
     // Against the gem price as quoted: gold is on the other side of the
-    // ledger, in the numerator with the packs.
-    roi: config.entryCostGems > 0 ? meanNet / config.entryCostGems : 0,
+    // ledger, in the numerator with the packs. Zero where the event names no
+    // gem price, which is a sentinel and not a rate — every reader of this
+    // checks the price itself and prints an em dash for that case.
+    roi: config.entryCostGems ? meanNet / config.entryCostGems : 0,
   };
 }
 

@@ -2,14 +2,7 @@ import { useId, useState, type ReactNode } from "react";
 
 import { BoxCell } from "./BoxCell";
 import { InfoTip } from "./InfoTip";
-import {
-  AddonInput,
-  GemInput,
-  GoldInput,
-  NumberInput,
-  PointsInput,
-  clampInt,
-} from "./Inputs";
+import { AddonInput, NumberInput, PriceInput, clampInt } from "./Inputs";
 import { PickerDialog } from "./PickerDialog";
 import {
   maxPossibleWins,
@@ -325,11 +318,23 @@ export function EventFields({
       </div>
 
       <div className="row g-2 mb-3">
+        {/*
+          Three prices, each of which may be no price at all — an empty field,
+          reading "Not accepted". Every event takes some of these and not
+          others, and the row is the list of doors rather than a list of
+          amounts: Premier Draft takes gems and gold, Sealed gems alone, a
+          Play-In all three.
+        */}
         <div className="col-6">
           <label htmlFor={ids.entry} className="form-label">
             Entry cost (gems)
+            <InfoTip
+              label="About the gem entry"
+              content="The entry price in gems. Leave it empty for an event that cannot be entered with them; ROI and break-even are shares of this price, so they have no answer without one."
+            />
           </label>
-          <GemInput
+          <PriceInput
+            currency="gems"
             id={ids.entry}
             disabled={locked}
             value={config.entryCostGems}
@@ -341,10 +346,11 @@ export function EventFields({
             Entry cost (gold)
             <InfoTip
               label="About the gold entry"
-              content="The entry price in gold, for events that take it. Set 0 for events that do not. A bankroll run pays in gold whenever enough has built up; the per-event figures price the entry in gems and count gold earned as winnings."
+              content="The entry price in gold, for events that take it. Leave it empty for events that do not. A bankroll run pays in gold whenever enough has built up; the per-event figures price the entry in gems and count gold earned as winnings."
             />
           </label>
-          <GoldInput
+          <PriceInput
+            currency="gold"
             id={ids.entryGold}
             disabled={locked}
             value={config.entryCostGold}
@@ -356,10 +362,11 @@ export function EventFields({
             Entry cost (points)
             <InfoTip
               label="About the points entry"
-              content="The entry price in play-in points, for the Qualifier Play-Ins. Set 0 for events that do not take them. Banked points are spent before gold or gems, since nothing else in Arena takes them."
+              content="The entry price in play-in points, for the Qualifier Play-Ins. Leave it empty for events that do not take them. Banked points are spent before gold or gems, since nothing else in Arena takes them."
             />
           </label>
-          <PointsInput
+          <PriceInput
+            currency="points"
             id={ids.entryPoints}
             disabled={locked}
             value={config.entryCostPlayInPoints}

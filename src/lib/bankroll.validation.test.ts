@@ -222,7 +222,7 @@ describe("the reference agrees with the model, by a different route", () => {
 function gemsOnly(over: Partial<EventConfig> = {}): EventConfig {
   return {
     ...defaultConfig(),
-    entryCostGold: 0,
+    entryCostGold: null,
     eventsPerDay: 0,
     otherGoldPerDay: 0,
     draftPacks: 0,
@@ -461,6 +461,8 @@ function exactRun(
   bankroll: BankrollConfig,
 ): { runLengths: number[]; values: Map<number, number> } {
   const wins = outcomeDistribution(config.structure, config.winRate);
+  // Gems are the only door in every config this walk is run against.
+  const entry = config.entryCostGems!;
   const runLengths = new Array<number>(bankroll.maxEvents + 1).fill(0);
   const values = new Map<number, number>();
 
@@ -479,14 +481,14 @@ function exactRun(
   for (let n = 0; n < bankroll.maxEvents; n++) {
     const next = new Map<number, Map<number, number>>();
     for (const [gems, byValue] of live) {
-      if (gems < config.entryCostGems) {
+      if (gems < entry) {
         bank(byValue, n);
         continue;
       }
       for (let w = 0; w < wins.length; w++) {
         if (wins[w] === 0) continue;
-        const gemsAfter = gems - config.entryCostGems + gemsAt(config, w);
-        const gained = valueAt(config, w) - config.entryCostGems;
+        const gemsAfter = gems - entry + gemsAt(config, w);
+        const gained = valueAt(config, w) - entry;
         let bucket = next.get(gemsAfter);
         if (!bucket) next.set(gemsAfter, (bucket = new Map()));
         for (const [value, mass] of byValue) {
@@ -842,7 +844,7 @@ describe("Wald's identity", () => {
   ])("holds for %s", (_name, preset, startingGems) => {
     const config = {
       ...configFromPreset(preset, defaultConfig()),
-      entryCostGold: 0,
+      entryCostGold: null,
       eventsPerDay: 0,
       otherGoldPerDay: 0,
       winRateMatches: 0,
@@ -854,7 +856,7 @@ describe("Wald's identity", () => {
 
     const dist = outcomeDistribution(config.structure, config.winRate);
     const value = (wins: number) => valueAt(config, wins);
-    const perEvent = expectationOf(dist, value) - config.entryCostGems;
+    const perEvent = expectationOf(dist, value) - config.entryCostGems!;
     const predicted = startingGems + res.meanEvents * perEvent;
 
     /*
@@ -873,7 +875,7 @@ describe("Wald's identity", () => {
     // anything about how it arises.
     const config = {
       ...configFromPreset(PREMIER_DRAFT, defaultConfig()),
-      entryCostGold: 0,
+      entryCostGold: null,
       eventsPerDay: 0,
       otherGoldPerDay: 0,
       winRateMatches: 0,
@@ -893,7 +895,7 @@ describe("Wald's identity", () => {
     const value = (wins: number) => valueAt(config, wins);
     const predicted =
       roll.startingGems +
-      res.meanEvents * (expectationOf(dist, value) - config.entryCostGems);
+      res.meanEvents * (expectationOf(dist, value) - config.entryCostGems!);
     const se = Math.sqrt((res.meanEvents * varianceOfF(dist, value)) / trials);
     expect(Math.abs(res.meanFinalValue - predicted)).toBeLessThan(4 * se);
   });
