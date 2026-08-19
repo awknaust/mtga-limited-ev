@@ -92,6 +92,17 @@ export type Money = {
   fractional: boolean;
 };
 
+/**
+ * Bootstrap's text colour for a signed figure: green at or above zero, red
+ * below it.
+ *
+ * Here rather than in each panel because it is the same judgement everywhere —
+ * a net, an ending value against what it started from, a return — and three
+ * copies of it were already drifting apart.
+ */
+export const signClass = (n: number): string =>
+  n >= 0 ? "text-success" : "text-danger";
+
 /** A 0..1 fraction as a percentage. Not a unit, so it never converts. */
 export const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
 
