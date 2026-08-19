@@ -357,12 +357,20 @@ export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
 /**
  * Events played per day.
  *
- * Decides how far a day's wins climb DAILY_WIN_GOLD before it caps. One event
- * a day at a 55% win rate is about 3.4 wins and 489 gold; five events reach
- * the fifteen-win cap and split 750 between them, so each earns less than the
- * first did. Set 0 to price an event in gems alone.
+ * Decides how far a day's wins climb DAILY_WIN_GOLD before it caps, and how
+ * many events the day's other gold is spread across. Two, set 2026-08-18: a
+ * motivated player can play two events a day, and two is the conservative
+ * side of that — the ladder front-loads and the quest is one payment, so
+ * every event a day adds credits each with less. One event a day at a 55%
+ * win rate is about 3.4 wins and 489 gold; two is about 6.8 wins and 600
+ * gold for the day, 300 each; five reach the fifteen-win cap and split 750
+ * between them. Set 0 to price an event in gems alone.
+ *
+ * A modelling choice, not a sourced figure — nothing on Wizards' pages says
+ * how much anyone plays. Changing it moves the meaning of every link that
+ * omits `eventsPerDay`, which is what `share.compat.test.ts` fires for.
  */
-export const DEFAULT_EVENTS_PER_DAY = 1;
+export const DEFAULT_EVENTS_PER_DAY = 2;
 
 /**
  * TCGplayer market prices in USD (read via tcgcsv.com) of the three newest

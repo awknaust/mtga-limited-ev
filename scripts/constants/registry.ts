@@ -106,8 +106,9 @@ export type ConstantResult = {
   /**
    * The date the value's inputs were read, ISO `YYYY-MM-DD`: the run date for
    * a fetched source, the by-hand record's `checkedOn` for a figure read off
-   * the client, `null` for a choice with no dated input behind it. Where an
-   * entry mixes the two, the date of the input that sets the value.
+   * the client, the date a choice was last made where one is recorded, and
+   * `null` where nothing dates the value. Where an entry mixes the two, the
+   * date of the input that sets the value.
    */
   asOf: string | null;
   explain: Explanation;
@@ -571,9 +572,12 @@ export const REGISTRY = {
     sources: [],
     compute() {
       return {
-        value: 1,
-        asOf: null,
-        explain: ["a modelling choice, not derived from any source: one event a day"],
+        value: 2,
+        asOf: "2026-08-18",
+        explain: [
+          "a modelling choice, not derived from any source: a motivated player can play two events a day,",
+          "  and two is the conservative side of that — each event a day adds is credited less of the day's gold",
+        ],
       };
     },
   },
