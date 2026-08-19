@@ -35,7 +35,6 @@ const DEFINED = new Set(
 const stub = (name: string, group: EventPreset["group"]): EventPreset => ({
   name,
   group,
-  entryCostGems: 0,
   structure: { kind: "rounds", rounds: 1 },
   payouts: [{ wins: 0, gems: 0, packs: 0 }],
 });

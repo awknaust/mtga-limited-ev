@@ -503,13 +503,26 @@ export const DEFAULT_UNCOMMON_ICR_VALUE_GEMS = 0.05 * ((7 / 8) * 20 + (1 / 8) * 
  */
 export const DEFAULT_COSMETIC_VALUE_GEMS = 0;
 
+/**
+ * An amount as the model holds an entry price: what it charges, or `null` for
+ * a currency it does not take at all.
+ *
+ * Absent, zero and anything below it all come out `null` — a price of nothing
+ * is not a price, and `EventConfig` has the reasoning. This is here rather
+ * than inside any one caller because every way into the model has to agree
+ * about it: a preset's optional field, a number out of a link, a field
+ * cleared in the editor.
+ */
+export const entryPrice = (amount: number | null | undefined): number | null =>
+  amount != null && amount > 0 ? amount : null;
+
 /** Config built from a preset, leaving win rate and pack value untouched. */
 export function configFromPreset(preset: EventPreset, base: EventConfig): EventConfig {
   return {
     ...base,
-    entryCostGems: preset.entryCostGems,
-    entryCostGold: preset.entryCostGold ?? 0,
-    entryCostPlayInPoints: preset.entryCostPlayInPoints ?? 0,
+    entryCostGems: entryPrice(preset.entryCostGems),
+    entryCostGold: entryPrice(preset.entryCostGold),
+    entryCostPlayInPoints: entryPrice(preset.entryCostPlayInPoints),
     draftPacks: preset.draftPacks ?? 0,
     structure: { ...preset.structure },
     payouts: preset.payouts.map(copyTier),

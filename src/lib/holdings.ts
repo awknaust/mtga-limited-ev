@@ -209,9 +209,11 @@ export function heldKeys(
   const kept = (key: StaticHoldingKey): boolean => {
     if (key === "gems") return true;
     if (key === "gold")
-      return holdingGold || config.entryCostGold > 0 || goldPerEvent(config) > 0;
+      return holdingGold || config.entryCostGold !== null || goldPerEvent(config) > 0;
     if (key === "playInPoints")
-      return holdingPoints || config.entryCostPlayInPoints > 0 || paid.includes(key);
+      return (
+        holdingPoints || config.entryCostPlayInPoints !== null || paid.includes(key)
+      );
     if (key === "draftPacks") return config.draftPacks > 0;
     return paid.includes(key);
   };

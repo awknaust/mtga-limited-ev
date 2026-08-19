@@ -32,6 +32,7 @@ import {
   masteryBySlug,
   configFromPreset,
   defaultConfig,
+  entryPrice,
   maxPossibleWins,
   resizePayouts,
   type BoxKind,
@@ -339,9 +340,6 @@ const CONFIG_NUMBERS = [
   // Per *game*, as the model stores it — not the per-match figure the slider
   // shows for best-of-three.
   ["wr", "winRate"],
-  ["entry", "entryCostGems"],
-  ["entryGold", "entryCostGold"],
-  ["entryPoints", "entryCostPlayInPoints"],
   ["draftPacks", "draftPacks"],
   ["draftPackValue", "draftPackValueGems"],
   ["packValue", "packValueGems"],
@@ -379,6 +377,27 @@ const CONFIG_NUMBERS = [
   // the same trick `goldPer10k` uses for gold that is worth nothing.
   ["confMatches", "winRateMatches"],
 ] as const satisfies readonly (readonly [string, keyof EventConfig])[];
+
+/**
+ * What an entry costs, in each currency — the fields a link can spell as *no
+ * price at all*, which is why they are not in the list above.
+ *
+ * A price is a number or `null`, and the codec needs a token for the second.
+ * It is `none`, and it is new; what is not new is the meaning. Every link
+ * written before there was a token spelled a currency the event does not take
+ * as `0`, so `0` decodes to exactly that, here as it always did:
+ * `entryGold=0` said gold could not buy an entry then and says it now. The
+ * token is for writing, so that a price and its absence are told apart in a
+ * URL the way they are told apart in the model.
+ */
+const CONFIG_PRICES = [
+  ["entry", "entryCostGems"],
+  ["entryGold", "entryCostGold"],
+  ["entryPoints", "entryCostPlayInPoints"],
+] as const satisfies readonly (readonly [string, keyof EventConfig])[];
+
+/** How a link spells a currency the event does not take. */
+const NO_PRICE = "none";
 
 /**
  * Bankroll and display fields, which sit outside the config.
@@ -575,6 +594,11 @@ export function encodeShareState(state: ShareState): string {
     if (value !== base[field]) params.set(key, num(value));
   }
 
+  for (const [key, field] of CONFIG_PRICES) {
+    const value = state.config[field];
+    if (value !== base[field]) params.set(key, value === null ? NO_PRICE : num(value));
+  }
+
   if (!sameStructure(state.config.structure, base.structure)) {
     encodeStructure(params, state.config.structure);
   }
@@ -632,6 +656,26 @@ function numberFrom(
   return int ? Math.round(clamped) : clamped;
 }
 
+/**
+ * An entry price in range, or the fallback. Values arrive from a URL.
+ *
+ * `none` is the absence written out; so is anything at or below zero, which
+ * is both what old links spell it as and the model's own rule that a price of
+ * nothing is not a price. An unparseable value falls back like any other,
+ * since a mistyped price is not a claim that the event is free.
+ */
+function priceFrom(
+  params: URLSearchParams,
+  key: string,
+  fallback: number | null,
+): number | null {
+  const raw = params.get(key)?.trim();
+  if (raw === undefined || raw === "") return fallback;
+  if (raw === NO_PRICE) return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? entryPrice(n) : fallback;
+}
+
 const oneOf = <T extends string>(
   params: URLSearchParams,
   key: string,
@@ -673,9 +717,14 @@ export function decodeShareState(search: string): ShareState {
     ]),
   ) as Pick<EventConfig, (typeof CONFIG_NUMBERS)[number][1]>;
 
+  const prices = Object.fromEntries(
+    CONFIG_PRICES.map(([key, field]) => [field, priceFrom(params, key, base[field])]),
+  ) as Pick<EventConfig, (typeof CONFIG_PRICES)[number][1]>;
+
   const config: EventConfig = {
     ...base,
     ...numbers,
+    ...prices,
     structure,
     payouts,
   };

@@ -247,5 +247,5 @@ export function goldValueGems(config: EventConfig): number {
  * steady state, which is this one.
  */
 export function netValue(config: EventConfig, wins: number): number {
-  return grossValue(config, wins) - config.entryCostGems;
+  return grossValue(config, wins) - (config.entryCostGems ?? 0);
 }

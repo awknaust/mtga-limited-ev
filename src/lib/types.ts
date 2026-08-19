@@ -166,8 +166,16 @@ export type EventPreset = {
    * in the tab that groups by it.
    */
   group: EventGroup;
-  entryCostGems: number;
-  /** Gold price, where the event takes gold. Absent means gems only. */
+  /**
+   * Gem price, where the event takes gems — which is every event here so far.
+   *
+   * Absent means the door does not open to gems at all, and that is the rule
+   * for all three prices: an absent price is a currency the event does not
+   * take, which is not the same as a price of nothing. `configFromPreset`
+   * spells that absence `null`; the reasoning is on `EventConfig`.
+   */
+  entryCostGems?: number;
+  /** Gold price, where the event takes gold. Absent means it does not. */
   entryCostGold?: number;
   /**
    * Play-in point price, where the event takes points. Absent means it does
@@ -197,12 +205,24 @@ export type EventConfig = {
   /** Probability of winning one match, 0..1. A round is a match in every event. */
   winRate: number;
   structure: EventStructure;
-  /** Entry cost in gems. */
-  entryCostGems: number;
-  /** Gold price, or 0 where the event takes gems only. */
-  entryCostGold: number;
   /**
-   * Play-in point price, or 0 where the event does not take them.
+   * Gem price of one entry, or `null` where the event does not take gems.
+   *
+   * `null` is the door refusing a currency; a number is what it charges. Zero
+   * is neither, and is not a value any of the three prices holds: an entry
+   * that takes nothing is an entry not paid in gems, which is the absence.
+   * Every way in normalises it that way — a preset's absent field, a cleared
+   * editor field, an old link's `0` — so there is one spelling for "no" and
+   * the model never has to work out which zero it is looking at.
+   *
+   * An event naming no price at all is free rather than unenterable, which is
+   * the one place the difference shows: see `simulateBankroll`.
+   */
+  entryCostGems: number | null;
+  /** Gold price, or `null` where the event does not take gold. */
+  entryCostGold: number | null;
+  /**
+   * Play-in point price, or `null` where the event does not take them.
    *
    * The third way to pay for an entry, and unlike the other two it buys
    * nothing else in Arena — which is why the bankroll spends these first. It
@@ -211,7 +231,7 @@ export type EventConfig = {
    * the bankroll simulation and leaves the per-event `netValue` alone; see
    * the note there.
    */
-  entryCostPlayInPoints: number;
+  entryCostPlayInPoints: number | null;
   /**
    * Gold earned in a day from everything *except* this event's own wins —
    * quests, and games played outside it.

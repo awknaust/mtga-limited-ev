@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { money } from "../format";
+import { entryPrice } from "../lib";
 
 /**
  * The form controls the app types numbers into.
@@ -101,6 +102,70 @@ export function NumberInput({
   );
 }
 
+/**
+ * The marker that names a currency at the point of entry, one per currency
+ * the app takes amounts in.
+ *
+ * In one place because two controls draw them now — an amount and a price —
+ * and a gold field that showed the gem marker would be a field read as the
+ * wrong currency, which is the whole reason the markers are there.
+ */
+const CURRENCY_ADDON = {
+  gems: <i className="bi bi-gem" aria-hidden="true" />,
+  gold: <i className="bi bi-coin" aria-hidden="true" />,
+  points: <i className="bi bi-ticket-perforated" aria-hidden="true" />,
+} as const;
+
+export type Currency = keyof typeof CURRENCY_ADDON;
+
+/**
+ * What one entry costs in a currency, or nothing at all where the event does
+ * not take it.
+ *
+ * The empty field *is* that second reading — the model spells it `null`, and
+ * the placeholder says so — which is what this control exists for. A zero in
+ * the box would have to mean either "free" or "not taken" and reads as
+ * neither, so typing one clears the field instead: a price of nothing is not
+ * a price, and `entryPrice` is the model's own rule about it rather than a
+ * second copy of it here.
+ *
+ * It is also how the locked record shows an event that takes gems only —
+ * "None" against the gold and points fields, where it used to show two
+ * zeroes that read as prices. The word is short because the field is: these
+ * sit two to a row in the sidebar, and "Not accepted" was clipped there.
+ */
+export function PriceInput({
+  currency,
+  id,
+  disabled,
+  value,
+  onChange,
+}: {
+  currency: Currency;
+  id?: string;
+  disabled?: boolean;
+  value: number | null;
+  onChange: (price: number | null) => void;
+}) {
+  return (
+    <div className="input-group">
+      <span className="input-group-text">{CURRENCY_ADDON[currency]}</span>
+      <input
+        id={id}
+        type="number"
+        className="form-control"
+        min={0}
+        step={1}
+        placeholder="None"
+        value={value === null ? "" : String(value)}
+        disabled={disabled}
+        onWheel={(e) => e.currentTarget.blur()}
+        onChange={(e) => onChange(entryPrice(Number(e.target.value)))}
+      />
+    </div>
+  );
+}
+
 /** A number input with a currency marker in front of it. */
 export function AddonInput({
   addon,
@@ -163,7 +228,7 @@ export function GemInput(props: {
   disabled?: boolean;
   compact?: boolean;
 }) {
-  return <AddonInput addon={<i className="bi bi-gem" aria-hidden="true" />} {...props} />;
+  return <AddonInput addon={CURRENCY_ADDON.gems} {...props} />;
 }
 
 /** Gold is Arena's own currency and never follows the display unit. */
@@ -173,7 +238,7 @@ export function GoldInput(props: {
   value: number;
   onChange: (n: number) => void;
 }) {
-  return <AddonInput addon={<i className="bi bi-coin" aria-hidden="true" />} {...props} />;
+  return <AddonInput addon={CURRENCY_ADDON.gold} {...props} />;
 }
 
 /**
@@ -189,12 +254,7 @@ export function PointsInput(props: {
   onChange: (n: number) => void;
   compact?: boolean;
 }) {
-  return (
-    <AddonInput
-      addon={<i className="bi bi-ticket-perforated" aria-hidden="true" />}
-      {...props}
-    />
-  );
+  return <AddonInput addon={CURRENCY_ADDON.points} {...props} />;
 }
 
 /** A gem-valued input, displayed and edited in the active unit. */

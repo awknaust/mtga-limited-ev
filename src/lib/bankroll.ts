@@ -29,6 +29,7 @@ import {
   type HoldingKey,
 } from "./holdings";
 import { goldPerEvent, payoutFor } from "./payouts";
+import { entryPrice } from "./presets";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
 import {
@@ -386,8 +387,27 @@ export function simulateBankroll(
    */
   priced = priceTiers(config),
 ): BankrollRun {
-  const takesGold = config.entryCostGold > 0;
-  const takesPoints = config.entryCostPlayInPoints > 0;
+  /*
+   * Normalised here as well as at every way into the model, because a config
+   * can also be assembled by hand — and a zero read as a price is the one
+   * mistake this loop cannot survive: `gold >= 0` holds forever, so a run
+   * that should have busted would play out its whole ceiling for free.
+   */
+  const goldPrice = entryPrice(config.entryCostGold);
+  const pointPrice = entryPrice(config.entryCostPlayInPoints);
+  /*
+   * The gem price, and the one place "free" and "cannot be entered" come
+   * apart. A `null` price is a door that does not take the currency, so an
+   * event naming no price anywhere takes nothing at all, and read strictly
+   * that would end every run before its first entry — a page of zeroes for a
+   * config whose plain reading is that the event costs nothing. It is read as
+   * free instead, paid in gems at nothing, which is also what a link written
+   * back when a cleared price was spelled `0` meant by it.
+   */
+  const gemPrice =
+    goldPrice === null && pointPrice === null
+      ? (entryPrice(config.entryCostGems) ?? 0)
+      : entryPrice(config.entryCostGems);
   /*
    * Gold follows the drawn rate rather than the configured one, since the
    * daily-win ladder is climbed by this run's wins. A run dealt a poor rate
@@ -418,17 +438,18 @@ export function simulateBankroll(
      * Cheapest-to-hold first, falling through on each: a banked point buys
      * nothing else in Arena, so spending it forgoes nothing, where a gem or a
      * gold piece always could have gone somewhere else. The run busts only when
-     * none of the three covers the entry.
+     * none of the three covers the entry, and a currency the event does not
+     * take never covers it however much of it is held.
      */
     let paidWith: EntryCurrency;
-    if (takesPoints && playInPoints >= config.entryCostPlayInPoints) {
-      playInPoints -= config.entryCostPlayInPoints;
+    if (pointPrice !== null && playInPoints >= pointPrice) {
+      playInPoints -= pointPrice;
       paidWith = "points";
-    } else if (takesGold && gold >= config.entryCostGold) {
-      gold -= config.entryCostGold;
+    } else if (goldPrice !== null && gold >= goldPrice) {
+      gold -= goldPrice;
       paidWith = "gold";
-    } else if (gems >= config.entryCostGems) {
-      gems -= config.entryCostGems;
+    } else if (gemPrice !== null && gems >= gemPrice) {
+      gems -= gemPrice;
       paidWith = "gems";
     } else break;
 

@@ -379,6 +379,17 @@ proposed at least once.
   expected net becomes +∞, ROI undefined and break-even 0%, and every figure in
   the results panel would need an answer instead of rendering `Infinity` and
   `NaN` through the formatters.
+- **A currency an event does not take is `null`, not `Infinity` and not 0.**
+  The three entry prices in `EventConfig` are each a number or `null`, and a
+  price of nothing is not a price — 0 normalises to `null` at every way in, so
+  the model never has to work out which zero it is looking at. `Infinity` was
+  proposed for it and reads as "infinitely expensive" rather than "not taken":
+  it survives the bankroll's `gems >= price` test and then leaks, turning
+  `netValue` into `-Infinity` and ROI into `NaN` for a points-only event, which
+  is the same trap as the "priceless" option above. It would also break the
+  invariant `worker/keys.ts` states, that no config field is non-finite — JSON
+  stringifies `Infinity` to `null` in a cache key. `null` makes the compiler
+  name every site instead.
 - **No pie chart.** A pie of the outcome distribution says less than the bars,
   which already carry the closed-form check alongside.
 - **D3 computes, React renders.** Scales and ticks from D3, SVG from React, so

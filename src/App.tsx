@@ -93,11 +93,16 @@ import { useSimulateBankrolls, useSimulateCompare } from "./hooks/useSimulation"
 /** An event the current balance cannot enter, and what to do about it. */
 type TopUp = {
   name: string;
+  /**
+   * The gem price, which the prompt is about: it offers to set the gem
+   * balance, so an event with no gem price has nothing for it to offer and
+   * never reaches here.
+   */
   entryGems: number;
-  /** 0 where the event takes gems only, which changes what the prompt says. */
-  goldPrice: number;
-  /** 0 where the event takes no play-in points, which is every event but two. */
-  pointPrice: number;
+  /** Null where the event takes no gold, which changes what the prompt says. */
+  goldPrice: number | null;
+  /** Null where it takes no play-in points, which is every event but two. */
+  pointPrice: number | null;
   suggested: number;
 };
 
@@ -727,7 +732,10 @@ export default function App({
     setPresetName(name);
     const preset = PRESETS.find((p) => p.name === name);
     if (!preset) return;
-    setConfig(configFromPreset(preset, config));
+    // Read off the config rather than the preset, so the prompt below asks the
+    // same three prices the model does — absent and zero already normalised.
+    const next = configFromPreset(preset, config);
+    setConfig(next);
 
     /*
      * Switching to an event you cannot afford produces a page of zeroes: the
@@ -739,18 +747,21 @@ export default function App({
      * three now: someone holding twenty of them can enter a Play-In with an
      * empty gem balance, and interrupting them would be plain wrong.
      */
-    const gemsCover = startingGems >= preset.entryCostGems;
-    const goldPrice = preset.entryCostGold ?? 0;
-    const goldCovers = goldPrice > 0 && startingGold >= goldPrice;
-    const pointPrice = preset.entryCostPlayInPoints ?? 0;
-    const pointsCover = pointPrice > 0 && startingPlayInPoints >= pointPrice;
+    const gemPrice = next.entryCostGems;
+    const goldPrice = next.entryCostGold;
+    const pointPrice = next.entryCostPlayInPoints;
+    // A gem price the balance covers, or no gem price to cover: either way
+    // there is nothing here for a prompt that offers to set the gem balance.
+    const gemsCover = gemPrice === null || startingGems >= gemPrice;
+    const goldCovers = goldPrice !== null && startingGold >= goldPrice;
+    const pointsCover = pointPrice !== null && startingPlayInPoints >= pointPrice;
     if (gemsCover || goldCovers || pointsCover) return;
     setTopUp({
       name: preset.name,
-      entryGems: preset.entryCostGems,
+      entryGems: gemPrice,
       goldPrice,
       pointPrice,
-      suggested: STARTING_ENTRIES * preset.entryCostGems,
+      suggested: STARTING_ENTRIES * gemPrice,
     });
   };
 
@@ -1160,16 +1171,24 @@ export default function App({
     {
       key: "roi",
       label: "ROI",
-      value: pct(event.roi),
       /*
        * A real gem figure rather than a valuation: the divisor is the entry
        * as Arena quotes it, so it stays in gems whatever the toggle says.
        * Gold used to discount this figure, which left the divisor a number
        * nobody was ever charged; it is counted as earnings now, in the net
        * above the line, and the line itself is the sticker price.
+       *
+       * An event that takes no gems has no divisor at all, and says so with
+       * an em dash, as the break-even tile below does for a rate that does
+       * not exist. The model reports 0 there as a sentinel, and printing it
+       * would read as a rate of zero.
        */
-      hint: `of ${gems(config.entryCostGems)} entry`,
-      tone: signClass(event.roi),
+      value: config.entryCostGems === null ? "—" : pct(event.roi),
+      hint:
+        config.entryCostGems === null
+          ? "no gem entry to return a share of"
+          : `of ${gems(config.entryCostGems)} entry`,
+      tone: config.entryCostGems === null ? undefined : signClass(event.roi),
       help: STAT_HELP.roi,
     },
     {
@@ -1837,7 +1856,9 @@ export default function App({
               <div className="form-text">
                 {entryCredits.length > 0 &&
                   `Every gross also carries what entering pays for however the event goes — ${entryCredits.join(", and ")}. `}
-                Net is gross less the {gems(config.entryCostGems)} entry.
+                {config.entryCostGems === null
+                  ? "Net is gross: this event takes no gems at the door."
+                  : `Net is gross less the ${gems(config.entryCostGems)} entry.`}
               </div>
                 </>
               )}
@@ -2583,14 +2604,14 @@ export default function App({
                   <p className="mb-0">
                     {topUp.name} costs {gems(topUp.entryGems)} and you have{" "}
                     {gems(startingGems)}.
-                    {topUp.goldPrice > 0 && (
+                    {topUp.goldPrice !== null && (
                       <>
                         {" "}
                         Your gold does not cover its{" "}
                         {topUp.goldPrice.toLocaleString()} gold price either.
                       </>
                     )}
-                    {topUp.pointPrice > 0 && (
+                    {topUp.pointPrice !== null && (
                       <>
                         {" "}
                         Nor do your play-in points cover its {topUp.pointPrice}.

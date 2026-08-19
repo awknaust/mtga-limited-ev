@@ -111,9 +111,9 @@ export function CompareTable({
       name,
       colorClass: compareSeries(name).colorClass,
       net: e.meanNet,
-      // `eventExpectation` reports 0 for a free event, which is a sentinel and
-      // not a rate; the table says so rather than printing it.
-      roi: config.entryCostGems > 0 ? e.roi : null,
+      // `eventExpectation` reports 0 where there is no gem price, which is a
+      // sentinel and not a rate; the table says so rather than printing it.
+      roi: config.entryCostGems === null ? null : e.roi,
       breakEven,
       rounds: e.meanRounds,
     };

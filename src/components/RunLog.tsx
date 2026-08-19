@@ -58,13 +58,20 @@ const RUN_REWARDS: {
   { key: "qualifierTokens", one: "qualifier token", many: "qualifier tokens" },
 ];
 
-/** What one entry cost, in whichever currency actually paid for it. */
+/**
+ * What one entry cost, in whichever currency actually paid for it.
+ *
+ * The price a run paid is never the absent one — a currency the event does
+ * not take cannot have paid for the entry — so the fallbacks below are
+ * unreachable in every case but one: an event naming no price at all, which
+ * the bankroll enters free.
+ */
 const entryText = (config: EventConfig, paidWith: EntryCurrency): string => {
   if (paidWith === "points") {
-    return counted(config.entryCostPlayInPoints, "point", "points");
+    return counted(config.entryCostPlayInPoints ?? 0, "point", "points");
   }
-  if (paidWith === "gold") return `${config.entryCostGold.toLocaleString()} gold`;
-  return REAL_GEMS.fmt(config.entryCostGems);
+  if (paidWith === "gold") return `${(config.entryCostGold ?? 0).toLocaleString()} gold`;
+  return config.entryCostGems === null ? "nothing" : REAL_GEMS.fmt(config.entryCostGems);
 };
 
 /** A list as a sentence would say it: "a, b and c". */
@@ -141,7 +148,7 @@ export function RunLog({
   // the same test `heldKeys` applies, so the table and the breakdown agree
   // about whether points are part of this event at all.
   const showPoints =
-    config.entryCostPlayInPoints > 0 ||
+    config.entryCostPlayInPoints !== null ||
     config.payouts.some((t) => (t.playInPoints ?? 0) > 0);
 
   return (

@@ -30,6 +30,7 @@ import {
   breakEvenWinRate,
   configFromPreset,
   defaultConfig,
+  entryPrice,
   eventExpectation,
   meanRoundsPerEvent,
   exactDistribution,
@@ -341,7 +342,7 @@ describe("eventExpectation", () => {
       ).toBeCloseTo(ev.meanNet, 9);
       // Gross and net differ by exactly the gem price of an entry: gold sits
       // in the gross with the packs rather than discounting the entry.
-      expect(ev.meanGross - ev.meanNet).toBeCloseTo(config.entryCostGems, 9);
+      expect(ev.meanGross - ev.meanNet).toBeCloseTo(config.entryCostGems!, 9);
     }
   });
 
@@ -470,13 +471,13 @@ describe("eventExpectation", () => {
     // moves the net and leaves the divisor where it was.
     const config = defaultConfig();
     const ev = eventExpectation(config);
-    expect(ev.roi).toBeCloseTo(ev.meanNet / config.entryCostGems, 12);
+    expect(ev.roi).toBeCloseTo(ev.meanNet / config.entryCostGems!, 12);
     const gemsOnly = eventExpectation({ ...config, eventsPerDay: 0 });
     expect(gemsOnly.roi).toBeCloseTo(gemsOnly.meanNet / 1500, 12);
     expect(ev.roi - gemsOnly.roi).toBeCloseTo(goldValueGems(config) / 1500, 12);
     // Nothing paid, nothing to return on.
     expect(
-      eventExpectation({ ...config, entryCostGems: 0, entryCostGold: 0 }).roi,
+      eventExpectation({ ...config, entryCostGems: null, entryCostGold: null }).roi,
     ).toBe(0);
   });
 });
@@ -565,7 +566,7 @@ describe("breakEvenWinRate", () => {
   });
 
   it("returns null when the event is profitable at any win rate", () => {
-    expect(breakEvenWinRate({ ...defaultConfig(), entryCostGems: 0 })).toBeNull();
+    expect(breakEvenWinRate({ ...defaultConfig(), entryCostGems: null })).toBeNull();
   });
 });
 
@@ -767,7 +768,7 @@ describe("bankroll", () => {
     // entries and leaves 1,300 — short of a seventh.
     expect(run.events).toBe(6);
     expect(run.finalGems).toBe(10_000 - 6 * 1500 + 6 * 50);
-    expect(run.finalGems).toBeLessThan(config.entryCostGems);
+    expect(run.finalGems).toBeLessThan(config.entryCostGems!);
     expect(run.survived).toBe(false);
   });
 
@@ -1044,7 +1045,7 @@ describe("bankroll", () => {
       expect(
         roll.startingPlayInPoints +
           sum((e) => e.playInPoints) -
-          spent * config.entryCostPlayInPoints,
+          spent * config.entryCostPlayInPoints!,
       ).toBe(run.playInPoints);
       // And the log's own running balance is that same arithmetic, row by row.
       expect(log[log.length - 1].pointBalance).toBe(run.playInPoints);
@@ -1217,6 +1218,121 @@ describe("bankroll", () => {
   it("histogram accounts for every run", () => {
     const res = simulateBankrolls(defaultConfig(), roll, 200, 13);
     expect(res.histogram.reduce((a, h) => a + h.count, 0)).toBe(200);
+  });
+});
+
+describe("entry prices", () => {
+  const roll = {
+    startingGems: 100_000,
+    startingGold: 100_000,
+    startingPlayInPoints: 100,
+    maxEvents: 10,
+  };
+
+  it("reads a price of nothing as no price at all", () => {
+    expect(entryPrice(1500)).toBe(1500);
+    expect(entryPrice(0)).toBeNull();
+    expect(entryPrice(-500)).toBeNull();
+    expect(entryPrice(undefined)).toBeNull();
+    expect(entryPrice(null)).toBeNull();
+    expect(entryPrice(Number.NaN)).toBeNull();
+  });
+
+  it("carries a preset's absent prices through as null", () => {
+    // Sealed takes gems at the door and nothing else; a Play-In takes all three.
+    const sealed = configFromPreset(SEALED, defaultConfig());
+    expect(sealed.entryCostGems).toBe(2000);
+    expect(sealed.entryCostGold).toBeNull();
+    expect(sealed.entryCostPlayInPoints).toBeNull();
+    const playIn = configFromPreset(QUALIFIER_PLAY_IN_BO1, defaultConfig());
+    expect(playIn.entryCostGold).toBe(20_000);
+    expect(playIn.entryCostPlayInPoints).toBe(20);
+  });
+
+  it("never pays in a currency the event does not take", () => {
+    // A hundred thousand gold and a hundred points against an event with
+    // neither door: every entry comes out of gems, and both balances are
+    // untouched at the end.
+    const config = { ...configFromPreset(SEALED, defaultConfig()), eventsPerDay: 0 };
+    const run = simulateBankroll(config, roll, seededRandom(5), true);
+    expect(run.events).toBe(10);
+    expect(run.log?.every((e) => e.paidWith === "gems")).toBe(true);
+    expect(run.finalGold).toBe(100_000);
+    expect(run.playInPoints).toBe(100);
+  });
+
+  it("busts on an event with no gem price once the other doors close", () => {
+    // Premier Draft with the gem door shut. Gold buys entries while it lasts
+    // — 100,000 is ten at 10,000 a time — and a gem balance that would have
+    // bought sixty buys none of them.
+    const config = {
+      ...defaultConfig(),
+      entryCostGems: null,
+      eventsPerDay: 0,
+      winRate: 0,
+    };
+    const run = simulateBankroll(
+      config,
+      { ...roll, maxEvents: 500 },
+      seededRandom(6),
+      true,
+    );
+    expect(run.events).toBe(10);
+    expect(run.survived).toBe(false);
+    expect(run.log?.every((e) => e.paidWith === "gold")).toBe(true);
+    // Never spent, and up by what the ladder paid in.
+    expect(run.finalGems).toBe(100_000 + 10 * 50);
+  });
+
+  it("enters an event that names no price at all for free", () => {
+    /*
+     * Nothing charged rather than nothing enterable. The distinction only
+     * exists here — every per-event figure reads an absent gem price as zero
+     * either way — and this is the reading a link spelling all three prices
+     * `0` has always had.
+     */
+    const config = {
+      ...defaultConfig(),
+      entryCostGems: null,
+      entryCostGold: null,
+      entryCostPlayInPoints: null,
+      eventsPerDay: 0,
+      winRate: 0,
+    };
+    const empty = {
+      startingGems: 0,
+      startingGold: 0,
+      startingPlayInPoints: 0,
+      maxEvents: 25,
+    };
+    const run = simulateBankroll(config, empty, seededRandom(7));
+    expect(run.events).toBe(25);
+    expect(run.survived).toBe(true);
+  });
+
+  it("leaves ROI and break-even without an answer where no gems are staked", () => {
+    const config = { ...defaultConfig(), entryCostGems: null };
+    // Zero is the sentinel `eventExpectation` reports; the tiles and the
+    // compare table read the price themselves and print an em dash.
+    expect(eventExpectation(config).roi).toBe(0);
+    expect(breakEvenWinRate(config)).toBeNull();
+    // And net is the gross itself: there is no gem price to take off it.
+    expect(netValue(config, 3)).toBe(grossValue(config, 3));
+  });
+
+  it("treats a zero smuggled past the normaliser as no price", () => {
+    // `EventConfig` is also assembled by hand, and a zero read as a price is
+    // the one mistake the run loop cannot survive — `gold >= 0` holds forever.
+    const config = { ...defaultConfig(), entryCostGold: 0, eventsPerDay: 0, winRate: 0 };
+    const broke = {
+      startingGems: 3000,
+      startingGold: 0,
+      startingPlayInPoints: 0,
+      maxEvents: 500,
+    };
+    const run = simulateBankroll(config, broke, seededRandom(8), true);
+    expect(run.log?.every((e) => e.paidWith === "gems")).toBe(true);
+    expect(run.survived).toBe(false);
   });
 });
 
@@ -1532,7 +1648,7 @@ describe("gold earnings", () => {
     // take off the entry is the figure this one adds to the gross.
     expect(goldValueGems(config)).toBeCloseTo(489 * 0.15, 0);
     expect(goldValueGems(config)).toBeCloseTo(
-      config.entryCostGems * (goldPerEvent(config) / config.entryCostGold),
+      config.entryCostGems! * (goldPerEvent(config) / config.entryCostGold!),
       9,
     );
   });
@@ -1551,9 +1667,9 @@ describe("gold earnings", () => {
       expect(grossValue(config, wins) - netValue(config, wins)).toBe(config.entryCostGems);
     }
     const ev = eventExpectation(config);
-    expect(ev.meanGross - ev.meanNet).toBeCloseTo(config.entryCostGems, 9);
+    expect(ev.meanGross - ev.meanNet).toBeCloseTo(config.entryCostGems!, 9);
     // ROI divides by the same gem price, not by an entry discounted for gold.
-    expect(ev.roi).toBeCloseTo(ev.meanNet / config.entryCostGems, 12);
+    expect(ev.roi).toBeCloseTo(ev.meanNet / config.entryCostGems!, 12);
   });
 
   it("values gold at the config's rate, the one the bankroll prices a balance at", () => {
@@ -1585,7 +1701,7 @@ describe("gold earnings", () => {
     // the same gold whichever queue paid it, which is what the bankroll's
     // ending value already assumed. `eventsPerDay: 0` still switches it off.
     const config = configFromPreset(SEALED, defaultConfig());
-    expect(config.entryCostGold).toBe(0);
+    expect(config.entryCostGold).toBeNull();
     expect(goldPerEvent(config)).toBeGreaterThan(0);
     expect(goldValueGems(config)).toBeCloseTo(
       goldPerEvent(config) * holdingRate(config, "gold"),
@@ -1662,9 +1778,9 @@ describe("gold earnings", () => {
     // came in above the gold price. Earnings have no such ceiling: gold past
     // the entry is more gold, worth the same per piece as the rest.
     const config = { ...defaultConfig(), otherGoldPerDay: 50_000 };
-    expect(goldPerEvent(config)).toBeGreaterThan(config.entryCostGold);
+    expect(goldPerEvent(config)).toBeGreaterThan(config.entryCostGold!);
     expect(goldValueGems(config)).toBeCloseTo(goldPerEvent(config) * 0.15, 6);
-    expect(goldValueGems(config)).toBeGreaterThan(config.entryCostGems);
+    expect(goldValueGems(config)).toBeGreaterThan(config.entryCostGems!);
   });
 
   it("rises with the win rate, since winning climbs the ladder", () => {
@@ -1699,9 +1815,9 @@ describe("gold earnings", () => {
     expect(dual.map((p) => p.name)).toEqual(expect.arrayContaining(EXEMPT));
     for (const preset of dual) {
       const config = configFromPreset(preset, defaultConfig());
-      const share = goldPerEvent(config) / config.entryCostGold;
+      const share = goldPerEvent(config) / config.entryCostGold!;
       expect(share).toBeLessThan(1);
-      const atTheDoor = share * config.entryCostGems;
+      const atTheDoor = share * config.entryCostGems!;
       if (EXEMPT.includes(preset.name)) {
         expect(goldValueGems(config)).toBeCloseTo(atTheDoor * 0.75, 6);
       } else {
@@ -1946,13 +2062,13 @@ describe("presets", () => {
     expect(dual.map((p) => p.name)).toContain("Constructed Event");
     expect(dual.map((p) => p.name)).toEqual(expect.arrayContaining(EXEMPT));
     for (const p of dual.filter((p) => !EXEMPT.includes(p.name))) {
-      expect((p.entryCostGems / p.entryCostGold!) * 10_000).toBe(GEMS_PER_10K_GOLD);
+      expect((p.entryCostGems! / p.entryCostGold!) * 10_000).toBe(GEMS_PER_10K_GOLD);
     }
     // And the exemption is exactly what it claims to be, rather than a licence
     // to drift: both Play-Ins imply 2,000 per 10,000 and nothing else does.
     for (const name of EXEMPT) {
       const p = PRESETS.find((x) => x.name === name)!;
-      expect((p.entryCostGems / p.entryCostGold!) * 10_000).toBe(2000);
+      expect((p.entryCostGems! / p.entryCostGold!) * 10_000).toBe(2000);
     }
   });
 
@@ -2278,7 +2394,7 @@ describe("presets", () => {
       // The gold a day's play credits the entry, at the config's rate — an
       // earnings term like the packs, and net comes off the full 900.
       goldValueGems(config);
-    expect(expectedNetAt(config, 0.55)).toBeCloseTo(gross - config.entryCostGems, 6);
+    expect(expectedNetAt(config, 0.55)).toBeCloseTo(gross - config.entryCostGems!, 6);
   });
 
   it("has a payout row for every reachable win count", () => {
