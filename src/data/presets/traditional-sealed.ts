@@ -50,6 +50,7 @@ import type { EventPreset } from "../../lib/types";
 export const TRADITIONAL_SEALED = {
   name: "Traditional Sealed",
   group: "sealed",
+  bestOf: 3,
   entryCostGems: 2000,
   draftPacks: 6,
   structure: { kind: "elimination", maxWins: 4, maxLosses: 2 },

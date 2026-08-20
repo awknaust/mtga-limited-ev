@@ -91,3 +91,49 @@ export const DAILY_QUEST = {
   gold: 600,
   range: [500, 750],
 } as const;
+
+/**
+ * How often the card a daily win pays upgrades from uncommon to rare.
+ *
+ * The daily-win table on the drop-rates page has an ICR column — the parser
+ * reads it, and DAILY_WIN_ICR is which wins pay one — but what those cards
+ * upgrade at sits in the page's prose rather than the table, so it is
+ * recorded here with the rest of the figures no parser picks up.
+ *
+ * Nothing derives from it today. DEFAULT_DAILY_WIN_ICR_VALUE_GEMS is zero by
+ * a modelling choice about which collection would have to be complete for
+ * these cards to convert to gems at all, not for want of this rate. It is
+ * kept because it is what that constant's derivation prints for a reader
+ * pricing the cards themselves.
+ *
+ * **Corroborated, not read.** Unlike everything else in this file, this was
+ * not read off the client. It began as this repository's own note of the page
+ * and has since been checked against two community transcriptions, which
+ * agree: MTG Arena Zone's ICR page and Draftsim's, both quoting the daily
+ * win rewards as uncommon Standard-legal cards "each of which may upgrade to
+ * a rare card (1:10)". `magic.wizards.com` answers HTTP 403 from CI and from
+ * the sandboxes this repo is worked on in, so no primary reading exists here.
+ *
+ * **The trap, for whoever checks this next.** Arena has three different
+ * uncommon-ICR upgrade rates, and a casual search finds the wrong one:
+ *
+ *     1:8    uncommon ICRs generally — the event rewards
+ *     1:10   the daily win rewards, which is this figure
+ *     5%     the mastery track's beyond-cap reward, parsed by the tool
+ *            as `masteryUncommonUpgradePct`
+ *
+ * The 1:8 is real and widely quoted, and it is not this one. It is also the
+ * rare-to-mythic rate on the *upgraded* card, which is a third use of the
+ * same numeral in one derivation. Confirm which rate a source is describing
+ * before moving anything here.
+ *
+ * @see https://mtgazone.com/individual-card-rewards-icrs/
+ * @see https://draftsim.com/mtg-arena-icrs/
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DAILY_WIN_ICR_UPGRADE = {
+  checkedOn: "2026-08-20",
+  where: "community transcriptions of magic.wizards.com/en/mtgarena/drop-rates; primary unreachable",
+  /** N in "1:N": one in this many upgrades to a rare. */
+  rareUpgradeRate: 10,
+} as const;

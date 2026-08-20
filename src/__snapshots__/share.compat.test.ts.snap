@@ -1,14 +1,30 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`the captured corpus > pins everything a best-of-three day, in the old spellings resolves to 1`] = `
+"preset     Custom
+winRate    0.55 over 100 matches
+structure  {"kind":"rounds","rounds":3}
+entry      1500 gems / 10000 gold / none points
+draft      3 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 15 games at 2.5/match, goldPer10k=1500
+credits    625.0 gold/event = 93.8 gems, cards = 0.0 gems
+payouts    50-1_100-1_250-2_1000-2
+bankroll   gems=3400 gold=5000 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
+`;
+
 exports[`the captured corpus > pins everything a custom ladder paying cube packs resolves to 1`] = `
 "preset     Custom
 winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=60 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    551.3 gold/event = 82.7 gems
+values     pack=22 mythicPack=37 cubePack=60 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    320.6 gold/event = 48.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_1000-0-cube.2_2200-0-cube.7
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -22,9 +38,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=45 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    551.3 gold/event = 82.7 gems
+values     pack=22 mythicPack=45 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    320.6 gold/event = 48.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_1400-3_4200-10-mythic.4
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -38,9 +54,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / none gold / none points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=0 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=0 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    427.0 gold/event = 64.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -54,9 +70,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / none gold / none points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    427.0 gold/event = 64.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -70,9 +86,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=20000 gold=15000 points=0 maxEvents=200
 sim        runs=10000 seed=1
@@ -86,9 +102,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -102,9 +118,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=2000
 sim        runs=999999 seed=1
@@ -118,9 +134,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":5,"maxLosses":2}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    396.9 gold/event = 59.5 gems, cards = 0.0 gems
 payouts    0-0_100-1_200-2_400-3_800-4_1600-5
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -134,9 +150,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    551.3 gold/event = 82.7 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    320.6 gold/event = 48.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_0-0-play.msh_0-0-play.latest-collector.spm
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -150,9 +166,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":1}
 entry      1500 gems / 10000 gold / 20 points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=4830 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    476.9 gold/event = 71.5 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=4830 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    185.2 gold/event = 27.8 gems, cards = 0.0 gems
 payouts    0-0_0-0_0-0_6000-0-token.1
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -166,9 +182,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 0
-values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collBox=0
-gold       other=0/day over 2 events, goldPer10k=1500
-credits    300.0 gold/event = 45.0 gems
+values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collBox=0 dailyIcr=0
+gold       other=0/day over 12 games at 1/match, goldPer10k=1500
+credits    308.0 gold/event = 46.2 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -182,9 +198,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      750 gems / 5000 gold / none points
 draft      3 packs @ 0
-values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collBox=0
-gold       other=0/day over 2 events, goldPer10k=1500
-credits    300.0 gold/event = 45.0 gems
+values     pack=0 mythicPack=37 cubePack=51 playIn=0 qualToken=0 playBox=0 collBox=0 dailyIcr=0
+gold       other=0/day over 12 games at 1/match, goldPer10k=1500
+credits    308.0 gold/event = 46.2 gems, cards = 0.0 gems
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -198,9 +214,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 110
-values     pack=132 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=0/day over 2 events, goldPer10k=1500
-credits    300.0 gold/event = 45.0 gems
+values     pack=132 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=0/day over 12 games at 1/match, goldPer10k=1500
+credits    308.0 gold/event = 46.2 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -214,9 +230,9 @@ winRate    0.6125 over 100 matches
 structure  {"kind":"rounds","rounds":5}
 entry      1234 gems / 9000 gold / none points
 draft      4 packs @ 110
-values     pack=132 mythicPack=37 cubePack=51 playIn=250 qualToken=0 playBox=60000 collBox=250000
-gold       other=900/day over 2 events, goldPer10k=2000
-credits    750.0 gold/event = 150.0 gems
+values     pack=132 mythicPack=37 cubePack=51 playIn=250 qualToken=0 playBox=60000 collBox=250000 dailyIcr=0
+gold       other=900/day over 25 games at 2.5/match, goldPer10k=2000
+credits    825.0 gold/event = 165.0 gems, cards = 0.0 gems
 payouts    10-1_20-1_300-2-1_4000-3-play_5000-4-collector-collector_12000-6-4-collector-collector-collector
 bankroll   gems=12000 gold=5000 points=0 maxEvents=50
 sim        runs=10000 seed=77
@@ -230,9 +246,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -246,9 +262,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":2,"maxLosses":2}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    512.2 gold/event = 76.8 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    249.5 gold/event = 37.4 gems, cards = 0.0 gems
 payouts    0-0_0-0_500-3-mythic.4-cube.5
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -262,9 +278,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / none gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -278,9 +294,25 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / none gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
+payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
+bankroll   gems=3400 gold=5000 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
+`;
+
+exports[`the captured corpus > pins everything gold priced out, in the old unit resolves to 1`] = `
+"preset     Premier Draft
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
+entry      1500 gems / 10000 gold / none points
+draft      3 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 0 games at 1/match, goldPer10k=1500
+credits    0.0 gold/event = 0.0 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -294,9 +326,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -310,9 +342,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -326,9 +358,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      none gems / none gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -342,9 +374,9 @@ winRate    0.62 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    625.0 gold/event = 93.8 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    687.3 gold/event = 103.1 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -358,9 +390,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      750 gems / 5000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -374,9 +406,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":6,"maxLosses":2}
 entry      4000 gems / 20000 gold / 20 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    415.5 gold/event = 62.3 gems, cards = 0.0 gems
 payouts    500-0_1000-0_1500-0_3000-0_4500-0_6000-0_6000-0-token.1
 bankroll   gems=3400 gold=5000 points=60 maxEvents=20
 sim        runs=10000 seed=1
@@ -390,10 +422,26 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    551.3 gold/event = 82.7 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    320.6 gold/event = 48.1 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_2200-7
+bankroll   gems=3400 gold=5000 points=0 maxEvents=20
+sim        runs=10000 seed=1
+display    tab=bankroll unit=gems gemsPerUsd=200
+compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
+`;
+
+exports[`the captured corpus > pins everything the day knob in its old unit, one event a day resolves to 1`] = `
+"preset     Premier Draft
+winRate    0.55 over 100 matches
+structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
+entry      1500 gems / 10000 gold / none points
+draft      3 packs @ 23
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 6.160203 games at 1/match, goldPer10k=1500
+credits    1088.8 gold/event = 163.3 gems, cards = 0.0 gems
+payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
 display    tab=bankroll unit=gems gemsPerUsd=200
@@ -406,9 +454,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":3,"maxLosses":2}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    551.3 gold/event = 82.7 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    320.6 gold/event = 48.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_1400-3_4200-14
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -422,9 +470,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    540.0 gold/event = 81.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 2.5/match, goldPer10k=1500
+credits    750.0 gold/event = 112.5 gems, cards = 0.0 gems
 payouts    0-1_250-1_1000-3_2500-6-2
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -438,9 +486,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=0
-credits    600.0 gold/event = 0.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=0
+credits    616.0 gold/event = 0.0 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -454,9 +502,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / none gold / none points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    427.0 gold/event = 64.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_14400-32_0-0-collector.latest
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -470,9 +518,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / none gold / none points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    427.0 gold/event = 64.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.spm_0-0-play.spm-play.msh
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -486,9 +534,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":2}
 entry      8000 gems / none gold / none points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    427.0 gold/event = 64.1 gems, cards = 0.0 gems
 payouts    0-0_0-0_0-0_3600-8_7200-16_10800-24_0-0-play.latest_0-0-play.latest-play.latest
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -502,9 +550,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      375 gems / 2500 gold / none points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    25-0_50-0_75-1_200-1_300-1_400-2_450-2_500-3-1
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -518,9 +566,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      3000 gems / 20000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    0-0_0-0_0-0_1400-3_2800-6_3200-8_4200-10-mythic.4_7200-12-mythic.10
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -534,9 +582,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":4,"maxLosses":2}
 entry      900 gems / 6000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    367.2 gold/event = 55.1 gems, cards = 0.0 gems
 payouts    50-1_150-1_800-1_1000-2_1300-3
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -550,9 +598,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-0-cube.1_100-0-cube.1_250-0-cube.2_1000-0-cube.2_1400-0-cube.3_1600-0-cube.5_1800-0-cube.6_2200-0-cube.7
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -566,9 +614,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -582,9 +630,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":6,"maxLosses":2}
 entry      4000 gems / 20000 gold / 20 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    415.5 gold/event = 62.3 gems, cards = 0.0 gems
 payouts    500-0_1000-0_1500-0_3000-0_4500-0_6000-0_6000-0-token.1
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -598,9 +646,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":4,"maxLosses":1}
 entry      4000 gems / 20000 gold / 20 points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    486.0 gold/event = 72.9 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 2.5/match, goldPer10k=1500
+credits    504.7 gold/event = 75.7 gems, cards = 0.0 gems
 payouts    500-0_2000-0_4500-0_6000-0_6000-0-token.1
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -614,9 +662,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      750 gems / 5000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    50-1.2_100-1.22_200-1.24_300-1.26_450-1.3_650-1.35_850-1.4_950-2
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -630,9 +678,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
 entry      2000 gems / none gold / none points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    600.0 gold/event = 90.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 1/match, goldPer10k=1500
+credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
 payouts    200-3_400-3_600-3_1200-3_1400-3_1600-3_2000-3_2200-3
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -646,9 +694,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":5}
 entry      750 gems / 5000 gold / none points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    587.5 gold/event = 88.1 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 2.5/match, goldPer10k=1500
+credits    1250.0 gold/event = 187.5 gems, cards = 0.0 gems
 payouts    50-1_100-1_150-2_600-2_800-2_1000-3-4
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -662,9 +710,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
 entry      1500 gems / 10000 gold / none points
 draft      0 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    540.0 gold/event = 81.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 2.5/match, goldPer10k=1500
+credits    750.0 gold/event = 112.5 gems, cards = 0.0 gems
 payouts    0-0-cube.1_250-0-cube.1_1000-0-cube.3_2500-0-cube.5
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -678,9 +726,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"rounds","rounds":3}
 entry      1500 gems / 10000 gold / none points
 draft      3 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    540.0 gold/event = 81.0 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 2.5/match, goldPer10k=1500
+credits    750.0 gold/event = 112.5 gems, cards = 0.0 gems
 payouts    0-1_250-1_1000-3_2500-6-2
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1
@@ -694,9 +742,9 @@ winRate    0.55 over 100 matches
 structure  {"kind":"elimination","maxWins":4,"maxLosses":2}
 entry      2000 gems / none gold / none points
 draft      6 packs @ 23
-values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
-gold       other=600/day over 2 events, goldPer10k=1500
-credits    575.0 gold/event = 86.3 gems
+values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
+gold       other=600/day over 12 games at 2.5/match, goldPer10k=1500
+credits    917.9 gold/event = 137.7 gems, cards = 0.0 gems
 payouts    200-1_500-2_1200-3_1800-4_2200-5
 bankroll   gems=3400 gold=5000 points=0 maxEvents=20
 sim        runs=10000 seed=1

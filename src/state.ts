@@ -235,6 +235,7 @@ export function resetAdvanced(state: ShareState): ShareState {
        */
       winRate: state.config.winRate,
       structure: state.config.structure,
+      gamesPerMatch: state.config.gamesPerMatch,
       entryCostGems: state.config.entryCostGems,
       entryCostGold: state.config.entryCostGold,
       entryCostPlayInPoints: state.config.entryCostPlayInPoints,

@@ -24,6 +24,7 @@
 
 import type { Unit } from "./format";
 import {
+  BO3_GAMES_PER_MATCH,
   BOX_KINDS,
   CUSTOM_PRESET,
   PRESETS,
@@ -32,6 +33,7 @@ import {
   defaultConfig,
   entryPrice,
   maxPossibleWins,
+  meanGamesPerEvent,
   resizePayouts,
   type BoxKind,
   type EventConfig,
@@ -129,6 +131,9 @@ const CONFIG_NUMBERS = [
   ["mythicIcrValue", "mythicIcrValueGems"],
   ["rareCardValue", "rareCardValueGems"],
   ["uncommonIcrValue", "uncommonIcrValueGems"],
+  // The daily-win ladder's cards, which every event's gross carries — unlike
+  // the mastery rates above it, and like the gold rate below.
+  ["dailyWinIcrValue", "dailyWinIcrValueGems"],
   ["orbValue", "orbValueGems"],
   ["cardStyleValue", "cardStyleValueGems"],
   ["sleeveValue", "sleeveValueGems"],
@@ -139,7 +144,12 @@ const CONFIG_NUMBERS = [
   // renaming it would strand every link already written, and the mapping is
   // here precisely so a field can be renamed without one.
   ["goldPerDay", "otherGoldPerDay"],
-  ["eventsPerDay", "eventsPerDay"],
+  // The day knob was `eventsPerDay` until games became the day's unit. That
+  // spelling could not be kept the way `goldPerDay` was — its *unit* changed,
+  // not just the field name — so old links are read and converted instead:
+  // see `withLegacyDayKnobs`.
+  ["gamesPerDay", "gamesPerDay"],
+  ["gamesPerMatch", "gamesPerMatch"],
   // 0 means gold counts for nothing — the credit an event earns and a
   // balance a run is left with alike.
   ["goldPer10k", "gemsPer10kGold"],
@@ -491,13 +501,13 @@ export function decodeShareState(search: string): ShareState {
     CONFIG_PRICES.map(([key, field]) => [field, priceFrom(params, key, base[field])]),
   ) as Pick<EventConfig, (typeof CONFIG_PRICES)[number][1]>;
 
-  const config: EventConfig = {
+  const config = withLegacyDayKnobs(params, {
     ...base,
     ...numbers,
     ...prices,
     structure,
     payouts,
-  };
+  });
 
   return {
     presetName,
@@ -558,6 +568,42 @@ export function decodeShareState(search: string): ShareState {
     unit: oneOf<Unit>(params, "unit", ["gems", "usd"], fallback.unit),
     gemsPerUsd: numberFrom(params, "gemsPerUsd", fallback.gemsPerUsd, { min: 1 }),
   };
+}
+
+/**
+ * Two legacy spellings of the day, read but never written.
+ *
+ * `format` named the match format back when the win rate was stored per game
+ * and converted through p²(3 − 2p) for best-of-three. The conversion is long
+ * gone, but what a link's author chose by writing it — this event is
+ * best-of-three — is exactly what `gamesPerMatch` now carries, so the old
+ * name keeps its old meaning rather than being dropped. It yields to the new
+ * parameter wherever a link carries both.
+ *
+ * `eventsPerDay` was the day knob in the day's old unit. Its author chose how
+ * many *events* they play, so it converts at the decoded event's own length —
+ * which needs the rest of the config first (rate, structure, games per match),
+ * and is why this runs after the config is assembled. For a best-of-one event
+ * the conversion is exact: `n` events' worth of games at the same rate climbs
+ * the ladder to the same rung the old model read, so the gold such a link
+ * credits has not moved. Rounded the way the encoder rounds, so a converted
+ * link re-encodes to a fixed point instead of churning digits.
+ */
+function withLegacyDayKnobs(params: URLSearchParams, config: EventConfig): EventConfig {
+  if (params.get("gamesPerMatch") === null) {
+    const format = params.get("format");
+    if (format === "bo3") config = { ...config, gamesPerMatch: BO3_GAMES_PER_MATCH };
+    else if (format === "bo1") config = { ...config, gamesPerMatch: 1 };
+  }
+  const legacy = params.get("eventsPerDay");
+  if (params.get("gamesPerDay") === null && legacy !== null && legacy.trim() !== "") {
+    const events = Number(legacy);
+    if (Number.isFinite(events)) {
+      const games = Math.max(0, events) * meanGamesPerEvent(config);
+      config = { ...config, gamesPerDay: Math.round(games * 1e6) / 1e6 };
+    }
+  }
+  return config;
 }
 
 function decodeStructure(params: URLSearchParams, base: EventStructure): EventStructure {

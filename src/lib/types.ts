@@ -183,6 +183,16 @@ export type EventPreset = {
    */
   entryCostPlayInPoints?: number;
   /**
+   * Whether a round is a single game or a best-of-three match.
+   *
+   * Required for the same reason `group` is: a preset that does not say is a
+   * compile error in the file being written rather than a guess somewhere
+   * else. Read once, in `configFromPreset`, where it becomes the config's
+   * `gamesPerMatch` — how much of a day of games one round takes, and so how
+   * many of these events a day holds.
+   */
+  bestOf: 1 | 3;
+  /**
    * Packs' worth of cards you keep from the pool you played with. Zero for
    * phantom events, where the cards are borrowed for the event only.
    */
@@ -241,18 +251,33 @@ export type EventConfig = {
    * stricter reading, where an event is credited only the gold its own wins
    * generate.
    *
-   * Divided across `eventsPerDay`, since it does not repeat per event.
+   * Divided across the events the day's games fill, since it does not repeat
+   * per event — see `goldPerEvent`.
    */
   otherGoldPerDay: number;
   /**
-   * Events played per day.
+   * Games played per day, across however many events they fill.
    *
-   * Sets how far the day's wins get through the daily-win ladder before it
-   * caps at fifteen, so playing more earns more in total but less per event.
-   * Zero credits no gold at all, which is how you price an event in gems
-   * alone.
+   * The day is counted in games rather than events because games are what
+   * take the time and what the daily-win ladder pays on: a best-of-three
+   * match is two or three of them where a best-of-one round is exactly one.
+   * Sets how far the day's wins get through the ladder before it caps at
+   * fifteen, so playing more earns more in total but less per event, and how
+   * many events share `otherGoldPerDay`. Zero credits no gold at all, which
+   * is how you price an event in gems alone.
    */
-  eventsPerDay: number;
+  gamesPerDay: number;
+  /**
+   * Games one match of this event takes, on average.
+   *
+   * 1 for best-of-one, where a round is a single game, and
+   * BO3_GAMES_PER_MATCH (2.5) for best-of-three — filled in from the
+   * preset's `bestOf` by `configFromPreset`. It is what turns a day of games
+   * into a number of events: `gamesPerDay` holds
+   * `gamesPerDay / (mean matches × this)` runs, which is the divisor
+   * `goldPerEvent` spreads the day's gold across.
+   */
+  gamesPerMatch: number;
   /**
    * Gems 10,000 gold is worth.
    *
@@ -351,6 +376,22 @@ export type EventConfig = {
   rareCardValueGems: number;
   /** Gem value of one uncommon individual card reward. */
   uncommonIcrValueGems: number;
+  /**
+   * Gem value of one individual card reward from the daily-win ladder.
+   *
+   * Its own rate rather than the uncommon one above, because the two are the
+   * same card on different terms: the daily wins upgrade at about 1:10 where
+   * the mastery track's beyond-cap reward upgrades at 5%, so someone
+   * repricing one should not silently reprice the other.
+   *
+   * Zero by default, which counts the cards a day's wins pay as worth nothing
+   * and leaves the gold. A deliberate choice: these are drawn from any
+   * Standard set, so the duplicate protection that turns a card into gems
+   * would need a complete Standard collection rather than a complete set. The
+   * cards are still counted, so what is being left out stays on screen; see
+   * DEFAULT_DAILY_WIN_ICR_VALUE_GEMS for what to type instead.
+   */
+  dailyWinIcrValueGems: number;
   /**
    * Gem value of one Mastery Orb, and of each cosmetic kind below.
    *

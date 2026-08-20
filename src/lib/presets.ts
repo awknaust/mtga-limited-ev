@@ -321,6 +321,13 @@ export const DEFAULT_DRAFT_PACK_VALUE_GEMS = Math.round(160 / 7);
  * event generates is far closer to its own few wins than to the 750 a full day
  * of grinding pays.
  *
+ * A win here is a *game*, not a match: each game taken inside a best-of-three
+ * counts on its own, so a 2–1 match climbs two rungs. Wizards' page publishes
+ * the amounts without spelling out what counts; the per-game counting is the
+ * community-documented behaviour (MTG Arena Zone's daily-wins guide, Draftsim's
+ * daily-rewards page), and it is why `goldPerEvent` climbs this ladder by the
+ * day's game wins rather than its match wins.
+ *
  * @see https://magic.wizards.com/en/mtgarena/drop-rates
  */
 export const DAILY_WIN_GOLD: readonly number[] = [
@@ -329,6 +336,40 @@ export const DAILY_WIN_GOLD: readonly number[] = [
 
 /** Wins after which the daily ladder pays nothing more. */
 export const DAILY_WIN_CAP = DAILY_WIN_GOLD.length;
+
+/**
+ * Individual card rewards paid at each daily win, alongside the gold.
+ *
+ * The same table on Wizards' drop-rates page that DAILY_WIN_GOLD comes from
+ * has a second column, and until now the model read only the first — so a
+ * day's play was credited its gold and none of the cards. Six ICRs across the
+ * fifteen wins, one at each win the gold column pays nothing for: the fifth,
+ * seventh, ninth, eleventh, thirteenth and fifteenth. The two columns
+ * interleave rather than overlap, which is why the gold ladder has zeroes in
+ * it at all.
+ *
+ * **Corroborated, not read.** The page is unreachable from this network
+ * (HTTP 403), so the positions were first inferred here from the gold
+ * column's zeroes — a reward table does not print rows that pay nothing — and
+ * then checked against two community sources, which agree: MTG Arena Zone's
+ * ICR page puts the cards on "the 5th, 7th, 9th, 11th, 13th and 15th daily
+ * win", and Draftsim's daily-rewards page says ten wins pays three ICRs and
+ * 150 gold, which is only true if the cards sit at 5, 7 and 9 and the fifty-
+ * gold rungs at 6, 8 and 10. Both agree on six cards at fifteen wins.
+ *
+ * That is two transcriptions of one page rather than the page, which is why
+ * this comment says so. `npm run refresh:constants -- DAILY_WIN_ICR
+ * --verbose` prints the real column from any network that can reach Wizards,
+ * and the parser reads it off the same table as the gold in one pass.
+ *
+ * @see https://mtgazone.com/individual-card-rewards-icrs/
+ * @see https://draftsim.com/mtg-arena-daily-rewards/
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DAILY_WIN_ICR: readonly number[] = [
+  0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+];
 
 /**
  * Default gold earned per day from everything other than the event's wins.
@@ -355,22 +396,41 @@ export const DAILY_WIN_CAP = DAILY_WIN_GOLD.length;
 export const DEFAULT_OTHER_GOLD_PER_DAY = 600;
 
 /**
- * Events played per day.
+ * Games played per day.
  *
- * Decides how far a day's wins climb DAILY_WIN_GOLD before it caps, and how
- * many events the day's other gold is spread across. Two, set 2026-08-18: a
- * motivated player can play two events a day, and two is the conservative
- * side of that — the ladder front-loads and the quest is one payment, so
- * every event a day adds credits each with less. One event a day at a 55%
- * win rate is about 3.4 wins and 489 gold; two is about 6.8 wins and 600
- * gold for the day, 300 each; five reach the fifteen-win cap and split 750
- * between them. Set 0 to price an event in gems alone.
+ * The day is counted in games rather than events because games are what take
+ * the time: one runs about ten minutes, so twelve is roughly two hours of
+ * play — about two Premier Drafts' worth at the default win rate, which is
+ * what the two-events-a-day default this replaces said (set 2026-08-19).
+ * Decides how far the day's wins climb DAILY_WIN_GOLD before it caps, and
+ * how many events split the day's other gold; `goldPerEvent` turns games
+ * into events at the event's own length, so a best-of-three event fills the
+ * same day with fewer entries than a best-of-one. Twelve games at a 55% win
+ * rate is about 6.6 wins and the full 600 the ladder pays by then; playing
+ * on past twenty-seven reaches the fifteen-win cap and its 750. Set 0 to
+ * price an event in gems alone.
  *
  * A modelling choice, not a sourced figure — nothing on Wizards' pages says
  * how much anyone plays. Changing it moves the meaning of every link that
- * omits `eventsPerDay`, which is what `share.compat.test.ts` fires for.
+ * omits `gamesPerDay`, which is what `share.compat.test.ts` fires for.
  */
-export const DEFAULT_EVENTS_PER_DAY = 2;
+export const DEFAULT_GAMES_PER_DAY = 12;
+
+/**
+ * Games a best-of-three match is counted as.
+ *
+ * A match ends 2–0 in two games or goes the distance in three, so the count
+ * sits between 2 and 3, and 2.5 is the midpoint. It is also where the
+ * arithmetic lands for close rates: independent games at rate g run a match
+ * to 2 + 2g(1 − g) games, which is 2.5 at an even rate and 2.49 at 55%.
+ * Sideboarding breaks the independence, which is why the convention is a
+ * typed constant rather than something derived per rate — the same refusal
+ * `matchWinRate` records for the rate itself.
+ *
+ * Read once, in `configFromPreset`, to fill `gamesPerMatch` for the presets
+ * that declare `bestOf: 3`; a custom event edits the field directly.
+ */
+export const BO3_GAMES_PER_MATCH = 2.5;
 
 /**
  * TCGplayer market prices in USD (read via tcgcsv.com) of the three newest
@@ -493,6 +553,44 @@ export const DEFAULT_RARE_CARD_VALUE_GEMS = 20;
 export const DEFAULT_UNCOMMON_ICR_VALUE_GEMS = 0.05 * ((7 / 8) * 20 + (1 / 8) * 40);
 
 /**
+ * Default gem value of one individual card reward from the daily-win ladder.
+ *
+ * Zero, and a modelling choice rather than a missing figure. Every gem value
+ * in this file converts through duplicate protection: a card is worth 20 or
+ * 40 gems only once you already hold four of it. That is a fair assumption
+ * for a draft's rewards, which come from the set you are drafting and which
+ * DEFAULT_PACK_VALUE_GEMS prices on "a complete collection of the set". It is
+ * not a fair one here. These cards are drawn from any Standard-legal set, so
+ * the collection that would have to be complete is the whole of Standard, and
+ * what you almost always get is a card rather than gems.
+ *
+ * Pricing that properly would mean a per-set completion term — how much of
+ * each Standard set the reader holds — which is a input nobody has and a
+ * shape the rest of the model does not carry. So the cards are counted and
+ * valued at nothing, and the model stays the size it is. The counting is the
+ * part that matters: DAILY_WIN_ICR is which wins pay them, they appear in the
+ * breakdown and a bankroll run holds them, so what is being left out is on
+ * screen rather than hidden in an assumption.
+ *
+ * What the field would take, for anyone whose Standard collection *is*
+ * complete. The daily wins pay an uncommon ICR that upgrades to a rare about
+ * 1:10, and an upgraded card is a rare that is itself a mythic about 1:8 —
+ * the page's "Standard ICRs that upgrade from Rare to Mythic Rare are
+ * approximately at a rate of 1:8", which `scripts/constants/` parses. So
+ *
+ *     0.1 × ((7/8 × 20) + (1/8 × 40)) = 0.1 × 22.5 = 2.25 gems
+ *
+ * and that is a ceiling on this reward rather than the floor it first looks
+ * like: it already assumes every upgraded rare converts. The 1:10 behind it
+ * is corroborated but unread — `DAILY_WIN_ICR_UPGRADE` in
+ * `scripts/constants/by-hand.ts` carries the sources and the trap that
+ * catches people checking it.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DEFAULT_DAILY_WIN_ICR_VALUE_GEMS = 0;
+
+/**
  * Default gem value of a Mastery Orb, and of the cosmetics it buys.
  *
  * Zero, for want of anything to derive a figure from. Orbs redeem in the Mastery
@@ -533,6 +631,7 @@ export function configFromPreset(preset: EventPreset, base: EventConfig): EventC
     entryCostPlayInPoints: entryPrice(preset.entryCostPlayInPoints),
     draftPacks: preset.draftPacks ?? 0,
     structure: { ...preset.structure },
+    gamesPerMatch: preset.bestOf === 3 ? BO3_GAMES_PER_MATCH : 1,
     payouts: preset.payouts.map(copyTier),
   };
 }
@@ -547,7 +646,9 @@ export function defaultConfig(): EventConfig {
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
     qualifierTokenValueGems: DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
     otherGoldPerDay: DEFAULT_OTHER_GOLD_PER_DAY,
-    eventsPerDay: DEFAULT_EVENTS_PER_DAY,
+    gamesPerDay: DEFAULT_GAMES_PER_DAY,
+    // Overwritten by `configFromPreset` from the preset's `bestOf`.
+    gamesPerMatch: 1,
     gemsPer10kGold: GEMS_PER_10K_GOLD,
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
@@ -560,6 +661,7 @@ export function defaultConfig(): EventConfig {
     mythicIcrValueGems: DEFAULT_MYTHIC_ICR_VALUE_GEMS,
     rareCardValueGems: DEFAULT_RARE_CARD_VALUE_GEMS,
     uncommonIcrValueGems: DEFAULT_UNCOMMON_ICR_VALUE_GEMS,
+    dailyWinIcrValueGems: DEFAULT_DAILY_WIN_ICR_VALUE_GEMS,
     orbValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
     cardStyleValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
     sleeveValueGems: DEFAULT_COSMETIC_VALUE_GEMS,

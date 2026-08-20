@@ -48,6 +48,7 @@ import type { EventPreset } from "../../lib/types";
 export const ARENA_DIRECT_PLAY = {
   name: "Arena Direct (Play)",
   group: "direct",
+  bestOf: 1,
   entryCostGems: 8000,
   draftPacks: 6,
   structure: { kind: "elimination", maxWins: 7, maxLosses: 2 },

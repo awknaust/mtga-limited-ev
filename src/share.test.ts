@@ -225,7 +225,8 @@ describe("round trips", () => {
         entryCostGold: 9000,
         entryCostPlayInPoints: 25,
         otherGoldPerDay: 900,
-        eventsPerDay: 3,
+        gamesPerDay: 30,
+        gamesPerMatch: 2.5,
         gemsPer10kGold: 2000,
         draftPacks: 4,
         draftPackValueGems: 110,
@@ -343,7 +344,8 @@ describe("resetting advanced settings", () => {
         playBoxValueGems: 60_000,
         collectorBoxValueGems: 250_000,
         otherGoldPerDay: 900,
-        eventsPerDay: 3,
+        gamesPerDay: 30,
+        gamesPerMatch: 2.5,
         gemsPer10kGold: 2000,
         draftTokenValueGems: 900,
         mythicIcrValueGems: 60,
@@ -406,7 +408,7 @@ describe("resetting advanced settings", () => {
       "confMatches",
       "draftPackValue",
       "draftTokenValue",
-      "eventsPerDay",
+      "gamesPerDay",
       "gemsPerUsd",
       "goldPer10k",
       "goldPerDay",
@@ -429,6 +431,7 @@ describe("resetting advanced settings", () => {
       "entry",
       "entryGold",
       "entryPoints",
+      "gamesPerMatch",
       "maxEvents",
       "payouts",
       "preset",
@@ -465,7 +468,7 @@ describe("resetting advanced settings", () => {
     expect(reset.config.avatarValueGems).toBe(config.avatarValueGems);
     expect(reset.config.companionValueGems).toBe(config.companionValueGems);
     expect(reset.config.otherGoldPerDay).toBe(config.otherGoldPerDay);
-    expect(reset.config.eventsPerDay).toBe(config.eventsPerDay);
+    expect(reset.config.gamesPerDay).toBe(config.gamesPerDay);
     expect(reset.config.gemsPer10kGold).toBe(config.gemsPer10kGold);
     expect(reset.gemsPerUsd).toBe(ui.gemsPerUsd);
     expect(reset.bankrollRuns).toBe(ui.bankrollRuns);
@@ -478,6 +481,7 @@ describe("resetting advanced settings", () => {
     expect(reset.presetName).toBe(touched.presetName);
     expect(reset.config.winRate).toBe(touched.config.winRate);
     expect(reset.config.structure).toEqual(touched.config.structure);
+    expect(reset.config.gamesPerMatch).toBe(touched.config.gamesPerMatch);
     expect(reset.config.entryCostGems).toBe(touched.config.entryCostGems);
     expect(reset.config.entryCostGold).toBe(touched.config.entryCostGold);
     expect(reset.config.draftPacks).toBe(touched.config.draftPacks);
@@ -519,10 +523,17 @@ describe("resetting advanced settings", () => {
   });
 
   it("counts only what the dialog owns as touched", () => {
-    // Outside it: the balance, and the win rate its slider sets.
+    // Outside it: the balance, the win rate its slider sets, and the games a
+    // match takes, which is the Event card's field like the structure it
+    // describes.
     expect(isAdvancedDefault(withState({ startingGems: 99_000 }))).toBe(true);
     expect(
       isAdvancedDefault(withState({ config: { ...defaultConfig(), winRate: 0.7 } })),
+    ).toBe(true);
+    expect(
+      isAdvancedDefault(
+        withState({ config: { ...defaultConfig(), gamesPerMatch: 2.5 } }),
+      ),
     ).toBe(true);
     // Inside it, one field from each group the dialog is divided into.
     expect(isAdvancedDefault(withState({ seed: 9 }))).toBe(false);
@@ -539,7 +550,7 @@ describe("resetting advanced settings", () => {
     ).toBe(false);
     expect(
       isAdvancedDefault(
-        withState({ config: { ...defaultConfig(), eventsPerDay: 3 } }),
+        withState({ config: { ...defaultConfig(), gamesPerDay: 3 } }),
       ),
     ).toBe(false);
   });

@@ -31,13 +31,17 @@
  *
  * Most entries are sourced — Wizards' drop-rates page, Scryfall, the
  * box-price feed — or read off the client and recorded with a date in
- * `by-hand.ts`. Four are neither: DEFAULT_WIN_RATE_MATCHES and
- * DEFAULT_EVENTS_PER_DAY are modelling choices about the reader, and
- * DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS and DEFAULT_COSMETIC_VALUE_GEMS are zeros
- * that refuse to invent a number rather than numbers. Those four have nothing
- * to fetch, so their `compute` returns the figure with the reasoning and no
- * source, and they are here so the inventory has no holes — not because
- * running this can move them.
+ * `by-hand.ts`. Six are neither: DEFAULT_WIN_RATE_MATCHES,
+ * DEFAULT_GAMES_PER_DAY and BO3_GAMES_PER_MATCH are modelling choices about
+ * the reader and the format, and DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
+ * DEFAULT_COSMETIC_VALUE_GEMS and DEFAULT_DAILY_WIN_ICR_VALUE_GEMS are zeros
+ * rather than numbers — the first two because nothing converts to gems at
+ * all, the last because what it converts through is duplicate protection on
+ * cards drawn from any Standard set, which the model deliberately does not
+ * grow a term for; its derivation prints the figure that term would use.
+ * Those six have nothing to fetch, so their `compute` returns the figure with
+ * the reasoning and no source, and they are here so the inventory has no
+ * holes — not because running this can move them.
  *
  * The two generic box constants are the heavy ones: their data is the
  * box-price feed (`scripts/box-prices/`, fetched in full when they are asked
@@ -55,6 +59,7 @@
 
 import {
   DAILY_QUEST,
+  DAILY_WIN_ICR_UPGRADE,
   DUAL_PRICED_EVENTS,
   GEM_BUNDLES,
   PLAY_IN_ENTRY,
@@ -127,6 +132,9 @@ export type ConstantDef = {
 
 /** An entry with the key it was registered under, which is what the CLI folds over. */
 export type NamedConstantDef = ConstantDef & { name: ConstantName };
+
+/** When the daily-win cards were decided to be worth nothing. See the entry. */
+const DAILY_WIN_ICR_DECIDED_ON = "2026-08-20";
 
 const gems = (n: number): string => n.toLocaleString("en-US");
 const usd = (n: number): string =>
@@ -422,6 +430,27 @@ export const REGISTRY = {
     },
   },
 
+  DAILY_WIN_ICR: {
+    summary: "individual card rewards at each daily win, first through last",
+    sources: ["dropRates"],
+    async compute(ctx) {
+      const rates = await ctx.sources.dropRates();
+      const icr = rates.dailyWinIcr;
+      const total = icr.reduce((a, b) => a + b, 0);
+      const at = icr.flatMap((n, i) => (n > 0 ? [i + 1] : []));
+      return {
+        value: icr,
+        format: (v) => `[${(v as readonly number[]).join(", ")}]`,
+        asOf: fetchedOn(ctx),
+        explain: [
+          `the ICR column of the daily win table: ${total} cards across ${icr.length} wins`,
+          `paid at wins             ${at.join(", ") || "none"}`,
+          `the gold column pays     ${rates.dailyWinGold.filter((g) => g > 0).length} of those ${icr.length} wins, so the two columns interleave`,
+        ],
+      };
+    },
+  },
+
   DAILY_WIN_CAP: {
     summary: "wins after which the daily ladder pays nothing more",
     sources: ["dropRates"],
@@ -503,6 +532,35 @@ export const REGISTRY = {
     },
   },
 
+  DEFAULT_DAILY_WIN_ICR_VALUE_GEMS: {
+    summary: "gem value of one daily-win ICR — zero, a modelling choice",
+    sources: [],
+    compute() {
+      /*
+       * Zero because of what the card *is*, not because the rate behind it is
+       * unread. Every gem figure in this file converts through duplicate
+       * protection, which pays only on a card you already hold four of — and
+       * these are drawn from any Standard-legal set rather than the one you
+       * are drafting, so the collection that would have to be complete is all
+       * of Standard rather than one set. Nearly always you get a card, not
+       * gems. The arithmetic below is what the model would have to grow a
+       * per-set completion term to use, and the cards are counted either way.
+       */
+      const upgradeRate = DAILY_WIN_ICR_UPGRADE.rareUpgradeRate;
+      return {
+        value: 0,
+        asOf: DAILY_WIN_ICR_DECIDED_ON,
+        explain: [
+          "zero, a modelling choice: these are drawn from any Standard-legal set, so the duplicate",
+          "  protection every gem figure here converts through would need a complete Standard collection",
+          "  rather than a complete set — you get a card, and the model is not grown a term for it",
+          `were they to convert, at 1:${upgradeRate} to a rare and a rare that is a mythic 1:8, one would be`,
+          `  ${1 / upgradeRate} x ((7/8 x 20) + (1/8 x 40)) = ${(1 / upgradeRate) * ((7 / 8) * 20 + (1 / 8) * 40)} gems`,
+        ],
+      };
+    },
+  },
+
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS: {
     summary: "gem value of one play-in point",
     sources: [],
@@ -567,16 +625,33 @@ export const REGISTRY = {
     },
   },
 
-  DEFAULT_EVENTS_PER_DAY: {
-    summary: "events played a day — a modelling choice",
+  DEFAULT_GAMES_PER_DAY: {
+    summary: "games played a day — a modelling choice",
     sources: [],
     compute() {
       return {
-        value: 2,
-        asOf: "2026-08-18",
+        value: 12,
+        asOf: "2026-08-19",
         explain: [
-          "a modelling choice, not derived from any source: a motivated player can play two events a day,",
-          "  and two is the conservative side of that — each event a day adds is credited less of the day's gold",
+          "a modelling choice, not derived from any source: a game runs about ten minutes, so twelve is",
+          "  roughly two hours of play — about two best-of-one drafts' worth, which is what the",
+          "  two-events-a-day default it replaces said",
+        ],
+      };
+    },
+  },
+
+  BO3_GAMES_PER_MATCH: {
+    summary: "games a best-of-three match is counted as — a modelling choice",
+    sources: [],
+    compute() {
+      return {
+        value: 2.5,
+        asOf: "2026-08-19",
+        explain: [
+          "a modelling choice, not derived from any source: a match runs two or three games and 2.5 is the",
+          "  midpoint; independent games at rate g would say 2 + 2g(1 − g), which is 2.5 at an even rate,",
+          "  and sideboarding is why no per-rate figure is derived",
         ],
       };
     },

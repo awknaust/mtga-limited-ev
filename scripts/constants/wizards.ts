@@ -86,6 +86,12 @@ export type DropRates = {
   wildcards: { rare: number; mythic: number } & Record<string, number>;
   /** Gold at each daily win, first through last. */
   dailyWinGold: number[];
+  /**
+   * Individual card rewards at each daily win, first through last — the same
+   * table's second column, read alongside the gold so the two cannot be taken
+   * from different rows.
+   */
+  dailyWinIcr: number[];
   /** How often a rare ICR upgrades to a mythic, as N in "1:N". */
   icrRareToMythicRate: number;
   /**
@@ -167,7 +173,7 @@ export function parseDropRates(rawHtml: string): DropRates {
     mythicDupeGems: Number(dupe[2]),
     mythicRates: parseMythicRates(html),
     wildcards: parseWildcardRates(html),
-    dailyWinGold: parseDailyWinGold(html),
+    ...parseDailyWins(html),
     icrRareToMythicRate: Number(icr[1]),
     masteryUncommonUpgradePct: Number(masteryUpgrade[1]),
     mythicBoosterDisplacedBy: mythicBooster[1],
@@ -290,11 +296,21 @@ function parseWildcardRates(html: string): DropRates["wildcards"] {
   return wildcards as DropRates["wildcards"];
 }
 
-/** Gold at each daily win, first through last. */
-function parseDailyWinGold(html: string): number[] {
+/**
+ * What each daily win pays, both columns, first win through last.
+ *
+ * One pass over one table because it is one table: reading the gold and the
+ * cards separately would mean two anchor searches that could land on
+ * different tables, and two row filters that could disagree about which rows
+ * count. The ICR column is required — a page that stopped printing it is a
+ * page that has been restructured, which should stop the run rather than
+ * quietly price a day's wins at gold alone, which is the omission this column
+ * was added to fix.
+ */
+function parseDailyWins(html: string): Pick<DropRates, "dailyWinGold" | "dailyWinIcr"> {
   const rows = tableNear(html, html.indexOf("Win Number"));
   const header = rows?.[0]?.map((c) => c.toLowerCase()) ?? [];
-  if (!rows || header[0] !== "win number" || header[1] !== "gold") {
+  if (!rows || header[0] !== "win number" || header[1] !== "gold" || header[2] !== "icr") {
     // A shape check, not a formality: the page has a dozen tables, and the one
     // next to this in the source is a fifty-row mastery track that parses to
     // plausible-looking rubbish if it is picked up by mistake.
@@ -303,12 +319,13 @@ function parseDailyWinGold(html: string): number[] {
     );
   }
 
-  const gold = rows
-    .slice(1)
-    .filter((row) => row.length >= 2 && /^\d+$/.test(row[0]))
-    .map((row) => Number(row[1]));
-  if (gold.length === 0 || gold.some((g) => !Number.isFinite(g))) {
-    throw new SourceError("drop rates: daily win gold column is not all numbers");
-  }
-  return gold;
+  const wins = rows.slice(1).filter((row) => row.length >= 3 && /^\d+$/.test(row[0]));
+  const column = (at: number, what: string): number[] => {
+    const values = wins.map((row) => Number(row[at]));
+    if (values.length === 0 || values.some((v) => !Number.isFinite(v))) {
+      throw new SourceError(`drop rates: daily win ${what} column is not all numbers`);
+    }
+    return values;
+  };
+  return { dailyWinGold: column(1, "gold"), dailyWinIcr: column(2, "ICR") };
 }

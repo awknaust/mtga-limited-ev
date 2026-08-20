@@ -43,6 +43,7 @@ import type { EventPreset } from "../../lib/types";
 export const ARENA_DIRECT = {
   name: "Arena Direct (Cube)",
   group: "direct",
+  bestOf: 1,
   entryCostGems: 8000,
   draftPacks: 0,
   structure: { kind: "elimination", maxWins: 7, maxLosses: 2 },

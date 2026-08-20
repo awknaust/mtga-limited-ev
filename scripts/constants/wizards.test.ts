@@ -21,6 +21,10 @@ describe("parseDropRates", () => {
     expect(rates.wildcards.rare).toBe(30);
     expect(rates.wildcards.mythic).toBe(30);
     expect(rates.dailyWinGold).toEqual([250, 100, 0]);
+    // The same table's second column, which the parser read past until the
+    // daily wins' cards were priced. The two interleave: the win the gold
+    // column pays nothing for is the win that pays a card.
+    expect(rates.dailyWinIcr).toEqual([0, 0, 1]);
     expect(rates.mythicRates).toEqual([
       { rate: 7, sets: ["Duskmourn", "Foundations"] },
       { rate: 8.1, sets: ["Marvel's Spider-Man"] },
@@ -44,6 +48,18 @@ describe("parseDropRates", () => {
     expect(parseDropRates(page({ mythicBooster: curly })).mythicBoosterDisplacedBy).toBe(
       "a Rare Wildcard",
     );
+  });
+
+  it("stops if the daily win table loses its ICR column", () => {
+    // A page that prints gold and no cards is a page that has been
+    // restructured. Failing is the point: the alternative is pricing a day's
+    // wins at gold alone, which is the omission the column was read to fix.
+    const goldOnly = page().replace(
+      /<tr><th>Win Number<\/th><th>Gold<\/th><th>ICR<\/th><\/tr>/,
+      "<tr><th>Win Number</th><th>Gold</th></tr>",
+    );
+    expect(() => parseDropRates(goldOnly)).toThrow(SourceError);
+    expect(() => parseDropRates(goldOnly)).toThrow(/daily win table not found/);
   });
 
   it("stops if the mythic-booster rule is gone", () => {

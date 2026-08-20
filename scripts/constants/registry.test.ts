@@ -21,7 +21,13 @@ import { describe, expect, it } from "vitest";
 
 import type { BoxPriceFeed } from "../box-prices/feed.ts";
 import type { ScryfallSet } from "../shared/scryfall.ts";
-import { DAILY_QUEST, DUAL_PRICED_EVENTS, GEM_BUNDLES, PLAY_IN_ENTRY } from "./by-hand.ts";
+import {
+  DAILY_QUEST,
+  DAILY_WIN_ICR_UPGRADE,
+  DUAL_PRICED_EVENTS,
+  GEM_BUNDLES,
+  PLAY_IN_ENTRY,
+} from "./by-hand.ts";
 import { dropRatesPage } from "./drop-rates.fixture.ts";
 import { CONSTANTS, REGISTRY, selectConstants, type ConstantName, type Context } from "./registry.ts";
 import { SOURCE_URLS, type Sources } from "./sources.ts";
@@ -134,8 +140,15 @@ describe("the registry", () => {
     ] as const) {
       expect(r.get(name)!.asOf, name).toBeNull();
     }
-    // A choice carries the date it was made, where one is recorded.
-    expect(r.get("DEFAULT_EVENTS_PER_DAY")!.asOf).toBe("2026-08-18");
+    /*
+     * A choice carries the date it was made, where one is recorded — which is
+     * every choice made since the rule was written down. The three left null
+     * above predate it, and a date invented for them now would be a lie about
+     * when anyone last thought about them.
+     */
+    expect(r.get("DEFAULT_GAMES_PER_DAY")!.asOf).toBe("2026-08-19");
+    expect(r.get("BO3_GAMES_PER_MATCH")!.asOf).toBe("2026-08-19");
+    expect(r.get("DEFAULT_DAILY_WIN_ICR_VALUE_GEMS")!.asOf).toBe("2026-08-20");
     // The check date lives in the field, not the prose. (Other dates — the
     // mythic-rate window, set releases — are derivation inputs and stay.)
     for (const [name, c] of r) expect(c.explain.join("\n"), name).not.toMatch(/checked by hand on/);
@@ -163,6 +176,7 @@ describe("the registry", () => {
     expect(v("DEFAULT_RARE_CARD_VALUE_GEMS")).toBe(20);
     expect(v("DEFAULT_UNCOMMON_ICR_VALUE_GEMS")).toBeCloseTo(0.05 * ((7 / 8) * 20 + (1 / 8) * 40), 12);
     expect(v("DAILY_WIN_GOLD")).toEqual([250, 100, 0]);
+    expect(v("DAILY_WIN_ICR")).toEqual([0, 0, 1]);
     expect(v("DAILY_WIN_CAP")).toBe(3);
   });
 
@@ -183,21 +197,36 @@ describe("the registry", () => {
     expect(r.get("DEFAULT_PLAY_BOX_VALUE_GEMS")!.explain.join("\n")).toMatch(/PLAY_BOX_USD = \[140\.00, 120\.00, 100\.00\]/);
   });
 
-  it("holds the four unsourced entries at their figures, each saying what kind of number it is", async () => {
+  it("holds the six unsourced entries at their figures, each saying what kind of number it is", async () => {
     const r = await computeAll();
     for (const name of [
       "DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS",
       "DEFAULT_COSMETIC_VALUE_GEMS",
+      "DEFAULT_DAILY_WIN_ICR_VALUE_GEMS",
     ] as const) {
       expect(r.get(name)!.value).toBe(0);
       expect(REGISTRY[name].sources).toEqual([]);
       expect(r.get(name)!.explain[0]).toMatch(/^zero/);
     }
-    for (const name of ["DEFAULT_EVENTS_PER_DAY", "DEFAULT_WIN_RATE_MATCHES"] as const) {
+    /*
+     * The daily-win ICR refuses for want of a source rather than for want of
+     * arithmetic, so its derivation has to carry the figure it would be —
+     * otherwise the zero is a dead end for a reader who wants to price it.
+     */
+    const icr = r.get("DEFAULT_DAILY_WIN_ICR_VALUE_GEMS")!.explain.join("\n");
+    expect(icr).toMatch(
+      new RegExp(String.raw`= ${(1 / DAILY_WIN_ICR_UPGRADE.rareUpgradeRate) * 22.5} gems`),
+    );
+    for (const name of [
+      "DEFAULT_GAMES_PER_DAY",
+      "BO3_GAMES_PER_MATCH",
+      "DEFAULT_WIN_RATE_MATCHES",
+    ] as const) {
       expect(REGISTRY[name].sources).toEqual([]);
       expect(r.get(name)!.explain[0]).toMatch(/^a modelling choice, not derived from any source/);
     }
-    expect(r.get("DEFAULT_EVENTS_PER_DAY")!.value).toBe(2);
+    expect(r.get("DEFAULT_GAMES_PER_DAY")!.value).toBe(12);
+    expect(r.get("BO3_GAMES_PER_MATCH")!.value).toBe(2.5);
     expect(r.get("DEFAULT_WIN_RATE_MATCHES")!.value).toBe(100);
   });
 });

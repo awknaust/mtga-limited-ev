@@ -4,6 +4,7 @@ import type { EventPreset } from "../../lib/types";
 export const PREMIER_DRAFT = {
   name: "Premier Draft",
   group: "draft",
+  bestOf: 1,
   entryCostGems: 1500,
   entryCostGold: 10000,
   draftPacks: 3,
