@@ -256,10 +256,11 @@ whose name matches no export, fails `tsc -p scripts` inside `npm run build`.
 run date for a fetched source, the by-hand `checkedOn` for a client figure,
 `null` for a choice — is required alongside it. Keep that import
 type-only: the tool must never run app code or learn a constant's current
-value, which is why it has no exit code for "a number moved". The five with
+value, which is why it has no exit code for "a number moved". The six with
 nothing to fetch — the win-rate match count, games per day, Bo3 games per
-match, and the two zero-by-refusal values (qualifier token, cosmetics) — are
-entries all the same, printing the figure and its reasoning so the inventory
+match, and the three zero-by-refusal values (qualifier token, cosmetics, the
+daily-win ICR, that last one refusing for want of a source rather than for
+want of arithmetic) — are entries all the same, printing the figure and its reasoning so the inventory
 has no holes; a run cannot move them and says so. `registry.test.ts` then runs every entry
 against stubbed sources, since the types cannot see a `compute` that throws
 or returns `NaN`. Figures only in the client

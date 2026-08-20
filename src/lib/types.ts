@@ -382,8 +382,13 @@ export type EventConfig = {
    * Its own rate rather than the uncommon one above, because the two are the
    * same card on different terms: the daily wins upgrade at about 1:10 where
    * the mastery track's beyond-cap reward upgrades at 5%, so someone
-   * repricing one should not silently reprice the other. Zero counts the
-   * cards a day's wins pay as worth nothing, leaving the gold.
+   * repricing one should not silently reprice the other.
+   *
+   * Zero by default, which counts the cards a day's wins pay as worth nothing
+   * and leaves the gold — a refusal rather than a reading, since no one here
+   * has read that 1:10 from Wizards' page. The cards are still counted, so
+   * what is being left out stays on screen; see
+   * DEFAULT_DAILY_WIN_ICR_VALUE_GEMS for what to type instead.
    */
   dailyWinIcrValueGems: number;
   /**

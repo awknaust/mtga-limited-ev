@@ -31,13 +31,16 @@
  *
  * Most entries are sourced — Wizards' drop-rates page, Scryfall, the
  * box-price feed — or read off the client and recorded with a date in
- * `by-hand.ts`. Five are neither: DEFAULT_WIN_RATE_MATCHES,
+ * `by-hand.ts`. Six are neither: DEFAULT_WIN_RATE_MATCHES,
  * DEFAULT_GAMES_PER_DAY and BO3_GAMES_PER_MATCH are modelling choices about
- * the reader and the format, and DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS and
- * DEFAULT_COSMETIC_VALUE_GEMS are zeros that refuse to invent a number rather
- * than numbers. Those five have nothing to fetch, so their `compute` returns
- * the figure with the reasoning and no source, and they are here so the
- * inventory has no holes — not because running this can move them.
+ * the reader and the format, and DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
+ * DEFAULT_COSMETIC_VALUE_GEMS and DEFAULT_DAILY_WIN_ICR_VALUE_GEMS are zeros
+ * that refuse to invent a number rather than numbers — the last of those
+ * refusing for want of a source rather than for want of arithmetic, and its
+ * derivation prints the figure it would otherwise be. Those six have nothing
+ * to fetch, so their `compute` returns the figure with the reasoning and no
+ * source, and they are here so the inventory has no holes — not because
+ * running this can move them.
  *
  * The two generic box constants are the heavy ones: their data is the
  * box-price feed (`scripts/box-prices/`, fetched in full when they are asked
@@ -526,27 +529,26 @@ export const REGISTRY = {
   },
 
   DEFAULT_DAILY_WIN_ICR_VALUE_GEMS: {
-    summary: "gem value of one individual card reward from the daily-win ladder",
-    sources: ["dropRates"],
-    async compute(ctx) {
-      const rates = await ctx.sources.dropRates();
+    summary: "gem value of one daily-win ICR — zero by refusal",
+    sources: [],
+    compute() {
+      /*
+       * The one refusal here that is not for want of a figure. The others
+       * price things nothing converts to; this one has arithmetic and is
+       * missing a primary reading of the rate underneath it, which is a
+       * different thing to be honest about — so the derivation prints the
+       * figure it would be, and the value stays at nothing until someone can
+       * open the page.
+       */
       const upgradeRate = DAILY_WIN_ICR_UPGRADE.rareUpgradeRate;
-      const upgrade = 1 / upgradeRate;
-      const icrRate = rates.icrRareToMythicRate;
-      const upgraded =
-        ((icrRate - 1) / icrRate) * rates.rareDupeGems +
-        (1 / icrRate) * rates.mythicDupeGems;
-      const value = upgrade * upgraded;
       return {
-        value,
-        // The upgrade rate is the input that sets it, and it is the one that
-        // was not fetched — so the date is its check date, not this run's.
-        asOf: DAILY_WIN_ICR_UPGRADE.checkedOn,
+        value: 0,
+        asOf: null,
         explain: [
-          "the same shape as the mastery uncommon ICR, on the daily ladder's own upgrade rate",
-          `upgrade chance            1:${upgradeRate}, ${DAILY_WIN_ICR_UPGRADE.where}`,
-          `upgraded card             the rare/mythic mix at the ICR rate of 1:${icrRate}`,
-          `${upgrade} x ((${icrRate - 1}/${icrRate} x ${rates.rareDupeGems}) + (1/${icrRate} x ${rates.mythicDupeGems})) = ${value} gems, left unrounded`,
+          "zero by refusal: the cards are counted, and what one is worth rests on an upgrade rate",
+          "  no one here has read from Wizards' page — see DAILY_WIN_ICR_UPGRADE in by-hand.ts",
+          `at 1:${upgradeRate} to a rare, and a rare that is a mythic 1:8, one card would be`,
+          `  ${1 / upgradeRate} x ((7/8 x 20) + (1/8 x 40)) = ${(1 / upgradeRate) * ((7 / 8) * 20 + (1 / 8) * 40)} gems`,
         ],
       };
     },

@@ -445,7 +445,7 @@ export function AdvancedDialog({
               Daily win ICR value ({m.label})
               <InfoTip
                 label="About daily win ICR value"
-                content="The card each daily win past the fourth pays, alongside the gold. An uncommon with about a 1:10 chance of upgrading to a rare, so about 2.3 gems. Set 0 to count a day's cards as worth nothing."
+                content="The card each daily win past the fourth pays, alongside the gold. Zero by default: it is an uncommon, and the rate it upgrades to a rare at has not been read from Wizards' page by anyone here. Type 2.25 for the figure that rate implies."
               />
             </label>
             <MoneyInput

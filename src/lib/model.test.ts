@@ -5,6 +5,7 @@ import {
   PREMIER_CUBE_DRAFT,
   DAILY_WIN_GOLD,
   DEFAULT_OTHER_GOLD_PER_DAY,
+  DEFAULT_DAILY_WIN_ICR_VALUE_GEMS,
   DEFAULT_GAMES_PER_DAY,
   BO3_GAMES_PER_MATCH,
   DEFAULT_DRAFT_PACK_VALUE_GEMS,
@@ -1844,10 +1845,33 @@ describe("gold earnings", () => {
     expect(dailyWinIcrs(-3)).toBe(0);
   });
 
+  it("counts the cards but prices them at nothing by default", () => {
+    /*
+     * The refusal, and the shape of it: the cards are counted whatever they
+     * are priced at, so what is being left out is on screen rather than
+     * absent. The same arrangement the qualifier token has — see
+     * DEFAULT_DAILY_WIN_ICR_VALUE_GEMS for why the rate is a refusal rather
+     * than the 2.25 its arithmetic implies.
+     */
+    expect(DEFAULT_DAILY_WIN_ICR_VALUE_GEMS).toBe(0);
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    expect(config.dailyWinIcrValueGems).toBe(0);
+    expect(icrsPerEvent(config)).toBeGreaterThan(0);
+    expect(grossCounts(config).dailyIcrs).toBe(icrsPerEvent(config));
+    // Priced at nothing, so it is in no total.
+    expect(icrValueGems(config)).toBe(0);
+    expect(grossSplit(config).dailyIcrs).toBe(0);
+  });
+
   it("credits an event its share of the day's cards, and prices them", () => {
     // The same share-of-the-day arithmetic the gold gets: the day's wins read
     // against the ladder, then divided across the events the day holds.
-    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    // Priced at what the constant's own arithmetic implies, since the default
+    // declines to: the counting is what is under test here, not the refusal.
+    const config = {
+      ...configFromPreset(PREMIER_DRAFT, defaultConfig()),
+      dailyWinIcrValueGems: 2.25,
+    };
     expect(icrsPerEvent(config) * meanEventsPerDay(config)).toBeCloseTo(
       dailyWinIcrs(config.gamesPerDay * config.winRate),
       9,
@@ -1862,7 +1886,11 @@ describe("gold earnings", () => {
       icrsPerEvent(config) * config.dailyWinIcrValueGems,
       12,
     );
-    // Priced at nothing, the term goes and the gold stays.
+    // A whole card is 2.25 gems, and an event's share of 1.6 cards across
+    // ~1.95 events is a little over four fifths of one.
+    expect(icrValueGems(config)).toBeCloseTo(1.848, 3);
+    // Priced at nothing — which is the default — the term goes and the gold
+    // stays.
     const unpriced = { ...config, dailyWinIcrValueGems: 0 };
     expect(icrValueGems(unpriced)).toBe(0);
     expect(grossValue(config, 3) - grossValue(unpriced, 3)).toBeCloseTo(
