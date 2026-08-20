@@ -26,8 +26,8 @@
  * this tool never executes app code and never learns a constant's current
  * value, which is why it has no exit code for "a number moved". `explain` is
  * a non-empty tuple for the same reason — an entry cannot be typed without a
- * derivation — and `asOf` is required for the same reason again: a value has
- * to say what date its inputs were read on, or that it has none.
+ * derivation — and `asOf` is required for the same reason again, and carries
+ * no `null`: every value says what date it was read or chosen on.
  *
  * Most entries are sourced — Wizards' drop-rates page, Scryfall, the
  * box-price feed — or read off the client and recorded with a date in
@@ -111,11 +111,18 @@ export type ConstantResult = {
   /**
    * The date the value's inputs were read, ISO `YYYY-MM-DD`: the run date for
    * a fetched source, the by-hand record's `checkedOn` for a figure read off
-   * the client, the date a choice was last made where one is recorded, and
-   * `null` where nothing dates the value. Where an entry mixes the two, the
-   * date of the input that sets the value.
+   * the client, and the date the choice was made for a value nothing is
+   * fetched for. Where an entry mixes the two, the date of the input that
+   * sets the value.
+   *
+   * Never absent, and that is the point. A value with no date reads as one
+   * nobody need ever look at again, which is the opposite of true for the
+   * choices here — a figure asserting how much anyone plays, or that a
+   * reward is worth nothing, is exactly the kind that quietly stops being
+   * right. The type carries no `null` so a new entry has to answer "as of
+   * when?", and for a choice the answer is the day it was made.
    */
-  asOf: string | null;
+  asOf: string;
   explain: Explanation;
 };
 
@@ -590,7 +597,8 @@ export const REGISTRY = {
     compute() {
       return {
         value: 0,
-        asOf: null,
+        // Made with the Play-Ins themselves; see the git history for this file.
+        asOf: "2026-08-17",
         explain: ["zero: a token is not sold, not bought, and converts to nothing Arena pays out"],
       };
     },
@@ -602,7 +610,8 @@ export const REGISTRY = {
     compute() {
       return {
         value: 0,
-        asOf: null,
+        // Made with the Mastery tab, which is what introduced the cosmetics.
+        asOf: "2026-08-15",
         explain: [
           "zero, behind the orb, card style, sleeve, avatar and companion fields: none has a gem price,",
           "  a duplicate-protection value or any other conversion Arena performs",
@@ -663,7 +672,8 @@ export const REGISTRY = {
     compute() {
       return {
         value: 100,
-        asOf: null,
+        // The oldest choice here, made with the win-rate confidence control.
+        asOf: "2026-08-04",
         explain: ["a modelling choice, not derived from any source: a hundred matches, a season of regular play"],
       };
     },

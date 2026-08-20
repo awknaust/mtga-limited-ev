@@ -19,10 +19,10 @@
  * refusals with nothing to fetch behind them — those print the figure and its
  * reasoning so the inventory has no holes, and a run cannot move them.
  *
- * Every value carries an "as of" date: the run date if its source was
- * fetched, the date it was last checked in the client if it is a by-hand
- * figure, none if it is a choice. It is a column in the table, a line under
- * `--verbose`, and `asOf` in the JSON.
+ * Every value carries an "as of" date, and every value has one: the run date
+ * if its source was fetched, the date it was last checked in the client if it
+ * is a by-hand figure, the date it was decided if it is a choice. It is a
+ * column in the table, a line under `--verbose`, and `asOf` in the JSON.
  *
  * The two generic box constants are here too, and they are the heavy ones:
  * their source is the box-price feed (`scripts/box-prices/`, some forty

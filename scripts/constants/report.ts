@@ -61,9 +61,6 @@ function table(columns: Column[], rows: string[][]): string {
   ].join("\n");
 }
 
-/** `asOf` as printed: the date, or a dash for a value with no dated input. */
-const displayAsOf = (result: ConstantResult): string => result.asOf ?? "—";
-
 /**
  * The default output: what each constant should be, and as of when.
  *
@@ -78,7 +75,7 @@ export function renderTable(results: NamedResult[]): string {
       { header: "As of", align: "left" },
       { header: "Value", align: "right", maxWidth: 24 },
     ],
-    results.map((r) => [r.name, displayAsOf(r), displayValue(r)]),
+    results.map((r) => [r.name, r.asOf, displayValue(r)]),
   );
 }
 
@@ -91,7 +88,7 @@ export function renderVerbose(results: NamedResult[]): string {
         heading,
         "─".repeat(heading.length),
         result.summary,
-        `as of ${displayAsOf(result)}`,
+        `as of ${result.asOf}`,
         "",
         ...result.explain.map((line) => `  ${line}`),
       ].join("\n");
