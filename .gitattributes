@@ -1,0 +1,8 @@
+# Fold test code in GitHub PR diffs: linguist-generated collapses these files
+# behind a "Load diff" link so reviews lead with the app change. They are still
+# listed, still expandable, and still count as changes — only the default
+# rendering moves. Side effect: excluded from repo language statistics.
+*.test.ts linguist-generated=true
+*.test.tsx linguist-generated=true
+*.fixture.ts linguist-generated=true
+*.snap linguist-generated=true
