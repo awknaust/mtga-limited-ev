@@ -73,6 +73,7 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   mythicIcrValueGems: 41,
   rareCardValueGems: 21,
   uncommonIcrValueGems: 2,
+  dailyWinIcrValueGems: 3.5,
   orbValueGems: 1,
   cardStyleValueGems: 2,
   sleeveValueGems: 3,

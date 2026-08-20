@@ -91,3 +91,24 @@ export const DAILY_QUEST = {
   gold: 600,
   range: [500, 750],
 } as const;
+
+/**
+ * How often the card a daily win pays upgrades from uncommon to rare.
+ *
+ * The daily-win table on the drop-rates page has an ICR column — the parser
+ * reads it, and DAILY_WIN_ICR is which wins pay one — but what those cards
+ * upgrade at is not something the parser can pick up from the page's prose,
+ * so it is recorded here with the rest of the unpublished figures.
+ *
+ * **Not confirmed.** Unlike everything else in this file, this was not read
+ * off the client: it is this repository's own note of the page, written down
+ * before the constant existed, and the page could not be reached to re-read
+ * when it was. `1` in `1:10`, so a tenth. Check it before relying on the
+ * figure it feeds — DEFAULT_DAILY_WIN_ICR_VALUE_GEMS moves in proportion.
+ */
+export const DAILY_WIN_ICR_UPGRADE = {
+  checkedOn: "2026-08-19",
+  where: "unconfirmed — this repository's note of magic.wizards.com/en/mtgarena/drop-rates",
+  /** N in "1:N": one in this many upgrades to a rare. */
+  rareUpgradeRate: 10,
+} as const;

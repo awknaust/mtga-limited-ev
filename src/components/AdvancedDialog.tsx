@@ -106,6 +106,7 @@ export function AdvancedDialog({
     mythicIcrValue: `${uid}-mythic-icr-value`,
     rareCardValue: `${uid}-rare-card-value`,
     uncommonIcrValue: `${uid}-uncommon-icr-value`,
+    dailyWinIcrValue: `${uid}-daily-win-icr-value`,
     orbValue: `${uid}-orb-value`,
     cardStyleValue: `${uid}-card-style-value`,
     sleeveValue: `${uid}-sleeve-value`,
@@ -231,6 +232,7 @@ export function AdvancedDialog({
                 mythicIcrValueGems: 0,
                 rareCardValueGems: 0,
                 uncommonIcrValueGems: 0,
+                dailyWinIcrValueGems: 0,
                 orbValueGems: 0,
                 cardStyleValueGems: 0,
                 sleeveValueGems: 0,
@@ -436,6 +438,21 @@ export function AdvancedDialog({
               m={m}
               gemValue={config.uncommonIcrValueGems}
               onChange={(n) => set("uncommonIcrValueGems", n)}
+            />
+          </div>
+          <div className="col-6">
+            <label htmlFor={ids.dailyWinIcrValue} className="form-label">
+              Daily win ICR value ({m.label})
+              <InfoTip
+                label="About daily win ICR value"
+                content="The card each daily win past the fourth pays, alongside the gold. An uncommon with about a 1:10 chance of upgrading to a rare, so about 2.3 gems. Set 0 to count a day's cards as worth nothing."
+              />
+            </label>
+            <MoneyInput
+              id={ids.dailyWinIcrValue}
+              m={m}
+              gemValue={config.dailyWinIcrValueGems}
+              onChange={(n) => set("dailyWinIcrValueGems", n)}
             />
           </div>
           <div className="col-6">

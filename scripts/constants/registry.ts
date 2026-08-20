@@ -55,6 +55,7 @@
 
 import {
   DAILY_QUEST,
+  DAILY_WIN_ICR_UPGRADE,
   DUAL_PRICED_EVENTS,
   GEM_BUNDLES,
   PLAY_IN_ENTRY,
@@ -422,6 +423,27 @@ export const REGISTRY = {
     },
   },
 
+  DAILY_WIN_ICR: {
+    summary: "individual card rewards at each daily win, first through last",
+    sources: ["dropRates"],
+    async compute(ctx) {
+      const rates = await ctx.sources.dropRates();
+      const icr = rates.dailyWinIcr;
+      const total = icr.reduce((a, b) => a + b, 0);
+      const at = icr.flatMap((n, i) => (n > 0 ? [i + 1] : []));
+      return {
+        value: icr,
+        format: (v) => `[${(v as readonly number[]).join(", ")}]`,
+        asOf: fetchedOn(ctx),
+        explain: [
+          `the ICR column of the daily win table: ${total} cards across ${icr.length} wins`,
+          `paid at wins             ${at.join(", ") || "none"}`,
+          `the gold column pays     ${rates.dailyWinGold.filter((g) => g > 0).length} of those ${icr.length} wins, so the two columns interleave`,
+        ],
+      };
+    },
+  },
+
   DAILY_WIN_CAP: {
     summary: "wins after which the daily ladder pays nothing more",
     sources: ["dropRates"],
@@ -496,6 +518,33 @@ export const REGISTRY = {
         explain: [
           "an uncommon has no duplicate-protection value; only its upgrade chance counts",
           `upgrade chance            ${rates.masteryUncommonUpgradePct}%, the mastery track's beyond-cap row`,
+          `upgraded card             the rare/mythic mix at the ICR rate of 1:${icrRate}`,
+          `${upgrade} x ((${icrRate - 1}/${icrRate} x ${rates.rareDupeGems}) + (1/${icrRate} x ${rates.mythicDupeGems})) = ${value} gems, left unrounded`,
+        ],
+      };
+    },
+  },
+
+  DEFAULT_DAILY_WIN_ICR_VALUE_GEMS: {
+    summary: "gem value of one individual card reward from the daily-win ladder",
+    sources: ["dropRates"],
+    async compute(ctx) {
+      const rates = await ctx.sources.dropRates();
+      const upgradeRate = DAILY_WIN_ICR_UPGRADE.rareUpgradeRate;
+      const upgrade = 1 / upgradeRate;
+      const icrRate = rates.icrRareToMythicRate;
+      const upgraded =
+        ((icrRate - 1) / icrRate) * rates.rareDupeGems +
+        (1 / icrRate) * rates.mythicDupeGems;
+      const value = upgrade * upgraded;
+      return {
+        value,
+        // The upgrade rate is the input that sets it, and it is the one that
+        // was not fetched — so the date is its check date, not this run's.
+        asOf: DAILY_WIN_ICR_UPGRADE.checkedOn,
+        explain: [
+          "the same shape as the mastery uncommon ICR, on the daily ladder's own upgrade rate",
+          `upgrade chance            1:${upgradeRate}, ${DAILY_WIN_ICR_UPGRADE.where}`,
           `upgraded card             the rare/mythic mix at the ICR rate of 1:${icrRate}`,
           `${upgrade} x ((${icrRate - 1}/${icrRate} x ${rates.rareDupeGems}) + (1/${icrRate} x ${rates.mythicDupeGems})) = ${value} gems, left unrounded`,
         ],

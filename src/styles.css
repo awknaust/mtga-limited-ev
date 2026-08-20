@@ -643,6 +643,18 @@ body {
 }
 
 /*
+ * The cards the daily wins pay, next to the gold they interleave with on the
+ * same ladder — an orange rather than a second amber, so the two read as
+ * related without the segments running together at the height of a rule. It
+ * is the hue the mastery bar gives its rare card reward, which is a card
+ * reward too; the two bars never share a screen, and the note below the
+ * mastery block says why reuse across them is deliberate.
+ */
+.slice-dailyIcrs {
+  --slice: #fb923c;
+}
+
+/*
  * Every pack a run wins, mythic ones included. Two greens far enough apart to
  * name would still be two greens on a bar the height of a rule, so the kinds
  * are told apart by segment and label rather than by hue — the same call the

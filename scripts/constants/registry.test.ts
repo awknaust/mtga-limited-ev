@@ -21,7 +21,13 @@ import { describe, expect, it } from "vitest";
 
 import type { BoxPriceFeed } from "../box-prices/feed.ts";
 import type { ScryfallSet } from "../shared/scryfall.ts";
-import { DAILY_QUEST, DUAL_PRICED_EVENTS, GEM_BUNDLES, PLAY_IN_ENTRY } from "./by-hand.ts";
+import {
+  DAILY_QUEST,
+  DAILY_WIN_ICR_UPGRADE,
+  DUAL_PRICED_EVENTS,
+  GEM_BUNDLES,
+  PLAY_IN_ENTRY,
+} from "./by-hand.ts";
 import { dropRatesPage } from "./drop-rates.fixture.ts";
 import { CONSTANTS, REGISTRY, selectConstants, type ConstantName, type Context } from "./registry.ts";
 import { SOURCE_URLS, type Sources } from "./sources.ts";
@@ -117,11 +123,29 @@ describe("the registry", () => {
   it("dates every value: the run date if fetched, the by-hand check date if read off the client, none if a choice", async () => {
     const r = await computeAll();
     const runDate = "2026-08-18";
+    /*
+     * Entries whose value is set by a by-hand figure even though they fetch
+     * something as well — the mixed case `ConstantResult.asOf` describes,
+     * where the date is the input that sets the value rather than the run's.
+     * The daily-win ICR is priced from the page's duplicate-protection gems
+     * and its ICR upgrade rate, but what scales it is the unconfirmed 1:10
+     * uncommon-to-rare rate in `by-hand.ts`, so dating it to today would say
+     * the softest input had been re-read when it had not.
+     *
+     * Named one at a time on purpose: a fetched entry dating itself to
+     * anything but the run is the sort of thing that should need a line here.
+     */
+    const BY_HAND_DATED = ["DEFAULT_DAILY_WIN_ICR_VALUE_GEMS"] as const;
     for (const c of CONSTANTS) {
       const asOf = r.get(c.name)!.asOf;
       if (asOf !== null) expect(asOf, c.name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
-      if (c.sources.length > 0) expect(asOf, c.name).toBe(runDate);
+      if (c.sources.length > 0 && !BY_HAND_DATED.includes(c.name as never)) {
+        expect(asOf, c.name).toBe(runDate);
+      }
     }
+    expect(r.get("DEFAULT_DAILY_WIN_ICR_VALUE_GEMS")!.asOf).toBe(
+      DAILY_WIN_ICR_UPGRADE.checkedOn,
+    );
     expect(r.get("GEMS_PER_USD")!.asOf).toBe(GEM_BUNDLES.checkedOn);
     expect(r.get("GEMS_PER_10K_GOLD")!.asOf).toBe(DUAL_PRICED_EVENTS.checkedOn);
     expect(r.get("DEFAULT_DRAFT_TOKEN_VALUE_GEMS")!.asOf).toBe(DUAL_PRICED_EVENTS.checkedOn);
@@ -164,7 +188,15 @@ describe("the registry", () => {
     expect(v("DEFAULT_RARE_CARD_VALUE_GEMS")).toBe(20);
     expect(v("DEFAULT_UNCOMMON_ICR_VALUE_GEMS")).toBeCloseTo(0.05 * ((7 / 8) * 20 + (1 / 8) * 40), 12);
     expect(v("DAILY_WIN_GOLD")).toEqual([250, 100, 0]);
+    expect(v("DAILY_WIN_ICR")).toEqual([0, 0, 1]);
     expect(v("DAILY_WIN_CAP")).toBe(3);
+    // The daily ladder's card, at its own upgrade rate against the mastery
+    // one's: same 20/40 duplicate gems and same 1:8 rare-to-mythic mix, so
+    // the whole difference is 1:10 against 5%.
+    expect(v("DEFAULT_DAILY_WIN_ICR_VALUE_GEMS")).toBeCloseTo(
+      (1 / DAILY_WIN_ICR_UPGRADE.rareUpgradeRate) * ((7 / 8) * 20 + (1 / 8) * 40),
+      12,
+    );
   });
 
   it("names the modal mythic rate and the sets behind it", async () => {

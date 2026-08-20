@@ -41,8 +41,12 @@ import {
   expectedNet,
   expectedNetAt,
   dailyWinGold,
+  dailyWinIcrs,
+  DAILY_WIN_ICR,
   goldPerEvent,
   goldValueGems,
+  icrsPerEvent,
+  icrValueGems,
   meanWinsPerEvent,
   meanGamesPerEvent,
   meanEventsPerDay,
@@ -478,7 +482,10 @@ describe("eventExpectation", () => {
     expect(ev.roi).toBeCloseTo(ev.meanNet / config.entryCostGems!, 12);
     const gemsOnly = eventExpectation({ ...config, gamesPerDay: 0 });
     expect(gemsOnly.roi).toBeCloseTo(gemsOnly.meanNet / 1500, 12);
-    expect(ev.roi - gemsOnly.roi).toBeCloseTo(goldValueGems(config) / 1500, 12);
+    expect(ev.roi - gemsOnly.roi).toBeCloseTo(
+      (goldValueGems(config) + icrValueGems(config)) / 1500,
+      12,
+    );
     // Nothing paid, nothing to return on.
     expect(
       eventExpectation({ ...config, entryCostGems: null, entryCostGold: null }).roi,
@@ -703,25 +710,35 @@ describe("holdings", () => {
 
   it("shows the balances alongside whatever the event pays", () => {
     const premier = configFromPreset(PREMIER_DRAFT, defaultConfig());
-    // Gems always, gold because it accrues daily whatever the event charges,
-    // and drafted cards because the pool is yours to keep.
-    expect(heldKeys(premier)).toEqual(["gems", "gold", "packs", "draftPacks"]);
+    // Gems always, the two daily-ladder credits because they accrue whatever
+    // the event charges, and drafted cards because the pool is yours to keep.
+    expect(heldKeys(premier)).toEqual([
+      "gems",
+      "gold",
+      "dailyIcrs",
+      "packs",
+      "draftPacks",
+    ]);
 
-    // Arena Direct is phantom and gem-priced, but gold still piles up. Its
-    // two boxes are two holdings, since they are two different products.
+    // Arena Direct is phantom and gem-priced, but the day's gold and cards
+    // still pile up. Its two boxes are two holdings, since they are two
+    // different products.
     const direct = configFromPreset(ARENA_DIRECT, defaultConfig());
     expect(heldKeys(direct)).toEqual([
       "gems",
       "gold",
+      "dailyIcrs",
       "packs",
       "box:play.spm",
       "box:play.msh",
     ]);
 
     // No gold earned and none charged: nothing to report, unless a starting
-    // balance the event cannot spend is sitting there. Zero events a day is
+    // balance the event cannot spend is sitting there. Zero games a day is
     // what stops the accrual now that daily-win gold comes off the ladder —
-    // an event that is never played wins nothing to climb it with.
+    // an event that is never played wins nothing to climb it with. The cards
+    // go with it, off the same ladder, and there is no starting balance of
+    // them to report either.
     const noGold = { ...direct, gamesPerDay: 0 };
     expect(heldKeys(noGold)).toEqual([
       "gems",
@@ -1142,6 +1159,7 @@ describe("bankroll", () => {
       rounds: 0,
       finalGems: 1000,
       finalGold: 10_000,
+      dailyIcrs: 0,
       packs: 0,
       mythicPacks: 0,
       cubePacks: 0,
@@ -1672,8 +1690,10 @@ describe("gold earnings", () => {
     const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
     const bare = { ...config, gamesPerDay: 0 };
     for (const wins of [0, 3, 7]) {
+      // Both of the day's credits go with it: the gold and the cards off the
+      // same ladder.
       expect(grossValue(config, wins) - grossValue(bare, wins)).toBeCloseTo(
-        goldValueGems(config),
+        goldValueGems(config) + icrValueGems(config),
         9,
       );
       expect(grossValue(config, wins) - netValue(config, wins)).toBe(config.entryCostGems);
@@ -1806,11 +1826,70 @@ describe("gold earnings", () => {
     );
   });
 
+  it("pays the ladder's cards where its gold stops", () => {
+    // The two columns of one table: DAILY_WIN_ICR pays at exactly the wins
+    // DAILY_WIN_GOLD does not, which is why the gold ladder has zeroes in it.
+    expect(DAILY_WIN_ICR).toHaveLength(DAILY_WIN_GOLD.length);
+    for (const [i, gold] of DAILY_WIN_GOLD.entries()) {
+      expect(gold > 0, `win ${i + 1}`).toBe(DAILY_WIN_ICR[i] === 0);
+    }
+    // Six cards across the fifteen wins, and none of them before the fifth.
+    expect(DAILY_WIN_ICR.reduce((a, b) => a + b, 0)).toBe(6);
+    expect(dailyWinIcrs(4)).toBe(0);
+    expect(dailyWinIcrs(5)).toBe(1);
+    expect(dailyWinIcrs(15)).toBe(6);
+    // Interpolated within a step, like the gold, and capped where it is.
+    expect(dailyWinIcrs(4.5)).toBeCloseTo(0.5, 12);
+    expect(dailyWinIcrs(99)).toBe(6);
+    expect(dailyWinIcrs(-3)).toBe(0);
+  });
+
+  it("credits an event its share of the day's cards, and prices them", () => {
+    // The same share-of-the-day arithmetic the gold gets: the day's wins read
+    // against the ladder, then divided across the events the day holds.
+    const config = configFromPreset(PREMIER_DRAFT, defaultConfig());
+    expect(icrsPerEvent(config) * meanEventsPerDay(config)).toBeCloseTo(
+      dailyWinIcrs(config.gamesPerDay * config.winRate),
+      9,
+    );
+    // Twelve games at 55% is 6.6 wins: the fifth win's card banked, and six
+    // tenths of the way to the seventh's. The fraction is the same smoothing
+    // the gold gets and is right for the same reason — the win count is an
+    // expectation over days, not a day, so some of those days reach the
+    // seventh win and are paid for it.
+    expect(dailyWinIcrs(12 * 0.55)).toBeCloseTo(1.6, 12);
+    expect(icrValueGems(config)).toBeCloseTo(
+      icrsPerEvent(config) * config.dailyWinIcrValueGems,
+      12,
+    );
+    // Priced at nothing, the term goes and the gold stays.
+    const unpriced = { ...config, dailyWinIcrValueGems: 0 };
+    expect(icrValueGems(unpriced)).toBe(0);
+    expect(grossValue(config, 3) - grossValue(unpriced, 3)).toBeCloseTo(
+      icrValueGems(config),
+      9,
+    );
+    expect(goldValueGems(unpriced)).toBeCloseTo(goldValueGems(config), 12);
+  });
+
+  it("earns no cards from a day too short to reach the fifth win", () => {
+    // The cards sit further up the ladder than most of the gold, so a short
+    // day is credited gold alone — which the gold-only model could not say.
+    const config = { ...defaultConfig(), gamesPerDay: 6 };
+    expect(6 * config.winRate).toBeLessThan(5);
+    expect(icrsPerEvent(config)).toBe(0);
+    expect(icrValueGems(config)).toBe(0);
+    expect(goldPerEvent(config)).toBeGreaterThan(0);
+  });
+
   it("credits nothing at all when no games are played", () => {
     // The switch for pricing an event in gems alone.
     const config = { ...defaultConfig(), gamesPerDay: 0, otherGoldPerDay: 5000 };
     expect(goldPerEvent(config)).toBe(0);
     expect(goldValueGems(config)).toBe(0);
+    // The cards go with the gold: one switch takes the whole day out.
+    expect(icrsPerEvent(config)).toBe(0);
+    expect(icrValueGems(config)).toBe(0);
     // Premier's zero-win row: 50 gems and a pack, plus the cards kept, and no
     // gold term at all.
     expect(grossValue(config, 0)).toBe(
@@ -1903,10 +1982,12 @@ describe("gold earnings", () => {
     expect(b.outcomes.map((o) => o.probability)).toEqual(
       a.outcomes.map((o) => o.probability),
     );
-    // The gap is exactly the gold credit, derived rather than restated so
-    // that retuning the quest default cannot silently pass here.
-    expect(b.meanNet - a.meanNet).toBeCloseTo(goldValueGems(with_), 6);
-    expect(b.meanGross - a.meanGross).toBeCloseTo(goldValueGems(with_), 6);
+    // The gap is exactly what the day credits — the gold and the cards —
+    // derived rather than restated so that retuning the quest default cannot
+    // silently pass here.
+    const credit = goldValueGems(with_) + icrValueGems(with_);
+    expect(b.meanNet - a.meanNet).toBeCloseTo(credit, 6);
+    expect(b.meanGross - a.meanGross).toBeCloseTo(credit, 6);
   });
 
   it("prices the EV curve at each point's own gold, not the config's", () => {
@@ -1962,8 +2043,11 @@ describe("presets", () => {
     const tier = TRADITIONAL_DRAFT.payouts[3];
     expect(tier.playInPoints).toBe(2);
     expect(playInPointsFor(config, 3)).toBe(2);
-    // The two credits every entry carries whatever the finish.
-    const flat = config.draftPacks * config.draftPackValueGems + goldValueGems(config);
+    // The three credits every entry carries whatever the finish.
+    const flat =
+      config.draftPacks * config.draftPackValueGems +
+      goldValueGems(config) +
+      icrValueGems(config);
     expect(grossValue(config, 3)).toBeCloseTo(
       flat +
         tier.gems +
@@ -2300,9 +2384,10 @@ describe("presets", () => {
     const config = configFromPreset(CONTENDER_DRAFT, defaultConfig());
     const cards = config.draftPacks * config.draftPackValueGems;
     expect(cards).toBeGreaterThan(0);
-    // The reward table pays nothing, but the pool is still yours, and so is
-    // the day's gold — both come with the entry rather than the finish.
-    const flat = cards + goldValueGems(config);
+    // The reward table pays nothing, but the pool is still yours, and so are
+    // the day's gold and cards — all three come with the entry rather than
+    // the finish.
+    const flat = cards + goldValueGems(config) + icrValueGems(config);
     for (const wins of [0, 1, 2]) {
       expect(grossValue(config, wins)).toBeCloseTo(flat, 9);
     }
@@ -2378,8 +2463,12 @@ describe("presets", () => {
     // The two fields are independent in both directions: repricing packs to
     // nothing leaves the mythic packs paying, and the reverse.
     const config = configFromPreset(CONTENDER_DRAFT, defaultConfig());
-    // The pool and the day's gold, which every row carries whatever is zeroed.
-    const flat = config.draftPacks * config.draftPackValueGems + goldValueGems(config);
+    // The pool and the day's credits, which every row carries whatever is
+    // zeroed.
+    const flat =
+      config.draftPacks * config.draftPackValueGems +
+      goldValueGems(config) +
+      icrValueGems(config);
     expect(grossValue({ ...config, packValueGems: 0 }, 7)).toBeCloseTo(
       flat + 7200 + 10 * config.mythicPackValueGems,
       9,
@@ -2458,9 +2547,11 @@ describe("presets", () => {
       0,
     ) +
       config.draftPacks * config.draftPackValueGems +
-      // The gold a day's play credits the entry, at the config's rate — an
-      // earnings term like the packs, and net comes off the full 900.
-      goldValueGems(config);
+      // What a day's play credits the entry, at the config's rates — the gold
+      // and the daily ladder's cards, earnings terms like the packs, and net
+      // comes off the full 900.
+      goldValueGems(config) +
+      icrValueGems(config);
     expect(expectedNetAt(config, 0.55)).toBeCloseTo(gross - config.entryCostGems!, 6);
   });
 

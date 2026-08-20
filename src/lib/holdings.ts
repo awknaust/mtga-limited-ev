@@ -14,7 +14,7 @@
  */
 
 import { boxHoldingKey, boxLabel, isBoxHolding, ladderBoxes } from "./boxes";
-import { goldPerEvent } from "./payouts";
+import { goldPerEvent, icrsPerEvent } from "./payouts";
 import type { EventConfig, PayoutTier } from "./types";
 
 /**
@@ -67,6 +67,22 @@ export function paysTokens(payouts: PayoutTier[]): boolean {
 export const HOLDINGS = [
   { key: "gems", label: "Gems", whole: false },
   { key: "gold", label: "Gold", whole: false },
+  {
+    /*
+     * Beside the gold because it is the gold's other column: both come off
+     * the daily-win ladder, both are credited to the entry rather than paid
+     * by a row, and both are flat across win counts.
+     *
+     * `whole: false` for the same reason gold is, even though a card is as
+     * whole a thing as a pack: what a run holds here is an accrual at the
+     * long-run rate, not a tally of cards it was dealt, so an event credits
+     * a fraction of one and a run's total lands between whole numbers.
+     */
+    key: "dailyIcrs",
+    label: "Daily win ICRs",
+    whole: false,
+    rateKey: "dailyWinIcrValueGems",
+  },
   { key: "packs", label: "Packs", whole: true, rateKey: "packValueGems" },
   {
     // Beside the packs rather than folded into them: they are a different
@@ -210,6 +226,10 @@ export function heldKeys(
     if (key === "gems") return true;
     if (key === "gold")
       return holdingGold || config.entryCostGold !== null || goldPerEvent(config) > 0;
+    // No starting balance to account for, unlike gold and points: nothing is
+    // held in these before a day is played, so what the day pays is the whole
+    // of the question.
+    if (key === "dailyIcrs") return icrsPerEvent(config) > 0;
     if (key === "playInPoints")
       return (
         holdingPoints || config.entryCostPlayInPoints !== null || paid.includes(key)

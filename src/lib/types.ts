@@ -377,6 +377,16 @@ export type EventConfig = {
   /** Gem value of one uncommon individual card reward. */
   uncommonIcrValueGems: number;
   /**
+   * Gem value of one individual card reward from the daily-win ladder.
+   *
+   * Its own rate rather than the uncommon one above, because the two are the
+   * same card on different terms: the daily wins upgrade at about 1:10 where
+   * the mastery track's beyond-cap reward upgrades at 5%, so someone
+   * repricing one should not silently reprice the other. Zero counts the
+   * cards a day's wins pay as worth nothing, leaving the gold.
+   */
+  dailyWinIcrValueGems: number;
+  /**
    * Gem value of one Mastery Orb, and of each cosmetic kind below.
    *
    * All default to zero, and they are separate fields rather than one because a

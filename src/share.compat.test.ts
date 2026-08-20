@@ -39,9 +39,11 @@ import {
   PRESETS,
   goldPerEvent,
   goldValueGems,
+  icrValueGems,
   grossValue,
   maxPossibleWins,
   meanGamesPerEvent,
+  type EventConfig,
 } from "./lib";
 
 /**
@@ -61,7 +63,7 @@ function fingerprint(state: ShareState): string {
     `structure  ${JSON.stringify(c.structure)}`,
     `entry      ${price(c.entryCostGems)} gems / ${price(c.entryCostGold)} gold / ${price(c.entryCostPlayInPoints)} points`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
-    `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} qualToken=${c.qualifierTokenValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems}`,
+    `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} qualToken=${c.qualifierTokenValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems} dailyIcr=${c.dailyWinIcrValueGems}`,
     `gold       other=${c.otherGoldPerDay}/day over ${c.gamesPerDay} games at ${c.gamesPerMatch}/match, goldPer10k=${c.gemsPer10kGold}`,
     /*
      * Derived rather than stored, and that is the point. A link pins inputs,
@@ -72,7 +74,7 @@ function fingerprint(state: ShareState): string {
      * gold *discounted*; gold is counted as earnings now, so it pins the
      * credit instead — the same gold, on the other side of the ledger.
      */
-    `credits    ${goldPerEvent(c).toFixed(1)} gold/event = ${goldValueGems(c).toFixed(1)} gems`,
+    `credits    ${goldPerEvent(c).toFixed(1)} gold/event = ${goldValueGems(c).toFixed(1)} gems, cards = ${icrValueGems(c).toFixed(1)} gems`,
     `payouts    ${encodePayouts(c.payouts)}`,
     `bankroll   gems=${state.startingGems} gold=${state.startingGold} points=${state.startingPlayInPoints} maxEvents=${state.maxEvents}`,
     `sim        runs=${state.bankrollRuns} seed=${state.seed}`,
@@ -445,9 +447,9 @@ describe("the defaults are the contract", () => {
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold / none points
       draft      3 packs @ 23
-      values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116
+      values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=2.25
       gold       other=600/day over 12 games at 1/match, goldPer10k=1500
-      credits    616.0 gold/event = 92.4 gems
+      credits    616.0 gold/event = 92.4 gems, cards = 1.8 gems
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3400 gold=5000 points=0 maxEvents=20
       sim        runs=10000 seed=1
@@ -516,7 +518,7 @@ describe("the captured corpus", () => {
     // day's gold, which every entry is credited since gold became earnings
     // rather than a discount on the entry. That move is the one deliberate
     // shift in what these links are worth; the box terms did not move.
-    const flat = 4 * 110 + goldValueGems(config);
+    const flat = 4 * 110 + goldValueGems(config) + icrValueGems(config);
     expect(grossValue(config, 0)).toBeCloseTo(10 + 1 * 132 + flat, 9);
     // `4000-3-0-1` — three packs and one play box.
     expect(grossValue(config, 3)).toBeCloseTo(4000 + 3 * 132 + 60_000 + flat, 9);
@@ -542,17 +544,18 @@ describe("the captured corpus", () => {
       ...decodeShareState(search).config,
       boxPrices: EMPTY_BOX_PRICES,
     });
-    // Plus the day's gold in every row, which every entry has been credited
-    // since gold became earnings rather than a discount on the entry — the
-    // one deliberate shift in what these links are worth. The box terms did
-    // not move.
+    // Plus what the day credits in every row — the gold, and the cards off
+    // the same ladder — which every entry has been credited since gold became
+    // earnings rather than a discount on the entry. The box terms did not
+    // move, which is what this is here to say.
+    const day = (c: EventConfig) => goldValueGems(c) + icrValueGems(c);
     const play = bare("?preset=arena-direct-play");
     expect(grossValue(play, 6)).toBeCloseTo(
-      DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems + goldValueGems(play),
+      DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems + day(play),
       9,
     );
     expect(grossValue(play, 7)).toBeCloseTo(
-      2 * DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems + goldValueGems(play),
+      2 * DEFAULT_PLAY_BOX_VALUE_GEMS + 6 * play.draftPackValueGems + day(play),
       9,
     );
 
@@ -560,16 +563,16 @@ describe("the captured corpus", () => {
     expect(grossValue(collector, 7)).toBeCloseTo(
       DEFAULT_COLLECTOR_BOX_VALUE_GEMS +
         6 * collector.draftPackValueGems +
-        goldValueGems(collector),
+        day(collector),
       9,
     );
 
-    // The cube is phantom, so nothing but the boxes and the day's gold is in
-    // its top two rows.
+    // The cube is phantom, so nothing but the boxes and the day's credits is
+    // in its top two rows.
     const cube = bare("?preset=arena-direct-cube");
-    expect(grossValue(cube, 6)).toBeCloseTo(DEFAULT_PLAY_BOX_VALUE_GEMS + goldValueGems(cube), 9);
+    expect(grossValue(cube, 6)).toBeCloseTo(DEFAULT_PLAY_BOX_VALUE_GEMS + day(cube), 9);
     expect(grossValue(cube, 7)).toBeCloseTo(
-      2 * DEFAULT_PLAY_BOX_VALUE_GEMS + goldValueGems(cube),
+      2 * DEFAULT_PLAY_BOX_VALUE_GEMS + day(cube),
       9,
     );
   });

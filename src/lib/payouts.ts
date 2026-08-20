@@ -8,7 +8,7 @@ import {
   type LadderBoxes,
 } from "./boxes";
 import { exactDistribution } from "./distribution";
-import { DAILY_WIN_CAP, DAILY_WIN_GOLD } from "./presets";
+import { DAILY_WIN_CAP, DAILY_WIN_GOLD, DAILY_WIN_ICR } from "./presets";
 import { matchWinRate } from "./structure";
 import type { HoldingKey } from "./holdings";
 import type { EventConfig, PayoutTier } from "./types";
@@ -41,11 +41,12 @@ export function qualifierTokensFor(config: EventConfig, wins: number): number {
 /**
  * Gross value in gems for a given win count.
  *
- * Two of its terms are not payout tier rewards and are flat across every win
+ * Three of its terms are not payout tier rewards and are flat across every win
  * count: the cards kept from the pool, which you get for entering however the
- * event goes, and the gold a day's play credits the entry — see
- * `goldValueGems`. Both are earnings of the entry, so both sit in the gross,
- * and net is then simply gross less the gem price.
+ * event goes, and the two things a day's play credits the entry — the gold and
+ * the individual card rewards off the daily-win ladder, see `goldValueGems`
+ * and `icrValueGems`. All three are earnings of the entry, so all three sit in
+ * the gross, and net is then simply gross less the gem price.
  */
 export function grossValue(config: EventConfig, wins: number): number {
   const tier = payoutFor(config, wins);
@@ -58,6 +59,7 @@ export function grossValue(config: EventConfig, wins: number): number {
   return (
     config.draftPacks * config.draftPackValueGems +
     goldValueGems(config) +
+    icrValueGems(config) +
     tier.gems +
     tier.packs * config.packValueGems +
     (tier.mythicPacks ?? 0) * config.mythicPackValueGems +
@@ -106,8 +108,9 @@ export function grossSplit(config: EventConfig): Record<HoldingKey, number> {
   return {
     gems: mean((wins) => payoutFor(config, wins).gems),
     // Credited to the entry rather than paid by a ladder row, so not a mean
-    // over the win counts — the same flat term `grossValue` carries.
+    // over the win counts — the same flat terms `grossValue` carries.
     gold: goldValueGems(config),
+    dailyIcrs: icrValueGems(config),
     packs: mean((wins) => payoutFor(config, wins).packs) * config.packValueGems,
     mythicPacks:
       mean((wins) => mythicPacksFor(config, wins)) * config.mythicPackValueGems,
@@ -145,6 +148,7 @@ export function grossCounts(config: EventConfig): Record<HoldingKey, number> {
   return {
     gems: mean((wins) => payoutFor(config, wins).gems),
     gold: goldPerEvent(config),
+    dailyIcrs: icrsPerEvent(config),
     packs: mean((wins) => payoutFor(config, wins).packs),
     mythicPacks: mean((wins) => mythicPacksFor(config, wins)),
     cubePacks: mean((wins) => cubePacksFor(config, wins)),
@@ -167,11 +171,37 @@ export function grossCounts(config: EventConfig): Record<HoldingKey, number> {
  * discontinuity.
  */
 export function dailyWinGold(wins: number): number {
+  return ladderTotal(DAILY_WIN_GOLD, wins);
+}
+
+/**
+ * Individual card rewards from the daily-win ladder for a number of wins in a
+ * day.
+ *
+ * The gold ladder's other column, read the same way and interpolated the same
+ * way — see DAILY_WIN_ICR for which wins pay one. The two interleave, so a day
+ * short of the fifth win earns gold and no cards at all, and the cards arrive
+ * exactly where the gold stops.
+ */
+export function dailyWinIcrs(wins: number): number {
+  return ladderTotal(DAILY_WIN_ICR, wins);
+}
+
+/**
+ * A daily ladder summed to a win count, interpolating within the step the
+ * count falls in.
+ *
+ * One reader for both columns, so the gold and the cards cannot come to
+ * disagree about what "6.6 wins" means. `DAILY_WIN_CAP` is the length of the
+ * gold ladder and both are the same table, which `model.test.ts` pins rather
+ * than assumes.
+ */
+function ladderTotal(ladder: readonly number[], wins: number): number {
   const capped = Math.min(Math.max(wins, 0), DAILY_WIN_CAP);
   const whole = Math.floor(capped);
   let total = 0;
-  for (let i = 0; i < whole; i++) total += DAILY_WIN_GOLD[i];
-  if (whole < DAILY_WIN_CAP) total += (capped - whole) * DAILY_WIN_GOLD[whole];
+  for (let i = 0; i < whole; i++) total += ladder[i];
+  if (whole < DAILY_WIN_CAP) total += (capped - whole) * ladder[whole];
   return total;
 }
 
@@ -257,9 +287,62 @@ export function meanEventsPerDay(config: EventConfig): number {
  */
 export function goldPerEvent(config: EventConfig): number {
   if (config.gamesPerDay <= 0) return 0;
-  const dailyWins = config.gamesPerDay * matchWinRate(config);
-  const perDay = dailyWinGold(dailyWins) + config.otherGoldPerDay;
-  return perDay * (meanGamesPerEvent(config) / config.gamesPerDay);
+  return (dailyWinGold(dailyWins(config)) + config.otherGoldPerDay) * dayShare(config);
+}
+
+/**
+ * Wins a day of games comes to, which is what climbs both ladder columns.
+ *
+ * `gamesPerDay × winRate`, and the caveat about which rate that is belongs to
+ * `goldPerEvent` above. Factored out because the gold and the cards have to
+ * be read off the same day: two copies of this multiplication is how the two
+ * columns would come to disagree about how far the day got.
+ */
+const dailyWins = (config: EventConfig): number =>
+  config.gamesPerDay * matchWinRate(config);
+
+/**
+ * How much of the day one event is, as a fraction.
+ *
+ * The other half of the same arrangement: whatever the day earned, an event
+ * is credited this much of it. Guarded by the `gamesPerDay <= 0` check in both
+ * callers, which is the switch for pricing an event in gems alone.
+ */
+const dayShare = (config: EventConfig): number =>
+  meanGamesPerEvent(config) / config.gamesPerDay;
+
+/**
+ * Individual card rewards credited to one event.
+ *
+ * `goldPerEvent`'s twin, off the same table and divided the same way — the
+ * day's wins read against DAILY_WIN_ICR, and this event's share of them. The
+ * one difference is that there is no counterpart to `otherGoldPerDay`: a quest
+ * pays gold, so nothing outside the win ladder pays cards, and an event that
+ * does not fill the day is credited only what its own share of the wins earned.
+ *
+ * These sit further up the ladder than most of the gold, so they are the term
+ * most sensitive to how long the day is: a day short of five wins is credited
+ * no cards at all, and the sixth card needs fifteen.
+ */
+export function icrsPerEvent(config: EventConfig): number {
+  if (config.gamesPerDay <= 0) return 0;
+  return dailyWinIcrs(dailyWins(config)) * dayShare(config);
+}
+
+/**
+ * What the cards credited to one event are worth, in gems.
+ *
+ * `icrsPerEvent` at the config's rate, which is the same arrangement gold has
+ * with `gemsPer10kGold`: one rate for the reward wherever it appears, and a
+ * rate of 0 says the cards a day's wins pay are worth nothing — in the
+ * per-event gross and in a bankroll run's ending value alike.
+ *
+ * Flat across win counts for the reason the gold is: it is a long-run average
+ * per event rather than what one finish paid. `gamesPerDay: 0` zeroes it along
+ * with the gold.
+ */
+export function icrValueGems(config: EventConfig): number {
+  return icrsPerEvent(config) * config.dailyWinIcrValueGems;
 }
 
 /**

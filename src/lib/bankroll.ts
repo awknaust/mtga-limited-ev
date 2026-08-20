@@ -28,7 +28,7 @@ import {
   paysTokens,
   type HoldingKey,
 } from "./holdings";
-import { goldPerEvent, payoutFor } from "./payouts";
+import { goldPerEvent, icrsPerEvent, payoutFor } from "./payouts";
 import { entryPrice } from "./presets";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
@@ -330,6 +330,15 @@ export type BankrollRun = {
   rounds: number;
   finalGems: number;
   finalGold: number;
+  /**
+   * Individual card rewards from the daily-win ladder, accrued over the run.
+   *
+   * Fractional, like the gold that comes off the same ladder and unlike every
+   * other count here: it is the long-run rate per event rather than cards this
+   * run was dealt, so a run of five events holds five times one event's share.
+   * `icrsPerEvent` says why the credit is flat.
+   */
+  dailyIcrs: number;
   packs: number;
   mythicPacks: number;
   cubePacks: number;
@@ -415,9 +424,14 @@ export function simulateBankroll(
    * the bad tail as bad as it should be.
    */
   const goldEarned = goldPerEvent({ ...config, winRate: pMatch });
+  // The ladder's other column, at the same drawn rate and for the same reason:
+  // a run dealt a poor rate wins fewer games, so it climbs to fewer cards too.
+  const icrsEarned = icrsPerEvent({ ...config, winRate: pMatch });
 
   let gems = bankroll.startingGems;
   let gold = bankroll.startingGold;
+  // No starting balance: nothing hands you these but the day's wins.
+  let dailyIcrs = 0;
   let events = 0;
   let totalWins = 0;
   let totalRounds = 0;
@@ -471,6 +485,7 @@ export function simulateBankroll(
     const won = tierBoxesAt(priced, wins);
     for (let i = 0; i < won.length; i++) boxes[i] += won[i];
     gold += goldEarned;
+    dailyIcrs += icrsEarned;
     events++;
     // After the gold accrual, so a row's balances are what you would hold
     // sitting down to the next event rather than mid-settlement. A run longer
@@ -502,6 +517,7 @@ export function simulateBankroll(
     rounds: totalRounds,
     finalGems: gems,
     finalGold: gold,
+    dailyIcrs,
     packs,
     mythicPacks,
     cubePacks,
@@ -606,6 +622,7 @@ export function heldBy(
   }
   return run[
     key as
+      | "dailyIcrs"
       | "packs"
       | "mythicPacks"
       | "cubePacks"

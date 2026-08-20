@@ -131,6 +131,9 @@ const CONFIG_NUMBERS = [
   ["mythicIcrValue", "mythicIcrValueGems"],
   ["rareCardValue", "rareCardValueGems"],
   ["uncommonIcrValue", "uncommonIcrValueGems"],
+  // The daily-win ladder's cards, which every event's gross carries — unlike
+  // the mastery rates above it, and like the gold rate below.
+  ["dailyWinIcrValue", "dailyWinIcrValueGems"],
   ["orbValue", "orbValueGems"],
   ["cardStyleValue", "cardStyleValueGems"],
   ["sleeveValue", "sleeveValueGems"],

@@ -338,6 +338,34 @@ export const DAILY_WIN_GOLD: readonly number[] = [
 export const DAILY_WIN_CAP = DAILY_WIN_GOLD.length;
 
 /**
+ * Individual card rewards paid at each daily win, alongside the gold.
+ *
+ * The same table on Wizards' drop-rates page that DAILY_WIN_GOLD comes from
+ * has a second column, and until now the model read only the first — so a
+ * day's play was credited its gold and none of the cards. Six ICRs across the
+ * fifteen wins, one at each win the gold column pays nothing for: the fifth,
+ * seventh, ninth, eleventh, thirteenth and fifteenth. The two columns
+ * interleave rather than overlap, which is why the gold ladder has zeroes in
+ * it at all.
+ *
+ * **The positions are inferred rather than read.** The page was unreachable
+ * when this was written (HTTP 403 from this network), so what is certain is
+ * the column's existence and shape — `scripts/constants/` parses it, and the
+ * page fixture carries it — while which wins carry an ICR is taken from the
+ * gold column's zeroes and from this repository's own note that the daily
+ * rewards run "to 15 wins". A reward table does not print rows that pay
+ * nothing, so a zero-gold win is an ICR win; that is an argument rather than a
+ * source. Run `npm run refresh:constants -- DAILY_WIN_ICR --verbose` from a
+ * network that can reach the page, or read the track in the client, before
+ * treating this as settled.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DAILY_WIN_ICR: readonly number[] = [
+  0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1,
+];
+
+/**
  * Default gold earned per day from everything other than the event's wins.
  *
  * A daily quest, which pays roughly 600 gold and is not hard to clear.
@@ -519,6 +547,36 @@ export const DEFAULT_RARE_CARD_VALUE_GEMS = 20;
 export const DEFAULT_UNCOMMON_ICR_VALUE_GEMS = 0.05 * ((7 / 8) * 20 + (1 / 8) * 40);
 
 /**
+ * Default gem value of one individual card reward from the daily-win ladder.
+ *
+ * The same shape as DEFAULT_UNCOMMON_ICR_VALUE_GEMS and twice the figure,
+ * because the upgrade rate is twice as generous: the daily wins pay an
+ * uncommon ICR that upgrades to a rare about 1:10, against the mastery
+ * track's 5%. An upgraded card is a rare that is itself a mythic about 1:8 —
+ * the page's "Standard ICRs that upgrade from Rare to Mythic Rare are
+ * approximately at a rate of 1:8", the same sentence the mastery figure
+ * rests on — so on a complete collection it converts to
+ *
+ *     0.1 × ((7/8 × 20) + (1/8 × 40)) = 0.1 × 22.5 = 2.25 gems
+ *
+ * Left unrounded, for the reason the uncommon figure is: rounding 2.25 to 2
+ * is an 11% error, and neither is a number anyone types into a field.
+ *
+ * The un-upgraded nine tenths are valued at nothing, which is the convention
+ * every uncommon in this file is priced under — an uncommon has no
+ * duplicate-protection gem value and feeds only vault progress, which
+ * DEFAULT_PACK_VALUE_GEMS also excludes on purpose. So this is a floor.
+ *
+ * The 1:10 is the softest input here: it is this repository's own record of
+ * the drop-rates page rather than a figure re-read from it, and the page was
+ * unreachable when this was written. DAILY_WIN_ICR carries the same caveat
+ * and says how to settle it.
+ *
+ * @see https://magic.wizards.com/en/mtgarena/drop-rates
+ */
+export const DEFAULT_DAILY_WIN_ICR_VALUE_GEMS = 0.1 * ((7 / 8) * 20 + (1 / 8) * 40);
+
+/**
  * Default gem value of a Mastery Orb, and of the cosmetics it buys.
  *
  * Zero, for want of anything to derive a figure from. Orbs redeem in the Mastery
@@ -589,6 +647,7 @@ export function defaultConfig(): EventConfig {
     mythicIcrValueGems: DEFAULT_MYTHIC_ICR_VALUE_GEMS,
     rareCardValueGems: DEFAULT_RARE_CARD_VALUE_GEMS,
     uncommonIcrValueGems: DEFAULT_UNCOMMON_ICR_VALUE_GEMS,
+    dailyWinIcrValueGems: DEFAULT_DAILY_WIN_ICR_VALUE_GEMS,
     orbValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
     cardStyleValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
     sleeveValueGems: DEFAULT_COSMETIC_VALUE_GEMS,
