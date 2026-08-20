@@ -5,10 +5,11 @@ Arena events and passes.
 
 **<https://mtga.fyi>**
 
-![The app: win rate, balances and the event's payout schedule on the left; on
-the right a bankroll run, with summary figures, a histogram of events played
-before running out, the distribution of ending value, and one sampled run
-broken out match by match.](docs/screenshot.png)
+[![The top of the app: win rate, bankroll and event preset on the left; on the right
+a bankroll run's summary figures and a histogram of events played before
+running out. Click for the full screenshot, which continues into the payout
+schedule, the distribution of ending value, and one sampled run broken out
+match by match.](docs/screenshot-cropped.png)](docs/screenshot.png)
 
 A client-side based web app that has a model of different "reward values" and 
 event structures in MTGA. You control a set of a parameters - your estimated win
