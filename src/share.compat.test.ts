@@ -473,7 +473,7 @@ describe("the defaults are the contract", () => {
       gold       other=600/day over 12 games at 1/match, goldPer10k=1500
       credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-      bankroll   gems=3400 gold=5000 points=0 maxGames=120
+      bankroll   gems=3400 gold=5000 points=0 maxGames=360
       sim        runs=10000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=200
       compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
