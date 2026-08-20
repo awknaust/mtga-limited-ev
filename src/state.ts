@@ -210,12 +210,12 @@ export function defaultShareState(): ShareState {
     startingGold: 5000,
     startingPlayInPoints: 0,
     /*
-     * Ten days at the day knob's default dozen games — a chosen figure, like
-     * the wallet above, and one a reader can check against the hint under the
-     * field. For the opening Premier Draft it converts to about the twenty
-     * entries the knob defaulted to when it counted events.
+     * A month of play at the day knob's default dozen games — thirty days,
+     * 360 games. A chosen figure, like the wallet above, and one a reader
+     * can check against the hint under the field, which reads it back as
+     * events and as days.
      */
-    maxGames: 120,
+    maxGames: 360,
     tab: "bankroll",
     masterySlug: CURRENT_MASTERY_TRACK.slug,
     compareSelection: DEFAULT_COMPARE,
