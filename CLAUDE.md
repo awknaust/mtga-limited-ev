@@ -254,7 +254,9 @@ ConstantDef>` — so a default added to the app without an entry, or an entry
 whose name matches no export, fails `tsc -p scripts` inside `npm run build`.
 `explain` is a non-empty tuple type for the same reason, and `asOf` — the
 run date for a fetched source, the by-hand `checkedOn` for a client figure,
-`null` for a choice — is required alongside it. Keep that import
+the date it was decided for a choice — is required alongside it and admits
+no `null`: a value with no date reads as one nobody need look at again,
+which is least true of the choices. Keep that import
 type-only: the tool must never run app code or learn a constant's current
 value, which is why it has no exit code for "a number moved". The six with
 nothing to fetch — the win-rate match count, games per day, Bo3 games per

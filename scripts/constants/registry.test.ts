@@ -120,12 +120,16 @@ describe("the registry", () => {
     }
   });
 
-  it("dates every value: the run date if fetched, the by-hand check date if read off the client, none if a choice", async () => {
+  it("dates every value: the run date if fetched, the by-hand check date if read off the client, the decision date if a choice", async () => {
     const r = await computeAll();
     const runDate = "2026-08-18";
+    /*
+     * Every entry, with no exception — `asOf` carries no `null`, so this is
+     * a shape check the type already makes and a format check it cannot.
+     */
     for (const c of CONSTANTS) {
       const asOf = r.get(c.name)!.asOf;
-      if (asOf !== null) expect(asOf, c.name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+      expect(asOf, c.name).toMatch(/^\d{4}-\d{2}-\d{2}$/);
       if (c.sources.length > 0) expect(asOf, c.name).toBe(runDate);
     }
     expect(r.get("GEMS_PER_USD")!.asOf).toBe(GEM_BUNDLES.checkedOn);
@@ -133,19 +137,15 @@ describe("the registry", () => {
     expect(r.get("DEFAULT_DRAFT_TOKEN_VALUE_GEMS")!.asOf).toBe(DUAL_PRICED_EVENTS.checkedOn);
     expect(r.get("DEFAULT_PLAY_IN_POINT_VALUE_GEMS")!.asOf).toBe(PLAY_IN_ENTRY.checkedOn);
     expect(r.get("DEFAULT_OTHER_GOLD_PER_DAY")!.asOf).toBe(DAILY_QUEST.checkedOn);
-    for (const name of [
-      "DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS",
-      "DEFAULT_COSMETIC_VALUE_GEMS",
-      "DEFAULT_WIN_RATE_MATCHES",
-    ] as const) {
-      expect(r.get(name)!.asOf, name).toBeNull();
-    }
     /*
-     * A choice carries the date it was made, where one is recorded — which is
-     * every choice made since the rule was written down. The three left null
-     * above predate it, and a date invented for them now would be a lie about
-     * when anyone last thought about them.
+     * A choice carries the date it was made. The three that predate the
+     * convention carry the date their commit landed rather than the day the
+     * field was filled in — read off `git log -S` for each, so the date names
+     * when someone actually decided, which is the only thing it is for.
      */
+    expect(r.get("DEFAULT_WIN_RATE_MATCHES")!.asOf).toBe("2026-08-04");
+    expect(r.get("DEFAULT_COSMETIC_VALUE_GEMS")!.asOf).toBe("2026-08-15");
+    expect(r.get("DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS")!.asOf).toBe("2026-08-17");
     expect(r.get("DEFAULT_GAMES_PER_DAY")!.asOf).toBe("2026-08-19");
     expect(r.get("BO3_GAMES_PER_MATCH")!.asOf).toBe("2026-08-19");
     expect(r.get("DEFAULT_DAILY_WIN_ICR_VALUE_GEMS")!.asOf).toBe("2026-08-20");
