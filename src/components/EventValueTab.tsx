@@ -16,6 +16,7 @@ import {
   goldPerEvent,
   goldValueGems,
   maxRounds,
+  meanGamesPerEvent,
   netInterval,
   payoutFor,
   paysBoxes,
@@ -211,11 +212,18 @@ export function EventValueTab({
       help: STAT_HELP.probProfit,
     },
     {
-      key: "matches",
-      label: "Matches",
-      value: event.meanRounds.toFixed(2),
-      hint: `max ${maxRounds(structure)}`,
-      help: STAT_HELP.matches,
+      /*
+       * Games rather than matches, because games are the unit everything else
+       * speaks: the budget knob, the day of play, and the bankroll charts. The
+       * matches it converts from are kept as the hint — the Compare table
+       * still carries them as a column — so the ×2.5 a best-of-three takes is
+       * visible rather than baked in silently.
+       */
+      key: "games",
+      label: "Games",
+      value: meanGamesPerEvent(config).toFixed(2),
+      hint: `${event.meanRounds.toFixed(2)} matches, max ${maxRounds(structure)}`,
+      help: STAT_HELP.games,
     },
   ];
 

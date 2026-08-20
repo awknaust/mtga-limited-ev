@@ -44,4 +44,9 @@ export const STAT_HELP = {
     label: "What matches per event means",
     content: "How many matches one event lasts on average.",
   },
+  games: {
+    label: "What games per event means",
+    content:
+      "How many games one event lasts on average — the unit the games budget and the day of play are counted in. A best-of-one match is one game; a best-of-three is counted at about two and a half.",
+  },
 } as const satisfies Record<string, StatHelp>;
