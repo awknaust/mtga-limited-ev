@@ -41,7 +41,7 @@ import { LRUCache } from "lru-cache";
 import { wrap } from "comlink";
 import type { Endpoint, Remote } from "comlink";
 
-import type { BankrollConfig, BankrollResult } from "../lib/bankroll";
+import type { BankrollPlan, BankrollResult } from "../lib/bankroll";
 import type { BankrollSummary } from "../lib/bankrollGrid";
 import type { EventConfig } from "../lib/types";
 import { requestKey } from "./keys";
@@ -258,7 +258,7 @@ export class SimulationClient {
 
   simulateBankrolls(
     config: EventConfig,
-    bankroll: BankrollConfig,
+    bankroll: BankrollPlan,
     runs: number,
     seed: number,
   ): SimulationHandle<BankrollResult> {
@@ -280,7 +280,7 @@ export class SimulationClient {
    */
   simulateCompare(
     configs: EventConfig[],
-    bankroll: BankrollConfig,
+    bankroll: BankrollPlan,
     runs: number,
     seed: number,
   ): SimulationHandle<BankrollSummary[]> {

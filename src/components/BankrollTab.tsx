@@ -77,7 +77,7 @@ export function BankrollTab({
   config,
   m,
   startValue,
-  maxEvents,
+  eventCap,
   view,
   onViewChange,
 }: {
@@ -89,7 +89,12 @@ export function BankrollTab({
   m: Money;
   /** The gem-equivalent balance a run began with, which its ending is judged against. */
   startValue: number;
-  maxEvents: number;
+  /**
+   * The whole-event cap the games budget converts to for this event — the
+   * number the runs behind these tiles actually stopped at, so it is the
+   * figure quoted where a tile speaks in events.
+   */
+  eventCap: number;
   /**
    * Whether the ending total shows as one figure or as what it is made of.
    * Held by `App` rather than here so that switching tabs, which unmounts this,
@@ -226,7 +231,7 @@ export function BankrollTab({
       // and the direction people quote it in.
       label: "Risk of ruin",
       value: pct(1 - bankroll.survivedFraction),
-      hint: `went broke inside ${maxEvents} events`,
+      hint: `went broke inside ${eventCap} events`,
       help: {
         label: "What risk of ruin means",
         content:

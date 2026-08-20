@@ -46,7 +46,7 @@ export function ResultsPanel({
   bankrollPending,
   bankrollError,
   startValue,
-  maxEvents,
+  eventCap,
   view,
   onViewChange,
   rateBand,
@@ -69,7 +69,8 @@ export function ResultsPanel({
   bankrollPending: boolean;
   bankrollError: unknown;
   startValue: number;
-  maxEvents: number;
+  /** The whole-event cap the games budget converts to for this event. */
+  eventCap: number;
   view: "value" | "breakdown";
   onViewChange: (view: "value" | "breakdown") => void;
   rateBand: [lo: number, hi: number] | null;
@@ -132,7 +133,7 @@ export function ResultsPanel({
                 config={config}
                 m={m}
                 startValue={startValue}
-                maxEvents={maxEvents}
+                eventCap={eventCap}
                 view={view}
                 onViewChange={onViewChange}
               />

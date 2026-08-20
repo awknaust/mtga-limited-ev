@@ -39,7 +39,13 @@ export type ShareState = {
   startingGold: number;
   /** Play-in points banked at the start; only the Play-Ins spend them. */
   startingPlayInPoints: number;
-  maxEvents: number;
+  /**
+   * Where the bankroll runs stop, as a budget of games. Games rather than
+   * events since the day knob made games the unit of play: each event
+   * converts it to its own whole-event cap (`maxEventsFor`), so the same
+   * budget means the same amount of play on the Compare tab's every row.
+   */
+  maxGames: number;
   tab: Tab;
   /**
    * Which Set Mastery season the Mastery tab prices, by its stable slug.
@@ -96,19 +102,27 @@ export const STARTING_ENTRIES = 2;
  * wait for a number that keeps getting better.
  *
  * Measured at roughly 56–66 ns per simulated event. `bankrollRuns` costs in
- * proportion to *events played*, so it multiplies with `maxEvents`, and the
- * two maxed together is a wait of minutes. That corner is left reachable
- * rather than designed away: capping the product instead would say what
- * actually costs time, but it is a different shape of control than a number
- * in a box, and this change is only the ceilings.
+ * proportion to *events played*, so it multiplies with the run-length cap,
+ * and the two maxed together is a wait of minutes. That corner is left
+ * reachable rather than designed away: capping the product instead would say
+ * what actually costs time, but it is a different shape of control than a
+ * number in a box, and this change is only the ceilings.
+ *
+ * The cap that actually bounds the work is not here any more: the stop knob
+ * is a games budget, and how many *events* a budget buys depends on the
+ * event, so the 2,000-event ceiling moved to where the conversion happens —
+ * `MAX_EVENT_CAP` in `lib/bankroll.ts`, unchanged in size. What `maxGames`
+ * bounds is only the knob's own magnitude, set above the ~31,000 games that
+ * 2,000 events of the longest structure here (best-of-three 7/3) come to, so
+ * the event ceiling is the one that binds first for every event.
  *
  * Memory is not what bounds either. A `BankrollResult` is summary statistics
- * plus a fixed hundred recorded runs, so its size tracks `maxEvents` and not
- * the run count at all.
+ * plus a fixed hundred recorded runs, so its size tracks the event cap and
+ * not the run count at all.
  */
 export const SIM_LIMITS = {
   bankrollRuns: 1_000_000,
-  maxEvents: 2_000,
+  maxGames: 50_000,
 } as const;
 
 /**
@@ -195,7 +209,13 @@ export function defaultShareState(): ShareState {
     startingGems: 3400,
     startingGold: 5000,
     startingPlayInPoints: 0,
-    maxEvents: 20,
+    /*
+     * Ten days at the day knob's default dozen games — a chosen figure, like
+     * the wallet above, and one a reader can check against the hint under the
+     * field. For the opening Premier Draft it converts to about the twenty
+     * entries the knob defaulted to when it counted events.
+     */
+    maxGames: 120,
     tab: "bankroll",
     masterySlug: CURRENT_MASTERY_TRACK.slug,
     compareSelection: DEFAULT_COMPARE,
@@ -254,7 +274,7 @@ export function resetAdvanced(state: ShareState): ShareState {
     startingGems: state.startingGems,
     startingGold: state.startingGold,
     startingPlayInPoints: state.startingPlayInPoints,
-    maxEvents: state.maxEvents,
+    maxGames: state.maxGames,
     // Where the page is pointed, which is not a setting to restore.
     tab: state.tab,
     masterySlug: state.masterySlug,

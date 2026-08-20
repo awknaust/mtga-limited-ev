@@ -56,17 +56,17 @@ import { useDebouncedValue, type Timing } from "./useDebouncedValue";
 const SIM_DEBOUNCE_MS = 300;
 
 /**
- * The knobs both simulations share: the starting balance, the ceiling, the
- * trial count and the seed. One object because the Compare tab reads exactly
- * the same ones the Bankroll tab does and adds no URL state of its own — the
- * grid is a second reading of the balance already entered, not a second set
- * of controls.
+ * The knobs both simulations share: the starting balance, the games budget,
+ * the trial count and the seed. One object because the Compare tab reads
+ * exactly the same ones the Bankroll tab does and adds no URL state of its
+ * own — the grid is a second reading of the balance already entered, not a
+ * second set of controls.
  */
 export type BankrollKnobs = {
   startingGems: number;
   startingGold: number;
   startingPlayInPoints: number;
-  maxEvents: number;
+  maxGames: number;
   runs: number;
   seed: number;
 };
@@ -114,7 +114,7 @@ const bankrollOf = (p: BankrollKnobs) => ({
   startingGems: p.startingGems,
   startingGold: p.startingGold,
   startingPlayInPoints: p.startingPlayInPoints,
-  maxEvents: p.maxEvents,
+  maxGames: p.maxGames,
 });
 
 const submitBankrolls = (p: BankrollSimParams): SimulationHandle<BankrollResult> =>

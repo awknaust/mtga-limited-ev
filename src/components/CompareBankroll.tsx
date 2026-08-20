@@ -93,21 +93,33 @@ const toneOf = (value: number, start: number): string =>
  * added or removed, so a bar the reader was looking at stays where it was. The
  * value axis has no such ceiling to run to and takes the widest run instead.
  *
+ * One caveat since the stopping point became a games budget: the ceiling is
+ * per event — the same budget is fewer entries of a best-of-three — and the
+ * axis runs to the largest of them. So only the longest-capped rows can touch
+ * the right edge, and a shorter event's ceiling-stopped runs stack short of
+ * it: the budget being honest about table time, not the chart clipping.
+ *
  * Rows are drawn in the order given, which `Compare` shares with the break-even
  * chart above so that the two can be read across.
  */
 export function CompareBankroll({
   rows,
   mode,
-  maxEvents,
+  eventCap,
+  maxGames,
   startValue,
   m,
 }: {
   /** Ordered by `Compare`; `summary` is that event's row of the grid. */
   rows: readonly BankrollRow[];
   mode: BankrollMode;
-  /** Where a run is cut short, and the end of the events axis. */
-  maxEvents: number;
+  /**
+   * The largest of the rows' own event caps, and the end of the events axis —
+   * see the caveat above about which rows can reach it.
+   */
+  eventCap: number;
+  /** The games budget those caps were converted from, for the axis label. */
+  maxGames: number;
   /**
    * The gem-equivalent balance every row starts from, which is what the ending
    * values are judged against — gems plus gold and points at the reader's own
@@ -152,7 +164,7 @@ export function CompareBankroll({
    * as a column of bars that merely stopped early.
    */
   const domainMax = events
-    ? Math.max(1, maxEvents)
+    ? Math.max(1, eventCap)
     : Math.max(1, startValue, ...drawn.map((r) => r.span.p95));
 
   const x = scaleLinear().domain([0, domainMax]).range([0, inner]);
@@ -305,7 +317,7 @@ export function CompareBankroll({
         ))}
 
         <text x={inner / 2} y={innerH + 36} textAnchor="middle" className="chart-axis-label">
-          {events ? `Events played, of at most ${maxEvents}` : "Value at the end of a run"}
+          {events ? `Events played, within ${maxGames} games` : "Value at the end of a run"}
         </text>
       </g>
     </svg>

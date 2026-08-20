@@ -13,14 +13,20 @@
  * in `ResultOf` — one kind, one lane, one result shape.
  */
 
-import type { BankrollConfig, BankrollResult } from "../lib/bankroll";
+import type { BankrollPlan, BankrollResult } from "../lib/bankroll";
 import type { BankrollSummary } from "../lib/bankrollGrid";
 import type { EventConfig } from "../lib/types";
 
+/**
+ * The bankroll crosses the boundary as a `BankrollPlan` — balances plus a
+ * games budget — never as a resolved `BankrollConfig`: the budget's event cap
+ * depends on the event, so resolving is the backend's job, against each
+ * config it is about to run.
+ */
 export type BankrollsRequest = {
   kind: "bankrolls";
   config: EventConfig;
-  bankroll: BankrollConfig;
+  bankroll: BankrollPlan;
   runs: number;
   seed: number;
 };
@@ -44,7 +50,7 @@ export type BankrollsRequest = {
 export type CompareRequest = {
   kind: "compare";
   configs: EventConfig[];
-  bankroll: BankrollConfig;
+  bankroll: BankrollPlan;
   runs: number;
   seed: number;
 };

@@ -182,7 +182,7 @@ const NO_PRICE = "none";
 /**
  * Bankroll and display fields, which sit outside the config.
  *
- * Two of these are retired, and neither name may be given a new meaning — an
+ * Three of these are retired, and no name may be given a new meaning — an
  * old link would then say something its author never chose:
  *
  *  - `spendWinnings` let packs, points and boxes fund further entries, which
@@ -192,12 +192,18 @@ const NO_PRICE = "none";
  *  - `trials` was the Long-term value tab's Monte Carlo count. Every figure
  *    on that tab is closed form now, so there is nothing for the number to
  *    size; a link carrying it decodes to the same event it always did, exactly.
+ *  - `maxEvents` was the stop knob while the stopping point was counted in
+ *    entries rather than games. Unlike `eventsPerDay`, whose unit change was
+ *    converted, a link carrying this falls back to the default games budget —
+ *    a deliberate break, accepted because the knob shapes how long the
+ *    Bankroll tab plays rather than what anything is worth, and recorded in
+ *    `share.compat.test.ts` like the two above.
  */
 const UI_NUMBERS = [
   ["startGems", "startingGems"],
   ["startGold", "startingGold"],
   ["startPoints", "startingPlayInPoints"],
-  ["maxEvents", "maxEvents"],
+  ["maxGames", "maxGames"],
   ["gemsPerUsd", "gemsPerUsd"],
   ["runs", "bankrollRuns"],
   ["seed", "seed"],
@@ -525,9 +531,9 @@ export function decodeShareState(search: string): ShareState {
       "startPoints",
       fallback.startingPlayInPoints,
     ),
-    maxEvents: numberFrom(params, "maxEvents", fallback.maxEvents, {
+    maxGames: numberFrom(params, "maxGames", fallback.maxGames, {
       min: 1,
-      max: SIM_LIMITS.maxEvents,
+      max: SIM_LIMITS.maxGames,
       int: true,
     }),
     /*

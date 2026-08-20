@@ -1,6 +1,7 @@
 import { useId, useMemo, useState } from "react";
 
 import {
+  maxEventsFor,
   startingValue,
   winRateInterval,
   winRatePosterior,
@@ -124,13 +125,24 @@ export function Compare({
    * one is not — an event on its way out sinks to the bottom for the moment it
    * takes to go.
    */
-  const gridRows = (() => {
-    const events = grid.resultParams?.events;
-    if (grid.result === null || events === undefined) return null;
+  const gridView = (() => {
+    const params = grid.resultParams;
+    if (grid.result === null || params === null) return null;
     const rank = new Map(ranked.map((r, i) => [r.name, i]));
-    return events
+    const rows = params.events
       .map((e, i) => ({ name: e.name, summary: grid.result![i] }))
       .sort((a, b) => (rank.get(a.name) ?? Infinity) - (rank.get(b.name) ?? Infinity));
+    /*
+     * The events axis ceiling, from the params the rows were computed for
+     * rather than the live knobs, so a stale grid is drawn against its own
+     * cap. Per event now — one games budget is a different number of entries
+     * for each — so the axis takes the largest of the rows' own caps.
+     */
+    const eventCap = Math.max(
+      1,
+      ...params.events.map((e) => maxEventsFor(e.config, params.maxGames)),
+    );
+    return { rows, eventCap, maxGames: params.maxGames };
   })();
 
   return (
@@ -197,7 +209,7 @@ export function Compare({
               variant="segmented"
             />
             <TabPanel group={`${uid}-roll`} active={rollMode}>
-              {gridRows === null ? (
+              {gridView === null ? (
                 /*
                  * `ResultsPlaceholder` is the Bankroll tab's shape — four tiles
                  * over two charts — and this is one chart. Same shimmer, one
@@ -219,9 +231,10 @@ export function Compare({
               ) : (
                 <SimPending pending={grid.pending}>
                   <CompareBankroll
-                    rows={gridRows}
+                    rows={gridView.rows}
                     mode={rollMode}
-                    maxEvents={knobs.maxEvents}
+                    eventCap={gridView.eventCap}
+                    maxGames={gridView.maxGames}
                     startValue={startValue}
                     m={m}
                   />

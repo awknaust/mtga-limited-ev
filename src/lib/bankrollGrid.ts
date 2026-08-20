@@ -14,6 +14,13 @@
  * `seededRandom(seed)` per event is what a loop would do anyway — and it is
  * the whole reason the grid is a function rather than a `map`.
  *
+ * The plan is shared the same way, and it is a `BankrollPlan` rather than a
+ * `BankrollConfig` for the same commensurability: its stopping point is a
+ * games budget, which every row resolves to its own whole-event cap
+ * (`bankrollConfigFor`), so each event is played for the same amount of
+ * *play* rather than the same number of entries — a fixed entry count would
+ * quietly hand a best-of-three event two and a half times the table time.
+ *
  * **A summary, not a result.** A `BankrollResult` is up to ~4.3 MB, nearly all
  * of it the example runs the Bankroll tab draws. None of that is comparable
  * across events and none of it is wanted here, so each event's result is
@@ -27,7 +34,12 @@
  * simulation, seeded the same way, with most of the answer thrown away.
  */
 
-import { simulateBankrollsSteps, type BankrollConfig, type BankrollResult } from "./bankroll";
+import {
+  bankrollConfigFor,
+  simulateBankrollsSteps,
+  type BankrollPlan,
+  type BankrollResult,
+} from "./bankroll";
 import type { EventConfig } from "./types";
 
 /**
@@ -89,14 +101,14 @@ export const bankrollSummary = (r: BankrollResult): BankrollSummary => ({
  */
 export function* simulateBankrollGridSteps(
   configs: readonly EventConfig[],
-  bankroll: BankrollConfig,
+  plan: BankrollPlan,
   trials: number,
   seed = 1,
 ): Generator<number, BankrollSummary[]> {
   const summaries: BankrollSummary[] = [];
   let finished = 0;
   for (const config of configs) {
-    const gen = simulateBankrollsSteps(config, bankroll, trials, seed);
+    const gen = simulateBankrollsSteps(config, bankrollConfigFor(config, plan), trials, seed);
     for (;;) {
       const step = gen.next();
       if (step.done) {
@@ -115,11 +127,11 @@ export function* simulateBankrollGridSteps(
 /** The grid drained in one go, for the tests and anything synchronous. */
 export function simulateBankrollGrid(
   configs: readonly EventConfig[],
-  bankroll: BankrollConfig,
+  plan: BankrollPlan,
   trials: number,
   seed = 1,
 ): BankrollSummary[] {
-  const gen = simulateBankrollGridSteps(configs, bankroll, trials, seed);
+  const gen = simulateBankrollGridSteps(configs, plan, trials, seed);
   for (;;) {
     const r = gen.next();
     if (r.done) return r.value;

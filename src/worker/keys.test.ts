@@ -18,7 +18,7 @@ import type { BankrollsRequest, CompareRequest } from "./protocol";
 const bankRequest = (config: EventConfig = defaultConfig()): BankrollsRequest => ({
   kind: "bankrolls",
   config,
-  bankroll: { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 20 },
+  bankroll: { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxGames: 120 },
   runs: 1000,
   seed: 1,
 });
@@ -210,7 +210,7 @@ describe("requestKey", () => {
     for (const patch of [
       { startingGems: 3001 },
       { startingGold: 1 },
-      { maxEvents: 21 },
+      { maxGames: 121 },
     ]) {
       expect(
         requestKey({ ...roll, bankroll: { ...roll.bankroll, ...patch } }),
