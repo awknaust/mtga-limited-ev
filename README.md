@@ -5,7 +5,7 @@ Arena events and passes.
 
 **<https://mtga.fyi>**
 
-[![The top of the app: win rate and bankroll inputs on the left; on the right
+[![The top of the app: win rate, bankroll and event preset on the left; on the right
 a bankroll run's summary figures and a histogram of events played before
 running out. Click for the full screenshot, which continues into the payout
 schedule, the distribution of ending value, and one sampled run broken out
