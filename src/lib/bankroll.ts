@@ -176,6 +176,30 @@ export type BankrollResult = {
   /** Mean events played before running dry, counting capped runs at the cap. */
   meanEvents: number;
   eventPercentiles: { p5: number; p25: number; p50: number; p75: number; p95: number };
+  /**
+   * Mean games a run plays before it stops — the events figure in the unit
+   * the games budget is stated in.
+   *
+   * A run's games are the matches it actually played at `gamesPerMatch`
+   * apiece: exact for best-of-one, where a match is a game, and the model's
+   * usual mean for best-of-three, whose matches the simulation does not play
+   * game by game. Read off each run's own match count rather than its event
+   * count, because the two spread differently — a run of thirty events can be
+   * thirty quick exits or thirty long ones, and only the match count knows
+   * which.
+   */
+  meanGames: number;
+  /** Games played, at the same five percentiles the events are reported at. */
+  gamePercentiles: Percentiles;
+  /**
+   * Games played, binned for a histogram.
+   *
+   * Binned in whole matches and then scaled, rather than binned in games:
+   * the sample sits on a lattice of `gamesPerMatch`, and edges cut anywhere
+   * else comb the counts into alternating full and empty bars — the same
+   * failure `binnedWhole` exists to avoid for packs.
+   */
+  gamesHistogram: Bin[];
   /** Share of runs that hit `maxEvents` rather than running out of currency. */
   survivedFraction: number;
   /**
@@ -1000,6 +1024,24 @@ export function* simulateBankrollsSteps(
       ? sortedEvents[Math.min(sortedEvents.length - 1, Math.floor(q * sortedEvents.length))]
       : 0;
 
+  /*
+   * The run lengths again, in the games the budget is stated in. Everything is
+   * derived from the match counts and scaled at the end — `gamesPerMatch` is a
+   * constant of the config, so the sort order, the percentile picks and the
+   * bin edges are all decided in whole matches, where the sample is integers
+   * on a lattice no bin edge can fall between.
+   */
+  const perMatch = config.gamesPerMatch;
+  const sortedRounds = runs.map((r) => r.rounds).sort((a, b) => a - b);
+  const roundPercentiles = percentilesOf(sortedRounds);
+  const scaled = (p: Percentiles): Percentiles => ({
+    p5: p.p5 * perMatch,
+    p25: p.p25 * perMatch,
+    p50: p.p50 * perMatch,
+    p75: p.p75 * perMatch,
+    p95: p.p95 * perMatch,
+  });
+
   const sortedValue = runs.map((r) => runValue(config, r, priced)).sort((a, b) => a - b);
   const medianFinalValue = sortedValue.length
     ? sortedValue[Math.floor(sortedValue.length / 2)]
@@ -1013,6 +1055,14 @@ export function* simulateBankrollsSteps(
     trials,
     meanEvents: mean((r) => r.events),
     eventPercentiles: { p5: at(0.05), p25: at(0.25), p50: at(0.5), p75: at(0.75), p95: at(0.95) },
+    meanGames: mean((r) => r.rounds) * perMatch,
+    gamePercentiles: scaled(roundPercentiles),
+    // 24 bins as the events histogram buckets to, so the two read alike.
+    gamesHistogram: binnedWhole(sortedRounds, 24).map(({ from, to, count }) => ({
+      from: from * perMatch,
+      to: to * perMatch,
+      count,
+    })),
     survivedFraction: runs.length
       ? runs.filter((r) => r.survived).length / runs.length
       : 0,

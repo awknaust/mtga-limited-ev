@@ -122,6 +122,10 @@ export default function App({
    * shared. Held here rather than in the tab, which a tab switch unmounts.
    */
   const [view, setView] = useState<"value" | "breakdown">("value");
+  // The run-length chart's unit — events or games — held here for the same
+  // reasons as `view`: a glance, not part of the link, and a tab switch
+  // should not silently put it back.
+  const [runView, setRunView] = useState<"events" | "games">("events");
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   // Set when a preset switch lands on an event the balance cannot enter. Not
   // in the URL: it describes a moment, not a configuration worth sharing.
@@ -478,6 +482,8 @@ export default function App({
           eventCap={maxEventsFor(config, maxGames)}
           view={view}
           onViewChange={setView}
+          runView={runView}
+          onRunViewChange={setRunView}
           rateBand={rateBand}
           onShowBoxPrices={showBoxPrices}
         />

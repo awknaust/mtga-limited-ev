@@ -2,7 +2,7 @@ import { useId } from "react";
 import { scaleBand, scaleLinear } from "d3";
 
 import type { BankrollSummary } from "../lib";
-import { approx, gemTick, type Money } from "../format";
+import { approx, gamesLabel, gemTick, type Money } from "../format";
 import { CompareHatchDefs, hatchFill } from "./CompareHatch";
 import { rowLabelLines } from "./compareEvents";
 import { compareSeries } from "./compareSeries";
@@ -30,10 +30,14 @@ const ROW = 26;
 export const bankrollChartHeight = (rows: number): number =>
   MARGIN.top + MARGIN.bottom + rows * ROW;
 
-export type BankrollMode = "events" | "value";
+export type BankrollMode = "events" | "games" | "value";
 
 export const BANKROLL_MODES: readonly { key: BankrollMode; label: string }[] = [
   { key: "events", label: "Events played" },
+  // The same run lengths in the budget's own unit. Worth a mode of its own
+  // because it is the one axis where every row's stopping point is the same
+  // number: the budget is shared, where the event cap it converts to is not.
+  { key: "games", label: "Games played" },
   // "Outcomes" as the reader meets it here: not the per-event outcome table,
   // but where a whole run of them left the balance.
   { key: "value", label: "Outcomes" },
@@ -79,11 +83,12 @@ const toneOf = (value: number, start: number): string =>
  * which is why the caption says which five rather than leaving the reader to
  * assume the usual ones.
  *
- * **Two measures, one at a time.** How long the balance lasted and what it was
- * worth at the end are different questions in different units, and a reader has
- * one of them in mind at a time — so they are a switch over one chart rather
- * than two columns of one, which is what this was before and which made every
- * row a small table. The switch is the idiom the curve above already set.
+ * **Three measures, one at a time.** How long the balance lasted — in entries,
+ * or in the games they took — and what it was worth at the end are different
+ * questions in different units, and a reader has one of them in mind at a time
+ * — so they are a switch over one chart rather than columns of one, which is
+ * what this was before and which made every row a small table. The switch is
+ * the idiom the curve above already set.
  *
  * **The events axis runs to the run-length ceiling, not to the longest bar.**
  * Two things follow that are worth the empty space it sometimes costs. A bar
@@ -98,6 +103,13 @@ const toneOf = (value: number, start: number): string =>
  * axis runs to the largest of them. So only the longest-capped rows can touch
  * the right edge, and a shorter event's ceiling-stopped runs stack short of
  * it: the budget being honest about table time, not the chart clipping.
+ *
+ * The games axis is that caveat resolved, and is why the mode earns its place:
+ * in games the shared budget *is* the ceiling, the same number for every row,
+ * so runs stopped by the plan stack together at the right wherever their event
+ * put its cap. It runs to the budget or the widest run, whichever is further —
+ * a capped run can play out its last entry past the budget line, since the cap
+ * rounds to whole events and the final event is as long as it happens to be.
  *
  * Rows are drawn in the order given, which `Compare` shares with the break-even
  * chart above so that the two can be read across.
@@ -129,28 +141,40 @@ export function CompareBankroll({
   m: Money;
 }) {
   const events = mode === "events";
+  const games = mode === "games";
+  const value = mode === "value";
   const hatchId = `${useId()}-hatch`;
 
   const drawn = rows.map(({ name, summary }) => ({
     name,
     ...compareSeries(name),
-    span: events ? summary.eventPercentiles : summary.valuePercentiles,
+    span: events
+      ? summary.eventPercentiles
+      : games
+        ? summary.gamePercentiles
+        : summary.valuePercentiles,
     /*
      * No run played an event, so the balance never covered a single entry, and
-     * the whole distribution is a point at zero. Nothing is drawn: a box and a
-     * median line stacked on the axis origin is a mark that has to be squinted
-     * at and then means nothing anyway, where an empty row beside a plain 0 in
-     * the figures column says it at a glance. The value chart needs no such
-     * case — an untouched balance lands its box on the starting-balance line,
-     * which is exactly the truth.
+     * the whole distribution is a point at zero — in events and in games alike,
+     * a run that entered nothing having played nothing. Nothing is drawn: a box
+     * and a median line stacked on the axis origin is a mark that has to be
+     * squinted at and then means nothing anyway, where an empty row beside a
+     * plain 0 in the figures column says it at a glance. The value chart needs
+     * no such case — an untouched balance lands its box on the starting-balance
+     * line, which is exactly the truth.
      */
-    unaffordable: events && summary.meanEvents === 0,
+    unaffordable: !value && summary.meanEvents === 0,
     figure: events
       ? { text: String(summary.eventPercentiles.p50), tone: "" }
-      : {
-          text: approx(m.fmt(summary.medianFinalValue)),
-          tone: toneOf(summary.medianFinalValue, startValue),
-        },
+      : games
+        ? // `gamesLabel` decides when the count earns an ≈ — a best-of-three
+          // median lands between whole games, and half a game is not a thing
+          // anyone played.
+          { text: gamesLabel(summary.gamePercentiles.p50), tone: "" }
+        : {
+            text: approx(m.fmt(summary.medianFinalValue)),
+            tone: toneOf(summary.medianFinalValue, startValue),
+          },
   }));
 
   const inner = WIDTH - MARGIN.left - MARGIN.right;
@@ -161,11 +185,16 @@ export function CompareBankroll({
    * The value axis is floored at zero and stretched to cover the starting
    * balance even where every run ended under it: the line the bars are judged
    * against has to be on the chart, or a column of bars well short of it reads
-   * as a column of bars that merely stopped early.
+   * as a column of bars that merely stopped early. The games axis stretches to
+   * the shared budget the same way and for the same reason — it is the number
+   * the bars are read against — while the widest run can still overshoot it by
+   * part of an event, as the caveat above says.
    */
   const domainMax = events
     ? Math.max(1, eventCap)
-    : Math.max(1, startValue, ...drawn.map((r) => r.span.p95));
+    : games
+      ? Math.max(1, maxGames, ...drawn.map((r) => r.span.p95))
+      : Math.max(1, startValue, ...drawn.map((r) => r.span.p95));
 
   const x = scaleLinear().domain([0, domainMax]).range([0, inner]);
   const y = scaleBand()
@@ -174,11 +203,12 @@ export function CompareBankroll({
     .padding(0.28);
 
   /*
-   * Whole events only: half a draft is not a thing that happened, so a tick at
-   * 2.5 would be labelling a quantity the simulation cannot produce. d3 picks
-   * the count; the filter drops the fractions it picks on a short axis.
+   * Whole events only, and whole games: half a draft is not a thing that
+   * happened, and a games tick at 2.5 would label a point between the lattice
+   * the bars stand on. d3 picks the count; the filter drops the fractions it
+   * picks on a short axis.
    */
-  const ticks = events ? x.ticks(6).filter((t) => Number.isInteger(t)) : x.ticks(5);
+  const ticks = value ? x.ticks(5) : x.ticks(6).filter((t) => Number.isInteger(t));
 
   /*
    * Box-plot geometry, in the band each row gets. The box takes most of the
@@ -197,7 +227,9 @@ export function CompareBankroll({
       aria-label={
         events
           ? "Events played from one starting balance, per event"
-          : "What a run is worth at the end, from one starting balance, per event"
+          : games
+            ? "Games played from one starting balance, per event"
+            : "What a run is worth at the end, from one starting balance, per event"
       }
     >
       <CompareHatchDefs id={hatchId} />
@@ -206,7 +238,7 @@ export function CompareBankroll({
           <g key={t} transform={`translate(${x(t)},0)`}>
             <line y1={0} y2={innerH} className="chart-gridline" />
             <text y={innerH + 16} textAnchor="middle" className="chart-tick">
-              {events ? t : gemTick(m, t)}
+              {value ? gemTick(m, t) : t}
             </text>
           </g>
         ))}
@@ -220,7 +252,7 @@ export function CompareBankroll({
           chart's marker does: the axis under it is lettered in thousands, so
           the line alone says roughly where you began and never what it was.
         */}
-        {!events && (
+        {value && (
           <>
             <line
               x1={x(startValue)}
@@ -317,7 +349,11 @@ export function CompareBankroll({
         ))}
 
         <text x={inner / 2} y={innerH + 36} textAnchor="middle" className="chart-axis-label">
-          {events ? `Events played, within ${maxGames} games` : "Value at the end of a run"}
+          {events
+            ? `Events played, within ${maxGames} games`
+            : games
+              ? `Games played, of a ${maxGames}-game budget`
+              : "Value at the end of a run"}
         </text>
       </g>
     </svg>

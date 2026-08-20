@@ -49,6 +49,8 @@ export function ResultsPanel({
   eventCap,
   view,
   onViewChange,
+  runView,
+  onRunViewChange,
   rateBand,
   onShowBoxPrices,
 }: {
@@ -73,6 +75,8 @@ export function ResultsPanel({
   eventCap: number;
   view: "value" | "breakdown";
   onViewChange: (view: "value" | "breakdown") => void;
+  runView: "events" | "games";
+  onRunViewChange: (view: "events" | "games") => void;
   rateBand: [lo: number, hi: number] | null;
   onShowBoxPrices: () => void;
 }) {
@@ -136,6 +140,8 @@ export function ResultsPanel({
                 eventCap={eventCap}
                 view={view}
                 onViewChange={onViewChange}
+                runView={runView}
+                onRunViewChange={onRunViewChange}
               />
             ) : (
               <EventValueTab config={config} m={m} rateBand={rateBand} />

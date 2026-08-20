@@ -1,6 +1,7 @@
 import { useId } from "react";
 
 import { EventsHistogram } from "./EventsHistogram";
+import { GamesHistogram } from "./GamesHistogram";
 import { PayoutBreakdown } from "./PayoutBreakdown";
 import { PercentileSummary } from "./PercentileSummary";
 import { ResultsPlaceholder } from "./ResultsPlaceholder";
@@ -80,6 +81,8 @@ export function BankrollTab({
   eventCap,
   view,
   onViewChange,
+  runView,
+  onRunViewChange,
 }: {
   /** Null until the first run lands; never null again after that. */
   bankroll: BankrollResult | null;
@@ -102,6 +105,13 @@ export function BankrollTab({
    */
   view: "value" | "breakdown";
   onViewChange: (view: "value" | "breakdown") => void;
+  /**
+   * Whether a run's length is charted in events entered or in games played —
+   * the same length in the entry's unit or the budget knob's. Held by `App`
+   * for the reason `view` is.
+   */
+  runView: "events" | "games";
+  onRunViewChange: (view: "events" | "games") => void;
 }) {
   const gemsEq = (g: number): string => approx(m.fmt(g));
   const valueName = valueLabel(m.unit);
@@ -110,6 +120,11 @@ export function BankrollTab({
     { key: "breakdown" as const, label: "Payout breakdown" },
   ];
   const viewGroup = useId();
+  const runItems = [
+    { key: "events" as const, label: "Events" },
+    { key: "games" as const, label: "Games" },
+  ];
+  const runGroup = useId();
 
   /*
    * Which pack tiles the bankroll strip draws. A narrower question than the
@@ -387,13 +402,39 @@ export function BankrollTab({
       </div>
       <SectionHeading
         className="mt-4"
-        title="How many events you can play"
+        // "How long", now that the length has two units: the switch below
+        // picks whether it is counted in entries or in the games they took.
+        title="How long you can play"
         subtitle="Before the balance runs out."
       />
-      <EventsHistogram
-        histogram={bankroll.histogram}
-        median={bankroll.eventPercentiles.p50}
-      />
+      {/*
+        The same switch idiom as the winnings section below: one question —
+        how far the balance went — with its answer in the unit the reader is
+        holding, entries paid for or the games budget spent down.
+      */}
+      <div className="switch-panel">
+        <Tabs
+          group={runGroup}
+          items={runItems}
+          active={runView}
+          onSelect={onRunViewChange}
+          label="How a run's length is counted"
+          variant="segmented"
+        />
+        <TabPanel group={runGroup} active={runView}>
+          {runView === "events" ? (
+            <EventsHistogram
+              histogram={bankroll.histogram}
+              median={bankroll.eventPercentiles.p50}
+            />
+          ) : (
+            <GamesHistogram
+              bins={bankroll.gamesHistogram}
+              median={bankroll.gamePercentiles.p50}
+            />
+          )}
+        </TabPanel>
+      </div>
 
       <SectionHeading
         className="mt-4"
