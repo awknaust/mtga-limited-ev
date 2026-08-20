@@ -121,12 +121,16 @@ export function InputPanel({
 
   /*
    * The games budget read back in the units the results and the calendar
-   * speak: the whole-event cap this event's runs actually stop at, and what
-   * the budget comes to at the day knob's own pace. Both move when their
-   * inputs do — the cap with the win rate, the days with the day knob — which
-   * is the same honesty the events-per-day figure in Advanced settings keeps.
-   * No days reading when the day knob is zero: with no pace stated, a budget
-   * is not an amount of time.
+   * speak: the whole-event cap this event's runs stop at, and what the budget
+   * comes to at the day knob's own pace. The cap is quoted as exactly what it
+   * is — "at most", since the simulation enforces this one number and a run
+   * can only bust short of it, never play past it. It is not hedged with an
+   * "about": the figure is not an estimate of anything, and the same number
+   * appears on the risk-of-ruin tile. It does move when the win rate does,
+   * because the conversion divides by the event's mean length at that rate —
+   * honest movement, since the simulation's cap moves with it. No days
+   * reading when the day knob is zero: with no pace stated, a budget is not
+   * an amount of time.
    */
   const eventCap = maxEventsFor(config, maxGames);
   const budgetDays = config.gamesPerDay > 0 ? maxGames / config.gamesPerDay : null;
@@ -352,13 +356,13 @@ export function InputPanel({
                   onChange={(n) => onMaxGamesChange(clampInt(n, 1, SIM_LIMITS.maxGames))}
                 />
                 {/* The budget in the two units a reader can check it in —
-                    see eventCap above for why both figures move. */}
+                    see eventCap above for the phrasing. */}
                 <div className="form-text">
-                  About {eventCap} {eventCap === 1 ? "event" : "events"}
+                  At most {eventCap} {eventCap === 1 ? "event" : "events"}
                   {budgetDays !== null &&
                     (budgetDays < 1
                       ? ", or under a day of play"
-                      : `, or ${Math.round(budgetDays)} ${Math.round(budgetDays) === 1 ? "day" : "days"} of play`)}
+                      : `, or about ${Math.round(budgetDays)} ${Math.round(budgetDays) === 1 ? "day" : "days"} of play`)}
                 </div>
               </div>
             </div>
