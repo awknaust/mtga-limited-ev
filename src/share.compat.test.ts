@@ -447,9 +447,9 @@ describe("the defaults are the contract", () => {
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold / none points
       draft      3 packs @ 23
-      values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=2.25
+      values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 dailyIcr=0
       gold       other=600/day over 12 games at 1/match, goldPer10k=1500
-      credits    616.0 gold/event = 92.4 gems, cards = 1.8 gems
+      credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
       bankroll   gems=3400 gold=5000 points=0 maxEvents=20
       sim        runs=10000 seed=1
