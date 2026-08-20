@@ -76,7 +76,7 @@ function fingerprint(state: ShareState): string {
      */
     `credits    ${goldPerEvent(c).toFixed(1)} gold/event = ${goldValueGems(c).toFixed(1)} gems, cards = ${icrValueGems(c).toFixed(1)} gems`,
     `payouts    ${encodePayouts(c.payouts)}`,
-    `bankroll   gems=${state.startingGems} gold=${state.startingGold} points=${state.startingPlayInPoints} maxEvents=${state.maxEvents}`,
+    `bankroll   gems=${state.startingGems} gold=${state.startingGold} points=${state.startingPlayInPoints} maxGames=${state.maxGames}`,
     `sim        runs=${state.bankrollRuns} seed=${state.seed}`,
     `display    tab=${state.tab} unit=${state.unit} gemsPerUsd=${state.gemsPerUsd}`,
     /*
@@ -135,7 +135,8 @@ const CORPUS: [name: string, search: string][] = [
    * the main thread and resolves to itself after. Nothing else in the corpus
    * exceeds a cap, so without this row that break happens silently — which is
    * the one thing this file exists to prevent. `trials` is retired and reads
-   * as nothing at all now, which the fingerprint records.
+   * as nothing at all now, which the fingerprint records — and `maxEvents`
+   * has since joined it, so this row's snapshot shows the default budget.
    */
   ["counts above the ceilings", "?trials=999999999&runs=999999&maxEvents=99999"],
   ["mastery tab", "?tab=mastery"],
@@ -222,6 +223,14 @@ const CORPUS: [name: string, search: string][] = [
   ["the day knob in its old unit, one event a day", "?eventsPerDay=1"],
   ["gold priced out, in the old unit", "?eventsPerDay=0"],
   /*
+   * The stop knob, in both units. The old one is the break this file has had
+   * to accept a second time: `maxEvents` counted entries, the knob counts
+   * games, and the old value is not converted — a link carrying it falls back
+   * to the default budget. Pinned so the fallback itself stays a promise.
+   */
+  ["the stop knob in games", "?maxGames=300"],
+  ["the stop knob in its old unit, which no longer reads", "?maxEvents=200"],
+  /*
    * The retired `format` parameter, which named the match format back when
    * the win rate was converted per game. Its meaning — this is a best-of-three
    * event — is what `gamesPerMatch` carries now, so an old custom link that
@@ -286,7 +295,7 @@ describe("the parameter names are the contract", () => {
       startingGems: 14,
       startingGold: 15,
       startingPlayInPoints: 29,
-      maxEvents: 16,
+      maxGames: 16,
       tab: "about",
       // The only season there is, so it cannot differ from the default and
       // cannot appear in the link. The names list below says as much.
@@ -326,7 +335,7 @@ describe("the parameter names are the contract", () => {
       "gemsPerUsd",
       "goldPer10k",
       "goldPerDay",
-      "maxEvents",
+      "maxGames",
       "maxLosses",
       "maxWins",
       "mythicIcrValue",
@@ -363,6 +372,19 @@ describe("the parameter names are the contract", () => {
      */
     const state = decodeShareState("?spendWinnings=1&trials=250000&startGems=20000");
     expect(state.startingGems).toBe(20_000);
+    expect(encodeShareState(state)).toBe("startGems=20000");
+  });
+
+  it("drops the retired stop knob, whose unit changed out from under it", () => {
+    /*
+     * `maxEvents` counted the stopping point in entries; the knob counts games
+     * now, and unlike `eventsPerDay` the old value is *not* converted — the
+     * deliberate break `share.ts` records. A link carrying it falls back to
+     * the default games budget, exactly as a misspelling would, and the name
+     * may never be reused.
+     */
+    const state = decodeShareState("?maxEvents=200&startGems=20000");
+    expect(state.maxGames).toBe(defaultShareState().maxGames);
     expect(encodeShareState(state)).toBe("startGems=20000");
   });
 
@@ -451,7 +473,7 @@ describe("the defaults are the contract", () => {
       gold       other=600/day over 12 games at 1/match, goldPer10k=1500
       credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6
-      bankroll   gems=3400 gold=5000 points=0 maxEvents=20
+      bankroll   gems=3400 gold=5000 points=0 maxGames=360
       sim        runs=10000 seed=1
       display    tab=bankroll unit=gems gemsPerUsd=200
       compare    Premier Draft, Quick Draft, Traditional Draft, Pick Two Draft, Sealed"
@@ -623,14 +645,14 @@ describe("a link that arrives damaged", () => {
     ["a stray ampersand", "?&&wr=0.6&&"],
     ["a value that is not a number", "?wr=banana&entry=%20&trials=1e999"],
     ["a negative amount", "?entry=-500&startGems=-1"],
-    ["an absurd magnitude", "?trials=1e308&maxEvents=1e308&entry=1e308"],
+    ["an absurd magnitude", "?trials=1e308&maxGames=1e308&entry=1e308"],
     ["a percent-encoded separator", "?payouts=50%2D1"],
     ["a payout table with no rows", "?payouts="],
   ])("decodes %s to a usable state", (_name, search) => {
     const state = decodeShareState(search);
     expect(Number.isFinite(state.config.winRate)).toBe(true);
-    expect(Number.isFinite(state.maxEvents)).toBe(true);
-    expect(state.maxEvents).toBeGreaterThanOrEqual(1);
+    expect(Number.isFinite(state.maxGames)).toBe(true);
+    expect(state.maxGames).toBeGreaterThanOrEqual(1);
     /*
      * A price or no price at all, never a number the model cannot use: a
      * negative amount is damage, and it lands on the absence rather than on a

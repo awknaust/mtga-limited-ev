@@ -85,6 +85,9 @@ import {
   qualifierTokensFor,
   tokenChancePerEvent,
   resizePayouts,
+  MAX_EVENT_CAP,
+  bankrollConfigFor,
+  maxEventsFor,
   simulateBankroll,
   simulateBankrolls,
   simulateEvent,
@@ -770,6 +773,75 @@ describe("holdings", () => {
     );
     // Gold valued at nothing drops out, the same way runValue treats it.
     expect(holdingRate({ ...config, gemsPer10kGold: 0 }, "gold")).toBe(0);
+  });
+});
+
+describe("the games budget", () => {
+  /*
+   * The stop knob is stated in games and the run loop counts whole events, so
+   * this conversion *is* the knob's meaning. It is arithmetic over
+   * `meanGamesPerEvent`, pinned where the arithmetic gives way: at least one
+   * event for any positive budget, never past the perf ceiling, and zero
+   * games is the zero events it always meant.
+   */
+  const config = defaultConfig();
+  const games = meanGamesPerEvent(config);
+
+  it("buys the whole events the budget divides into", () => {
+    expect(maxEventsFor(config, 10 * games)).toBe(10);
+    // Rounded to the nearest entry, not floored: most of an event is closer
+    // to playing it than to stopping short of it.
+    expect(maxEventsFor(config, 10.6 * games)).toBe(11);
+    expect(maxEventsFor(config, 10.4 * games)).toBe(10);
+  });
+
+  it("converts at the configured rate, which the input's hint does not", () => {
+    /*
+     * A better player's elimination runs last longer, so the same budget
+     * buys fewer entries — the cap the runs are held to tracks that. The
+     * hint under the input quotes the budget at an even 50% game instead,
+     * so the displayed figure holds still under the win-rate slider; the
+     * two agree exactly on a fixed-rounds event, below.
+     */
+    expect(maxEventsFor({ ...config, winRate: 0.8 }, 10 * games)).toBeLessThan(10);
+  });
+
+  it("is exact for a fixed-rounds event, whose length never varies", () => {
+    // Three rounds of best-of-one is three games, every event, whoever
+    // plays — so the cap ignores the rate here, and the hint's even-rate
+    // reading is this same number.
+    const rounds = {
+      ...config,
+      structure: { kind: "rounds", rounds: 3 } as const,
+    };
+    expect(maxEventsFor(rounds, 75)).toBe(25);
+    expect(maxEventsFor({ ...rounds, winRate: 0.8 }, 75)).toBe(25);
+  });
+
+  it("converts through the event's own length, so best-of-three buys fewer", () => {
+    const bo3 = { ...config, gamesPerMatch: BO3_GAMES_PER_MATCH };
+    expect(maxEventsFor(bo3, 10 * games)).toBe(10 / BO3_GAMES_PER_MATCH);
+  });
+
+  it("pins the ends: one event at least, the ceiling at most, zero is zero", () => {
+    expect(maxEventsFor(config, 1)).toBe(1);
+    expect(maxEventsFor(config, Number.MAX_SAFE_INTEGER)).toBe(MAX_EVENT_CAP);
+    expect(maxEventsFor(config, 0)).toBe(0);
+  });
+
+  it("resolves a plan to the same balances and that event's own cap", () => {
+    const plan = {
+      startingGems: 1,
+      startingGold: 2,
+      startingPlayInPoints: 3,
+      maxGames: 10 * games,
+    };
+    expect(bankrollConfigFor(config, plan)).toEqual({
+      startingGems: 1,
+      startingGold: 2,
+      startingPlayInPoints: 3,
+      maxEvents: 10,
+    });
   });
 });
 

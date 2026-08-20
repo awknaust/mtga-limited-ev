@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { simulateBankrolls } from "../lib/bankroll";
+import { bankrollConfigFor, simulateBankrolls } from "../lib/bankroll";
 import { simulateBankrollGrid } from "../lib/bankrollGrid";
 import { PRESETS, configFromPreset, defaultConfig } from "../lib/presets";
 import type { PayoutTier } from "../lib/types";
@@ -19,7 +19,10 @@ import { isAbortError } from "./protocol";
 import type { BankrollsRequest, CompareRequest } from "./protocol";
 
 const config = defaultConfig();
-const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 20 };
+const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxGames: 120 };
+// What the backend resolves the plan to for this config, so the expected side
+// speaks the model's own unit.
+const resolved = bankrollConfigFor(config, roll);
 
 const bank = (runs: number, seed = 1): BankrollsRequest => ({
   kind: "bankrolls",
@@ -58,7 +61,7 @@ describe("SimulationBackend", () => {
   it("resolves to exactly what the model computes", async () => {
     const { backend } = testBackend();
     await expect(backend.run("a", bank(200, 7))).resolves.toEqual(
-      simulateBankrolls(config, roll, 200, 7),
+      simulateBankrolls(config, resolved, 200, 7),
     );
   });
 
@@ -71,7 +74,7 @@ describe("SimulationBackend", () => {
     expect(pings()).toBe(2);
     // The worker stays warm and healthy after a cancellation.
     await expect(backend.run("b", bank(200, 2))).resolves.toEqual(
-      simulateBankrolls(config, roll, 200, 2),
+      simulateBankrolls(config, resolved, 200, 2),
     );
   });
 
@@ -79,11 +82,11 @@ describe("SimulationBackend", () => {
     const { backend } = testBackend();
     backend.cancel("never-submitted");
     await expect(backend.run("a", bank(200))).resolves.toEqual(
-      simulateBankrolls(config, roll, 200),
+      simulateBankrolls(config, resolved, 200),
     );
     backend.cancel("a");
     await expect(backend.run("b", bank(200, 2))).resolves.toEqual(
-      simulateBankrolls(config, roll, 200, 2),
+      simulateBankrolls(config, resolved, 200, 2),
     );
   });
 
@@ -98,7 +101,7 @@ describe("SimulationBackend", () => {
       }),
     ).rejects.toThrow();
     await expect(backend.run("b", bank(200))).resolves.toEqual(
-      simulateBankrolls(config, roll, 200),
+      simulateBankrolls(config, resolved, 200),
     );
   });
 
@@ -107,7 +110,7 @@ describe("SimulationBackend", () => {
     const first = backend.run("a", bank(3000));
     await expect(backend.run("b", bank(200))).rejects.toThrow(/already running/);
     // The dispatcher bug is reported without harming the job in flight.
-    await expect(first).resolves.toEqual(simulateBankrolls(config, roll, 3000));
+    await expect(first).resolves.toEqual(simulateBankrolls(config, resolved, 3000));
   });
 
   it("resolves a grid to exactly what the model computes", async () => {
@@ -139,7 +142,7 @@ describe("SimulationBackend", () => {
       simulateBankrollGrid(grid3, roll, 200, 7),
     );
     await expect(backend.run("b", bank(200, 7))).resolves.toEqual(
-      simulateBankrolls(config, roll, 200, 7),
+      simulateBankrolls(config, resolved, 200, 7),
     );
   });
 });

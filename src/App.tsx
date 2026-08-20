@@ -15,6 +15,7 @@ import {
   PRESETS,
   configFromPreset,
   masteryBySlug,
+  maxEventsFor,
   startingValue,
   winRateInterval,
   winRatePosterior,
@@ -96,9 +97,9 @@ export default function App({
     startingGold,
     // Only the Qualifier Play-Ins spend these, and nothing here refills them.
     startingPlayInPoints,
-    // Where the player stops, not a numerical guard — a run that never busts
-    // has to end somewhere, and how long you intend to play is a real input.
-    maxEvents,
+    // Where the player stops, as a budget of games — a run that never busts
+    // has to end somewhere, and how much you intend to play is a real input.
+    maxGames,
     tab,
     // Which Set Mastery season the Mastery tab prices.
     masterySlug,
@@ -255,11 +256,11 @@ export default function App({
       startingGems,
       startingGold,
       startingPlayInPoints,
-      maxEvents,
+      maxGames,
       runs: bankrollRuns,
       seed,
     }),
-    [startingGems, startingGold, startingPlayInPoints, maxEvents, bankrollRuns, seed],
+    [startingGems, startingGold, startingPlayInPoints, maxGames, bankrollRuns, seed],
   );
   const bankrollParams = useMemo(
     () => ({ config, ...bankrollKnobs }),
@@ -444,8 +445,8 @@ export default function App({
           onStartingGoldChange={(startingGold) => patch({ startingGold })}
           startingPlayInPoints={startingPlayInPoints}
           onStartingPlayInPointsChange={(points) => patch({ startingPlayInPoints: points })}
-          maxEvents={maxEvents}
-          onMaxEventsChange={(maxEvents) => patch({ maxEvents })}
+          maxGames={maxGames}
+          onMaxGamesChange={(maxGames) => patch({ maxGames })}
           presetName={presetName}
           onPresetChange={applyPreset}
           masteryTrack={masteryTrack}
@@ -472,7 +473,9 @@ export default function App({
           bankrollPending={bankrollPending}
           bankrollError={bankrollError}
           startValue={startValue}
-          maxEvents={maxEvents}
+          // The budget as the cap this event's runs actually stop at, for the
+          // tiles that speak in events.
+          eventCap={maxEventsFor(config, maxGames)}
           view={view}
           onViewChange={setView}
           rateBand={rateBand}

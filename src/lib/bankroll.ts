@@ -28,7 +28,7 @@ import {
   paysTokens,
   type HoldingKey,
 } from "./holdings";
-import { goldPerEvent, icrsPerEvent, payoutFor } from "./payouts";
+import { goldPerEvent, icrsPerEvent, meanGamesPerEvent, payoutFor } from "./payouts";
 import { entryPrice } from "./presets";
 import { seededRandom } from "./rng";
 import { matchWinRate } from "./structure";
@@ -90,9 +90,86 @@ export type BankrollConfig = {
   /**
    * Events after which a run is cut short. A profitable event never busts, so
    * without a ceiling those runs would not terminate.
+   *
+   * Whole events, which is the walk's own unit — an entry is atomic, and the
+   * closed forms in `bankroll.validation.test.ts` sum to this horizon. The
+   * app states the stopping point in games instead (`BankrollPlan`), and
+   * `bankrollConfigFor` is where that budget becomes this cap.
    */
   maxEvents: number;
 };
+
+/**
+ * A bankroll as the player states it: the balances in hand, and how much play
+ * they intend before stopping — measured in games, because "how long you keep
+ * going" is an amount of play rather than a number of entries. That is what
+ * lets one plan mean one thing whichever event it is played in, and what the
+ * Compare grid leans on when it hands the same plan to every event: a
+ * best-of-three event fills the budget in fewer entries, not in less play.
+ *
+ * `BankrollConfig` above is this plan resolved against one event — the budget
+ * converted to the whole-event cap the run loop counts — and
+ * `bankrollConfigFor` is how the one becomes the other.
+ */
+export type BankrollPlan = Omit<BankrollConfig, "maxEvents"> & {
+  /**
+   * Play after which a run is cut short, in games. Whole games as the knob
+   * and the URL spell it, though nothing here requires it.
+   */
+  maxGames: number;
+};
+
+/**
+ * The ceiling on any run's event cap, however large the games budget.
+ *
+ * What a simulation costs is runs × events played, so this is the perf
+ * ceiling the events knob used to enforce directly, kept at the same figure.
+ * It has to be applied after the conversion rather than to the knob: how many
+ * entries a games budget buys depends on the event, and the same budget that
+ * is a few hundred entries of one event is thousands of a one-game one.
+ * `SIM_LIMITS.maxGames` bounds the knob itself, generously enough that this
+ * is the cap that binds first.
+ */
+export const MAX_EVENT_CAP = 2_000;
+
+/**
+ * A games budget as the whole-event cap one run counts.
+ *
+ * The budget buys entries, decided once per event rather than run by run: it
+ * divides by the event's mean length at the *configured* rate, so every run
+ * of a simulation stops at the same whole-event cap, and a run dealt a lucky
+ * rate from the posterior plays the same number of entries as an unlucky one.
+ * That keeps the cap a fact about the plan rather than a random variable —
+ * the events histogram stacks its survivors on one bar, and the validation
+ * suite's closed forms have a fixed horizon to sum to.
+ *
+ * The cost is that the cap moves with the configured rate, and moves
+ * *against* it — a better player's elimination runs last longer, so the same
+ * budget buys fewer of them. True about table time, but backwards-feeling on
+ * a slider, which is why the input's hint quotes the budget at an even 50%
+ * game instead and says "around": the displayed figure holds still, and this
+ * cap stays the one the runs are actually held to.
+ *
+ * Rounded to the nearest whole event — an entry is atomic, and a budget of
+ * most-of-an-event is closer to playing it than to stopping short — with two
+ * ends pinned: any positive budget buys at least the one event you sat down
+ * for, and no budget converts past `MAX_EVENT_CAP`. Zero games is zero
+ * events, the same "play nothing" it always was.
+ */
+export function maxEventsFor(config: EventConfig, maxGames: number): number {
+  if (maxGames <= 0) return 0;
+  const cap = Math.round(maxGames / meanGamesPerEvent(config));
+  return Math.min(MAX_EVENT_CAP, Math.max(1, cap));
+}
+
+/**
+ * A plan resolved against one event: the balances as stated, and the games
+ * budget as that event's own whole-event cap.
+ */
+export function bankrollConfigFor(config: EventConfig, plan: BankrollPlan): BankrollConfig {
+  const { maxGames, ...balances } = plan;
+  return { ...balances, maxEvents: maxEventsFor(config, maxGames) };
+}
 
 export type BankrollResult = {
   trials: number;

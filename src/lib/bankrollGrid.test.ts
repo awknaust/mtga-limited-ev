@@ -12,7 +12,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import { simulateBankrolls } from "./bankroll";
+import { bankrollConfigFor, simulateBankrolls } from "./bankroll";
 import {
   bankrollSummary,
   simulateBankrollGrid,
@@ -22,8 +22,16 @@ import { PRESETS, configFromPreset, defaultConfig } from "./presets";
 import type { EventConfig } from "./types";
 
 const base = defaultConfig();
-const roll = { startingGems: 3000, startingGold: 500, startingPlayInPoints: 0, maxEvents: 12 };
+const roll = { startingGems: 3000, startingGold: 500, startingPlayInPoints: 0, maxGames: 75 };
 const RUNS = 400;
+
+/**
+ * What "the same simulation" means since the stopping point became a games
+ * budget: the plan resolved against each row's own config, which is the one
+ * step the grid performs that a bare `simulateBankrolls` call does not.
+ */
+const rolled = (config: EventConfig, runs: number, seed: number) =>
+  simulateBankrolls(config, bankrollConfigFor(config, roll), runs, seed);
 
 const preset = (name: string): EventConfig => {
   const p = PRESETS.find((x) => x.name === name);
@@ -44,9 +52,9 @@ describe("simulateBankrollGrid", () => {
   it("gives each config exactly what simulateBankrolls gives it", () => {
     const grid = simulateBankrollGrid([premier, quick, direct], roll, RUNS, 7);
     expect(grid).toEqual([
-      bankrollSummary(simulateBankrolls(premier, roll, RUNS, 7)),
-      bankrollSummary(simulateBankrolls(quick, roll, RUNS, 7)),
-      bankrollSummary(simulateBankrolls(direct, roll, RUNS, 7)),
+      bankrollSummary(rolled(premier, RUNS, 7)),
+      bankrollSummary(rolled(quick, RUNS, 7)),
+      bankrollSummary(rolled(direct, RUNS, 7)),
     ]);
   });
 
@@ -61,7 +69,34 @@ describe("simulateBankrollGrid", () => {
     const [a, b] = simulateBankrollGrid([premier, premier], roll, RUNS, 3);
     expect(a).toEqual(b);
     // And the shared seed is the one asked for, not the first position's.
-    expect(a).toEqual(bankrollSummary(simulateBankrolls(premier, roll, RUNS, 3)));
+    expect(a).toEqual(bankrollSummary(rolled(premier, RUNS, 3)));
+  });
+
+  it("resolves the games budget against each row's own event", () => {
+    /*
+     * The one step the grid adds to `simulateBankrolls`, so the one step a
+     * test has to be able to see failing. The rows above cannot: Premier and
+     * Quick share a structure and so a cap, and the Direct row can afford no
+     * entry, so a grid that resolved the plan once — against its first config
+     * — would pass them all. A best-of-three event converts the same budget
+     * to a different cap, and the balance here is deep enough that runs
+     * actually reach both caps rather than busting short of either.
+     */
+    const traditional = preset("Traditional Draft");
+    const deep = { ...roll, startingGems: 30_000 };
+    expect(bankrollConfigFor(premier, deep).maxEvents).not.toBe(
+      bankrollConfigFor(traditional, deep).maxEvents,
+    );
+    const grid = simulateBankrollGrid([premier, traditional], deep, RUNS, 9);
+    expect(grid).toEqual([
+      bankrollSummary(simulateBankrolls(premier, bankrollConfigFor(premier, deep), RUNS, 9)),
+      bankrollSummary(
+        simulateBankrolls(traditional, bankrollConfigFor(traditional, deep), RUNS, 9),
+      ),
+    ]);
+    // The caps are exercised, not merely different: runs reach them.
+    expect(grid[0].survivedFraction).toBeGreaterThan(0);
+    expect(grid[1].survivedFraction).toBeGreaterThan(0);
   });
 
   it("answers positionally, so reordering the configs reorders the rows", () => {
@@ -133,9 +168,9 @@ describe("simulateBankrollGridSteps", () => {
       step = gen.next();
     }
     expect(step.value).toEqual([
-      bankrollSummary(simulateBankrolls(premier, roll, RUNS, 7)),
-      bankrollSummary(simulateBankrolls(quick, roll, RUNS, 7)),
-      bankrollSummary(simulateBankrolls(direct, roll, RUNS, 7)),
+      bankrollSummary(rolled(premier, RUNS, 7)),
+      bankrollSummary(rolled(quick, RUNS, 7)),
+      bankrollSummary(rolled(direct, RUNS, 7)),
     ]);
   });
 });

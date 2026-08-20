@@ -17,6 +17,7 @@ import {
   MASTERY_TRACKS,
   PRESETS,
   matchWinRate,
+  maxEventsFor,
   type EventConfig,
   type MasteryTrack,
 } from "../lib";
@@ -58,8 +59,8 @@ export function InputPanel({
   onStartingGoldChange,
   startingPlayInPoints,
   onStartingPlayInPointsChange,
-  maxEvents,
-  onMaxEventsChange,
+  maxGames,
+  onMaxGamesChange,
   presetName,
   onPresetChange,
   masteryTrack,
@@ -86,8 +87,8 @@ export function InputPanel({
   onStartingGoldChange: (n: number) => void;
   startingPlayInPoints: number;
   onStartingPlayInPointsChange: (n: number) => void;
-  maxEvents: number;
-  onMaxEventsChange: (n: number) => void;
+  maxGames: number;
+  onMaxGamesChange: (n: number) => void;
   presetName: string;
   /** Picking a preset can raise the top-up prompt, so `App` handles it. */
   onPresetChange: (name: string) => void;
@@ -117,6 +118,22 @@ export function InputPanel({
   const alt = useMemo(() => money(otherUnit(unit), gemsPerUsd), [unit, gemsPerUsd]);
   const gemsEq = (g: number): string => approx(m.fmt(g));
   const altEq = (g: number): string => approx(alt.fmt(g));
+
+  /*
+   * The games budget read back in the units the results and the calendar
+   * speak. The events figure is quoted at an even 50% game rather than at
+   * the reader's own rate, so it holds still under the win-rate slider —
+   * the cap the simulation actually enforces (`maxEventsFor` at the
+   * configured rate) tracks the rate and moves *against* it, a better
+   * player's elimination runs being longer, which reads as a bug while
+   * dragging. "Around" is what carries that gap. A fixed-rounds event is
+   * the same number of games whoever plays, so its count is stated plainly
+   * and the two readings agree exactly. No days reading when the day knob
+   * is zero: with no pace stated, a budget is not an amount of time.
+   */
+  const budgetEvents = maxEventsFor({ ...config, winRate: 0.5 }, maxGames);
+  const exactCount = config.structure.kind === "rounds";
+  const budgetDays = config.gamesPerDay > 0 ? maxGames / config.gamesPerDay : null;
 
   /*
    * A preset describes a real event, so its definition is read-only wherever it
@@ -167,7 +184,7 @@ export function InputPanel({
     startGems: `${uid}-start-gems`,
     startGold: `${uid}-start-gold`,
     startPoints: `${uid}-start-points`,
-    maxEvents: `${uid}-max-events`,
+    maxGames: `${uid}-max-games`,
     preset: `${uid}-preset`,
     masterySeason: `${uid}-mastery-season`,
     masteryPrice: `${uid}-mastery-price`,
@@ -325,19 +342,29 @@ export function InputPanel({
                 Together worth {gemsEq(startValue)} or {altEq(startValue)}
               </div>
               <div className="col-12">
-                <label htmlFor={ids.maxEvents} className="form-label">
-                  Stop after (events)
+                <label htmlFor={ids.maxGames} className="form-label">
+                  Stop after (games)
                   <InfoTip
-                    label="About the event limit"
-                    content="Where you stop playing. A run that never goes broke has to end somewhere, and how long you keep going changes the ending balance."
+                    label="About the games budget"
+                    content="The most games you are willing to play — games take time, and the bankroll simulation needs a stopping point. Games per day is adjusted in Values & assumptions."
                   />
                 </label>
                 <NumberInput
-                  id={ids.maxEvents}
+                  id={ids.maxGames}
                   min={1}
-                  value={maxEvents}
-                  onChange={(n) => onMaxEventsChange(clampInt(n, 1, SIM_LIMITS.maxEvents))}
+                  value={maxGames}
+                  onChange={(n) => onMaxGamesChange(clampInt(n, 1, SIM_LIMITS.maxGames))}
                 />
+                {/* The budget in the two units a reader can check it in —
+                    see budgetEvents above for the phrasing. */}
+                <div className="form-text">
+                  {exactCount ? "" : "Around "}
+                  {budgetEvents} {budgetEvents === 1 ? "event" : "events"}
+                  {budgetDays !== null &&
+                    (budgetDays < 1
+                      ? ", or under a day of play"
+                      : `, or about ${Math.round(budgetDays)} ${Math.round(budgetDays) === 1 ? "day" : "days"} of play`)}
+                </div>
               </div>
             </div>
           </div>

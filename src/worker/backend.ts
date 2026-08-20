@@ -14,7 +14,7 @@
  * is a broken dispatcher, and is rejected as such rather than queued.
  */
 
-import { simulateBankrollsSteps } from "../lib/bankroll";
+import { bankrollConfigFor, simulateBankrollsSteps } from "../lib/bankroll";
 import { simulateBankrollGridSteps } from "../lib/bankrollGrid";
 import { abortError, type SimulationApi, type SimulationRequest, type SimulationResult } from "./protocol";
 
@@ -119,6 +119,8 @@ export class SimulationBackend implements SimulationApi {
  * for nothing.
  */
 function generatorOf(request: SimulationRequest): Generator<number, SimulationResult> {
+  // The plan's games budget resolves to a whole-event cap per config — the
+  // grid does its own resolving, one cap per row.
   return request.kind === "compare"
     ? simulateBankrollGridSteps(
         request.configs,
@@ -126,5 +128,10 @@ function generatorOf(request: SimulationRequest): Generator<number, SimulationRe
         request.runs,
         request.seed,
       )
-    : simulateBankrollsSteps(request.config, request.bankroll, request.runs, request.seed);
+    : simulateBankrollsSteps(
+        request.config,
+        bankrollConfigFor(request.config, request.bankroll),
+        request.runs,
+        request.seed,
+      );
 }

@@ -11,7 +11,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import { expose } from "comlink";
 
-import { simulateBankrolls } from "../lib/bankroll";
+import { bankrollConfigFor, simulateBankrolls } from "../lib/bankroll";
 import { simulateBankrollGrid } from "../lib/bankrollGrid";
 import { PRESETS, configFromPreset, defaultConfig } from "../lib/presets";
 import type { EventConfig } from "../lib/types";
@@ -20,10 +20,11 @@ import { SimulationClient } from "./client";
 import { isAbortError } from "./protocol";
 
 const config = defaultConfig();
-const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 20 };
+const roll = { startingGems: 3000, startingGold: 0, startingPlayInPoints: 0, maxGames: 120 };
 
 /** The model's own answer, for a submission to be compared against. */
-const expected = (runs: number, seed = 1) => simulateBankrolls(config, roll, runs, seed);
+const expected = (runs: number, seed = 1) =>
+  simulateBankrolls(config, bankrollConfigFor(config, roll), runs, seed);
 
 /** Three real ladders, and the grid the model makes of them. */
 const grid3 = PRESETS.slice(0, 3).map((p) => configFromPreset(p, config));

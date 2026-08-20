@@ -252,7 +252,7 @@ describe("round trips", () => {
       startingGems: 12_000,
       startingGold: 5_000,
       startingPlayInPoints: 40,
-      maxEvents: 50,
+      maxGames: 50,
       tab: "event",
       unit: "usd",
       gemsPerUsd: 350,
@@ -374,7 +374,7 @@ describe("resetting advanced settings", () => {
       startingGems: 12_000,
       startingGold: 7_500,
       startingPlayInPoints: 40,
-      maxEvents: 50,
+      maxGames: 50,
       tab: "event",
       unit: "usd",
       gemsPerUsd: 350,
@@ -432,7 +432,7 @@ describe("resetting advanced settings", () => {
       "entryGold",
       "entryPoints",
       "gamesPerMatch",
-      "maxEvents",
+      "maxGames",
       "payouts",
       "preset",
       "rounds",
@@ -488,7 +488,7 @@ describe("resetting advanced settings", () => {
     expect(reset.config.payouts).toEqual(touched.config.payouts);
     expect(reset.startingGems).toBe(touched.startingGems);
     expect(reset.startingGold).toBe(touched.startingGold);
-    expect(reset.maxEvents).toBe(touched.maxEvents);
+    expect(reset.maxGames).toBe(touched.maxGames);
     expect(reset.tab).toBe(touched.tab);
     expect(reset.unit).toBe(touched.unit);
   });
@@ -817,7 +817,7 @@ describe("input from a URL is not trusted", () => {
   it("holds the ceilings the inputs hold", () => {
     expect(decodeShareState("runs=9999999").bankrollRuns).toBe(SIM_LIMITS.bankrollRuns);
     expect(decodeShareState("runs=0").bankrollRuns).toBe(1);
-    expect(decodeShareState("maxEvents=99999").maxEvents).toBe(SIM_LIMITS.maxEvents);
+    expect(decodeShareState("maxGames=999999").maxGames).toBe(SIM_LIMITS.maxGames);
   });
 
   it("keeps the preset's ladder when the payout table is malformed", () => {
