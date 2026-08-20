@@ -136,14 +136,19 @@ describe("the registry", () => {
     for (const name of [
       "DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS",
       "DEFAULT_COSMETIC_VALUE_GEMS",
-      "DEFAULT_DAILY_WIN_ICR_VALUE_GEMS",
       "DEFAULT_WIN_RATE_MATCHES",
-      "BO3_GAMES_PER_MATCH",
     ] as const) {
       expect(r.get(name)!.asOf, name).toBeNull();
     }
-    // A choice carries the date it was made, where one is recorded.
+    /*
+     * A choice carries the date it was made, where one is recorded — which is
+     * every choice made since the rule was written down. The three left null
+     * above predate it, and a date invented for them now would be a lie about
+     * when anyone last thought about them.
+     */
     expect(r.get("DEFAULT_GAMES_PER_DAY")!.asOf).toBe("2026-08-19");
+    expect(r.get("BO3_GAMES_PER_MATCH")!.asOf).toBe("2026-08-19");
+    expect(r.get("DEFAULT_DAILY_WIN_ICR_VALUE_GEMS")!.asOf).toBe("2026-08-20");
     // The check date lives in the field, not the prose. (Other dates — the
     // mythic-rate window, set releases — are derivation inputs and stay.)
     for (const [name, c] of r) expect(c.explain.join("\n"), name).not.toMatch(/checked by hand on/);

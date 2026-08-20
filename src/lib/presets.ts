@@ -555,34 +555,36 @@ export const DEFAULT_UNCOMMON_ICR_VALUE_GEMS = 0.05 * ((7 / 8) * 20 + (1 / 8) * 
 /**
  * Default gem value of one individual card reward from the daily-win ladder.
  *
- * Zero, and zero by refusal rather than by arithmetic — the same call
- * DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS and DEFAULT_COSMETIC_VALUE_GEMS make,
- * for a different reason. There is a figure here, and it is not that nobody
- * can compute one; it is that the rate it rests on has not been read from
- * Wizards' page by anyone working on this repository. The cards are counted
- * all the same — DAILY_WIN_ICR is which wins pay them, they appear in the
- * breakdown and a bankroll run holds them — so what is being left out stays
- * on screen instead of disappearing into an assumption.
+ * Zero, and a modelling choice rather than a missing figure. Every gem value
+ * in this file converts through duplicate protection: a card is worth 20 or
+ * 40 gems only once you already hold four of it. That is a fair assumption
+ * for a draft's rewards, which come from the set you are drafting and which
+ * DEFAULT_PACK_VALUE_GEMS prices on "a complete collection of the set". It is
+ * not a fair one here. These cards are drawn from any Standard-legal set, so
+ * the collection that would have to be complete is the whole of Standard, and
+ * what you almost always get is a card rather than gems.
  *
- * What to type for anyone who wants them priced, and the arithmetic behind
- * it. The daily wins pay an uncommon ICR that upgrades to a rare about 1:10.
- * An upgraded card is a rare that is itself a mythic about 1:8 — the page's
- * "Standard ICRs that upgrade from Rare to Mythic Rare are approximately at a
- * rate of 1:8", which `scripts/constants/` does parse — so on a complete
- * collection, where a duplicate rare converts to 20 gems and a mythic to 40,
+ * Pricing that properly would mean a per-set completion term — how much of
+ * each Standard set the reader holds — which is a input nobody has and a
+ * shape the rest of the model does not carry. So the cards are counted and
+ * valued at nothing, and the model stays the size it is. The counting is the
+ * part that matters: DAILY_WIN_ICR is which wins pay them, they appear in the
+ * breakdown and a bankroll run holds them, so what is being left out is on
+ * screen rather than hidden in an assumption.
+ *
+ * What the field would take, for anyone whose Standard collection *is*
+ * complete. The daily wins pay an uncommon ICR that upgrades to a rare about
+ * 1:10, and an upgraded card is a rare that is itself a mythic about 1:8 —
+ * the page's "Standard ICRs that upgrade from Rare to Mythic Rare are
+ * approximately at a rate of 1:8", which `scripts/constants/` parses. So
  *
  *     0.1 × ((7/8 × 20) + (1/8 × 40)) = 0.1 × 22.5 = 2.25 gems
  *
- * That figure is a floor: the un-upgraded nine tenths are valued at nothing,
- * which is the convention every uncommon in this file is priced under, since
- * an uncommon has no duplicate-protection value and feeds only vault
- * progress.
- *
- * The 1:10 is the part that is not settled. It is corroborated — see
- * `DAILY_WIN_ICR_UPGRADE` in `scripts/constants/by-hand.ts`, which carries
- * the sources and the trap that catches people checking it — but no primary
- * reading of it exists here, and a default is the wrong place for a figure
- * in that state. Set the field and the whole term comes back.
+ * and that is a ceiling on this reward rather than the floor it first looks
+ * like: it already assumes every upgraded rare converts. The 1:10 behind it
+ * is corroborated but unread — `DAILY_WIN_ICR_UPGRADE` in
+ * `scripts/constants/by-hand.ts` carries the sources and the trap that
+ * catches people checking it.
  *
  * @see https://magic.wizards.com/en/mtgarena/drop-rates
  */

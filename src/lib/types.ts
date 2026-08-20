@@ -385,9 +385,10 @@ export type EventConfig = {
    * repricing one should not silently reprice the other.
    *
    * Zero by default, which counts the cards a day's wins pay as worth nothing
-   * and leaves the gold — a refusal rather than a reading, since no one here
-   * has read that 1:10 from Wizards' page. The cards are still counted, so
-   * what is being left out stays on screen; see
+   * and leaves the gold. A deliberate choice: these are drawn from any
+   * Standard set, so the duplicate protection that turns a card into gems
+   * would need a complete Standard collection rather than a complete set. The
+   * cards are still counted, so what is being left out stays on screen; see
    * DEFAULT_DAILY_WIN_ICR_VALUE_GEMS for what to type instead.
    */
   dailyWinIcrValueGems: number;

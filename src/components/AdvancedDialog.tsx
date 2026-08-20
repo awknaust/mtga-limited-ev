@@ -445,7 +445,7 @@ export function AdvancedDialog({
               Daily win ICR value ({m.label})
               <InfoTip
                 label="About daily win ICR value"
-                content="The card each daily win past the fourth pays, alongside the gold. Zero by default: it is an uncommon, and the rate it upgrades to a rare at has not been read from Wizards' page by anyone here. Type 2.25 for the figure that rate implies."
+                content="Daily wins reward uncommon ICRs alongside the gold, and this is the rate they are valued at. Zero by default, since their value is almost negligible unless you hold a full collection."
               />
             </label>
             <MoneyInput

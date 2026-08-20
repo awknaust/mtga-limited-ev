@@ -100,6 +100,12 @@ export const DAILY_QUEST = {
  * upgrade at sits in the page's prose rather than the table, so it is
  * recorded here with the rest of the figures no parser picks up.
  *
+ * Nothing derives from it today. DEFAULT_DAILY_WIN_ICR_VALUE_GEMS is zero by
+ * a modelling choice about which collection would have to be complete for
+ * these cards to convert to gems at all, not for want of this rate. It is
+ * kept because it is what that constant's derivation prints for a reader
+ * pricing the cards themselves.
+ *
  * **Corroborated, not read.** Unlike everything else in this file, this was
  * not read off the client. It began as this repository's own note of the page
  * and has since been checked against two community transcriptions, which
@@ -107,8 +113,6 @@ export const DAILY_QUEST = {
  * win rewards as uncommon Standard-legal cards "each of which may upgrade to
  * a rare card (1:10)". `magic.wizards.com` answers HTTP 403 from CI and from
  * the sandboxes this repo is worked on in, so no primary reading exists here.
- * That is why DEFAULT_DAILY_WIN_ICR_VALUE_GEMS is zero by refusal rather than
- * the 2.25 this rate implies; the arithmetic is on the constant.
  *
  * **The trap, for whoever checks this next.** Arena has three different
  * uncommon-ICR upgrade rates, and a casual search finds the wrong one:

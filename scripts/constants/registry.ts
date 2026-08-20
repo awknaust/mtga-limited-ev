@@ -35,12 +35,13 @@
  * DEFAULT_GAMES_PER_DAY and BO3_GAMES_PER_MATCH are modelling choices about
  * the reader and the format, and DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
  * DEFAULT_COSMETIC_VALUE_GEMS and DEFAULT_DAILY_WIN_ICR_VALUE_GEMS are zeros
- * that refuse to invent a number rather than numbers — the last of those
- * refusing for want of a source rather than for want of arithmetic, and its
- * derivation prints the figure it would otherwise be. Those six have nothing
- * to fetch, so their `compute` returns the figure with the reasoning and no
- * source, and they are here so the inventory has no holes — not because
- * running this can move them.
+ * rather than numbers — the first two because nothing converts to gems at
+ * all, the last because what it converts through is duplicate protection on
+ * cards drawn from any Standard set, which the model deliberately does not
+ * grow a term for; its derivation prints the figure that term would use.
+ * Those six have nothing to fetch, so their `compute` returns the figure with
+ * the reasoning and no source, and they are here so the inventory has no
+ * holes — not because running this can move them.
  *
  * The two generic box constants are the heavy ones: their data is the
  * box-price feed (`scripts/box-prices/`, fetched in full when they are asked
@@ -131,6 +132,9 @@ export type ConstantDef = {
 
 /** An entry with the key it was registered under, which is what the CLI folds over. */
 export type NamedConstantDef = ConstantDef & { name: ConstantName };
+
+/** When the daily-win cards were decided to be worth nothing. See the entry. */
+const DAILY_WIN_ICR_DECIDED_ON = "2026-08-20";
 
 const gems = (n: number): string => n.toLocaleString("en-US");
 const usd = (n: number): string =>
@@ -529,25 +533,28 @@ export const REGISTRY = {
   },
 
   DEFAULT_DAILY_WIN_ICR_VALUE_GEMS: {
-    summary: "gem value of one daily-win ICR — zero by refusal",
+    summary: "gem value of one daily-win ICR — zero, a modelling choice",
     sources: [],
     compute() {
       /*
-       * The one refusal here that is not for want of a figure. The others
-       * price things nothing converts to; this one has arithmetic and is
-       * missing a primary reading of the rate underneath it, which is a
-       * different thing to be honest about — so the derivation prints the
-       * figure it would be, and the value stays at nothing until someone can
-       * open the page.
+       * Zero because of what the card *is*, not because the rate behind it is
+       * unread. Every gem figure in this file converts through duplicate
+       * protection, which pays only on a card you already hold four of — and
+       * these are drawn from any Standard-legal set rather than the one you
+       * are drafting, so the collection that would have to be complete is all
+       * of Standard rather than one set. Nearly always you get a card, not
+       * gems. The arithmetic below is what the model would have to grow a
+       * per-set completion term to use, and the cards are counted either way.
        */
       const upgradeRate = DAILY_WIN_ICR_UPGRADE.rareUpgradeRate;
       return {
         value: 0,
-        asOf: null,
+        asOf: DAILY_WIN_ICR_DECIDED_ON,
         explain: [
-          "zero by refusal: the cards are counted, and what one is worth rests on an upgrade rate",
-          "  no one here has read from Wizards' page — see DAILY_WIN_ICR_UPGRADE in by-hand.ts",
-          `at 1:${upgradeRate} to a rare, and a rare that is a mythic 1:8, one card would be`,
+          "zero, a modelling choice: these are drawn from any Standard-legal set, so the duplicate",
+          "  protection every gem figure here converts through would need a complete Standard collection",
+          "  rather than a complete set — you get a card, and the model is not grown a term for it",
+          `were they to convert, at 1:${upgradeRate} to a rare and a rare that is a mythic 1:8, one would be`,
           `  ${1 / upgradeRate} x ((7/8 x 20) + (1/8 x 40)) = ${(1 / upgradeRate) * ((7 / 8) * 20 + (1 / 8) * 40)} gems`,
         ],
       };
@@ -640,7 +647,7 @@ export const REGISTRY = {
     compute() {
       return {
         value: 2.5,
-        asOf: null,
+        asOf: "2026-08-19",
         explain: [
           "a modelling choice, not derived from any source: a match runs two or three games and 2.5 is the",
           "  midpoint; independent games at rate g would say 2 + 2g(1 − g), which is 2.5 at an even rate,",
