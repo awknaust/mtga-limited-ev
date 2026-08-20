@@ -346,7 +346,7 @@ export function InputPanel({
                   Stop after (games)
                   <InfoTip
                     label="About the games budget"
-                    content="Where you stop playing, as a total amount of play across every event entered. A run that never goes broke has to end somewhere, and how long you keep going changes the ending balance."
+                    content="The most games you are willing to play — games take time, and the bankroll simulation needs a stopping point. Games per day is adjusted in Values & assumptions."
                   />
                 </label>
                 <NumberInput
