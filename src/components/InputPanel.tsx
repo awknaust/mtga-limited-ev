@@ -121,18 +121,18 @@ export function InputPanel({
 
   /*
    * The games budget read back in the units the results and the calendar
-   * speak: the whole-event cap this event's runs stop at, and what the budget
-   * comes to at the day knob's own pace. The cap is quoted as exactly what it
-   * is — "at most", since the simulation enforces this one number and a run
-   * can only bust short of it, never play past it. It is not hedged with an
-   * "about": the figure is not an estimate of anything, and the same number
-   * appears on the risk-of-ruin tile. It does move when the win rate does,
-   * because the conversion divides by the event's mean length at that rate —
-   * honest movement, since the simulation's cap moves with it. No days
-   * reading when the day knob is zero: with no pace stated, a budget is not
-   * an amount of time.
+   * speak. The events figure is quoted at an even 50% game rather than at
+   * the reader's own rate, so it holds still under the win-rate slider —
+   * the cap the simulation actually enforces (`maxEventsFor` at the
+   * configured rate) tracks the rate and moves *against* it, a better
+   * player's elimination runs being longer, which reads as a bug while
+   * dragging. "Around" is what carries that gap. A fixed-rounds event is
+   * the same number of games whoever plays, so its count is stated plainly
+   * and the two readings agree exactly. No days reading when the day knob
+   * is zero: with no pace stated, a budget is not an amount of time.
    */
-  const eventCap = maxEventsFor(config, maxGames);
+  const budgetEvents = maxEventsFor({ ...config, winRate: 0.5 }, maxGames);
+  const exactCount = config.structure.kind === "rounds";
   const budgetDays = config.gamesPerDay > 0 ? maxGames / config.gamesPerDay : null;
 
   /*
@@ -356,9 +356,10 @@ export function InputPanel({
                   onChange={(n) => onMaxGamesChange(clampInt(n, 1, SIM_LIMITS.maxGames))}
                 />
                 {/* The budget in the two units a reader can check it in —
-                    see eventCap above for the phrasing. */}
+                    see budgetEvents above for the phrasing. */}
                 <div className="form-text">
-                  At most {eventCap} {eventCap === 1 ? "event" : "events"}
+                  {exactCount ? "" : "Around "}
+                  {budgetEvents} {budgetEvents === 1 ? "event" : "events"}
                   {budgetDays !== null &&
                     (budgetDays < 1
                       ? ", or under a day of play"

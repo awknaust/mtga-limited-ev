@@ -141,9 +141,14 @@ export const MAX_EVENT_CAP = 2_000;
  * rate from the posterior plays the same number of entries as an unlucky one.
  * That keeps the cap a fact about the plan rather than a random variable —
  * the events histogram stacks its survivors on one bar, and the validation
- * suite's closed forms have a fixed horizon to sum to. The cost is that the
- * cap moves when the configured rate does, which the input's hint shows
- * rather than hides.
+ * suite's closed forms have a fixed horizon to sum to.
+ *
+ * The cost is that the cap moves with the configured rate, and moves
+ * *against* it — a better player's elimination runs last longer, so the same
+ * budget buys fewer of them. True about table time, but backwards-feeling on
+ * a slider, which is why the input's hint quotes the budget at an even 50%
+ * game instead and says "around": the displayed figure holds still, and this
+ * cap stays the one the runs are actually held to.
  *
  * Rounded to the nearest whole event — an entry is atomic, and a budget of
  * most-of-an-event is closer to playing it than to stopping short — with two

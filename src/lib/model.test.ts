@@ -795,6 +795,29 @@ describe("the games budget", () => {
     expect(maxEventsFor(config, 10.4 * games)).toBe(10);
   });
 
+  it("converts at the configured rate, which the input's hint does not", () => {
+    /*
+     * A better player's elimination runs last longer, so the same budget
+     * buys fewer entries — the cap the runs are held to tracks that. The
+     * hint under the input quotes the budget at an even 50% game instead,
+     * so the displayed figure holds still under the win-rate slider; the
+     * two agree exactly on a fixed-rounds event, below.
+     */
+    expect(maxEventsFor({ ...config, winRate: 0.8 }, 10 * games)).toBeLessThan(10);
+  });
+
+  it("is exact for a fixed-rounds event, whose length never varies", () => {
+    // Three rounds of best-of-one is three games, every event, whoever
+    // plays — so the cap ignores the rate here, and the hint's even-rate
+    // reading is this same number.
+    const rounds = {
+      ...config,
+      structure: { kind: "rounds", rounds: 3 } as const,
+    };
+    expect(maxEventsFor(rounds, 75)).toBe(25);
+    expect(maxEventsFor({ ...rounds, winRate: 0.8 }, 75)).toBe(25);
+  });
+
   it("converts through the event's own length, so best-of-three buys fewer", () => {
     const bo3 = { ...config, gamesPerMatch: BO3_GAMES_PER_MATCH };
     expect(maxEventsFor(bo3, 10 * games)).toBe(10 / BO3_GAMES_PER_MATCH);
