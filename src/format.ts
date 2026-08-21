@@ -107,6 +107,21 @@ export const signClass = (n: number): string =>
 export const pct = (n: number, digits = 1): string => `${(n * 100).toFixed(digits)}%`;
 
 /**
+ * A count of games for display.
+ *
+ * Whole counts print bare: in best-of-one a match is a game, so the figure is
+ * something that literally happened. A fractional count is the best-of-three
+ * lattice showing through — matches priced at their *mean* games apiece — and
+ * half a game is not a thing anyone played, so it rounds and takes the ≈ that
+ * marks every other modelled figure. The test is the value rather than the
+ * event's format because it is the printing that lies or does not: a
+ * best-of-three count that lands whole is the true percentile, printed as it
+ * is.
+ */
+export const gamesLabel = (games: number): string =>
+  Number.isInteger(games) ? String(games) : approx(String(Math.round(games)));
+
+/**
  * An amount as an axis tick, abbreviated to thousands.
  *
  * A tick saying which thousand it is says enough — the figures that have to be

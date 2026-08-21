@@ -8,7 +8,7 @@
  * the run ends when the balance cannot cover another entry — so its run length
  * has no PMF in a library.
  *
- * It does have closed forms, though, and this file is six of them. The trick
+ * It does have closed forms, though, and this file is seven of them. The trick
  * throughout is to *design an event* whose walk is analysable rather than to
  * find an analysis for Premier Draft:
  *
@@ -24,7 +24,10 @@
  *  5. Gold accrues at a fixed rate per event, so which entries it pays for is
  *     arithmetic rather than chance — the one part of the loop that (1) to (4)
  *     leave untested.
- *  6. An uncertain win rate makes the run length a mixture of (2) over the
+ *  6. A run's length in games is a stopped sum of per-event match counts, so
+ *     Wald ties its mean to the run length for any event — and where nothing
+ *     can bust, the whole distribution is an exact convolution.
+ *  7. An uncertain win rate makes the run length a mixture of (2) over the
  *     posterior, which is still closed form: the forward pass at a grid of
  *     Beta quantiles, averaged.
  *
@@ -1086,7 +1089,268 @@ describe("gold-funded entries", () => {
 });
 
 /* ────────────────────────────────────────────────────────────────────────
- * 6. The win-rate posterior
+ * 6. Games played
+ * ──────────────────────────────────────────────────────────────────────── */
+
+/**
+ * Probability of each number of matches one event lasts, by the same
+ * exhaustive walk `outcomeDistribution` takes. A leaf's matches are its wins
+ * plus its losses — a transcription of "the event ends when you have played
+ * them" rather than of any formula for the count, which keeps this section's
+ * reference independent of `meanRoundsPerEvent` and everything else in
+ * `payouts.ts`.
+ */
+function matchesDistribution(structure: EventStructure, p: number): number[] {
+  const most =
+    structure.kind === "rounds"
+      ? structure.rounds
+      : structure.maxWins + structure.maxLosses - 1;
+  const dist = new Array<number>(most + 1).fill(0);
+
+  const walk = (wins: number, losses: number, prob: number): void => {
+    const finished =
+      structure.kind === "rounds"
+        ? wins + losses === structure.rounds
+        : wins === structure.maxWins || losses === structure.maxLosses;
+    if (finished) {
+      dist[wins + losses] += prob;
+      return;
+    }
+    if (p > 0) walk(wins + 1, losses, prob * p);
+    if (p < 1) walk(wins, losses + 1, prob * (1 - p));
+  };
+  walk(0, 0, 1);
+
+  return dist;
+}
+
+describe("games played", () => {
+  /*
+   * The games figures are the run lengths again, read off each run's own match
+   * count at `gamesPerMatch` games apiece. Three claims pin them. Where an
+   * event is a single best-of-one match, games and events are the same number,
+   * exactly. Where an event is a fixed number of matches, games are an exact
+   * multiple of events — the budget conversion run backwards with no averaging
+   * in it. And on an elimination event, where the match count genuinely
+   * varies, the total is a stopped sum: an exact convolution pins the whole
+   * distribution when nothing can bust, and Wald pins the mean when runs do.
+   */
+
+  it("counts one game per event where an event is one best-of-one match", () => {
+    const flip = gemsOnly({
+      winRate: 0.4,
+      entryCostGems: 1000,
+      structure: { kind: "rounds", rounds: 1 },
+      payouts: [
+        { wins: 0, gems: 0, packs: 0 },
+        { wins: 1, gems: 1800, packs: 0 },
+      ],
+    });
+    const trials = 20_000;
+    const res = simulateBankrolls(
+      flip,
+      { ...NO_GOLD, startingGems: 3_000, maxEvents: 200 },
+      trials,
+      47,
+    );
+    // One round of one game per event, so the identity is exact — the same
+    // integers summed in the same order, not two figures that happen to agree.
+    expect(res.meanGames).toBe(res.meanEvents);
+    expect(res.gamePercentiles).toEqual(res.eventPercentiles);
+    // And the histogram is a partition of the runs, none dropped or doubled.
+    expect(res.gamesHistogram.reduce((acc, b) => acc + b.count, 0)).toBe(trials);
+  });
+
+  it("scales exactly with the games a match is worth on a fixed-rounds event", () => {
+    const rounds2 = gemsOnly({
+      winRate: 0.4,
+      entryCostGems: 1000,
+      gamesPerMatch: 2.5,
+      structure: { kind: "rounds", rounds: 2 },
+      payouts: [
+        { wins: 0, gems: 0, packs: 0 },
+        { wins: 1, gems: 1000, packs: 0 },
+        { wins: 2, gems: 2200, packs: 0 },
+      ],
+    });
+    const res = simulateBankrolls(
+      rounds2,
+      { ...NO_GOLD, startingGems: 4_000, maxEvents: 200 },
+      20_000,
+      53,
+    );
+    // Every event is exactly two matches at two and a half games, so a run's
+    // games are five times its events — percentile by percentile, since a
+    // monotone scaling cannot reorder the sample.
+    expect(res.meanGames).toBeCloseTo(5 * res.meanEvents, 9);
+    for (const key of ["p5", "p25", "p50", "p75", "p95"] as const) {
+      expect(res.gamePercentiles[key]).toBeCloseTo(5 * res.eventPercentiles[key], 12);
+    }
+    // The bin edges sit on the best-of-three lattice: the histogram is binned
+    // in whole matches and scaled, never binned in fractional games.
+    for (const bin of res.gamesHistogram) {
+      expect(Number.isInteger(bin.from / 2.5)).toBe(true);
+      expect(Number.isInteger(bin.to / 2.5)).toBe(true);
+    }
+  });
+
+  describe("as an exact sum where the cap is the only stop", () => {
+    /*
+     * An event that charges nothing cannot bust, so every run plays exactly
+     * `maxEvents` events — and its total match count is then a sum of that
+     * many independent draws from the per-event distribution, whose exact pmf
+     * is a convolution.
+     *
+     * This is the case that separates the true figure from its plausible
+     * wrong derivation. Games *could* have been reported as the event count
+     * times the event's mean length — the same conversion the budget knob
+     * makes — and every mean-level check in this section would pass, because
+     * the means agree. The distributions do not: here the event count is a
+     * constant, so that derivation collapses to a point mass while the real
+     * total spreads with every run's own eliminations. The percentile and
+     * histogram checks below are where that difference is unmissable.
+     */
+    const EVENTS = 50;
+    const trials = 20_000;
+    const free = gemsOnly({
+      winRate: 0.5,
+      entryCostGems: null,
+      structure: { kind: "elimination", maxWins: 4, maxLosses: 2 },
+      payouts: [
+        { wins: 0, gems: 0, packs: 0 },
+        { wins: 1, gems: 0, packs: 0 },
+        { wins: 2, gems: 0, packs: 0 },
+        { wins: 3, gems: 0, packs: 0 },
+        { wins: 4, gems: 0, packs: 0 },
+      ],
+    });
+
+    /** Exact pmf of the sum of `EVENTS` independent per-event match counts. */
+    const pmf = (() => {
+      const per = matchesDistribution(free.structure, free.winRate);
+      let sum = [1];
+      for (let i = 0; i < EVENTS; i++) {
+        const next = new Array<number>(sum.length + per.length - 1).fill(0);
+        for (let a = 0; a < sum.length; a++) {
+          if (sum[a] === 0) continue;
+          for (let b = 0; b < per.length; b++) next[a + b] += sum[a] * per[b];
+        }
+        sum = next;
+      }
+      return sum;
+    })();
+
+    const res = simulateBankrolls(
+      free,
+      { ...NO_GOLD, startingGems: 0, maxEvents: EVENTS },
+      trials,
+      61,
+    );
+
+    it("is the case it claims to be: every run reaches the cap", () => {
+      expect(res.survivedFraction).toBe(1);
+      expect(res.eventPercentiles).toEqual({
+        p5: EVENTS,
+        p25: EVENTS,
+        p50: EVENTS,
+        p75: EVENTS,
+        p95: EVENTS,
+      });
+      // While the games spread stays real — the point-mass derivation above
+      // would put these two on the same number.
+      expect(res.gamePercentiles.p95).toBeGreaterThan(res.gamePercentiles.p5);
+      expect(pmf.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9);
+    });
+
+    it("agrees with the simulated mean games", () => {
+      const se = Math.sqrt(varianceOf(pmf) / trials);
+      expect(res.meanGames).toBeGreaterThan(meanOf(pmf) - 4 * se);
+      expect(res.meanGames).toBeLessThan(meanOf(pmf) + 4 * se);
+    });
+
+    it("reports percentiles the exact CDF can account for", () => {
+      const cdf = cdfOf(pmf);
+      const support = pmf.map((_, n) => n);
+      for (const [key, q] of [
+        ["p5", 0.05],
+        ["p25", 0.25],
+        ["p50", 0.5],
+        ["p75", 0.75],
+        ["p95", 0.95],
+      ] as const) {
+        expect(accountsFor(cdf, support, res.gamePercentiles[key], q, trials)).toBe(
+          true,
+        );
+      }
+    });
+
+    it("agrees with the games histogram, bar for bar", () => {
+      /*
+       * As with the value histogram: the bins' edges come from the sample, so
+       * the exact mass is assigned with the identical arithmetic and the
+       * comparison is about the distribution rather than two binning
+       * conventions. The clamp at both ends covers the tails the sample
+       * cannot reach — fifty straight 4–0s is a possibility of the pmf and
+       * not of twenty thousand runs.
+       */
+      const bins = res.gamesHistogram;
+      const lo = bins[0].from;
+      const width = bins[0].to - bins[0].from;
+      const exact = new Array<number>(bins.length).fill(0);
+      for (let n = 0; n < pmf.length; n++) {
+        if (pmf[n] === 0) continue;
+        const at = Math.min(bins.length - 1, Math.max(0, Math.floor((n - lo) / width)));
+        exact[at] += pmf[n];
+      }
+      const empirical = bins.map((b) => b.count / trials);
+      expect(tvDistance(empirical, exact)).toBeLessThan(
+        TV_FLOORS * expectedTvDistance(exact, trials),
+      );
+    });
+  });
+
+  it.each([[1], [2.5]])(
+    "ties mean games to mean events by Wald, at %s games a match",
+    (perMatch) => {
+      /*
+       * The reach the convolution lacks, exactly as the money Wald above: with
+       * busts ending runs the event count is a stopping time on the sequence
+       * of events, so E[games] = E[events] · E[matches per event] · g holds
+       * whatever mixture of bust and cap does the stopping, and the residual's
+       * variance is Wald's second identity again — E[events] times the
+       * per-event match count's own variance.
+       */
+      const ladder = gemsOnly({
+        winRate: 0.45,
+        entryCostGems: 1000,
+        gamesPerMatch: perMatch,
+        structure: { kind: "elimination", maxWins: 4, maxLosses: 2 },
+        payouts: [
+          { wins: 0, gems: 0, packs: 0 },
+          { wins: 1, gems: 0, packs: 0 },
+          { wins: 2, gems: 1000, packs: 0 },
+          { wins: 3, gems: 1500, packs: 0 },
+          { wins: 4, gems: 2500, packs: 0 },
+        ],
+      });
+      const trials = 40_000;
+      const res = simulateBankrolls(
+        ladder,
+        { ...NO_GOLD, startingGems: 5_000, maxEvents: 60 },
+        trials,
+        59,
+      );
+
+      const per = matchesDistribution(ladder.structure, ladder.winRate);
+      const predicted = res.meanEvents * meanOf(per) * perMatch;
+      const se = perMatch * Math.sqrt((res.meanEvents * varianceOf(per)) / trials);
+      expect(Math.abs(res.meanGames - predicted)).toBeLessThan(4 * se);
+    },
+  );
+});
+
+/* ────────────────────────────────────────────────────────────────────────
+ * 7. The win-rate posterior
  * ──────────────────────────────────────────────────────────────────────── */
 
 describe("the win-rate posterior, inside a run", () => {

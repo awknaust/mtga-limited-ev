@@ -1,6 +1,14 @@
 import { describe, expect, it } from "vitest";
 
-import { GEM_SIGN, approx, gemTick, money, otherUnit, tickAmount } from "./format";
+import {
+  GEM_SIGN,
+  approx,
+  gamesLabel,
+  gemTick,
+  money,
+  otherUnit,
+  tickAmount,
+} from "./format";
 
 // The default rate: 20,000 gems for $99.99, the best rung on the store ladder.
 const RATE = 200;
@@ -120,6 +128,19 @@ describe("gem-equivalent marker", () => {
     // Keyed to the quantity, not the display unit, so toggling gems/USD
     // cannot move the mark between figures.
     expect(approx(money("usd", RATE).fmt(3400))).toBe("≈\u202F$17.00");
+  });
+});
+
+describe("game counts", () => {
+  it("prints a whole count bare — it is a count of things that happened", () => {
+    expect(gamesLabel(24)).toBe("24");
+    expect(gamesLabel(0)).toBe("0");
+  });
+
+  it("rounds the best-of-three lattice and says so", () => {
+    // 75 matches at two and a half games apiece: not a count anyone played,
+    // so it rounds and takes the marker every modelled figure carries.
+    expect(gamesLabel(187.5)).toBe("≈\u202F188");
   });
 });
 

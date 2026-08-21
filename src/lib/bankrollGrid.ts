@@ -56,6 +56,12 @@ export type BankrollSummary = {
   /** Mean events played before running dry, counting capped runs at the cap. */
   meanEvents: number;
   eventPercentiles: BankrollResult["eventPercentiles"];
+  /**
+   * The same run lengths in games — the unit the shared budget is stated in,
+   * and so the one axis on which every row's stopping point is the same
+   * number. See `BankrollResult.meanGames` for what a game is here.
+   */
+  gamePercentiles: BankrollResult["gamePercentiles"];
   /** Share of runs that hit `maxEvents` rather than running out of currency. */
   survivedFraction: number;
   /** Gems plus the gem value of everything won along the way. */
@@ -79,6 +85,7 @@ export const bankrollSummary = (r: BankrollResult): BankrollSummary => ({
   trials: r.trials,
   meanEvents: r.meanEvents,
   eventPercentiles: r.eventPercentiles,
+  gamePercentiles: r.gamePercentiles,
   survivedFraction: r.survivedFraction,
   meanFinalValue: r.meanFinalValue,
   medianFinalValue: r.medianFinalValue,

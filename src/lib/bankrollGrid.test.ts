@@ -115,6 +115,7 @@ describe("simulateBankrollGrid", () => {
     const [row] = simulateBankrollGrid([premier], roll, RUNS, 1);
     expect(Object.keys(row).sort()).toEqual([
       "eventPercentiles",
+      "gamePercentiles",
       "meanEvents",
       "meanFinalValue",
       "medianFinalValue",
