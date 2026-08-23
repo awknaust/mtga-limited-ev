@@ -1511,6 +1511,284 @@ button.box-add:focus-visible {
   }
 }
 
+/*
+ * The event calendar strip.
+ *
+ * Laid out in HTML rather than SVG, and for a sharper version of the reason
+ * `ValueSplitBar` gives. Every chart here is drawn in a 560-unit viewBox and
+ * stretched to its column, which works because a column is a column; this runs
+ * the full width of the page, from a 320px phone to a 1140px container. Type
+ * sized in viewBox units would come out near 3px at one end and 22px at the
+ * other. So the strip is measured and drawn in pixels — see `CalendarStrip`
+ * for the layout effect that measures it — and everything below is in the
+ * reader's own units, at one size everywhere.
+ *
+ * Row pitch lives here and only here. The component groups its placements into
+ * rows and renders one `.calendar-row` per row, stacked in normal flow, so
+ * nothing in JS knows how tall a row is and changing `--calendar-row` changes
+ * the strip and nothing else. Only the *horizontal* placement crosses over,
+ * which is the half that genuinely needs measuring.
+ */
+.calendar-strip {
+  /*
+   * Row pitch and bar thickness. The bar is deep enough to hold a line of type,
+   * because a name that fits inside its own bar costs its row nothing — see
+   * `labelInside` in calendarLayout.ts, which is what collapses a long event
+   * from a row of its own to a share of one.
+   */
+  --calendar-row: 22px;
+  --calendar-bar: 16px;
+  /* The popover is positioned against this box, so it has to be the containing
+     block. */
+  position: relative;
+  margin-bottom: 1.25rem;
+}
+
+.calendar-strip-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.calendar-strip-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.calendar-strip-stamp {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+/*
+ * The plot. `overflow-y` is a safety valve rather than a design: a calendar
+ * with thirty things running at once would otherwise push the whole page down,
+ * and a strip is meant to be glanced at. Normal weeks pack to a few rows and
+ * never reach it.
+ */
+.calendar-plot {
+  position: relative;
+  /*
+   * A ceiling, not a design. How many rows the packing needs depends on the
+   * width it is given, and it is not a gentle curve: the same twenty-one events
+   * that take seven rows at 1281px take fifteen at 351px, because a name is a
+   * fixed number of pixels while the row it sits on is not. Ten weekly Midweek
+   * Magics land 37px apart there and each claims 112px with its name, so those
+   * alone want four rows.
+   *
+   * So on a phone the strip scrolls rather than growing to a third of the
+   * screen. The alternative — dropping names from short bars once they stop
+   * fitting — was rejected: a bar with no name is not a calendar entry, and
+   * the popover needs a pointer to open.
+   */
+  max-height: 150px;
+  overflow-x: hidden;
+  overflow-y: auto;
+  /*
+   * Not cosmetic — it breaks a feedback loop. The layout is computed from this
+   * element's `clientWidth`, and a scrollbar appearing would narrow that,
+   * which repacks the rows, which can remove the scrollbar, which widens it
+   * again. Reserving the gutter whether or not it is used makes the measured
+   * width independent of what the measurement produces.
+   */
+  scrollbar-gutter: stable;
+}
+
+@media (min-width: 576px) {
+  .calendar-plot {
+    max-height: 260px;
+  }
+}
+
+.calendar-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--bs-border-color);
+  opacity: 0.35;
+}
+
+/*
+ * Where the reader is, and the one line on the strip that has to be found at a
+ * glance — every bar is read as before or after it.
+ *
+ * Twice the width of a gridline and at nearly full strength against their 0.35,
+ * because at 1px and 0.55 the two were the same mark: the first draft of this
+ * put "today" among nine week lines and it disappeared into them. Still the
+ * body colour rather than a signal one — this is chrome, "you are here", the
+ * same reasoning `.chart-rate` gives — so the separation is weight, not hue.
+ */
+.calendar-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--bs-body-color);
+  opacity: 0.85;
+}
+
+.calendar-row {
+  position: relative;
+  height: var(--calendar-row);
+}
+
+.calendar-bar {
+  position: absolute;
+  top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
+  height: var(--calendar-bar);
+  border-radius: calc(var(--calendar-bar) / 2);
+  background: var(--bs-primary);
+}
+
+/*
+ * A name inside its own bar.
+ *
+ * A sibling of the bar rather than a child, which is what keeps it readable on
+ * a finished event: `.calendar-bar-past` is drawn at 45% opacity, and a child
+ * would fade with it.
+ */
+.calendar-label-inside {
+  /*
+   * Dark on the fill, not white. Both bar colours in this theme are light —
+   * primary is #6ea8fe and success #4ade80 — and white on either is well short
+   * of contrast; the same call `.nav-segmented .nav-link.active` makes, with
+   * the same value.
+   */
+  color: #0b1220;
+  line-height: var(--calendar-bar);
+  top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
+}
+
+/*
+ * Except on a finished event, where it flips back. `.calendar-bar-past` is a
+ * muted grey at 45% over a near-black page, so the fill under the name there is
+ * dark rather than light and the contrast runs the other way.
+ */
+.calendar-label-inside.calendar-label-past {
+  color: rgb(255 255 255 / 75%);
+}
+
+/* Done with. Still worth showing — an event that ended on Tuesday is a thing
+   a reader may be looking for on Thursday — but not competing with what is on. */
+.calendar-bar-past {
+  background: var(--bs-secondary-color);
+  opacity: 0.45;
+}
+
+.calendar-bar-now {
+  background: var(--bs-success);
+}
+
+/*
+ * An end the window cut rather than the event. Squaring off the corner is the
+ * whole signal: a rounded end says "this stops here" and a square one says the
+ * bar carries on past the edge, which is exactly the difference.
+ */
+.calendar-bar-open-start {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.calendar-bar-open-end {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/*
+ * A name beside its bar. `nowrap` is load-bearing: the packing in
+ * `calendarLayout.ts` reserves a single line's width for every name, and one
+ * that wrapped would be laid out over the row beneath it.
+ */
+.calendar-label {
+  position: absolute;
+  top: 0;
+  line-height: var(--calendar-row);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  /* The name is capped at what the packing reserved for it — `max-width` comes
+     in from the component — and a name longer than its allotment is cut here
+     rather than allowed to run over the entry beside it. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--bs-body-color);
+}
+
+.calendar-label-past {
+  color: var(--bs-secondary-color);
+}
+
+.calendar-axis {
+  position: relative;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+/* Centred on its gridline, which is why it is shifted by half its own width
+   rather than positioned from an edge. */
+.calendar-tick {
+  position: absolute;
+  top: 0.1rem;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  color: var(--bs-secondary-color);
+}
+
+/*
+ * The hovered entry in full.
+ *
+ * `title` is left on the bars as a courtesy but is not the reading — the same
+ * call `ValueSplitBar` makes, and for the same reason: a native tooltip is
+ * drawn by the operating system after a delay it chooses, and here it would be
+ * the only way to see a name the row had to truncate.
+ *
+ * `pointer-events: none` matters. The popover opens *below* the entry it
+ * describes, which is over the next row down; catching the pointer there would
+ * put it between the reader and the entry underneath, and moving towards it
+ * would flicker between the two.
+ */
+.calendar-popover {
+  position: absolute;
+  z-index: 5;
+  max-width: min(20rem, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem 0.6rem;
+  pointer-events: none;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 40%);
+}
+
+.calendar-popover-title {
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.calendar-popover-dates {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+.calendar-popover-note {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  /* A note is one line in the feed but can be a long one; wrapping is what the
+     max-width above is for. */
+  white-space: normal;
+}
+
 /* The selection, which doubles as the charts' legend. */
 .compare-chips {
   display: flex;

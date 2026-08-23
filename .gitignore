@@ -7,3 +7,7 @@ tsconfig.tsbuildinfo
 
 # Worktrees created by agent sessions, not part of the project.
 .claude/worktrees/
+
+# wrangler dev's local state (KV, caches). Created by running the Worker
+# locally; never part of a deploy.
+.wrangler/

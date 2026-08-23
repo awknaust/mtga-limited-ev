@@ -1,8 +1,14 @@
 /**
- * The box-price feed: a scheduled Worker that publishes TCGplayer market
- * prices (via tcgcsv.com) for the newest twenty draftable paper sets, joined
- * to Scryfall's set metadata, into KV — and serves them at /api/box-prices on
- * the app's own origin.
+ * The app's two data feeds, as one scheduled Worker.
+ *
+ * /api/box-prices publishes TCGplayer market prices (via tcgcsv.com) for the
+ * newest twenty draftable paper sets, joined to Scryfall's set metadata.
+ * /api/calendar publishes a public Google Calendar of Arena events,
+ * normalised to whole days and stripped of anything of Google's shape.
+ *
+ * One Worker rather than two because the route below already catches every
+ * /api/* path, and because two Workers on one zone would be two deploys and
+ * two sets of credentials for what is a KV read either way.
  *
  * The route is the load-bearing choice. The app's CSP (public/_headers) says
  * `connect-src 'self'` and that policy is deliberately hard to amend, so the
@@ -17,6 +23,10 @@
  * by hand; its id below is not a secret.
  */
 {
+  // Named for the feed it started as. Renaming a Worker creates a new one and
+  // orphans the old script, its routes and its cron triggers, which is a
+  // migration rather than a tidy-up — so it keeps the name and the comment
+  // above says what it actually does.
   "name": "mtga-limited-ev-box-prices",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
@@ -30,20 +40,37 @@
     { "pattern": "mtga.fyi/api/*", "zone_name": "mtga.fyi" }
   ],
 
-  // Daily, at a deliberately odd minute, and after 20:00 UTC because that is
-  // when tcgcsv refreshes its mirror of TCGplayer's data — running earlier
-  // would fetch the same numbers a day late forever. Prices move on the order
-  // of weeks; a polite once-a-day read is plenty. A failed run leaves the
-  // previous KV value serving, so a source outage degrades to yesterday's
-  // prices rather than to an error.
+  // Two crons, one per feed, and `src/index.ts` dispatches on which fired.
   //
-  // The refresh makes 1 Scryfall + 1 group-list + 2-per-set requests, and the
-  // set count is capped in scripts/refresh-constants/sources.mjs to keep a
-  // run inside the free plan's 50 subrequests.
-  "triggers": { "crons": ["23 21 * * *"] },
+  // Separate rather than shared, because the subrequest budget does not stretch
+  // to both: the box-price refresh makes 1 Scryfall + 1 group-list + 2-per-set
+  // requests — about 42, with the set count capped in
+  // scripts/box-prices/select.ts — against the free plan's 50 per invocation,
+  // and the calendar's paging can want up to 4 more. Run together they would
+  // have no headroom at all; run apart, each has the whole budget.
+  //
+  // 23 21: daily, at a deliberately odd minute, and after 20:00 UTC because
+  // that is when tcgcsv refreshes its mirror of TCGplayer's data — running
+  // earlier would fetch the same numbers a day late forever. Prices move on
+  // the order of weeks; a polite once-a-day read is plenty.
+  //
+  // 41 09: the calendar, half a day away so the two never contend. Daily even
+  // though the calendar is written weekly, because it is a single request and
+  // an edit made mid-week should not wait until the next one to appear.
+  //
+  // A failed run leaves the previous KV value serving either way, so a source
+  // outage degrades a feed to yesterday's copy rather than to an error.
+  "triggers": { "crons": ["23 21 * * *", "41 9 * * *"] },
 
+  // Two namespaces rather than two keys in one: the binding names are what the
+  // Worker reads, and `BOX_PRICES.get("calendar:v1")` would be a lie in the
+  // shape of a line of code. Both ids were created once by hand and neither is
+  // a secret. The calendar's *credentials* are, and they are Worker secrets
+  // (`wrangler secret put GOOGLE_CALENDAR_ID`, `… GOOGLE_API_KEY`) rather than
+  // anything in this file.
   "kv_namespaces": [
-    { "binding": "BOX_PRICES", "id": "3613fd85a00e4ab3ad5f8fda0bdbc7ff" }
+    { "binding": "BOX_PRICES", "id": "3613fd85a00e4ab3ad5f8fda0bdbc7ff" },
+    { "binding": "CALENDAR", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
   ],
 
   "observability": { "enabled": true }

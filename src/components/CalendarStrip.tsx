@@ -1,0 +1,289 @@
+import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { scaleTime, timeFormat, timeMonday } from "d3";
+
+import {
+  calendarWindow,
+  lastDayOf,
+  parseDay,
+  type CalendarBar,
+  type CalendarFeed,
+} from "../lib";
+import { groupRows, layoutCalendar, tickEvery } from "./calendarLayout";
+
+/**
+ * An entry's dates as a reader says them.
+ *
+ * The exclusive end is converted here and only here: an entry ending
+ * `2026-09-04` runs *to the 3rd*, and a one-day entry is a date rather than a
+ * range that starts and finishes on itself.
+ */
+function rangeText(
+  entry: CalendarFeed["entries"][number],
+  day: (at: Date) => string,
+  dayYear: (at: Date) => string,
+): string {
+  const from = parseDay(entry.start);
+  const to = lastDayOf(entry);
+  return from.getTime() === to.getTime() ? dayYear(to) : `${day(from)} – ${dayYear(to)}`;
+}
+
+/** What the popover needs: which entry, and where its row sits in the strip. */
+type Hover = { bar: CalendarBar; left: number | null; right: number | null; top: number };
+
+/**
+ * What is running, and when — a week back and two months on — above everything
+ * else on the page.
+ *
+ * The one thing here that is not the model. Every other panel answers a
+ * question about value; this answers "is that event still on", which nothing
+ * in `src/lib` knows and no amount of arithmetic would tell you. It reads a
+ * calendar the Worker publishes and draws it, and it deliberately stops there:
+ * no entry is matched to a preset, sorted into a kind, or linked anywhere. A
+ * name and a span of days is the whole of it.
+ *
+ * Drawn in HTML rather than SVG, which is worth stating because every other
+ * chart here is the other way round. Those sit in a column and are drawn in a
+ * fixed 560-unit viewBox stretched to fit, and the lettering stretches with
+ * them — tolerable across a column's width, and not across this one's, which
+ * runs from a 320px phone to a 1140px container. Lettering sized that way
+ * would come out near 3px at one end and 22px at the other. So the strip
+ * measures itself and lays out in the reader's own pixels. `styles.css` has
+ * the rest of that reasoning.
+ */
+export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
+  const strip = useRef<HTMLElement>(null);
+  const plot = useRef<HTMLDivElement>(null);
+  const [width, setWidth] = useState(0);
+  const [hover, setHover] = useState<Hover | null>(null);
+
+  /**
+   * Where to put the popover for a hovered entry, measured off its own row.
+   *
+   * Anchored to whichever side keeps it on the page — left edge to the bar for
+   * an entry in the near half, right edge to it for one in the far half — so
+   * it can never run off, which centring on the bar would do at both ends. The
+   * same reasoning as the name flip in `calendarLayout`, and cheaper, since a
+   * box positioned from an edge needs no knowledge of its own width.
+   */
+  const anchorOf = (el: HTMLElement, bar: CalendarBar): Hover | null => {
+    const host = strip.current;
+    if (host === null) return null;
+    const box = el.getBoundingClientRect();
+    const frame = host.getBoundingClientRect();
+    const bars = el.firstElementChild?.getBoundingClientRect() ?? box;
+    const mid = bars.left + bars.width / 2 - frame.left;
+    const near = mid < frame.width / 2;
+    return {
+      bar,
+      left: near ? Math.max(0, bars.left - frame.left) : null,
+      right: near ? null : Math.max(0, frame.right - bars.right),
+      top: box.bottom - frame.top + 4,
+    };
+  };
+
+  /*
+   * The measurement the pixel layout needs.
+   *
+   * A layout effect rather than a plain one: it runs after the DOM is
+   * committed but *before* the browser paints, so the first frame the reader
+   * sees is already laid out. With a plain effect the strip would paint empty
+   * and fill in a frame later — a visible jump, and one directly above the
+   * rest of the page, so everything below it would jump too.
+   *
+   * `window.resize` beside the observer for the reason `StatStrip` gives: an
+   * element mounted into a viewport that has no size yet measures nothing, and
+   * the observer has been seen to stay quiet through the reflow that gives it
+   * one.
+   */
+  useLayoutEffect(() => {
+    const el = plot.current;
+    if (!el) return;
+    const measure = () => setWidth(el.clientWidth);
+    measure();
+    const resize = new ResizeObserver(measure);
+    resize.observe(el);
+    window.addEventListener("resize", measure);
+    return () => {
+      window.removeEventListener("resize", measure);
+      resize.disconnect();
+    };
+  }, []);
+
+  /*
+   * The window is taken once, when the feed arrives, rather than on every
+   * render. Nobody leaves this page open across midnight to watch the marker
+   * move, and an interval that redrew the strip on the off-chance would be a
+   * timer running for the life of every session.
+   */
+  const view = useMemo(() => calendarWindow(calendar, new Date()), [calendar]);
+
+  const layout = useMemo(() => {
+    if (width === 0) return null;
+    const x = scaleTime().domain(view.domain).range([0, width]);
+    const spanDays = (view.domain[1].getTime() - view.domain[0].getTime()) / 86_400_000;
+    return {
+      x,
+      rows: groupRows(layoutCalendar(view.bars, x, width)),
+      // Mondays, every `n`th, `n` chosen from the width — see `tickEvery` for
+      // why this cannot just ask d3 for a number of ticks.
+      ticks: x.ticks(timeMonday.every(tickEvery(width, spanDays)) ?? timeMonday),
+    };
+  }, [view, width]);
+
+  /*
+   * Nothing to say, so nothing is said. A bar reading "no events" pinned above
+   * the whole app is noise, and this is the state a preview deploy or a fresh
+   * checkout is in — the shipped copy of the feed is empty until someone runs
+   * the sync.
+   */
+  if (view.bars.length === 0) return null;
+
+  const day = timeFormat("%-d %b");
+  const dayYear = timeFormat("%-d %b %Y");
+
+  return (
+    <section className="calendar-strip" aria-labelledby="calendar-strip-title" ref={strip}>
+      <div className="calendar-strip-head">
+        <h2 className="calendar-strip-title" id="calendar-strip-title">
+          Event calendar
+        </h2>
+        <span className="calendar-strip-stamp">
+          as of {dayYear(new Date(view.generatedAt))}
+        </span>
+      </div>
+
+      {/* Leaving the plot clears the popover. The per-entry `onPointerLeave`
+          alone is not enough: a pointer can leave through a gap between two
+          entries, or the row under it can be repacked by a resize, and either
+          way no entry ever gets told. */}
+      <div className="calendar-plot" ref={plot} onPointerLeave={() => setHover(null)}>
+        {layout && (
+          <>
+            {layout.ticks.map((tick) => (
+              <div
+                key={tick.getTime()}
+                className="calendar-gridline"
+                style={{ left: layout.x(tick) }}
+                aria-hidden="true"
+              />
+            ))}
+            <div
+              className="calendar-today"
+              style={{ left: layout.x(view.today) }}
+              aria-hidden="true"
+            />
+            {layout.rows.map((row, i) => (
+              // Rows are stacked in flow and sized by the stylesheet; the index
+              // is the row's identity and nothing else keys off it.
+              <div className="calendar-row" key={i}>
+                {row.map(({ bar, x, width: w, labelX, labelAnchor, labelMax, labelInside }) => {
+                  const { entry, state, clippedStart, clippedEnd } = bar;
+                  const range = rangeText(entry, day, dayYear);
+                  const plain = `${entry.title}\n${range}${
+                    entry.note === undefined ? "" : `\n${entry.note}`
+                  }`;
+                  return (
+                    <div
+                      key={entry.id}
+                      /*
+                       * Hover is read from the element rather than computed,
+                       * which is what keeps row heights out of JS: the row's
+                       * own box says where the popover goes, so the stylesheet
+                       * stays the only thing that knows how tall a row is.
+                       */
+                      onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
+                      onPointerLeave={() => setHover(null)}
+                    >
+                      <span
+                        className={[
+                          "calendar-bar",
+                          state === "past" ? "calendar-bar-past" : "",
+                          state === "now" ? "calendar-bar-now" : "",
+                          clippedStart ? "calendar-bar-open-start" : "",
+                          clippedEnd ? "calendar-bar-open-end" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        style={{ left: x, width: w }}
+                        title={plain}
+                      />
+                      <span
+                        className={[
+                          "calendar-label",
+                          labelInside ? "calendar-label-inside" : "",
+                          state === "past" ? "calendar-label-past" : "",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                        style={{
+                          // Held to what the packing reserved. Without the cap
+                          // a long name draws straight over its neighbour.
+                          maxWidth: labelMax,
+                          ...(labelAnchor === "start"
+                            ? { left: labelX }
+                            : { right: width - labelX }),
+                        }}
+                        title={plain}
+                      >
+                        {entry.title}
+                        {/* The name above may be truncated to fit its row and
+                            the dates are nowhere on screen at all, so this is
+                            the whole reading for anyone not using a pointer.
+                            The text itself is never cut — only its box is. */}
+                        <span className="visually-hidden">
+                          , {range}
+                          {entry.note === undefined ? "" : `. ${entry.note}`}
+                        </span>
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            ))}
+          </>
+        )}
+      </div>
+
+      <div className="calendar-axis">
+        {layout?.ticks.map((tick) => (
+          <span key={tick.getTime()} className="calendar-tick" style={{ left: layout.x(tick) }}>
+            {day(tick)}
+          </span>
+        ))}
+      </div>
+
+      {/*
+       * The full entry, on hover.
+       *
+       * Rendered here rather than inside the plot because the plot clips —
+       * it has to, so that a name at the right edge is cut rather than
+       * widening the page — and a popover drawn inside it would be clipped
+       * with everything else.
+       *
+       * It carries the name in full, which the row may have had to truncate,
+       * and the dates, which are nowhere on screen. `aria-hidden` because the
+       * same text is already in each entry's own hidden span: announcing it
+       * twice is worse than not announcing it here at all.
+       */}
+      {hover && (
+        <div
+          className="calendar-popover"
+          style={{
+            top: hover.top,
+            ...(hover.left === null ? { right: hover.right! } : { left: hover.left }),
+          }}
+          aria-hidden="true"
+        >
+          <strong className="calendar-popover-title">{hover.bar.entry.title}</strong>
+          <span className="calendar-popover-dates">
+            {rangeText(hover.bar.entry, day, dayYear)}
+            {hover.bar.state === "now" ? " · on now" : ""}
+          </span>
+          {hover.bar.entry.note !== undefined && (
+            <span className="calendar-popover-note">{hover.bar.entry.note}</span>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}

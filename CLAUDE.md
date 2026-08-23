@@ -214,14 +214,81 @@ Boundaries that should outlive any refactor:
   a stump.
 
 The Worker deploys from `deploy.yml` on pushes to main, same credentials as
-the Pages upload. Its KV namespace id sits in `worker/wrangler.jsonc` and is
-not a secret.
+the Pages upload. Its KV namespace ids sit in `worker/wrangler.jsonc` and are
+not secrets.
 
-### The two tool modules
+### The event calendar
+
+The second feed, and the same shape as the first: a cron branch in the same
+Worker reads a **public** Google Calendar of Arena events through the Calendar
+API, normalises it, and serves it at `/api/calendar`. The strip under the page
+title draws it. `scripts/calendar/` is the module, `src/lib/calendar.ts`
+validates and windows it, `src/data/mtg-calendar.json` is the copy the app
+ships.
+
+The boundaries that matter, beyond the ones the box-price feed already states:
+
+- **The Worker reaching Google does not widen the CSP, and must not be read as
+  licence to.** `connect-src 'self'` governs the *page*; a Worker's outbound
+  fetch is not subject to it. The browser still talks only to this origin, and
+  what lands in KV is this repository's own shape — so neither the calendar's
+  owner nor Google's event format reaches a reader. `public/_headers` is
+  untouched and stays that way.
+- **The credential is a header, never the query string.** `scripts/shared/http.ts`
+  puts the URL into every `SourceError` it raises and those are logged by the
+  Worker and by CI, so a key in the query would ride into all of it.
+  Redacting on the error path was the alternative and is the weaker one: the
+  error path is exactly where it gets forgotten.
+- **Two crons, dispatched on `controller.cron`, because of the subrequest
+  budget.** The box-price refresh already spends about 42 of the free plan's
+  50 per invocation and the calendar's paging can want 4 more. Sharing an
+  invocation leaves no headroom.
+- **Follow `nextPageToken`, and never infer completeness from a count.** The
+  API documents that a page "may be less than this value, or none at all, even
+  if there are more events matching the query". Getting this wrong truncates
+  the timeline silently — it stops early and looks entirely correct — so
+  running past the page bound is a `SourceError` rather than a short publish.
+- **Everything is a whole day, and every date is a bare `YYYY-MM-DD` with an
+  *exclusive* end.** Which makes `new Date("2026-08-21")` the standing hazard
+  here: it parses as UTC midnight and renders as the 20th everywhere west of
+  Greenwich, so every bar on the strip would shift a day for half the world.
+  `parseDay` in `src/lib/calendar.ts` is the only way a date becomes a `Date`,
+  and its test asserts the hour as well as the day — that assertion is what
+  fails in positive-offset zones, where the day alone still passes. Run
+  `TZ=Pacific/Auckland npm test` and `TZ=America/Los_Angeles npm test` after
+  touching any of it.
+- **The fetch window is wider than the display window, deliberately.**
+  `scripts/calendar/fetch.ts` takes −31/+120 days; the app clips to −7/+60 from
+  *the day the page is opened*. That is what keeps the shipped copy honest as
+  it ages — a copy built against a +60d fetch would show less and less of the
+  future, where one clipped on read still shows the full window.
+- **An empty calendar is a real state and publishes.** The strip renders
+  nothing at all for it, which is what a preview and a fresh checkout get.
+  What refuses is a page of live items none of which are *readable* — a field
+  renamed upstream — because that would replace a working calendar with a
+  blank one that looks exactly like a quiet week.
+- The same rules the box-price copy has apply to `src/data/mtg-calendar.json`:
+  **no test may pin a title, id or date out of it**, since CI rewrites it on
+  every build, and it is refreshed only in a commit that is about it.
+
+The strip itself breaks one of this repo's conventions on purpose. Every other
+chart is a fixed 560-unit `viewBox` stretched to its column; this one runs the
+full width of the page, where that would render its lettering near 3px on a
+phone and 22px on a desktop. So it is measured and laid out in CSS pixels —
+`CalendarStrip` for the layout effect, `calendarLayout.ts` for the arithmetic,
+which is where the packing lives and why a name reserves room next to its bar.
+
+Two secrets, set with `wrangler secret put` from `worker/`:
+`GOOGLE_CALENDAR_ID` and `GOOGLE_API_KEY`. `worker/env.d.ts` is their type —
+hand-written, because nothing generates one for a secret, and declaring them as
+`vars` in `wrangler.jsonc` instead would be a committed plaintext variable that
+silently overrides the secret of the same name.
+
+### The tool modules
 
 Everything under `scripts/` is TypeScript, run directly by Node's type
 stripping (Node 23.6+; no build step), and typechecked in CI by `npm run
-build`. There are two modules, each with a small driver for manual
+build`. There are three modules, each with a small driver for manual
 inspection, standing on a thin `scripts/shared/` floor (http, Scryfall,
 dates):
 
@@ -229,7 +296,13 @@ dates):
 npm run refresh:constants        # scripts/constants/  — every sourced constant, box values included
 npm run box:prices               # scripts/box-prices/ — the feed the Worker publishes
 npm run box:prices -- --write    # ...and write it to src/data/box-prices.json, the app's copy
+npm run calendar                 # scripts/calendar/   — the event calendar feed
+npm run calendar -- --write      # ...and write it to src/data/mtg-calendar.json
 ```
+
+The calendar driver takes its credentials from the environment, under the
+names the Worker holds them as secrets:
+`GOOGLE_CALENDAR_ID=… GOOGLE_API_KEY=… npm run calendar`.
 
 **`scripts/constants/`** prints what the sourced constants in
 `src/lib/presets.ts` should be today: a table of names and values, `--verbose`
