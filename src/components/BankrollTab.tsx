@@ -139,7 +139,7 @@ export function BankrollTab({
    * `bankroll` is null until the first simulation lands, and every tile list
    * below collapses to empty for the skeleton to stand in. Once a result
    * exists it is never null again — recomputes dim the stale tiles instead.
-   * The Long-term value tab's tiles have no such state: they are closed form
+   * The Expected value tab's tiles have no such state: they are closed form
    * and always current.
    */
   /** Null unless the ladder pays boxes, which is what makes the strip move. */
@@ -365,7 +365,7 @@ export function BankrollTab({
    * The closed-form chance of a box for a single entry was among them for a
    * while and has been taken out again: it answers a question nobody asked of
    * a page about bankrolls, and sitting in the same row as the run-level
-   * chance it mostly invited the two to be confused. It lives on the Long-term
+   * chance it mostly invited the two to be confused. It lives on the Expected
    * value tab, under the expected-boxes tile, and holds this simulation to
    * account in the tests.
    */
@@ -379,12 +379,9 @@ export function BankrollTab({
   return (
     <>
       <div className="form-text mb-2">
-        As in tournament poker, your profitability depends on how
-        much you start with: with too small a bankroll, an ordinary
-        losing streak ends the run before the long-term averages
-        can arrive. We simulate entering the same event repeatedly,
-        recycling your gem and gold winnings, and summarise the
-        thousands of outcomes below.
+        The bankroll simulation plays out games within your buy-in 
+        and time budget, to estimate where you might end up. This
+        is more representative than doing EV with unlimited games.
       </div>
       {error != null && (
         <div className="alert alert-warning" role="alert">

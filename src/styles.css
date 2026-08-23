@@ -1484,7 +1484,7 @@ button.box-add:focus-visible {
 /*
  * Where the reader's own win rate falls.
  *
- * Its own mark rather than `.chart-breakeven`, because the Long-term value
+ * Its own mark rather than `.chart-breakeven`, because the Expected value
  * chart draws both and two amber dashes would be two of the same thing. This
  * is chrome — "you are here" — so it takes the secondary colour rather than a
  * signal one, and a longer dash keeps the two apart at a glance.

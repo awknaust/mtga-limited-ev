@@ -16,7 +16,7 @@ import type { Tab } from "./state";
 
 export const RESULT_TABS = [
   { key: "bankroll" as const, label: "Bankroll" },
-  { key: "event" as const, label: "Long-term value" },
+  { key: "event" as const, label: "Expected value" },
   { key: "compare" as const, label: "Compare" },
   { key: "mastery" as const, label: "Mastery" },
   { key: "about" as const, label: "About" },

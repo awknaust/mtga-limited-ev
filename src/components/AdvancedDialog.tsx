@@ -618,7 +618,7 @@ export function AdvancedDialog({
       </div>
 
       {/*
-        The Bankroll tab's knobs, and only its: the Long-term value tab
+        The Bankroll tab's knobs, and only its: the Expected value tab
         is closed form and has nothing to size or seed.
       */}
       <div className="adv-group">

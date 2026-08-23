@@ -13,7 +13,7 @@ import { STAT_HELP, type StatHelp } from "./statHelp";
  * The charts show shape; this is where the numbers are read off. Each column is
  * a figure the model already computes for one event, asked once per selected
  * event — nothing here is a new derivation, which is what keeps a row and the
- * Long-term value tab from ever disagreeing.
+ * Expected value tab from ever disagreeing.
  *
  * Four columns, deliberately. The table grew to ten while every figure the
  * model exposes looked worth a column, and a row nobody can take in at a glance
@@ -40,7 +40,7 @@ type Column = {
   key: string;
   label: string;
   /**
-   * The popover on the heading, and the same words the Long-term value tab's
+   * The popover on the heading, and the same words the Expected value tab's
    * tile uses — one definition in `statHelp.ts`, since two explanations of one
    * statistic only stay the same by being the same.
    */

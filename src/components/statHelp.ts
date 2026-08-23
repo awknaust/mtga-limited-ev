@@ -1,7 +1,7 @@
 /**
  * What each per-event figure means, in one place.
  *
- * The Long-term value tab's tiles and the Compare tab's column headings ask the
+ * The Expected value tab's tiles and the Compare tab's column headings ask the
  * reader to understand the same statistics, so they explain them in the same
  * words — and the only way two explanations stay the same is by being one. Two
  * copies would drift on the first edit, and the wrong one would be the one

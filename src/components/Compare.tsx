@@ -32,7 +32,7 @@ import { Tabs, TabPanel } from "./Tabs";
 /**
  * Several events under one set of the reader's own rates.
  *
- * Almost everything here is closed form — the same sums the Long-term value tab
+ * Almost everything here is closed form — the same sums the Expected value tab
  * takes, asked once per selected event — so it has no trial count, no seed and
  * nothing sampled. The exception is the bankroll grid at the foot of the tab,
  * which is the one thing on this page that has to be simulated, and it is the

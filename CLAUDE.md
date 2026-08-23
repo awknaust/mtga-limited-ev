@@ -322,7 +322,7 @@ derived in the script; a source being down writes nothing and exits 2.
   (react/react#36868), and a bailout is *silent* — the build succeeds and the
   bundle simply carries less memoisation. `react-compiler.test.ts` is the alarm,
   and `vite.config.ts` has the details.
-- Every number a user sees should be checkable. The Long-term value tab is
+- Every number a user sees should be checkable. The Expected value tab is
   closed form throughout (`src/lib/expectation.ts`) — nothing on it is
   sampled, so there is no trial count and no seed behind it, and it should
   stay that way. The bankroll is the one simulation, because a stopped random

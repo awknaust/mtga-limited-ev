@@ -230,11 +230,8 @@ export function EventValueTab({
   return (
     <>
       <div className="form-text mb-2">
-        Conventional analysis: the (possibly very) long-term
-        expectations for this event, assuming a bankroll deep enough
-        that you can always afford the next entry. Every figure is per
-        event and exact for the win rate you set: what an average
-        entry wins or loses, and how the possible finishes are spread.
+        Expected Value Analysis: long term expectations for the selected event assuming
+        you can play forever and keep buying in.
       </div>
       {/*
         No placeholder, no pending state and no error alert here,

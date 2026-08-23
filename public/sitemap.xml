@@ -3,7 +3,7 @@
   One URL per tab, and nothing else. The app is a single page whose every
   state is a query string on it, and the tabs are the states worth a search
   result of their own: each answers a different question (a bankroll, an
-  event's long-term value, a comparison, a mastery pass, what the rewards
+  event's Expected value, a comparison, a mastery pass, what the rewards
   count as) and each has its own title (title.ts). The addresses are spelled
   exactly as share.ts writes them — the bare origin is the Bankroll tab,
   since a default is never written into a link — and sitemap.test.ts holds

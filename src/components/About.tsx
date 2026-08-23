@@ -244,7 +244,7 @@ export function About({
         <dd className="col-sm-8">
           Shown on the bankroll's box chance instead, when your win rate is set
           to exactly known: the simulation's own wobble, which more bankroll
-          runs do narrow. The Long-term value tab needs no such figure —
+          runs do narrow. The Expected value tab needs no such figure —
           everything on it is exact for the win rate you set.
         </dd>
 

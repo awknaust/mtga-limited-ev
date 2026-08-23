@@ -228,7 +228,7 @@ export default function App({
 
   /*
    * The bankroll simulation lives in a worker, debounced behind the inputs;
-   * everything on the Long-term value tab is closed form and computed in that
+   * everything on the Expected value tab is closed form and computed in that
    * tab, live. The params object is memoised so the hook sees one identity per
    * actual change, and the *object* is what debounces — a flush is atomic, so
    * no render can pair this keystroke's runs with the last one's seed.
@@ -408,10 +408,7 @@ export default function App({
       <header className="mb-4 d-flex flex-wrap align-items-start justify-content-between gap-2">
         <div>
           <h1 className="h3 mb-1">{SITE_NAME}</h1>
-          <p className="text-body-secondary mb-0">
-            The quest to go infinite. An analyzer for the value of
-            Magic: The Gathering Arena events and passes.
-          </p>
+          
         </div>
         {/* Every input is already in the address bar; this is only the shortest
             path from there to someone else. */}

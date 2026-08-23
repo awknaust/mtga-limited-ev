@@ -28,11 +28,11 @@ describe("pageTitle", () => {
     expect(
       pageTitle({
         tab: "event",
-        tabLabel: "Long-term value",
+        tabLabel: "Expected value",
         eventName: "Sealed",
         isDefault: false,
       }),
-    ).toBe(`Sealed · Long-term value | ${SITE_NAME}`);
+    ).toBe(`Sealed · Expected value | ${SITE_NAME}`);
   });
 
   it("leaves the event out of the tabs that are not about one", () => {
