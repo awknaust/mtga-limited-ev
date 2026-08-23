@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { configDefaults, defineConfig } from "vitest/config";
 import react, { reactCompilerPreset } from "@vitejs/plugin-react";
 import babel from "@rolldown/plugin-babel";
 
@@ -44,9 +44,31 @@ import babel from "@rolldown/plugin-babel";
  */
 const apiProxy = process.env.MTGA_EV_API_PROXY;
 
+/*
+ * Agent worktrees live in `.claude/worktrees/` and are whole checkouts, so
+ * each carries its own copy of `src` — its own copy of every test, and its own
+ * `src/__snapshots__/share.compat.test.ts.snap`. Vitest globs the filesystem
+ * rather than the git index, so `.gitignore` does not keep them out, and its
+ * own defaults exclude only `node_modules` and `.git`. Three worktrees lying
+ * around took `npm test` from 26 files to 100, with three quarters of the run
+ * executing code main had already moved past and re-checking the compat guard
+ * against three stale snapshots at once.
+ *
+ * Vitest matches these patterns against paths relative to the config root, so
+ * this stays correct when the tests are run from *inside* a worktree: there
+ * the root is the worktree itself, `src/foo.test.ts` carries no `.claude/` in
+ * its relative path, and the only thing skipped is a worktree nested inside
+ * that worktree. Do not rewrite it as an absolute path — that form matches
+ * the worktree's own prefix and would exclude the entire run from in there.
+ */
+const AGENT_WORKTREES = "**/.claude/**";
+
 export default defineConfig({
   plugins: [react(), babel({ presets: [reactCompilerPreset()] })],
   server: apiProxy
     ? { proxy: { "/api": { target: apiProxy, changeOrigin: true } } }
     : undefined,
+  test: {
+    exclude: [...configDefaults.exclude, AGENT_WORKTREES],
+  },
 });
