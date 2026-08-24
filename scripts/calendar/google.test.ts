@@ -195,6 +195,63 @@ describe("buildCalendarFeed", () => {
     expect(entry.note!.endsWith("…")).toBe(true);
   });
 
+  it("reads the eventType from a description's mtga-meta block", () => {
+    const [entry] = build([
+      { ...allDay, description: 'Runs all week.\n\n[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]' },
+    ]).entries;
+    expect(entry.type).toBe("qualifier");
+    // The block is machinery, not prose: nothing of it may reach a tooltip.
+    expect(entry.note).toBe("Runs all week.");
+  });
+
+  it("reads a meta block whose quotes an HTML edit escaped", () => {
+    // Editing a description in Google's UI can turn it to HTML — the JSON's
+    // quotes arrive as &quot; and the extraction happens after entity
+    // decoding precisely so this keeps working.
+    const [entry] = build([
+      {
+        ...allDay,
+        description:
+          "<p>Runs all week.</p>[mtga-meta]{&quot;v&quot;:1,&quot;eventType&quot;:&quot;cube&quot;}[/mtga-meta]",
+      },
+    ]).entries;
+    expect(entry.type).toBe("cube");
+    expect(entry.note).toBe("Runs all week.");
+  });
+
+  it("omits the note when the description was only a meta block", () => {
+    const [entry] = build([
+      { ...allDay, description: '[mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]' },
+    ]).entries;
+    expect(entry.type).toBe("cube");
+    expect(entry.note).toBeUndefined();
+  });
+
+  it("strips an unreadable meta block without taking the entry's type from it", () => {
+    // One typo'd annotation is not a reason to refuse the calendar, but its
+    // wreckage must not surface in the tooltip either.
+    const [entry] = build([
+      { ...allDay, description: "Runs all week. [mtga-meta]{oops[/mtga-meta]" },
+    ]).entries;
+    expect(entry.type).toBeUndefined();
+    expect(entry.note).toBe("Runs all week.");
+  });
+
+  it("strips the meta before capping, so a truncated note cannot end mid-block", () => {
+    const [entry] = build([
+      {
+        ...allDay,
+        description: `${"x".repeat(500)} [mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]`,
+      },
+    ]).entries;
+    expect(entry.type).toBe("cube");
+    expect(entry.note).not.toContain("mtga-meta");
+  });
+
+  it("leaves an entry with no meta block untyped", () => {
+    expect(build([allDay]).entries[0].type).toBeUndefined();
+  });
+
   it("orders by start, then by length, then by title", () => {
     const at = (id: string, start: string, end: string, summary: string) => ({
       ...allDay,

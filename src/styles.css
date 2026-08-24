@@ -1532,12 +1532,12 @@ button.box-add:focus-visible {
 .calendar-strip {
   /*
    * Row pitch and bar thickness. The bar is deep enough to hold a line of type,
-   * because a name that fits inside its own bar costs its row nothing — see
-   * `labelInside` in calendarLayout.ts, which is what collapses a long event
-   * from a row of its own to a share of one.
+   * because a wide bar carries its own name — see `labelInside` in
+   * calendarLayout.ts; narrow bars are bare and their lane's colour and the
+   * popover identify them.
    */
-  --calendar-row: 22px;
-  --calendar-bar: 16px;
+  --calendar-row: 20px;
+  --calendar-bar: 14px;
   /* The popover is positioned against this box, so it has to be the containing
      block. */
   position: relative;
@@ -1576,17 +1576,17 @@ button.box-add:focus-visible {
 .calendar-plot {
   position: relative;
   /*
-   * A ceiling, not a design. How many rows the packing needs depends on the
-   * width it is given, and it is not a gentle curve: the same twenty-one events
-   * that take seven rows at 1281px take fifteen at 351px, because a name is a
-   * fixed number of pixels while the row it sits on is not. Ten weekly Midweek
-   * Magics land 37px apart there and each claims 112px with its name, so those
-   * alone want four rows.
+   * A ceiling, not a design. The lane packing works on the bars alone, so the
+   * row count no longer depends on the width — a normal couple of months is
+   * six or seven rows at every size, and this binds only in a season crowded
+   * enough that it should scroll rather than push the whole page down.
    *
-   * So on a phone the strip scrolls rather than growing to a third of the
-   * screen. The alternative — dropping names from short bars once they stop
-   * fitting — was rejected: a bar with no name is not a calendar entry, and
-   * the popover needs a pointer to open.
+   * (An earlier design reserved each bar's name beside it and rejected
+   * "dropping names from short bars" on the grounds that a bar with no name
+   * is not a calendar entry. The lanes are what reversed that: a bare bar now
+   * has a category — its lane's colour and emoji — and the popover and the
+   * hidden text carry the rest, which is a reading the nameless bar of the
+   * old design never had.)
    */
   max-height: 150px;
   overflow-x: hidden;
@@ -1640,12 +1640,55 @@ button.box-add:focus-visible {
   height: var(--calendar-row);
 }
 
+/*
+ * A lane: one category's band of the strip, colour-coded. The gap is what
+ * separates one band from the next visually; rows *within* a lane sit flush.
+ */
+.calendar-lane {
+  position: relative;
+}
+
+.calendar-lane + .calendar-lane {
+  margin-top: 4px;
+}
+
+/*
+ * The lane palette. Slot order and hex values are the dark-mode categorical
+ * palette from the dataviz reference, validated against this app's surface
+ * (#0f1216): all eight clear the lightness band, the chroma floor, ≥3:1
+ * contrast, adjacent-pair CVD ΔE ≥ 8 and normal-vision ΔE ≥ 15. That last
+ * gate is *adjacent-pair*, which is why calendarLayout.ts hands slots out in
+ * lane display order: stacked neighbours wear consecutive slots, the pairing
+ * the validation actually covered.
+ *
+ * --lane-ink is the type colour for a name inside a bar of this colour: dark
+ * on the light-to-mid hues, near-white on the one deep one (green), each pair
+ * checked to at least ~4:1.
+ */
+.calendar-lane-slot-0 { --lane-color: #3987e5; --lane-ink: #0b1220; }
+.calendar-lane-slot-1 { --lane-color: #d95926; --lane-ink: #0b1220; }
+.calendar-lane-slot-2 { --lane-color: #199e70; --lane-ink: #0b1220; }
+.calendar-lane-slot-3 { --lane-color: #c98500; --lane-ink: #0b1220; }
+.calendar-lane-slot-4 { --lane-color: #d55181; --lane-ink: #0b1220; }
+.calendar-lane-slot-5 { --lane-color: #008300; --lane-ink: rgb(255 255 255 / 92%); }
+.calendar-lane-slot-6 { --lane-color: #9085e9; --lane-ink: #0b1220; }
+.calendar-lane-slot-7 { --lane-color: #e66767; --lane-ink: #0b1220; }
+
+/* The pooled one-off events: deliberately quieter than any category. */
+.calendar-lane-slot-misc { --lane-color: #7d8a9c; --lane-ink: #0b1220; }
+
 .calendar-bar {
   position: absolute;
   top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
   height: var(--calendar-bar);
   border-radius: calc(var(--calendar-bar) / 2);
-  background: var(--bs-primary);
+  background: var(--lane-color, var(--bs-primary));
+  /*
+   * A ring of the page colour. Not decoration: the packing lets back-to-back
+   * events share a row touching (see `packRows`), and this is what keeps two
+   * touching bars reading as two.
+   */
+  box-shadow: 0 0 0 1px var(--bs-body-bg);
 }
 
 /*
@@ -1656,35 +1699,41 @@ button.box-add:focus-visible {
  * would fade with it.
  */
 .calendar-label-inside {
-  /*
-   * Dark on the fill, not white. Both bar colours in this theme are light —
-   * primary is #6ea8fe and success #4ade80 — and white on either is well short
-   * of contrast; the same call `.nav-segmented .nav-link.active` makes, with
-   * the same value.
-   */
-  color: #0b1220;
+  /* Each lane pairs its fill with an ink that clears it — see the slots. */
+  color: var(--lane-ink, #0b1220);
   line-height: var(--calendar-bar);
   top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
 }
 
 /*
- * Except on a finished event, where it flips back. `.calendar-bar-past` is a
- * muted grey at 45% over a near-black page, so the fill under the name there is
- * dark rather than light and the contrast runs the other way.
+ * Except on a finished event, where it flips. A past bar is its lane colour
+ * at 45% over a near-black page, so the fill under the name is dark whatever
+ * the lane and the contrast runs the other way.
  */
 .calendar-label-inside.calendar-label-past {
   color: rgb(255 255 255 / 75%);
 }
 
-/* Done with. Still worth showing — an event that ended on Tuesday is a thing
-   a reader may be looking for on Thursday — but not competing with what is on. */
+/*
+ * Done with. Still worth showing — an event that ended on Tuesday is a thing
+ * a reader may be looking for on Thursday — but not competing with what is
+ * on. It keeps its lane's hue rather than greying out, because colour is the
+ * lane's identity and a grey bar would read as a lane of its own.
+ */
 .calendar-bar-past {
-  background: var(--bs-secondary-color);
   opacity: 0.45;
 }
 
+/*
+ * Running today. Colour belongs to the lane now, so state is a ring: the
+ * inner shadow is the same page-colour separator every bar wears, the outer
+ * one the highlight. The today line crossing the bar says most of this
+ * already; the ring is for the glance that does not follow the line down.
+ */
 .calendar-bar-now {
-  background: var(--bs-success);
+  box-shadow:
+    0 0 0 1px var(--bs-body-bg),
+    0 0 0 2.5px rgb(255 255 255 / 55%);
 }
 
 /*
@@ -1703,9 +1752,8 @@ button.box-add:focus-visible {
 }
 
 /*
- * A name beside its bar. `nowrap` is load-bearing: the packing in
- * `calendarLayout.ts` reserves a single line's width for every name, and one
- * that wrapped would be laid out over the row beneath it.
+ * A name in a bar. `nowrap` is load-bearing: a name that wrapped would be
+ * laid out over the row beneath it.
  */
 .calendar-label {
   position: absolute;
@@ -1713,16 +1761,11 @@ button.box-add:focus-visible {
   line-height: var(--calendar-row);
   font-size: 0.72rem;
   white-space: nowrap;
-  /* The name is capped at what the packing reserved for it — `max-width` comes
-     in from the component — and a name longer than its allotment is cut here
-     rather than allowed to run over the entry beside it. */
+  /* The name is held to its own bar's interior — `max-width` comes in from
+     the component — and one longer than that is cut here rather than allowed
+     to run over the next bar on the row. */
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--bs-body-color);
-}
-
-.calendar-label-past {
-  color: var(--bs-secondary-color);
 }
 
 .calendar-axis {

@@ -29,7 +29,7 @@
 
 import baked from "../data/mtg-calendar.json";
 
-/** One entry: a name, and the days it covers. */
+/** One entry: a name, the days it covers, and the author's category for it. */
 export type CalendarEntry = {
   /** Unique per calendar, which is what makes it a row key. */
   id: string;
@@ -40,6 +40,13 @@ export type CalendarEntry = {
   end: string;
   /** The entry's description as plain text, where it had one. */
   note?: string;
+  /**
+   * The author's category token, from the `[mtga-meta]` block the feed reads
+   * out of each description (`scripts/calendar/feed.ts`). Opaque here as
+   * everywhere: the strip lanes and colours entries sharing one, and never
+   * learns what a token means. Absent when the description carried none.
+   */
+  type?: string;
 };
 
 export type CalendarFeed = {
@@ -82,12 +89,14 @@ export function parseCalendarFeed(data: unknown): CalendarFeed | null {
     // entry — it is a producer that has stopped making sense.
     if (entry.end <= entry.start) return null;
     if (entry.note !== undefined && typeof entry.note !== "string") return null;
+    if (entry.type !== undefined && typeof entry.type !== "string") return null;
     entries.push({
       id: entry.id,
       title: entry.title,
       start: entry.start,
       end: entry.end,
       ...(entry.note === undefined ? {} : { note: entry.note }),
+      ...(entry.type === undefined ? {} : { type: entry.type }),
     });
   }
   return { version: 1, generatedAt: feed.generatedAt, entries };
@@ -128,8 +137,12 @@ export const lastDayOf = (entry: CalendarEntry): Date => addDays(parseDay(entry.
  * How much calendar the strip shows, and the one place it is decided.
  *
  * A week behind, because an event that ended on Tuesday is still worth seeing
- * on Thursday, and two months ahead, because that is about as far as Arena's
- * schedule is announced. Both are measured from the day the page is opened.
+ * on Thursday, and *up to* two months ahead, because that is about as far as
+ * Arena's schedule is announced. Both are measured from the day the page is
+ * opened. Ahead is a ceiling rather than a span: the axis condenses to the
+ * end of the last scheduled event, so a calendar written five weeks out is
+ * five weeks of bars rather than five weeks of bars and three of blank —
+ * every pixel of empty future would be taken from the events' own scale.
  */
 export const WINDOW_BACK_DAYS = 7;
 export const WINDOW_AHEAD_DAYS = 60;
@@ -148,7 +161,11 @@ export type CalendarBar = {
 
 export type CalendarView = {
   bars: CalendarBar[];
-  /** The time axis: `[today − WINDOW_BACK_DAYS, today + WINDOW_AHEAD_DAYS]`. */
+  /**
+   * The time axis: from `today − WINDOW_BACK_DAYS` to the end of the last
+   * scheduled event, capped at `today + WINDOW_AHEAD_DAYS` and never ending
+   * before tomorrow — the today line has to sit on the axis to mean anything.
+   */
   domain: [Date, Date];
   /** Local midnight today, which is where the marker line goes. */
   today: Date;
@@ -170,7 +187,22 @@ export type CalendarView = {
 export function calendarWindow(feed: CalendarFeed, now: Date): CalendarView {
   const today = startOfDay(now);
   const from = addDays(today, -WINDOW_BACK_DAYS);
-  const to = addDays(today, WINDOW_AHEAD_DAYS);
+
+  /*
+   * The right edge: the last scheduled event's exclusive end, held between
+   * tomorrow and the two-month ceiling. Condensing to the schedule is the
+   * point — see WINDOW_AHEAD_DAYS — and the exclusive end is deliberate: it
+   * puts the final bar flush against the axis's edge with its rounded cap
+   * intact, rather than clipping it square as a window edge would.
+   */
+  const horizon = addDays(today, WINDOW_AHEAD_DAYS);
+  const floor = addDays(today, 1);
+  let to = floor;
+  for (const entry of feed.entries) {
+    const end = parseDay(entry.end);
+    if (end > to) to = end;
+  }
+  if (to > horizon) to = horizon;
 
   const bars: CalendarBar[] = [];
   for (const entry of feed.entries) {

@@ -1,5 +1,6 @@
 /**
- * Where each bar and each name goes on the calendar strip.
+ * Where each bar goes on the calendar strip: lanes, rows within a lane, and
+ * which bars carry their name inside themselves.
  *
  * Split out of the component because it is arithmetic and the test suite has
  * no DOM — the same arrangement as `compareEvents.ts` and `compareSeries.ts`.
@@ -14,48 +15,28 @@
  * on a desktop. Measuring instead — see `CalendarStrip` — costs a layout
  * effect and buys type that is the same size everywhere.
  *
- * The strip's other problem is that it sits above the fold and cannot be tall.
- * One row per entry would be twenty rows for a normal couple of months, most
- * of them a weekly series that never overlaps itself; instead every entry is
- * packed onto the first row with space for it.
+ * The strip sits above the fold and cannot be tall, and the first design paid
+ * for that the hard way: every entry carried its name beside its bar and
+ * reserved *bar plus name* when it claimed a row, so twenty entries with the
+ * long names a real schedule has packed into twelve rows, most holding one
+ * event. This layout gives the names up instead and organises by **lane**: a
+ * bar's category — the `type` token the feed reads from each entry's
+ * `[mtga-meta]` block, the calendar author's own marking, opaque here —
+ * decides which band of the strip it lands in, colour says lane, and a name
+ * is drawn only where its own bar is wide enough to hold a useful amount of
+ * it. Everything else about an entry lives in the popover and in its
+ * visually-hidden text.
  *
- * The part worth stating is what "space for it" counts. Packing on the bars
- * alone would be wrong: over a sixty-seven day window a three-day event is a
- * bar some fifty pixels wide, and no name fits inside one. So the names sit
- * beside the bars, and each entry reserves *bar plus name* when it claims its
- * row. The strip is a little taller for it and every bar is legible, which is
- * the trade — an unlabelled timeline is a decoration.
+ * Packing on bars alone has a property worth keeping: it does not depend on
+ * the plot's width. A name reserved beside a bar is a fixed number of pixels
+ * while the bar is proportional, so the old packing changed shape as the page
+ * narrowed; this one is the same arrangement at every width, only scaled.
  */
 
 import type { CalendarBar } from "../lib";
 
-/**
- * Width of one character of a name, in pixels.
- *
- * An estimate, because measuring text needs a DOM and a second reflow. It is
- * deliberately above what any real name needs, and the asymmetry is the reason:
- * over-reserving leaves a little extra air beside a name, while
- * under-reserving truncates a name that would have fitted.
- *
- * Measured rather than guessed. Rendering the twenty-odd names from a couple of
- * months of Arena events at `.calendar-label`'s size gives a mean of 5.85px per
- * character and a worst case of 6.50 — "Midweek Magic", since short names full
- * of wide letters skew highest and the per-character average is least reliable
- * exactly where the string is shortest. An earlier 6.4 sat just under that
- * worst case and cut ten of twenty-one names on a 1281px strip that had room
- * for every one of them. This clears it with enough margin for names not in
- * that sample.
- */
-export const CHAR_PX = 7;
-
-/** Between a bar and its name, when the name sits beside the bar. */
-export const LABEL_GAP = 6;
-
 /** Between a bar's edge and a name sitting inside it. */
 export const INSIDE_PAD = 6;
-
-/** Between one entry's claim on a row and the next one's. */
-export const ROW_GAP = 10;
 
 /**
  * The narrowest a bar is drawn. A one-day entry is far wider than this at any
@@ -65,141 +46,146 @@ export const ROW_GAP = 10;
 export const MIN_BAR = 3;
 
 /**
- * The most of the strip's width one name may claim.
+ * The least of a name worth showing inside a bar, in pixels — about ten
+ * characters.
  *
- * Without a ceiling the packing degenerates as the page narrows, and measurably
- * so: at a 351px plot, "Quick Draft: Marvel's Spider-Man" reserves 205px —
- * three-fifths of the row — and twenty-one events pack into *sixteen* rows of a
- * strip meant to be glanced at. Capped, a long name is truncated with an
- * ellipsis and the row it was hogging takes two or three more entries.
- *
- * It binds only where it has to. Two-fifths of a 1300px plot is 520px and no
- * name here approaches that, so a desktop lays out exactly as it would without
- * this.
+ * Below this a truncated name is little more than an ellipsis, which reads
+ * worse than no name at all; such bars stay bare and their lane's colour and
+ * the popover carry them. The trade is deliberate and taken with eyes open:
+ * at this minimum two long titles differing only in their suffix truncate
+ * alike, and the full name is always in the popover and the hidden text.
  */
-export const MAX_LABEL_SHARE = 0.4;
+export const MIN_INSIDE_LABEL = 70;
 
-export const labelWidth = (title: string): number => title.length * CHAR_PX;
+/**
+ * How many lane colours the stylesheet defines (`.calendar-lane-slot-*`).
+ * Slot assignment wraps past this, which no plausible calendar reaches.
+ */
+export const SLOT_COUNT = 8;
 
 export type CalendarPlacement = {
   bar: CalendarBar;
   /** Bar geometry, in pixels from the plot's left edge. */
   x: number;
   width: number;
-  /** Where the name's anchor sits, and which side of it the name hangs. */
-  labelX: number;
-  labelAnchor: "start" | "end";
   /**
-   * Whether the name sits *within* its own bar rather than beside it.
-   *
-   * The single biggest thing the packing can do for a narrow strip. A
-   * six-week event over a sixty-seven day window is a bar covering most of the
-   * row; made to carry its name alongside, it claims more than the row has and
-   * takes one to itself. Put the name inside — which is the ordinary Gantt
-   * treatment, and reads better anyway — and the entry claims only its bar,
-   * leaving the rest of the row for something else.
+   * Whether the bar is wide enough to carry a useful amount of its own name.
+   * Narrow bars are bare — their lane's colour and the popover identify them.
    */
   labelInside: boolean;
   /**
-   * What the name was allotted, and what the element has to be held to.
-   *
-   * The packing reserved exactly this much, so the rendered name must not
-   * exceed it: one allowed to run past what was reserved is drawn over its
-   * neighbour, which is the single failure this module exists to prevent.
+   * What the name may occupy, and what the element has to be held to: the
+   * component sets `max-width` from this and the stylesheet truncates. A name
+   * allowed past it would be drawn over the next bar on the row.
    */
   labelMax: number;
-  /** Packed row, 0 at the top. */
+  /** Packed row within the lane, 0 at the top. */
   row: number;
 };
 
+export type CalendarLane = {
+  /** The shared `type` token, or null for the pooled untyped entries. */
+  key: string | null;
+  /** Which `.calendar-lane-slot-*` colours it; null for the neutral pool. */
+  slot: number | null;
+  /** Placements grouped by row, in time order within each row. */
+  rows: CalendarPlacement[][];
+};
+
 export type CalendarLayout = {
-  /** In the order given, so the strip draws in time order. */
-  placements: CalendarPlacement[];
-  /** How many rows the packing needed. */
+  /** In display order: by each lane's earliest visible bar. */
+  lanes: CalendarLane[];
+  /** Total rows across all lanes, for whoever needs the strip's height. */
   rows: number;
 };
 
+/** Greedy first-fit over the bars alone, returned as rows in x order. */
+function packRows(placements: CalendarPlacement[]): CalendarPlacement[][] {
+  /*
+   * Touching bars share a row on purpose — a schedule full of back-to-back
+   * runs (four Flashback Drafts, the play-in-then-weekend qualifier rhythm)
+   * would otherwise alternate rows forever. The visible separation between
+   * them is the renderer's job: every bar wears a 1px ring of the page
+   * colour, so two touching bars still read as two.
+   */
+  const rowEnds: number[] = [];
+  for (const p of [...placements].sort((a, b) => a.x - b.x)) {
+    let row = rowEnds.findIndex((end) => end <= p.x);
+    if (row === -1) {
+      row = rowEnds.length;
+      rowEnds.push(p.x + p.width);
+    } else {
+      rowEnds[row] = Math.max(rowEnds[row], p.x + p.width);
+    }
+    p.row = row;
+  }
+  const rows: CalendarPlacement[][] = Array.from({ length: rowEnds.length }, () => []);
+  for (const p of [...placements].sort((a, b) => a.x - b.x)) rows[p.row].push(p);
+  return rows;
+}
+
 /**
- * Bars placed and packed.
+ * Bars placed, laned and packed.
  *
  * `scale` maps a date to a pixel offset — d3's `scaleTime` in the component, a
- * plain linear function in the tests. `plotWidth` is what a name may not run
- * past; a name that would is flipped to the left of its bar instead, which is
- * the same trick `BreakEvenChart` uses for a rate label near the axis's end.
- * Where neither side fits — a very long name on a bar in the last few pixels —
- * it stays on the right and is allowed to clip, because a name half off the
- * edge is still readable and one drawn over the bars is not.
+ * plain linear function in the tests.
+ *
+ * A lane is a `type` token — the author's category, read from the calendar
+ * itself — and entries sharing one share a band and a colour. Entries with no
+ * type pool into a single neutral lane rather than each taking a coloured one:
+ * an untyped entry is the author not having said, which is not a category.
+ *
+ * Colour slots follow the lanes' display order, so adjacent lanes wear
+ * *consecutive* palette slots — the pairing the palette's colour-vision gates
+ * were validated on. The trade is that a category's colour can drift as the
+ * schedule rotates and its lane changes rank; assigning slots by sorted token
+ * instead would pin each colour and was rejected for putting unvalidated hue
+ * pairs side by side, which fails readers every day rather than surprising
+ * them across weeks.
  */
 export function layoutCalendar(
   bars: readonly CalendarBar[],
   scale: (at: Date) => number,
-  plotWidth: number,
 ): CalendarLayout {
-  const ceiling = plotWidth * MAX_LABEL_SHARE;
-  const placements: CalendarPlacement[] = bars.map((bar) => {
+  const placed = bars.map((bar): CalendarPlacement => {
     const x = scale(bar.from);
     const width = Math.max(MIN_BAR, scale(bar.to) - x);
-    const label = Math.min(labelWidth(bar.entry.title), ceiling);
-
-    // Inside where the bar can hold the name, which costs the row nothing.
-    if (width >= label + 2 * INSIDE_PAD) {
-      return {
-        bar,
-        x,
-        width,
-        labelX: x + INSIDE_PAD,
-        labelAnchor: "start",
-        labelMax: width - 2 * INSIDE_PAD,
-        labelInside: true,
-        row: 0,
-      };
-    }
-
-    const rightAnchor = x + width + LABEL_GAP;
-    const flip = rightAnchor + label > plotWidth && x - LABEL_GAP - label >= 0;
     return {
       bar,
       x,
       width,
-      labelX: flip ? x - LABEL_GAP : rightAnchor,
-      labelAnchor: flip ? "end" : "start",
-      labelMax: label,
-      labelInside: false,
+      labelInside: width >= MIN_INSIDE_LABEL + 2 * INSIDE_PAD,
+      labelMax: Math.max(0, width - 2 * INSIDE_PAD),
       row: 0,
     };
   });
 
-  /*
-   * Greedy first fit over what each entry actually occupies — bar and name
-   * together, which for a flipped name reaches to the *left* of its bar.
-   *
-   * Walked in order of that left edge rather than of start date, since
-   * flipping moves it, and a first-fit that saw its input out of order could
-   * hand two overlapping entries the same row. `rowEnds` is maxed rather than
-   * assigned for the same reason: belt and braces against an input this
-   * function did not sort itself.
-   */
-  const claim = (p: CalendarPlacement): [number, number] =>
-    p.labelInside
-      ? [p.x, p.x + p.width]
-      : p.labelAnchor === "start"
-        ? [p.x, p.labelX + p.labelMax]
-        : [p.labelX - p.labelMax, p.x + p.width];
-
-  const rowEnds: number[] = [];
-  for (const p of [...placements].sort((a, b) => claim(a)[0] - claim(b)[0])) {
-    const [left, right] = claim(p);
-    let row = rowEnds.findIndex((end) => end + ROW_GAP <= left);
-    if (row === -1) {
-      row = rowEnds.length;
-      rowEnds.push(right);
-    } else {
-      rowEnds[row] = Math.max(rowEnds[row], right);
-    }
-    p.row = row;
+  const groups = new Map<string, CalendarPlacement[]>();
+  const misc: CalendarPlacement[] = [];
+  for (const p of placed) {
+    const key = p.bar.entry.type ?? null;
+    if (key === null) misc.push(p);
+    else groups.set(key, [...(groups.get(key) ?? []), p]);
   }
 
-  return { placements, rows: rowEnds.length };
+  const lanes: CalendarLane[] = [...groups.entries()].map(([key, members]) => ({
+    key,
+    slot: null as number | null,
+    rows: packRows(members),
+  }));
+  if (misc.length > 0) lanes.push({ key: null, slot: null, rows: packRows(misc) });
+
+  lanes.sort(
+    (a, b) =>
+      Math.min(...a.rows.flat().map((p) => p.x)) - Math.min(...b.rows.flat().map((p) => p.x)),
+  );
+
+  let slot = 0;
+  for (const lane of lanes) {
+    if (lane.key !== null) lane.slot = slot++ % SLOT_COUNT;
+  }
+
+  return { lanes, rows: lanes.reduce((n, lane) => n + lane.rows.length, 0) };
 }
 
 /** Room a date label needs before its neighbour, "16 Aug" plus air. */
@@ -221,17 +207,4 @@ const TICK_PX = 70;
 export function tickEvery(plotWidth: number, spanDays: number): number {
   const fits = Math.max(2, Math.floor(plotWidth / TICK_PX));
   return Math.max(1, Math.ceil(spanDays / 7 / fits));
-}
-
-/**
- * The layout as rows of placements, which is how the strip renders it.
- *
- * The component stacks one element per row in normal flow and lets the
- * stylesheet decide how tall a row is, so this is the last step that has to
- * know a row index at all — and nothing in JS ever multiplies one by a height.
- */
-export function groupRows({ placements, rows }: CalendarLayout): CalendarPlacement[][] {
-  const grouped: CalendarPlacement[][] = Array.from({ length: rows }, () => []);
-  for (const p of placements) grouped[p.row].push(p);
-  return grouped;
 }

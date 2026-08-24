@@ -258,10 +258,21 @@ The boundaries that matter, beyond the ones the box-price feed already states:
   `TZ=Pacific/Auckland npm test` and `TZ=America/Los_Angeles npm test` after
   touching any of it.
 - **The fetch window is wider than the display window, deliberately.**
-  `scripts/calendar/fetch.ts` takes −31/+120 days; the app clips to −7/+60 from
-  *the day the page is opened*. That is what keeps the shipped copy honest as
-  it ages — a copy built against a +60d fetch would show less and less of the
-  future, where one clipped on read still shows the full window.
+  `scripts/calendar/fetch.ts` takes −31/+120 days; the app clips to −7 back
+  and *up to* +60 ahead from *the day the page is opened*, condensed to the
+  end of the last scheduled event so the axis never pads the future with
+  blank. That is what keeps the shipped copy honest as it ages — a copy built
+  against a +60d fetch would show less and less of the future, where one
+  clipped on read still shows the full window.
+- **An entry's category rides in its description, as
+  `[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]`.** A Google
+  Calendar event has nowhere else to put structured data, so the feed
+  (`scripts/calendar/feed.ts`) reads the block out of the text — after HTML
+  stripping, so a UI edit that entity-escapes the quotes still parses — and
+  publishes the token as the entry's `type`; the block itself, readable or
+  not, never reaches a note or a tooltip. The strip lanes and colours entries
+  sharing a token and learns nothing from its spelling: the kinds live in the
+  calendar, and the author makes one by using it.
 - **An empty calendar is a real state and publishes.** The strip renders
   nothing at all for it, which is what a preview and a fresh checkout get.
   What refuses is a page of live items none of which are *readable* — a field
@@ -275,8 +286,12 @@ The strip itself breaks one of this repo's conventions on purpose. Every other
 chart is a fixed 560-unit `viewBox` stretched to its column; this one runs the
 full width of the page, where that would render its lettering near 3px on a
 phone and 22px on a desktop. So it is measured and laid out in CSS pixels —
-`CalendarStrip` for the layout effect, `calendarLayout.ts` for the arithmetic,
-which is where the packing lives and why a name reserves room next to its bar.
+`CalendarStrip` for the layout effect, `calendarLayout.ts` for the lane
+arithmetic. Bars pack on their spans alone, one band of rows per `type`, and
+a name is drawn only inside a bar wide enough to hold a useful amount of it;
+the popover and each entry's visually-hidden text carry the rest. An earlier
+design reserved every name beside its bar and paid twelve rows for twenty
+events; the doc comments in `calendarLayout.ts` keep that history.
 
 Two secrets, set with `wrangler secret put` from `worker/`:
 `GOOGLE_CALENDAR_ID` and `GOOGLE_API_KEY`. `worker/env.d.ts` is their type —

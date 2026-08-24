@@ -19,8 +19,9 @@ import { describe, expect, it } from "vitest";
 const source = readFileSync(new URL("./CalendarStrip.tsx", import.meta.url), "utf8");
 const styles = readFileSync(new URL("../styles.css", import.meta.url), "utf8");
 
-/** Every `calendar-*` class named anywhere in the component. */
-const rendered = [...source.matchAll(/"(calendar-[a-z-]+)"/g)].map((m) => m[1]);
+/** Every `calendar-*` class named anywhere in the component. Digits included:
+    the lane palette classes end in a slot number. */
+const rendered = [...source.matchAll(/"(calendar-[a-z0-9-]+)"/g)].map((m) => m[1]);
 
 describe("CalendarStrip", () => {
   it("names some classes at all", () => {

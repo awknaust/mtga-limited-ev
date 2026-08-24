@@ -73,6 +73,19 @@ describe("parseCalendarFeed", () => {
     expect(parseCalendarFeed(feedOf())?.entries).toEqual([]);
   });
 
+  it("carries an entry's type through, and its absence through too", () => {
+    const feed = parseCalendarFeed({
+      version: 1,
+      generatedAt: "2026-08-23T09:00:00.000Z",
+      entries: [
+        { id: "a", title: "a", start: "2026-08-21", end: "2026-08-22", type: "qualifier" },
+        { id: "b", title: "b", start: "2026-08-21", end: "2026-08-22" },
+      ],
+    });
+    expect(feed?.entries[0].type).toBe("qualifier");
+    expect(feed?.entries[1]).not.toHaveProperty("type");
+  });
+
   it("passes fields it does not know", () => {
     // The Worker deploys separately from the app: a newer payload must not
     // read as corrupt to an older bundle.
@@ -104,6 +117,7 @@ describe("parseCalendarFeed", () => {
     ["a span that ends where it starts", entry("a", "2026-08-21", "2026-08-21")],
     ["a span that ends before it starts", entry("a", "2026-08-21", "2026-08-20")],
     ["a note that is not a string", { ...entry("a", "2026-08-21", "2026-08-22"), note: 3 }],
+    ["a type that is not a string", { ...entry("a", "2026-08-21", "2026-08-22"), type: 7 }],
   ])("fails the whole feed on %s", (_label, bad) => {
     // The same contract as parseBoxPriceFeed: a malformed value means
     // something upstream broke, and drawing around it would launder it.
@@ -112,11 +126,28 @@ describe("parseCalendarFeed", () => {
 });
 
 describe("calendarWindow", () => {
-  it("spans a week back and two months on from today", () => {
-    const { domain, today } = calendarWindow(feedOf(), NOW);
+  it("spans a week back and condenses to the end of the last event", () => {
+    const { domain, today } = calendarWindow(
+      feedOf(entry("a", "2026-08-25", "2026-08-28"), entry("b", "2026-09-01", "2026-09-15")),
+      NOW,
+    );
     expect(today).toEqual(new Date(2026, 7, 23));
     expect(domain[0]).toEqual(new Date(2026, 7, 23 - WINDOW_BACK_DAYS));
+    // The last exclusive end, not two months of mostly blank axis: the final
+    // bar sits flush against the right edge with its rounded cap intact.
+    expect(domain[1]).toEqual(new Date(2026, 8, 15));
+  });
+
+  it("caps the axis at two months ahead however far the schedule runs", () => {
+    const { domain } = calendarWindow(feedOf(entry("far", "2026-09-01", "2026-12-01")), NOW);
     expect(domain[1]).toEqual(new Date(2026, 7, 23 + WINDOW_AHEAD_DAYS));
+  });
+
+  it("never ends the axis before tomorrow, so the today line stays on it", () => {
+    // A feed of nothing but finished events still has to draw them against an
+    // axis that contains the marker.
+    const { domain } = calendarWindow(feedOf(entry("done", "2026-08-18", "2026-08-21")), NOW);
+    expect(domain[1]).toEqual(new Date(2026, 7, 24));
   });
 
   it("places each entry against today", () => {

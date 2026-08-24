@@ -8,7 +8,24 @@ import {
   type CalendarBar,
   type CalendarFeed,
 } from "../lib";
-import { groupRows, layoutCalendar, tickEvery } from "./calendarLayout";
+import { INSIDE_PAD, layoutCalendar, tickEvery } from "./calendarLayout";
+
+/**
+ * One class per palette slot, spelled out so `CalendarStrip.test.ts` — which
+ * greps this file for string literals — can hold every one to a definition in
+ * the stylesheet. A template literal would render the same and be checked by
+ * nothing.
+ */
+const SLOT_CLASS = [
+  "calendar-lane-slot-0",
+  "calendar-lane-slot-1",
+  "calendar-lane-slot-2",
+  "calendar-lane-slot-3",
+  "calendar-lane-slot-4",
+  "calendar-lane-slot-5",
+  "calendar-lane-slot-6",
+  "calendar-lane-slot-7",
+] as const;
 
 /**
  * An entry's dates as a reader says them.
@@ -38,8 +55,11 @@ type Hover = { bar: CalendarBar; left: number | null; right: number | null; top:
  * question about value; this answers "is that event still on", which nothing
  * in `src/lib` knows and no amount of arithmetic would tell you. It reads a
  * calendar the Worker publishes and draws it, and it deliberately stops there:
- * no entry is matched to a preset, sorted into a kind, or linked anywhere. A
- * name and a span of days is the whole of it.
+ * no entry is matched to a preset, sorted into a kind the app understands, or
+ * linked anywhere. The lanes are not an exception: entries are banded by the
+ * `type` token the feed reads from each one's `[mtga-meta]` block — the
+ * calendar author's own categorisation, opaque here — so the kinds live in
+ * the data, and a new one appears the day the calendar starts using it.
  *
  * Drawn in HTML rather than SVG, which is worth stating because every other
  * chart here is the other way round. Those sit in a column and are drawn in a
@@ -123,7 +143,7 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
     const spanDays = (view.domain[1].getTime() - view.domain[0].getTime()) / 86_400_000;
     return {
       x,
-      rows: groupRows(layoutCalendar(view.bars, x, width)),
+      lanes: layoutCalendar(view.bars, x).lanes,
       // Mondays, every `n`th, `n` chosen from the width — see `tickEvery` for
       // why this cannot just ask d3 for a number of ticks.
       ticks: x.ticks(timeMonday.every(tickEvery(width, spanDays)) ?? timeMonday),
@@ -172,72 +192,84 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
               style={{ left: layout.x(view.today) }}
               aria-hidden="true"
             />
-            {layout.rows.map((row, i) => (
-              // Rows are stacked in flow and sized by the stylesheet; the index
-              // is the row's identity and nothing else keys off it.
-              <div className="calendar-row" key={i}>
-                {row.map(({ bar, x, width: w, labelX, labelAnchor, labelMax, labelInside }) => {
-                  const { entry, state, clippedStart, clippedEnd } = bar;
-                  const range = rangeText(entry, day, dayYear);
-                  const plain = `${entry.title}\n${range}${
-                    entry.note === undefined ? "" : `\n${entry.note}`
-                  }`;
-                  return (
-                    <div
-                      key={entry.id}
-                      /*
-                       * Hover is read from the element rather than computed,
-                       * which is what keeps row heights out of JS: the row's
-                       * own box says where the popover goes, so the stylesheet
-                       * stays the only thing that knows how tall a row is.
-                       */
-                      onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
-                      onPointerLeave={() => setHover(null)}
-                    >
-                      <span
-                        className={[
-                          "calendar-bar",
-                          state === "past" ? "calendar-bar-past" : "",
-                          state === "now" ? "calendar-bar-now" : "",
-                          clippedStart ? "calendar-bar-open-start" : "",
-                          clippedEnd ? "calendar-bar-open-end" : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        style={{ left: x, width: w }}
-                        title={plain}
-                      />
-                      <span
-                        className={[
-                          "calendar-label",
-                          labelInside ? "calendar-label-inside" : "",
-                          state === "past" ? "calendar-label-past" : "",
-                        ]
-                          .filter(Boolean)
-                          .join(" ")}
-                        style={{
-                          // Held to what the packing reserved. Without the cap
-                          // a long name draws straight over its neighbour.
-                          maxWidth: labelMax,
-                          ...(labelAnchor === "start"
-                            ? { left: labelX }
-                            : { right: width - labelX }),
-                        }}
-                        title={plain}
-                      >
-                        {entry.title}
-                        {/* The name above may be truncated to fit its row and
-                            the dates are nowhere on screen at all, so this is
-                            the whole reading for anyone not using a pointer.
-                            The text itself is never cut — only its box is. */}
-                        <span className="visually-hidden">
-                          , {range}
-                          {entry.note === undefined ? "" : `. ${entry.note}`}
-                        </span>
-                      </span>
-                    </div>
-                  );
-                })}
+            {layout.lanes.map((lane) => (
+              <div
+                className={[
+                  "calendar-lane",
+                  lane.slot === null ? "calendar-lane-slot-misc" : SLOT_CLASS[lane.slot],
+                ].join(" ")}
+                // Prefixed so an author's token can never collide with the
+                // pooled lane's key, whatever they name a type.
+                key={lane.key === null ? "untyped" : `type:${lane.key}`}
+              >
+                {lane.rows.map((row, i) => (
+                  // Rows are stacked in flow and sized by the stylesheet; the
+                  // index is the row's identity and nothing else keys off it.
+                  <div className="calendar-row" key={i}>
+                    {row.map(({ bar, x, width: w, labelMax, labelInside }) => {
+                      const { entry, state, clippedStart, clippedEnd } = bar;
+                      const range = rangeText(entry, day, dayYear);
+                      const plain = `${entry.title}\n${range}${
+                        entry.note === undefined ? "" : `\n${entry.note}`
+                      }`;
+                      return (
+                        <div
+                          key={entry.id}
+                          /*
+                           * Hover is read from the element rather than computed,
+                           * which is what keeps row heights out of JS: the row's
+                           * own box says where the popover goes, so the
+                           * stylesheet stays the only thing that knows how tall
+                           * a row is.
+                           */
+                          onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
+                          onPointerLeave={() => setHover(null)}
+                        >
+                          <span
+                            className={[
+                              "calendar-bar",
+                              state === "past" ? "calendar-bar-past" : "",
+                              state === "now" ? "calendar-bar-now" : "",
+                              clippedStart ? "calendar-bar-open-start" : "",
+                              clippedEnd ? "calendar-bar-open-end" : "",
+                            ]
+                              .filter(Boolean)
+                              .join(" ")}
+                            style={{ left: x, width: w }}
+                            title={plain}
+                          />
+                          {labelInside && (
+                            /* The name, where the bar can hold a useful amount
+                               of it. aria-hidden because it may be truncated
+                               and the hidden span below carries the whole
+                               entry; announcing both would say it twice. */
+                            <span
+                              className={[
+                                "calendar-label",
+                                "calendar-label-inside",
+                                state === "past" ? "calendar-label-past" : "",
+                              ]
+                                .filter(Boolean)
+                                .join(" ")}
+                              style={{ left: x + INSIDE_PAD, maxWidth: labelMax }}
+                              title={plain}
+                              aria-hidden="true"
+                            >
+                              {entry.title}
+                            </span>
+                          )}
+                          {/* Most bars carry no visible name at all now, so
+                              this is the whole reading for anyone not using a
+                              pointer. The text is never cut — only boxes are. */}
+                          <span className="visually-hidden">
+                            {entry.title}, {range}
+                            {entry.note === undefined ? "" : `. ${entry.note}`}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
               </div>
             ))}
           </>

@@ -35,6 +35,13 @@ export type CalendarEntry = {
   end: string;
   /** Description as plain text, absent when there was none worth carrying. */
   note?: string;
+  /**
+   * The author's category token — `eventType` from the description's
+   * `[mtga-meta]` block — absent when the description carries none. An opaque
+   * string: the strip lanes and colours entries sharing one, and neither this
+   * module nor the app knows what any token means.
+   */
+  type?: string;
 };
 
 export type CalendarFeed = {
@@ -111,11 +118,45 @@ function stripHtml(html: string): string {
     .trim();
 }
 
+/**
+ * The machine-readable tail of a description:
+ * `[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]`.
+ *
+ * The calendar author's own annotation, carried in the description because a
+ * Google Calendar event has nowhere else to put structured data. Matched
+ * *after* `stripHtml`, deliberately: an edit made in Google's UI can turn the
+ * description to HTML and its quotes to `&quot;`, and the strip's entity
+ * decoding is what restores the JSON before this ever sees it.
+ */
+const META = /\[mtga-meta\](.*?)\[\/mtga-meta\]/g;
+
+/** The block's `eventType`, or null when there is no readable one. */
+function readEventType(text: string): string | null {
+  for (const match of text.matchAll(META)) {
+    try {
+      const meta = JSON.parse(match[1]) as unknown;
+      if (typeof meta !== "object" || meta === null) continue;
+      const type = (meta as Record<string, unknown>).eventType;
+      if (typeof type === "string" && type.trim() !== "") return type.trim();
+    } catch {
+      // An unreadable block is still stripped from the note below; it just
+      // contributes no type. Refusing the whole feed for one typo'd
+      // annotation would take the calendar down to fix a colour.
+    }
+  }
+  return null;
+}
+
 export function buildCalendarFeed(events: RawEvent[], now: Date): CalendarFeed {
   const entries: CalendarEntry[] = [];
   for (const event of events) {
     const span = spanOf(event.start, event.end);
-    const note = event.description === null ? "" : stripHtml(event.description);
+    const text = event.description === null ? "" : stripHtml(event.description);
+    const type = readEventType(text);
+    // The meta is for machines and must never surface in a tooltip — readable
+    // or not — and it is removed *before* the length cap so a truncated note
+    // can never end mid-block with the tail of one showing.
+    const note = text.replace(META, " ").replace(/\s+/g, " ").trim();
     entries.push({
       id: event.id,
       title: event.title,
@@ -124,6 +165,7 @@ export function buildCalendarFeed(events: RawEvent[], now: Date): CalendarFeed {
       ...(note === ""
         ? {}
         : { note: note.length > MAX_NOTE ? `${note.slice(0, MAX_NOTE - 1).trimEnd()}…` : note }),
+      ...(type === null ? {} : { type }),
     });
   }
 
