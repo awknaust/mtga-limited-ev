@@ -27,6 +27,8 @@ npm install && npm run dev    # Vite prints the URL it picked
 npm test
 ```
 
+[DEPLOY.md](DEPLOY.md) covers how the site ships and the credentials it needs.
+
 Reward and drop-rate figures come from [Wizards' published drop
 rates](https://magic.wizards.com/en/mtgarena/drop-rates) when possible. 
 
