@@ -34,9 +34,9 @@ export type RawEvent = {
   description: string | null;
   /**
    * `extendedProperties.shared.mtgaEventType`, when the event carries one —
-   * the channel the calendar copier writes (`apps-script/`). Carried raw:
-   * whether the token names a recognised type is `feed.ts`'s call, exactly
-   * as it is for the description this fell back from.
+   * the channel the calendar copier writes (`apps-script/`), and the only
+   * one the feed reads. Carried raw: whether the token names a recognised
+   * type is `feed.ts`'s call.
    */
   eventTypeProperty: string | null;
 };

@@ -2,12 +2,15 @@
 
 An Apps Script that mirrors the **staging** calendar (the one cowork writes,
 `[mtga-meta]` blocks and all) onto the **clean public calendar** that humans
-subscribe to and the Worker reads: meta blocks stripped from descriptions, one
-event colour per category, and the category moved into
-`extendedProperties.shared.mtgaEventType` where no reader ever sees it. The
-architecture and its boundaries are documented in the calendar section of the
-repo's `CLAUDE.md`; the port-drift guard is `calendar-sync.test.ts` beside
-this file.
+subscribe to and the Worker reads: meta blocks stripped from descriptions, a
+named calendar label per category (the script keeps the definitions in the
+calendar's `labelProperties`, matching by name so a human recolouring one in
+the UI is not fought), and the category in
+`extendedProperties.shared.mtgaEventType` where no human ever sees it. That
+shared property is the **only** channel the app's feed reads — the
+`[mtga-meta]` format never leaves this script. The architecture and its
+boundaries are documented in the calendar section of the repo's `CLAUDE.md`;
+the guard is `calendar-sync.test.ts` beside this file.
 
 Layout: `calendar-sync/` is exactly what `clasp push` uploads (`Code.js` and
 the `appsscript.json` manifest — the manifest is what enables the advanced
@@ -66,20 +69,28 @@ logs in and the version that pushes must move together.
    made after it exists.
 
 4. **Verify before repointing anything.**
+   - Labels came through: the first `sync()` creates the label definitions
+     (`ensureLabels_` refuses loudly if `labelProperties` does not survive a
+     write — the labels API is new surface, and its availability on a
+     consumer calendar is the one thing this design could not verify from
+     documentation), and events on the clean calendar show their label in
+     the Google Calendar UI.
    - The clean calendar is public ("See all event details"), and a keyless
-     read returns the annotation — this is the assumption the feed change
-     leans on, so check it first:
+     read returns the annotation — with no fallback in the feed this is the
+     assumption everything leans on, so check it first:
 
      ```bash
      curl -s -H "X-goog-api-key: $GOOGLE_API_KEY" "https://www.googleapis.com/calendar/v3/calendars/c3fce5ebd85fb199a59badc1d32c5d2f5b93aa417729aefe00c846db3006423c%40group.calendar.google.com/events?maxResults=3" | grep -o "mtgaEventType"
      ```
 
    - Point a local `.env` at the clean calendar and `npm run calendar` —
-     the entries should match a run against staging.
-   - Colours survive to subscribers: open the calendar from a second account
-     or an incognito embed. (Plain iCal subscribers won't see Google colours
-     at all — known limitation; a title prefix would be the fix if it ever
-     matters.)
+     one entry per typed staging event. (Pointing it at staging is not a
+     comparison worth making any more: staging events carry no
+     extendedProperties, so the feed refuses the lot.)
+   - Labels survive to subscribers: open the calendar from a second account
+     or an incognito embed and confirm the label names and colours show.
+     (Plain iCal subscribers won't see them at all — known limitation; a
+     title prefix would be the fix if it ever matters.)
    - Edit one staging event and watch the clean calendar follow within about
      a minute; delete it and watch the copy disappear.
 
@@ -89,7 +100,8 @@ logs in and the version that pushes must move together.
    `src/data/mtg-calendar.json` (`npm run calendar -- --write`) in its own
    commit.
 
-If the copier ever breaks, the escape hatch is that same secret: the feed
-still reads the `[mtga-meta]` description block as a fallback, so pointing
-`GOOGLE_CALENDAR_ID` back at the staging calendar restores the app in one
-step while the human calendar waits for a fix.
+If the copier ever breaks, the clean calendar goes stale and the feed keeps
+serving it — a stale calendar, not an outage, the same shape as any source
+being down. There is deliberately no fallback to staging: the feed knows
+nothing of `[mtga-meta]`, so staging is not a calendar it can read, and the
+fix is fixing the copier.

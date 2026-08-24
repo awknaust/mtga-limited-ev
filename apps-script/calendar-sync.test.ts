@@ -1,22 +1,20 @@
 /**
- * The guard on the Apps Script port.
+ * The guard on the Apps Script copier, from the repository side.
  *
- * `calendar-sync/Code.js` re-implements rules whose home is this repository —
- * the `[mtga-meta]` parse and strip order from `scripts/calendar/feed.ts`,
- * the closed type set from `src/lib/calendarEventTypes.ts` — because Apps
- * Script cannot import repo modules. A port drifts silently: a category
- * added to the app without a colour in the copier would make it drop those
- * staging events *whole*, and the clean calendar — which the app reads —
- * would simply never show them.
+ * `calendar-sync/Code.js` is the **only parser** of cowork's `[mtga-meta]`
+ * format — the app's feed reads `extendedProperties.shared.mtgaEventType`
+ * and nothing else — so two different things need holding here. First, the
+ * boundary: every token the copier can emit must be one the feed recognises,
+ * or those staging events would silently never exist for the app. That is
+ * the closed-set check on `LABEL_BY_TYPE` and the round-trip of each token
+ * through `buildCalendarFeed`. Second, the copier's own reading of cowork's
+ * format, which no longer has a repo original to compare against and is
+ * pinned to expected values directly — the HTML-escaped-quotes case
+ * especially, since a Google-UI edit produces exactly that and a copier that
+ * cannot read it drops the event whole.
  *
- * So the pure half of Code.js is evaluated under Node (everything above its
- * "Apps Script services" marker is written to make that possible) and held
- * to the originals: the colour map's keys to CALENDAR_EVENT_TYPES, and the
- * meta parser and text stripping to `buildCalendarFeed`'s observable
- * behaviour on shared fixtures. The parity fixtures stay inside the entity
- * vocabulary the port documents — numeric references plus its named table;
- * rarer names surviving literally is the accepted difference, and is not
- * pinned.
+ * The pure half of Code.js — everything above its "Apps Script services"
+ * marker, written to make this possible — is evaluated under Node here.
  */
 
 import { readFileSync } from "node:fs";
@@ -24,7 +22,6 @@ import { describe, expect, it } from "vitest";
 
 import { CALENDAR_EVENT_TYPES } from "../src/lib/calendarEventTypes.ts";
 import { buildCalendarFeed } from "../scripts/calendar/feed.ts";
-import type { RawEvent } from "../scripts/calendar/google.ts";
 
 const source = readFileSync(new URL("./calendar-sync/Code.js", import.meta.url), "utf8");
 
@@ -32,97 +29,125 @@ const source = readFileSync(new URL("./calendar-sync/Code.js", import.meta.url),
 type SchemaEvent = Record<string, unknown>;
 
 type Helpers = {
-  COLOR_BY_TYPE: Record<string, string>;
+  LABEL_BY_TYPE: Record<string, { name: string; backgroundColor: string }>;
   stripHtmlText: (html: string) => string;
   readEventTypeFrom: (text: string) => string | null;
   cleanDescription: (text: string) => string;
-  desiredFor: (event: SchemaEvent) => { sourceId: string; body: SchemaEvent | null } | null;
+  desiredFor: (
+    event: SchemaEvent,
+    labelIds: Record<string, string>,
+  ) => { sourceId: string; body: (SchemaEvent & { eventLabelId?: string }) | null } | null;
   differs: (body: SchemaEvent, existing: SchemaEvent) => boolean;
 };
 
 const helpers = new Function(
-  `${source}\nreturn { COLOR_BY_TYPE, stripHtmlText, readEventTypeFrom, cleanDescription, desiredFor, differs };`,
+  `${source}\nreturn { LABEL_BY_TYPE, stripHtmlText, readEventTypeFrom, cleanDescription, desiredFor, differs };`,
 )() as Helpers;
 
-describe("COLOR_BY_TYPE", () => {
-  it("colours exactly the closed set of event types", () => {
-    expect(Object.keys(helpers.COLOR_BY_TYPE).sort()).toEqual([...CALENDAR_EVENT_TYPES].sort());
+/** A stand-in for what `ensureLabels_` returns on the live calendar. */
+const LABEL_IDS = Object.fromEntries(
+  CALENDAR_EVENT_TYPES.map((type, i) => [type, `label-${i}`]),
+);
+
+describe("LABEL_BY_TYPE", () => {
+  it("labels exactly the closed set of event types", () => {
+    expect(Object.keys(helpers.LABEL_BY_TYPE).sort()).toEqual([...CALENDAR_EVENT_TYPES].sort());
   });
 
-  it("gives each type its own colour from Google's palette", () => {
-    const colors = Object.values(helpers.COLOR_BY_TYPE);
-    for (const color of colors) expect(color).toMatch(/^([1-9]|1[01])$/);
+  it("gives each type its own name, within Google's 50-character limit", () => {
+    const names = Object.values(helpers.LABEL_BY_TYPE).map((label) => label.name);
+    for (const name of names) {
+      expect(name.trim()).not.toBe("");
+      expect(name.length).toBeLessThanOrEqual(50);
+    }
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it("gives each label a distinct hex colour to be born with", () => {
+    const colors = Object.values(helpers.LABEL_BY_TYPE).map((label) => label.backgroundColor);
+    for (const color of colors) expect(color).toMatch(/^#[0-9a-f]{6}$/);
     expect(new Set(colors).size).toBe(colors.length);
   });
 });
 
-describe("parity with the feed's reading of a description", () => {
+describe("every token the copier emits round-trips through the feed", () => {
   const NOW = new Date("2026-08-23T12:00:00Z");
 
-  const raw = (over: Partial<RawEvent>): RawEvent => ({
-    id: "probe",
-    title: "Probe",
-    start: { day: "2026-08-21" },
-    end: { day: "2026-08-22" },
-    description: null,
-    eventTypeProperty: null,
-    ...over,
+  it.each([...CALENDAR_EVENT_TYPES])("%s", async (type) => {
+    // The copier's write, as the feed will read it: the body's shared
+    // property becomes the RawEvent's eventTypeProperty, the one channel.
+    const want = helpers.desiredFor(
+      {
+        id: "evt-1",
+        status: "confirmed",
+        summary: "Probe",
+        description: `[mtga-meta]{"v":1,"eventType":"${type}"}[/mtga-meta]`,
+        start: { date: "2026-08-21" },
+        end: { date: "2026-08-22" },
+      },
+      LABEL_IDS,
+    );
+    const shared = (want?.body?.extendedProperties as { shared: Record<string, string> }).shared;
+    const feed = await buildCalendarFeed(
+      [
+        {
+          id: "evt-1",
+          title: "Probe",
+          start: { day: "2026-08-21" },
+          end: { day: "2026-08-22" },
+          description: null,
+          eventTypeProperty: shared.mtgaEventType,
+        },
+      ],
+      NOW,
+    );
+    expect(feed.entries[0]?.type).toBe(type);
   });
+});
 
-  /** An always-typed companion, so a dropped probe reads as a drop rather
-   * than tripping the feed's all-untyped refusal. */
-  const anchor = raw({
-    id: "anchor",
-    title: "Anchor",
-    description: '[mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]',
-  });
-
-  async function feedReads(description: string): Promise<{ type: string | null; note: string }> {
-    const feed = await buildCalendarFeed([anchor, raw({ description })], NOW);
-    const entry = feed.entries.find((e) => e.title === "Probe");
-    return { type: entry?.type ?? null, note: entry?.note ?? "" };
-  }
-
+describe("reading cowork's format", () => {
   it.each([
-    ["a plain block", 'Runs all week. [mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]'],
+    ["a plain block", 'Runs all week. [mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]', "qualifier"],
     [
+      // A Google-UI edit turns the description to HTML and the JSON's quotes
+      // to &quot; — the reason tags strip and entities decode before the
+      // block is matched.
       "a block whose quotes an HTML edit escaped",
       "<p>Runs all week.</p>[mtga-meta]{&quot;v&quot;:1,&quot;eventType&quot;:&quot;limited_open&quot;}[/mtga-meta]",
+      "limited_open",
     ],
-    ["a token that is not on the list", '[mtga-meta]{"v":1,"eventType":"midweek_magic"}[/mtga-meta]'],
-    ["a broken block", "Oops [mtga-meta]{oops[/mtga-meta]"],
+    ["a token that is not on the list", '[mtga-meta]{"v":1,"eventType":"midweek_magic"}[/mtga-meta]', null],
+    ["a broken block", "Oops [mtga-meta]{oops[/mtga-meta]", null],
     [
       "a broken block followed by a readable one",
       '[mtga-meta]{nope[/mtga-meta] [mtga-meta]{"v":1,"eventType":"arena_direct"}[/mtga-meta]',
+      "arena_direct",
     ],
-    ["no block at all", "Just prose."],
-    [
-      "the entities the port's table must know",
-      '<p>6&nbsp;wins &mdash; 4,200 gems &#8212; that&#39;s rich</p>[mtga-meta]{"v":1,"eventType":"contender_draft"}[/mtga-meta]',
-    ],
-    [
-      "an escaped entity that must not decode twice",
-      'a &amp;lt;b&amp;gt; tag [mtga-meta]{"v":1,"eventType":"set_release"}[/mtga-meta]',
-    ],
-    [
-      // Strip-then-decode order: decoding first would mint a tag here and
-      // then strip it, and the note would lose its text.
-      "an encoded tag that must stay text",
-      '&lt;b&gt;not markup&lt;/b&gt; [mtga-meta]{"v":1,"eventType":"flashback_draft"}[/mtga-meta]',
-    ],
-  ])("agrees with the feed on %s", async (_label, description) => {
-    const viaFeed = await feedReads(description);
-    const text = helpers.stripHtmlText(description);
-    expect(helpers.readEventTypeFrom(text)).toBe(viaFeed.type);
-    // A null type means neither side publishes anything — the feed drops the
-    // entry and the copier's desiredFor answers `body: null` — so there is a
-    // note to compare only when a type was read.
-    if (viaFeed.type !== null) {
-      expect(helpers.cleanDescription(text)).toBe(viaFeed.note);
-    }
+    ["no block at all", "Just prose.", null],
+  ])("reads %s", (_label, description, expected) => {
+    expect(helpers.readEventTypeFrom(helpers.stripHtmlText(description))).toBe(expected);
   });
 
-  it("keeps the full text where the feed's tooltip copy caps at 200", () => {
+  it("decodes named and numeric entities into the clean text", () => {
+    expect(helpers.stripHtmlText("<p>6&nbsp;wins &mdash; 4,200 gems &#8212; that&#39;s rich</p>")).toBe(
+      "6 wins — 4,200 gems — that's rich",
+    );
+  });
+
+  it("does not decode an escaped entity twice", () => {
+    // `&amp;lt;` is someone writing "&lt;", not a tag.
+    expect(helpers.stripHtmlText("a &amp;lt;b&amp;gt; tag")).toBe("a &lt;b&gt; tag");
+  });
+
+  it("strips tags before decoding, so an encoded tag stays text", () => {
+    // Decoding first would mint a tag here and then strip it, and the
+    // description would lose its text.
+    expect(helpers.stripHtmlText("&lt;b&gt;not markup&lt;/b&gt;")).toBe("<b>not markup</b>");
+  });
+
+  it("removes the block from the text and keeps the full length", () => {
+    // The feed caps its copy at 200 characters because that copy is a
+    // tooltip; the copier's is the event a subscriber opens.
     const text = "x".repeat(500);
     const description = `${text} [mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]`;
     expect(helpers.cleanDescription(helpers.stripHtmlText(description))).toBe(text);
@@ -139,15 +164,15 @@ describe("desiredFor", () => {
     end: { date: "2026-08-23" },
   };
 
-  it("builds the clean event: colour, shared properties, stripped text", () => {
-    expect(helpers.desiredFor(stagedAllDay)).toEqual({
+  it("builds the clean event: label, shared properties, stripped text", () => {
+    expect(helpers.desiredFor(stagedAllDay, LABEL_IDS)).toEqual({
       sourceId: "evt-1",
       body: {
         summary: "Arena Direct — Hobbit",
         description: "Six wins takes the box.",
         start: { date: "2026-08-21" },
         end: { date: "2026-08-23" },
-        colorId: helpers.COLOR_BY_TYPE.arena_direct,
+        eventLabelId: LABEL_IDS.arena_direct,
         extendedProperties: { shared: { mtgaEventType: "arena_direct", mtgaSourceId: "evt-1" } },
       },
     });
@@ -159,7 +184,7 @@ describe("desiredFor", () => {
       start: { dateTime: "2026-08-25T10:00:00-07:00", timeZone: "America/Los_Angeles" },
       end: { dateTime: "2026-08-25T18:00:00-07:00", timeZone: "America/Los_Angeles" },
     };
-    const body = helpers.desiredFor(timed)?.body;
+    const body = helpers.desiredFor(timed, LABEL_IDS)?.body;
     expect(body?.start).toEqual({
       dateTime: "2026-08-25T10:00:00-07:00",
       timeZone: "America/Los_Angeles",
@@ -171,7 +196,7 @@ describe("desiredFor", () => {
     // *many* of these at once means the scheme broke, while one just costs
     // the calendar one entry.
     const typo = { ...stagedAllDay, description: "[mtga-meta]{oops[/mtga-meta]" };
-    expect(helpers.desiredFor(typo)).toEqual({ sourceId: "evt-1", body: null });
+    expect(helpers.desiredFor(typo, LABEL_IDS)).toEqual({ sourceId: "evt-1", body: null });
   });
 
   it.each([
@@ -180,11 +205,11 @@ describe("desiredFor", () => {
     ["an event with no id", { ...stagedAllDay, id: "" }],
     ["an event with unreadable times", { ...stagedAllDay, start: {} }],
   ])("does not treat %s as a candidate", (_label, event) => {
-    expect(helpers.desiredFor(event)).toBeNull();
+    expect(helpers.desiredFor(event, LABEL_IDS)).toBeNull();
   });
 
   describe("differs", () => {
-    const body = helpers.desiredFor(stagedAllDay)!.body!;
+    const body = helpers.desiredFor(stagedAllDay, LABEL_IDS)!.body!;
     /** Google's copy of a write echoes the body plus fields of its own. */
     const echoed: SchemaEvent = { ...body, id: "target-1", status: "confirmed", etag: '"1"' };
 
@@ -195,7 +220,7 @@ describe("desiredFor", () => {
     it("sees each managed field move", () => {
       expect(helpers.differs(body, { ...echoed, summary: "Renamed" })).toBe(true);
       expect(helpers.differs(body, { ...echoed, description: "" })).toBe(true);
-      expect(helpers.differs(body, { ...echoed, colorId: "2" })).toBe(true);
+      expect(helpers.differs(body, { ...echoed, eventLabelId: "label-elsewhere" })).toBe(true);
       expect(helpers.differs(body, { ...echoed, end: { date: "2026-08-24" } })).toBe(true);
       expect(
         helpers.differs(body, {
@@ -208,11 +233,14 @@ describe("desiredFor", () => {
     it("does not read a re-rendered offset as a change", () => {
       // Google may hand the same instant back in another zone's spelling;
       // patching over that would churn on every run.
-      const timed = helpers.desiredFor({
-        ...stagedAllDay,
-        start: { dateTime: "2026-08-25T10:00:00-07:00" },
-        end: { dateTime: "2026-08-25T18:00:00-07:00" },
-      })!.body!;
+      const timed = helpers.desiredFor(
+        {
+          ...stagedAllDay,
+          start: { dateTime: "2026-08-25T10:00:00-07:00" },
+          end: { dateTime: "2026-08-25T18:00:00-07:00" },
+        },
+        LABEL_IDS,
+      )!.body!;
       const rendered = {
         ...timed,
         id: "target-2",

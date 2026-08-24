@@ -229,23 +229,29 @@ ships.
 The calendar the Worker reads is itself the product of a two-calendar
 pipeline. Cowork parses the Wizards schedule into a *staging* calendar, and
 its connector can annotate only via `[mtga-meta]` blocks in descriptions — no
-colours, no `extendedProperties`. The copier in `apps-script/` (an Apps
+labels, no `extendedProperties`. The copier in `apps-script/` (an Apps
 Script; its README is the runbook) mirrors staging onto the clean public
 calendar humans subscribe to and `GOOGLE_CALENDAR_ID` names: meta blocks
-stripped from the text, one event colour per category, the category moved to
-`extendedProperties.shared.mtgaEventType` with the staging event's id along
+stripped from the text, a named calendar label per category (definitions kept
+in the calendar's `labelProperties` and matched by *name*, so a human
+recolouring one in the UI is not fought; assignments ride as `eventLabelId`
+under `eventLabelVersion=1`), the category in
+`extendedProperties.shared.mtgaEventType`, and the staging event's id along
 as `mtgaSourceId` — the key it reconciles on, which is also what makes events
 humans add to the clean calendar by hand invisible to it. It ships from
 `.github/workflows/apps-script.yml` on merges to main (clasp pinned at 2.5.0;
 the `CLASPRC_JSON` secret lives only in that main-only workflow, which runs
 no `npm ci`, for the same reason the CI calendar refresh sits out pull
-requests). `Code.js` is necessarily a *port* of the feed's parsing and of the
-closed type set — Apps Script imports nothing from a repo — and
-`apps-script/calendar-sync.test.ts` holds the port to the originals, so a
-category added to the app without a colour in the copier fails the build
-rather than silently vanishing those events from the clean calendar. If the
-copier breaks, the escape hatch is the fallback below: staging stays directly
-readable, so re-pointing `GOOGLE_CALENDAR_ID` at it is a one-secret fix.
+requests). `Code.js` is the **only parser of the `[mtga-meta]` format** —
+the feed reads the shared property and nothing else — so what it shares with
+the repository is the closed type set, and
+`apps-script/calendar-sync.test.ts` holds its label map to
+`CALENDAR_EVENT_TYPES` and round-trips every token through
+`buildCalendarFeed`: a category added to the app without a label in the
+copier fails the build rather than silently vanishing those events from the
+clean calendar. If the copier breaks, the clean calendar goes stale and the
+feed keeps serving it — there is deliberately no fallback that would let the
+Worker read staging.
 
 The boundaries that matter, beyond the ones the box-price feed already states:
 
@@ -285,30 +291,25 @@ The boundaries that matter, beyond the ones the box-price feed already states:
   blank. That is what keeps the shipped copy honest as it ages — a copy built
   against a +60d fetch would show less and less of the future, where one
   clipped on read still shows the full window.
-- **An entry's category has two channels, and the feed reads them in a fixed
-  order.** On the clean calendar it is the copier's
-  `extendedProperties.shared.mtgaEventType`; on the staging calendar it is
-  the `[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]` block cowork
-  writes into the description — its connector can reach nowhere better. The
-  feed (`scripts/calendar/feed.ts`) takes a recognised property first and
-  falls back to the block — read out of the text after HTML stripping, so a
-  UI edit that entity-escapes the quotes still parses — which is what keeps
-  both calendars readable and the escape hatch a secret-change rather than a
-  code change. The block itself, readable or not, never reaches a note or a
-  tooltip. The tokens are the closed set in `src/lib/calendarEventTypes.ts`,
-  shared by the feed and the app's validator, and **an event whose type is
-  missing, unreadable or not on the list — through either channel — is
-  dropped whole**: untyped events are not possible, so a typo in the
-  calendar loses one entry rather than inventing a lane. Every event losing
+- **An entry's category is `extendedProperties.shared.mtgaEventType`, and
+  nothing else.** The `[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]`
+  blocks cowork writes are the *staging* calendar's format, consumed by the
+  copier at that boundary; the feed (`scripts/calendar/feed.ts`) knows
+  nothing of them — a block that somehow leaked into a clean description
+  would ride into the note as ordinary text, and staging itself is not a
+  calendar the feed can read. The tokens are the closed set in
+  `src/lib/calendarEventTypes.ts`, shared by the feed and the app's
+  validator, and **an event whose type is missing or not on the list is
+  dropped whole**: untyped events are not possible, so a copier ahead of the
+  app loses those entries rather than inventing a lane. Every event losing
   its annotation at once is refused instead, like an unreadable page: that
   is the scheme broken, not a quiet week. Adding a category is an edit to
-  `calendarEventTypes.ts`, to the copier's colour map (forgetting that half
-  is a red build — the port-drift guard) *and* to the calendar; the strip
-  still learns nothing from a token's spelling — it lanes and colours
-  entries sharing one — with a single recorded exception: `set_release` is
-  drawn as a dashed rule across the strip rather than a bar in a lane,
-  because a release is a moment, not a span (`MARKER_TYPE` in
-  `calendarLayout.ts`).
+  `calendarEventTypes.ts`, to the copier's label map (forgetting that half
+  is a red build — the guard test) *and* to the calendar; the strip still
+  learns nothing from a token's spelling — it lanes and colours entries
+  sharing one — with a single recorded exception: `set_release` is drawn as
+  a dashed rule across the strip rather than a bar in a lane, because a
+  release is a moment, not a span (`MARKER_TYPE` in `calendarLayout.ts`).
 - **An empty calendar is a real state and publishes.** The strip renders
   nothing at all for it, which is what a preview and a fresh checkout get.
   What refuses is a page of live items none of which are *readable* — a field
