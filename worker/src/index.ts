@@ -132,12 +132,9 @@ export default {
       return new Response(request.method === "HEAD" ? null : body, {
         headers: {
           "content-type": "application/json",
-          // An hour, and it governs two caches rather than one: the browser,
-          // so a visitor flipping between tabs does not re-download a feed,
-          // and Cloudflare's edge, because Workers Caching reads this very
-          // header — the `cache` block in wrangler.jsonc says why, and says
-          // it there because this line is the only place a TTL is written.
-          // The feeds are rewritten once a day; an hour is well inside that.
+          // An hour in the browser: the feeds change daily, and a visitor
+          // flipping between tabs should not re-download them. No edge caching
+          // to reason about — KV reads at this rate are effectively free.
           "cache-control": "public, max-age=3600",
         },
       });

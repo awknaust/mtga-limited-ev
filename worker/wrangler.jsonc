@@ -31,39 +31,9 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
 
-  // Cache the *response* at the edge, so a feed read costs a cached hit rather
-  // than a Worker invocation and a KV read.
-  //
-  // What makes it worth having is this site's traffic shape. /api/* serves a
-  // few requests an hour spread across the whole network, so KV's own cache —
-  // 60 seconds by default, and per-location — has almost always expired at
-  // whichever data centre a visitor lands on, and nearly every read fell
-  // through to KV's central store: 89ms average and 285ms at p99 for
-  // box-prices, against 18-28ms for the same read when it is hot. Both feeds
-  // are awaited before the first render (src/main.tsx), so that sat directly
-  // on first paint.
-  //
-  // Nothing here sets a TTL. Workers Caching reads the ordinary Cache-Control
-  // the fetch handler already returns, so the hour granted to a browser is the
-  // same hour granted to the edge, from that one line in src/index.ts and no
-  // second place to keep in step. Raising KV's cacheTtl was the alternative
-  // and is the weaker one: it makes the read faster but the Worker still runs
-  // every time, and it is per-location too, which is the half of the problem
-  // that a few requests an hour actually has. This cache is tiered — a data
-  // centre seeing its first visitor of the day falls back to an upper tier
-  // aggregating the network rather than to a cold central read.
-  //
-  // No separate charge: a hit bills at the same per-request rate the
-  // invocation already cost, and consumes no CPU time. The "caching bills
-  // requests that are normally free" caveat is about static assets and
-  // service bindings, and this Worker has neither.
-  //
-  // The price is staleness — a refresh can take up to an hour to reach a
-  // reader where it used to appear on the next request. That is the
-  // concession max-age=3600 already made to every browser, on feeds rewritten
-  // once a day. If it ever has to be immediate the lever is ctx.cache.purge()
-  // from the scheduled handler, not a shorter TTL, which would give back the
-  // cold reads this is here to avoid.
+  // Cache the response at the edge, so a hit serves without running the Worker
+  // or reading KV. No TTL here: Workers Caching reads the Cache-Control that
+  // src/index.ts already returns, which keeps the hour written in one place.
   "cache": { "enabled": true },
 
   // Route-only on purpose: a workers.dev origin would be a second URL serving
