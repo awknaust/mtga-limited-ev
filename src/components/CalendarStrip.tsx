@@ -233,7 +233,7 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
               className={open ? "bi bi-chevron-down" : "bi bi-chevron-right"}
               aria-hidden="true"
             />
-            Event calendar
+            Arena event calendar
           </button>
         </h2>
         {open ? (
