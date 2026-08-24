@@ -172,6 +172,7 @@ describe("desiredFor", () => {
         description: "Six wins takes the box.",
         start: { date: "2026-08-21" },
         end: { date: "2026-08-23" },
+        transparency: "transparent",
         eventLabelId: LABEL_IDS.arena_direct,
         extendedProperties: { shared: { mtgaEventType: "arena_direct", mtgaSourceId: "evt-1" } },
       },
@@ -220,6 +221,8 @@ describe("desiredFor", () => {
     it("sees each managed field move", () => {
       expect(helpers.differs(body, { ...echoed, summary: "Renamed" })).toBe(true);
       expect(helpers.differs(body, { ...echoed, description: "" })).toBe(true);
+      // A pre-existing Busy event: Google omits the default, absent = opaque.
+      expect(helpers.differs(body, { ...echoed, transparency: undefined })).toBe(true);
       expect(helpers.differs(body, { ...echoed, eventLabelId: "label-elsewhere" })).toBe(true);
       expect(helpers.differs(body, { ...echoed, end: { date: "2026-08-24" } })).toBe(true);
       expect(

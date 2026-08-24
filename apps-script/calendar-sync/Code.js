@@ -256,6 +256,10 @@ function desiredFor(event, labelIds) {
       description: cleanDescription(row.text),
       start: row.start,
       end: row.end,
+      // Week-long public spans, not appointments: they show as Free, never
+      // blocking availability for anyone overlaying the calendar. The API's
+      // default is Busy ("opaque").
+      transparency: "transparent",
       eventLabelId: labelIds[type],
       extendedProperties: { shared: { mtgaEventType: type, mtgaSourceId: row.id } },
     },
@@ -296,6 +300,9 @@ function differs(body, existing) {
   return (
     (existing.summary || "") !== (body.summary || "") ||
     (existing.description || "") !== (body.description || "") ||
+    // Google omits transparency when it is the default, so absent reads as
+    // "opaque" — which is what makes the pre-existing Busy events differ.
+    (existing.transparency || "opaque") !== (body.transparency || "opaque") ||
     (existing.eventLabelId || "") !== (body.eventLabelId || "") ||
     haveShared.mtgaEventType !== wantShared.mtgaEventType ||
     !timesEqual(body.start, existing.start) ||
