@@ -313,6 +313,17 @@ names in as secrets and run the identical script, and what stops a stale
 repository reads either — the box-price feed and the constants refresh talk to
 sources that need no credential.
 
+**Agents are blocked from the file itself.** `.claude/settings.json` denies
+Read, Edit and Write on `.env`, and a `PreToolUse` hook refuses any Bash
+command that names one — `cat`, `grep`, `source`, a redirect into it, or a
+`cp` that would create one. `.env.example` stays readable, since it is the
+template and carries no values. The point is that a credential should never
+reach a transcript, and none of it stops the tool working: `npm run calendar`
+passes the guard, because the key goes into the child process rather than onto
+a terminal. Note what it does *not* cover — a secret already exported into the
+shell is still printable, and the guard reads the command text rather than
+what the command ultimately does.
+
 Two notes on the key itself. It is **required even though the calendar is
 public**: everything on `googleapis.com` refuses unregistered callers, so the
 key is caller identity for quota rather than permission to read, and the

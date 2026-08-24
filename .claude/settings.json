@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "permissions": {
+    "deny": [
+      "Read(.env)",
+      "Read(./.env)",
+      "Read(**/.env)",
+      "Edit(.env)",
+      "Edit(./.env)",
+      "Edit(**/.env)",
+      "Write(.env)",
+      "Write(./.env)",
+      "Write(**/.env)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE \"(^|[^A-Za-z0-9_.-])[.]env([.](local|dev|development|prod|production|test|staging|secret|secrets))?($|[^A-Za-z0-9_.-])\" && printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\",\"permissionDecision\":\"deny\",\"permissionDecisionReason\":\"This command references a .env file. Those hold live credentials (GOOGLE_API_KEY and friends) and must not be read into a transcript, echoed, copied, or edited by an agent. Read .env.example instead; it is the tracked template and carries no values. To run the calendar feed, use the npm script (npm run calendar), which loads .env into the child process without printing it.\"}}' || true",
+            "timeout": 10,
+            "statusMessage": "Checking for .env access"
+          }
+        ]
+      }
+    ]
+  }
+}
