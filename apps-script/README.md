@@ -68,6 +68,13 @@ logs in and the version that pushes must move together.
    run `sync()` once as the backfill — the trigger only fires for changes
    made after it exists.
 
+   The consent prompt asks for the granular scopes named in
+   `calendar-sync/appsscript.json` — events on calendars *you own*, plus
+   calendar properties — rather than full Calendar access. A scope cannot
+   name a single calendar, so that is as narrow as Google's model goes
+   without a dedicated account; if a permission error ever names a missing
+   scope, widen that one line and re-run `install()`.
+
 4. **Verify before repointing anything.**
    - Labels came through: the first `sync()` creates the label definitions
      (`ensureLabels_` refuses loudly if `labelProperties` does not survive a
