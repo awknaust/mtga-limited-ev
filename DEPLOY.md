@@ -32,31 +32,18 @@ flowchart LR
   browser -- "/api/box-prices<br/>/api/calendar" --> W
 ```
 
-- **Pages** serves the built `dist/` (Vite). Uploads are **direct** from Actions
-  rather than built by Pages, so builds do not count against Cloudflare's build
-  quota and what ships is the artifact that passed the tests.
-  `--branch=main` publishes production; every other branch gets its own preview
-  URL, commented onto the pull request.
-- **The Worker** (`worker/`, config `worker/wrangler.jsonc`) is the only server
-  side. A Workers route on the custom domain takes precedence over Pages for
-  matching paths, which puts it on `/api/*` and leaves Pages everything else. It
-  has no `workers.dev` origin and no preview URLs. It imports the feed modules
-  from `scripts/box-prices/` and `scripts/calendar/` relatively, so the checkout
-  is needed at deploy time, not just `worker/`.
-- **Two crons**, dispatched on `controller.cron` in `worker/src/index.ts`:
-  `23 21 * * *` refreshes box prices, `41 9 * * *` refreshes the calendar. They
-  are separate invocations because of the free plan's 50-subrequest budget. A
-  failed run leaves the previous KV value serving.
-- **The app fetches both feeds same-origin** (`src/liveBoxPrices.ts`,
-  `src/liveCalendar.ts`), preloaded from `index.html`. Where the feed cannot be
-  reached — every preview deploy, and local dev — it falls back to the copies
-  checked in at `src/data/box-prices.json` and `src/data/mtg-calendar.json`,
-  which CI refreshes at the top of each build.
-- **The CSP** in `public/_headers` is `connect-src 'self'`, so any new data source
-  must be proxied through the Worker rather than fetched from the page.
-- **`mtga-limited-ev.awknaust.me`** 301s to `https://mtga.fyi` (path and query
-  preserved) through a Single Redirect on the `awknaust.me` zone. It has no
-  deploy of its own.
+- **Static SPA on Cloudflare Pages**, published from GitHub Actions on every
+  push: `--branch=main` is production, every other branch gets a preview URL.
+- **Cloudflare KV serves `/api/`** through one Worker routed at `mtga.fyi/api/*`,
+  which takes precedence over Pages for those paths. The app fetches both feeds
+  same-origin (the CSP is `connect-src 'self'`) and falls back to the copies in
+  `src/data/` where the route does not exist — previews and local dev.
+- **Two Cloudflare crons update the KV** daily: box prices from tcgcsv.com and
+  Scryfall, and the event calendar from a **public Google Calendar** read through
+  the Calendar API.
+
+`mtga-limited-ev.awknaust.me` 301s to `https://mtga.fyi` via a Single Redirect on
+the `awknaust.me` zone; it has no deploy of its own.
 
 ## The pipeline
 
@@ -65,10 +52,6 @@ flowchart LR
 | `test` | every push, PR, and `workflow_dispatch` | `npm ci`, refresh the two shipped feed copies, `npm test`, `npm run build`, upload `dist` |
 | `deploy` | push / dispatch / same-repo PR, non-Dependabot | downloads that `dist` and uploads it to Pages |
 | `deploy-worker` | `main` only, push or dispatch | `wrangler deploy` from `worker/` |
-
-Forked-PR and Dependabot runs get the tests but not the deploys, because GitHub
-withholds the Cloudflare secrets from them. `workflow_dispatch` is the manual
-trigger for when a push never produces a run.
 
 ## Secrets and configuration
 
@@ -99,9 +82,6 @@ Create at **My Profile → API Tokens** with:
 | Account → Workers KV Storage | Edit | the Worker's two KV bindings |
 | Zone → Workers Routes (zone `mtga.fyi`) | Edit | the `mtga.fyi/api/*` route |
 
-Cloudflare's **Edit Cloudflare Workers** template covers the last three and adds
-Account Settings: Read; Pages must be added to it.
-
 ### Worker secrets
 
 Two, set out of band and in no committed file. From `worker/`:
@@ -116,15 +96,12 @@ They are typed by hand in `worker/env.d.ts` — `wrangler types` only knows what
 instead: a `var` is committed plaintext and silently overrides the secret of the
 same name.
 
-Only `/api/calendar` uses them. The box-price sources need no credential.
-
 ### Google Cloud
 
-- The calendar must be **public** (Settings and sharing → make available to
-  public). Its id comes from **Integrate calendar → Calendar ID**.
-- The API key needs the **Google Calendar API** enabled and should be restricted
-  to it. A key is required even for a public calendar — `googleapis.com` refuses
-  unregistered callers, so it is caller identity for quota, not read permission.
+- The calendar must be **public**. Its id comes from **Settings and sharing →
+  Integrate calendar → Calendar ID**.
+- The API key needs the **Google Calendar API** enabled, and should be restricted
+  to it. Required even though the calendar is public.
 
 ### Local development
 
@@ -163,13 +140,3 @@ Not in code, and needed to stand this up from scratch:
 - The **Single Redirect** on the `awknaust.me` zone.
 - GitHub **environments** `production` and `preview` (public repos only on the
   free plan), which give the deploy a tracked URL.
-
-## What breaks if something is missing
-
-| Missing | Effect |
-| --- | --- |
-| `CLOUDFLARE_API_TOKEN` / `CLOUDFLARE_ACCOUNT_ID` | both deploy jobs fail; nothing ships |
-| `GOOGLE_*` repo secrets | build is green; the shipped calendar copy is whatever was last committed |
-| `GOOGLE_*` Worker secrets | `/api/calendar` 503s; the app renders the shipped copy |
-| KV cold (first request after a first deploy) | the Worker builds the feed inline and stores it |
-| A source outage during a cron | previous KV value keeps serving |
