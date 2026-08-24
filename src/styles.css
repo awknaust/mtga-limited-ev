@@ -1619,44 +1619,23 @@ button.box-add:focus-visible {
 }
 
 /*
- * The plot. `overflow-y` is a safety valve rather than a design: a calendar
- * with thirty things running at once would otherwise push the whole page down,
- * and a strip is meant to be glanced at. Normal weeks pack to a few rows and
- * never reach it.
+ * The plot takes the height its rows need — no ceiling and no scrolling. An
+ * earlier design capped it and scrolled the overflow, a safety valve for the
+ * packing whose row count grew with narrow widths; lane packing's rows are
+ * bounded by the closed type set instead, the card collapses for anyone who
+ * wants the space back, and the scrollbar that cap could summon read as a
+ * defect in a strip meant to be glanced at.
+ *
+ * `clip`, not `hidden`, for the horizontal cut: a name at the right edge is
+ * clipped rather than widening the page, but `overflow-x: hidden` would
+ * compute the unset vertical axis to `auto` and quietly rebuild the scroll
+ * container this rule exists to not be. Clip boxes never scroll, grow no
+ * gutter, and leave `clientWidth` alone.
  */
 .calendar-plot {
   position: relative;
   margin-top: 0.65rem;
-  /*
-   * A ceiling, not a design. The lane packing works on the bars alone, so the
-   * row count no longer depends on the width — a normal couple of months is
-   * six or seven rows at every size, and this binds only in a season crowded
-   * enough that it should scroll rather than push the whole page down.
-   *
-   * (An earlier design reserved each bar's name beside it and rejected
-   * "dropping names from short bars" on the grounds that a bar with no name
-   * is not a calendar entry. The lanes are what reversed that: a bare bar now
-   * has a category — its lane's colour and emoji — and the popover and the
-   * hidden text carry the rest, which is a reading the nameless bar of the
-   * old design never had.)
-   */
-  max-height: 150px;
-  overflow-x: hidden;
-  overflow-y: auto;
-  /*
-   * Not cosmetic — it breaks a feedback loop. The layout is computed from this
-   * element's `clientWidth`, and a scrollbar appearing would narrow that,
-   * which repacks the rows, which can remove the scrollbar, which widens it
-   * again. Reserving the gutter whether or not it is used makes the measured
-   * width independent of what the measurement produces.
-   */
-  scrollbar-gutter: stable;
-}
-
-@media (min-width: 576px) {
-  .calendar-plot {
-    max-height: 260px;
-  }
+  overflow-x: clip;
 }
 
 .calendar-gridline {
