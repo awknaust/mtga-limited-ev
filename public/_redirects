@@ -1,0 +1,8 @@
+# Friendly, repointable address for the public event calendar — the link to
+# hand out (Reddit, Discord) instead of the raw Google URL, so a future
+# calendar migration repoints one line here rather than breaking every posted
+# link. 302 on purpose: a cached 301 would pin old links to a dead calendar
+# id. Pages applies these rules ahead of the SPA fallback; the Worker's
+# /api/* route is unaffected. The old hostname's 301 preserves paths, so
+# mtga-limited-ev.awknaust.me/calendar chains here too.
+/calendar https://calendar.google.com/calendar/embed?src=c3fce5ebd85fb199a59badc1d32c5d2f5b93aa417729aefe00c846db3006423c%40group.calendar.google.com 302
