@@ -133,10 +133,12 @@ export function Compare({
       .map((e, i) => ({ name: e.name, summary: grid.result![i] }))
       .sort((a, b) => (rank.get(a.name) ?? Infinity) - (rank.get(b.name) ?? Infinity));
     /*
-     * The events axis ceiling, from the params the rows were computed for
-     * rather than the live knobs, so a stale grid is drawn against its own
-     * cap. Per event now — one games budget is a different number of entries
-     * for each — so the axis takes the largest of the rows' own caps.
+     * The events axis ceiling — the bound the axis is clamped to, now that it
+     * follows the whiskers, rather than its end — from the params the rows
+     * were computed for rather than the live knobs, so a stale grid is drawn
+     * against its own cap. Per event — one games budget is a different number
+     * of entries for each — so the clamp takes the largest of the rows' own
+     * caps.
      */
     const eventCap = Math.max(
       1,

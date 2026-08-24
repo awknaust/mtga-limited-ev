@@ -45,6 +45,34 @@ export const BANKROLL_MODES: readonly { key: BankrollMode; label: string }[] = [
 
 export type BankrollRow = { name: string; summary: BankrollSummary };
 
+/*
+ * A hair past the largest whisker, so its end cap sits inside the plot rather
+ * than on the clipped edge.
+ */
+const AXIS_HEADROOM = 1.05;
+
+/**
+ * Where a mode's axis ends: just past the largest whisker drawn, bounded by
+ * the reference point that mode must keep on the chart — see the chart's own
+ * doc comment for why each bound is there. Exported for its test; the
+ * rendering around it is a plain map over the rows.
+ *
+ * The floor of 1 keeps the scale finite when there is nothing to reach past —
+ * every row unaffordable, or no rows at all.
+ */
+export function whiskerDomainMax(
+  mode: BankrollMode,
+  whiskers: readonly number[],
+  bounds: { eventCap: number; startValue: number },
+): number {
+  const past = Math.max(0, ...whiskers) * AXIS_HEADROOM;
+  return mode === "events"
+    ? Math.max(1, Math.min(bounds.eventCap, past))
+    : mode === "games"
+      ? Math.max(1, past)
+      : Math.max(1, bounds.startValue, past);
+}
+
 /**
  * Ahead, behind, or neither — three cases where the tiles elsewhere have two.
  *
@@ -90,26 +118,32 @@ const toneOf = (value: number, start: number): string =>
  * what this was before and which made every row a small table. The switch is
  * the idiom the curve above already set.
  *
- * **The events axis runs to the run-length ceiling, not to the longest bar.**
- * Two things follow that are worth the empty space it sometimes costs. A bar
- * reaching the right-hand edge is a run the ceiling stopped rather than one that
- * went broke, which is a completely different fact about an event and one an
- * auto-scaled axis would hide. And the scale does not move when an event is
- * added or removed, so a bar the reader was looking at stays where it was. The
- * value axis has no such ceiling to run to and takes the widest run instead.
+ * **The axis follows the whiskers.** Every mode's axis runs just past the
+ * largest p95 on show — `whiskerDomainMax` below is the rule — rather than to
+ * a fixed ceiling, so a bankroll that dies in three events is read across the
+ * whole plot instead of huddled against the left edge of a run-length cap it
+ * never approached. The cost is a scale that moves when the selection or an
+ * input does, which is the trade an axis three-quarters empty was making the
+ * other way.
  *
- * One caveat since the stopping point became a games budget: the ceiling is
- * per event — the same budget is fewer entries of a best-of-three — and the
- * axis runs to the largest of them. So only the longest-capped rows can touch
- * the right edge, and a shorter event's ceiling-stopped runs stack short of
- * it: the budget being honest about table time, not the chart clipping.
+ * Two reference points still bound it. The events axis never runs past the
+ * run-length ceiling — no run can go there — so it meets the cap exactly when
+ * the whiskers do, and a bar touching the right edge is still a run the
+ * ceiling stopped rather than one that went broke, in exactly the case that
+ * reading exists for. The ceiling is per event — the same games budget is
+ * fewer entries of a best-of-three — and the bound is the largest of the
+ * rows' own caps, so a shorter event's ceiling-stopped runs can still stack
+ * short of the edge: the budget being honest about table time, not the chart
+ * clipping. And the value axis always covers the starting balance: it is the
+ * line the bars are judged against, and a column of bars short of a marker
+ * that is off the chart reads as a column that merely stopped early.
  *
- * The games axis is that caveat resolved, and is why the mode earns its place:
- * in games the shared budget *is* the ceiling, the same number for every row,
- * so runs stopped by the plan stack together at the right wherever their event
- * put its cap. It runs to the budget or the widest run, whichever is further —
- * a capped run can play out its last entry past the budget line, since the cap
- * rounds to whole events and the final event is as long as it happens to be.
+ * The games axis has no such bound. The shared budget is a fact about the
+ * plan, not about the runs, so when every bankroll dies short of it the
+ * budget lives in the axis label rather than in empty plot; and a capped run
+ * can overshoot it by part of an event — the cap rounds to whole events and
+ * the final event is as long as it happens to be — so the axis follows that
+ * whisker past the budget like any other.
  *
  * Rows are drawn in the order given, which `Compare` shares with the break-even
  * chart above so that the two can be read across.
@@ -126,8 +160,8 @@ export function CompareBankroll({
   rows: readonly BankrollRow[];
   mode: BankrollMode;
   /**
-   * The largest of the rows' own event caps, and the end of the events axis —
-   * see the caveat above about which rows can reach it.
+   * The largest of the rows' own event caps: the bound the events axis never
+   * runs past, and meets only when the whiskers do.
    */
   eventCap: number;
   /** The games budget those caps were converted from, for the axis label. */
@@ -181,20 +215,11 @@ export function CompareBankroll({
   const innerH = drawn.length * ROW;
   const height = MARGIN.top + MARGIN.bottom + innerH;
 
-  /*
-   * The value axis is floored at zero and stretched to cover the starting
-   * balance even where every run ended under it: the line the bars are judged
-   * against has to be on the chart, or a column of bars well short of it reads
-   * as a column of bars that merely stopped early. The games axis stretches to
-   * the shared budget the same way and for the same reason — it is the number
-   * the bars are read against — while the widest run can still overshoot it by
-   * part of an event, as the caveat above says.
-   */
-  const domainMax = events
-    ? Math.max(1, eventCap)
-    : games
-      ? Math.max(1, maxGames, ...drawn.map((r) => r.span.p95))
-      : Math.max(1, startValue, ...drawn.map((r) => r.span.p95));
+  const domainMax = whiskerDomainMax(
+    mode,
+    drawn.map((r) => r.span.p95),
+    { eventCap, startValue },
+  );
 
   const x = scaleLinear().domain([0, domainMax]).range([0, inner]);
   const y = scaleBand()
