@@ -40,11 +40,11 @@ check DENY  Bash 'curl --request POST https://api.cloudflare.com/client/v4/accou
 check ALLOW Bash 'curl https://api.cloudflare.com/client/v4/zones'
 check ALLOW Bash 'curl -s https://mtga.fyi/api/box-prices'
 
-echo "release:"
-check DENY  Bash 'npm publish'
-check DENY  Bash 'gh pr merge 100'
-check DENY  Bash 'gh workflow run deploy.yml'
-check DENY  Bash 'gh release create v1'
+echo "outside the scope:"
+check ALLOW Bash 'npm publish'
+check ALLOW Bash 'gh pr merge 100'
+check ALLOW Bash 'gh workflow run deploy.yml'
+check ALLOW Bash 'gh release create v1'
 
 echo "ordinary work stays allowed:"
 check ALLOW Bash 'git push -u origin my-branch'

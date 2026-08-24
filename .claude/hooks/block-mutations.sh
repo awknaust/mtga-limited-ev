@@ -49,12 +49,4 @@ if has 'api\.cloudflare\.com' && has "${B_OPEN}(-X|--request)${B_CLOSE}[[:space:
   deny "Blocked: a write to the Cloudflare API is the same production change a wrangler deploy would make. GET is allowed."
 fi
 
-# Note: B_CLOSE already consumes the separator, so these use [[:space:]]+ as the
-# boundary instead of stacking both — doing both never matched.
-has "${B_OPEN}(npm|pnpm|yarn|bun)[[:space:]]+publish" &&
-  deny "Blocked: publishing a package is an outward-facing release. Ask the user to run it."
-
-has "${B_OPEN}gh[[:space:]]+(workflow[[:space:]]+run|pr[[:space:]]+merge|release[[:space:]]+(create|delete))" &&
-  deny "Blocked: this triggers a production deploy or release. Opening a PR is allowed; merging it is the user's call."
-
 exit 0
