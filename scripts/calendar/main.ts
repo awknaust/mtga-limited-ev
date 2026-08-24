@@ -70,7 +70,11 @@ function render(feed: CalendarFeed): string {
     lines.push("(no entries in the window — an empty calendar is a real state)");
     return lines.join("\n");
   }
-  const header = `${"FROM".padEnd(12)}${"TO".padEnd(12)}${"DAYS".padStart(5)}  TITLE`;
+  // Wide enough for the longest token in CALENDAR_EVENT_TYPES, plus air.
+  const TYPE_COL = 17;
+  const header =
+    `${"FROM".padEnd(12)}${"TO".padEnd(12)}${"DAYS".padStart(5)}  ` +
+    `${"TYPE".padEnd(TYPE_COL)}TITLE`;
   lines.push(header);
   lines.push("─".repeat(Math.max(header.length, 56)));
   for (const entry of feed.entries) {
@@ -81,7 +85,12 @@ function render(feed: CalendarFeed): string {
     // table shows the last day the entry actually covers.
     const to = days === 1 ? "" : lastDay(entry.end);
     lines.push(
-      entry.start.padEnd(12) + to.padEnd(12) + String(days).padStart(5) + "  " + entry.title,
+      entry.start.padEnd(12) +
+        to.padEnd(12) +
+        String(days).padStart(5) +
+        "  " +
+        entry.type.padEnd(TYPE_COL) +
+        entry.title,
     );
   }
   const noted = feed.entries.filter((e) => e.note !== undefined).length;

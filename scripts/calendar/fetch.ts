@@ -10,6 +10,15 @@
  * Worker passes `env.*`, the driver passes `process.env.*`, and this module
  * stays in the half of `scripts/` that has to typecheck under Workers globals
  * as well as Node's — the same rule that keeps `node:fs` confined to `main.ts`.
+ *
+ * Raw `fetch` against the one endpoint, not a Google client library, and the
+ * constraint is the line above: this module deploys to the Workers runtime,
+ * and the official clients — `googleapis`, or the per-API
+ * `@googleapis/calendar` — are Node programs (gaxios, google-auth-library,
+ * streams) that do not run there. Adopting one would fork the single code
+ * path the driver and the Worker share. Nor would it retire `google.ts`: a
+ * client's types state what Google promises, and the validation there exists
+ * because this feed does not publish on a promise.
  */
 
 import { SourceError, request } from "../shared/http.ts";
