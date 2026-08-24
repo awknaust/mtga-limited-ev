@@ -481,14 +481,15 @@ derived in the script; a source being down writes nothing and exits 2.
   has the details, including why the host is named without a path. Workflow
   actions are pinned to commit SHAs for the same reason as the rest of this;
   let Dependabot move them rather than reverting to tags.
-- **Prefix anything posted to GitHub with `🤖 Claude:`.** `gh` here holds
-  Alex's own token, so an agent's PR comment, review reply or issue comment is
-  authored by him and reads as him talking to himself. The prefix is
-  the whole fix — the alternative identities (the Claude GitHub App, a
-  machine-account PAT) only change the author for work triggered inside GitHub,
-  and anything run from a terminal still posts as the account that owns the
-  token. Commit messages and PR bodies need nothing: those already carry the
-  `Co-Authored-By` trailer and the generated-with footer.
+- **Prefix anything posted to GitHub with `🤖 Claude:`.** `gh` here is
+  authenticated as whoever is running the session, so an agent's PR comment,
+  review reply or issue comment is authored by them and reads as them talking
+  to themselves. The prefix is the whole fix — the alternative identities (the
+  Claude GitHub App, a machine-account PAT) only change the author for work
+  triggered inside GitHub, and anything run from a terminal still posts as the
+  account that owns the token. Commit messages and PR bodies need nothing:
+  those already carry the `Co-Authored-By` trailer and the generated-with
+  footer.
 
 ## More than one agent works here at once
 
