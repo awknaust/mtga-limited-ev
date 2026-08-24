@@ -1559,6 +1559,15 @@ button.box-add:focus-visible {
      block. */
   position: relative;
   margin-bottom: 1.25rem;
+  /*
+   * The card the rest of the page's panels wear. Unframed, the strip's bars
+   * sat naked on the page background directly under the site title and read
+   * as part of the header; boxed, it is one more panel among the others.
+   */
+  background: var(--bs-card-bg);
+  border: 1px solid var(--bs-card-border-color);
+  border-radius: var(--bs-border-radius);
+  padding: 0.6rem 0.75rem 0.4rem;
 }
 
 .calendar-strip-head {
@@ -1577,6 +1586,29 @@ button.box-add:focus-visible {
   color: var(--bs-secondary-color);
   text-transform: uppercase;
   letter-spacing: 0.04em;
+}
+
+/*
+ * The heading is the disclosure control. A plain button reset to wear the
+ * heading's own type, so collapsing costs no chrome beyond the chevron.
+ */
+.calendar-strip-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.calendar-strip-toggle:hover,
+.calendar-strip-toggle:focus-visible {
+  color: var(--bs-body-color);
 }
 
 .calendar-strip-stamp {

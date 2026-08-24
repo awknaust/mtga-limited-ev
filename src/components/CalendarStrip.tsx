@@ -48,6 +48,28 @@ function rangeText(
 type Hover = { bar: CalendarBar; left: number | null; right: number | null; top: number };
 
 /**
+ * Where the reader's collapse choice lives. The first and only localStorage
+ * in this app, and deliberately so: everything that changes what the numbers
+ * mean rides in the link, and folding the calendar away changes nothing about
+ * them — it is a device preference, like a window size, and putting it in the
+ * URL would make two otherwise-identical links unequal. Storage being denied
+ * (private browsing, hardened settings) costs only the memory of the choice.
+ *
+ * Namespaced with the site, and not spelled `calendar-…`, which
+ * `CalendarStrip.test.ts` would read as a class name to hold the stylesheet
+ * to.
+ */
+const COLLAPSE_KEY = "mtga.fyi:collapse-calendar";
+
+const readCollapsed = (): boolean => {
+  try {
+    return localStorage.getItem(COLLAPSE_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+/**
  * What is running, and when — a week back and two months on — above everything
  * else on the page.
  *
@@ -75,6 +97,22 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
   const plot = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   const [hover, setHover] = useState<Hover | null>(null);
+  const [open, setOpen] = useState(() => !readCollapsed());
+
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    setHover(null);
+    // Computed outside the try: React Compiler cannot yet compile value
+    // blocks inside try/catch and bails out of the whole component —
+    // silently, which is what react-compiler.test.ts exists to catch.
+    const stored = next ? "0" : "1";
+    try {
+      localStorage.setItem(COLLAPSE_KEY, stored);
+    } catch {
+      // The choice is not remembered; the toggle still works.
+    }
+  };
 
   /**
    * Where to put the popover for a hovered entry, measured off its own row.
@@ -116,6 +154,8 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
    * one.
    */
   useLayoutEffect(() => {
+    // Keyed on `open`: while the strip is folded away the plot does not exist,
+    // and a mount-only effect would leave one that opened later unmeasured.
     const el = plot.current;
     if (!el) return;
     const measure = () => setWidth(el.clientWidth);
@@ -127,7 +167,7 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
       window.removeEventListener("resize", measure);
       resize.disconnect();
     };
-  }, []);
+  }, [open]);
 
   /*
    * The window is taken once, when the feed arrives, rather than on every
@@ -167,147 +207,171 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
     <section className="calendar-strip" aria-labelledby="calendar-strip-title" ref={strip}>
       <div className="calendar-strip-head">
         <h2 className="calendar-strip-title" id="calendar-strip-title">
-          Event calendar
+          <button
+            type="button"
+            className="calendar-strip-toggle"
+            aria-expanded={open}
+            onClick={toggle}
+          >
+            <i
+              className={open ? "bi bi-chevron-down" : "bi bi-chevron-right"}
+              aria-hidden="true"
+            />
+            Event calendar
+          </button>
         </h2>
-        <span className="calendar-strip-stamp">
-          as of {dayYear(new Date(view.generatedAt))}
-        </span>
+        {open ? (
+          <span className="calendar-strip-stamp">
+            as of {dayYear(new Date(view.generatedAt))}
+          </span>
+        ) : (
+          /* Folded away, the row still answers the glance the strip exists
+             for: is anything on. */
+          <span className="calendar-strip-stamp">
+            {view.bars.filter((b) => b.state === "now").length} on now ·{" "}
+            {view.bars.filter((b) => b.state === "upcoming").length} ahead
+          </span>
+        )}
       </div>
 
       {/* Leaving the plot clears the popover. The per-entry `onPointerLeave`
           alone is not enough: a pointer can leave through a gap between two
           entries, or the row under it can be repacked by a resize, and either
           way no entry ever gets told. */}
-      <div className="calendar-plot" ref={plot} onPointerLeave={() => setHover(null)}>
-        {layout && (
-          <>
-            {layout.ticks.map((tick) => (
+      {open && (
+        <>
+        <div className="calendar-plot" ref={plot} onPointerLeave={() => setHover(null)}>
+          {layout && (
+            <>
+              {layout.ticks.map((tick) => (
+                <div
+                  key={tick.getTime()}
+                  className="calendar-gridline"
+                  style={{ left: layout.x(tick) }}
+                  aria-hidden="true"
+                />
+              ))}
               <div
-                key={tick.getTime()}
-                className="calendar-gridline"
-                style={{ left: layout.x(tick) }}
+                className="calendar-today"
+                style={{ left: layout.x(view.today) }}
                 aria-hidden="true"
               />
-            ))}
-            <div
-              className="calendar-today"
-              style={{ left: layout.x(view.today) }}
-              aria-hidden="true"
-            />
-            {layout.lanes.map((lane) => (
-              <div
-                className={["calendar-lane", SLOT_CLASS[lane.slot]].join(" ")}
-                key={lane.key}
-              >
-                {lane.rows.map((row, i) => (
-                  // Rows are stacked in flow and sized by the stylesheet; the
-                  // index is the row's identity and nothing else keys off it.
-                  <div className="calendar-row" key={i}>
-                    {row.map(({ bar, x, width: w, labelMax, labelInside }) => {
-                      const { entry, state, clippedStart, clippedEnd } = bar;
-                      const range = rangeText(entry, day, dayYear);
-                      return (
-                        <div
-                          key={entry.id}
-                          /*
-                           * Hover is read from the element rather than computed,
-                           * which is what keeps row heights out of JS: the row's
-                           * own box says where the popover goes, so the
-                           * stylesheet stays the only thing that knows how tall
-                           * a row is.
-                           */
-                          onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
-                          onPointerLeave={() => setHover(null)}
-                        >
-                          <span
-                            className={[
-                              "calendar-bar",
-                              state === "past" ? "calendar-bar-past" : "",
-                              state === "now" ? "calendar-bar-now" : "",
-                              clippedStart ? "calendar-bar-open-start" : "",
-                              clippedEnd ? "calendar-bar-open-end" : "",
-                            ]
-                              .filter(Boolean)
-                              .join(" ")}
-                            style={{ left: x, width: w }}
-                          />
-                          {labelInside && (
-                            /* The name, where the bar can hold a useful amount
-                               of it. aria-hidden because it may be truncated
-                               and the hidden span below carries the whole
-                               entry; announcing both would say it twice. */
+              {layout.lanes.map((lane) => (
+                <div
+                  className={["calendar-lane", SLOT_CLASS[lane.slot]].join(" ")}
+                  key={lane.key}
+                >
+                  {lane.rows.map((row, i) => (
+                    // Rows are stacked in flow and sized by the stylesheet; the
+                    // index is the row's identity and nothing else keys off it.
+                    <div className="calendar-row" key={i}>
+                      {row.map(({ bar, x, width: w, labelMax, labelInside }) => {
+                        const { entry, state, clippedStart, clippedEnd } = bar;
+                        const range = rangeText(entry, day, dayYear);
+                        return (
+                          <div
+                            key={entry.id}
+                            /*
+                             * Hover is read from the element rather than computed,
+                             * which is what keeps row heights out of JS: the row's
+                             * own box says where the popover goes, so the
+                             * stylesheet stays the only thing that knows how tall
+                             * a row is.
+                             */
+                            onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
+                            onPointerLeave={() => setHover(null)}
+                          >
                             <span
                               className={[
-                                "calendar-label",
-                                "calendar-label-inside",
-                                state === "past" ? "calendar-label-past" : "",
+                                "calendar-bar",
+                                state === "past" ? "calendar-bar-past" : "",
+                                state === "now" ? "calendar-bar-now" : "",
+                                clippedStart ? "calendar-bar-open-start" : "",
+                                clippedEnd ? "calendar-bar-open-end" : "",
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
-                              style={{ left: x + INSIDE_PAD, maxWidth: labelMax }}
-                              aria-hidden="true"
-                            >
-                              {entry.title}
+                              style={{ left: x, width: w }}
+                            />
+                            {labelInside && (
+                              /* The name, where the bar can hold a useful amount
+                                 of it. aria-hidden because it may be truncated
+                                 and the hidden span below carries the whole
+                                 entry; announcing both would say it twice. */
+                              <span
+                                className={[
+                                  "calendar-label",
+                                  "calendar-label-inside",
+                                  state === "past" ? "calendar-label-past" : "",
+                                ]
+                                  .filter(Boolean)
+                                  .join(" ")}
+                                style={{ left: x + INSIDE_PAD, maxWidth: labelMax }}
+                                aria-hidden="true"
+                              >
+                                {entry.title}
+                              </span>
+                            )}
+                            {/* Most bars carry no visible name at all now, so
+                                this is the whole reading for anyone not using a
+                                pointer. The text is never cut — only boxes are. */}
+                            <span className="visually-hidden">
+                              {entry.title}, {range}
+                              {entry.note === undefined ? "" : `. ${entry.note}`}
                             </span>
-                          )}
-                          {/* Most bars carry no visible name at all now, so
-                              this is the whole reading for anyone not using a
-                              pointer. The text is never cut — only boxes are. */}
-                          <span className="visually-hidden">
-                            {entry.title}, {range}
-                            {entry.note === undefined ? "" : `. ${entry.note}`}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ))}
-              </div>
-            ))}
-            {/* Set releases: a moment rather than a span, drawn as a rule
-                across the whole strip. Rendered after the lanes so the line
-                crosses the bars it ends — the events whose last day it is. */}
-            {layout.markers.map(({ bar, x }) => {
-              const { entry, state } = bar;
-              const range = rangeText(entry, day, dayYear);
-              return (
-                <div
-                  key={entry.id}
-                  className={[
-                    "calendar-release",
-                    state === "past" ? "calendar-release-past" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
-                  onPointerLeave={() => setHover(null)}
-                >
-                  <span className="calendar-release-line" style={{ left: x }} />
-                  {/* No name on the chart — the diamond is the whole visible
-                      mark, and the popover names it on hover. */}
-                  <span
-                    className="calendar-release-mark"
-                    style={{ left: x }}
-                    aria-hidden="true"
-                  />
-                  <span className="visually-hidden">
-                    {entry.title}, {range}
-                    {entry.note === undefined ? "" : `. ${entry.note}`}
-                  </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ))}
                 </div>
-              );
-            })}
-          </>
-        )}
-      </div>
+              ))}
+              {/* Set releases: a moment rather than a span, drawn as a rule
+                  across the whole strip. Rendered after the lanes so the line
+                  crosses the bars it ends — the events whose last day it is. */}
+              {layout.markers.map(({ bar, x }) => {
+                const { entry, state } = bar;
+                const range = rangeText(entry, day, dayYear);
+                return (
+                  <div
+                    key={entry.id}
+                    className={[
+                      "calendar-release",
+                      state === "past" ? "calendar-release-past" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
+                    onPointerLeave={() => setHover(null)}
+                  >
+                    <span className="calendar-release-line" style={{ left: x }} />
+                    {/* No name on the chart — the diamond is the whole visible
+                        mark, and the popover names it on hover. */}
+                    <span
+                      className="calendar-release-mark"
+                      style={{ left: x }}
+                      aria-hidden="true"
+                    />
+                    <span className="visually-hidden">
+                      {entry.title}, {range}
+                      {entry.note === undefined ? "" : `. ${entry.note}`}
+                    </span>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </div>
 
-      <div className="calendar-axis">
-        {layout?.ticks.map((tick) => (
-          <span key={tick.getTime()} className="calendar-tick" style={{ left: layout.x(tick) }}>
-            {day(tick)}
-          </span>
-        ))}
-      </div>
+        <div className="calendar-axis">
+          {layout?.ticks.map((tick) => (
+            <span key={tick.getTime()} className="calendar-tick" style={{ left: layout.x(tick) }}>
+              {day(tick)}
+            </span>
+          ))}
+        </div>
+        </>
+      )}
 
       {/*
        * The full entry, on hover.

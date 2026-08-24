@@ -302,6 +302,15 @@ the popover and each entry's visually-hidden text carry the rest. An earlier
 design reserved every name beside its bar and paid twelve rows for twenty
 events; the doc comments in `calendarLayout.ts` keep that history.
 
+The strip is a card and collapses from its heading, folding to one row that
+still says what is on. The choice is remembered in localStorage — the app's
+only use of it, and deliberately not the URL: a fold changes nothing about
+what the numbers mean, and share links must not become unequal over a
+window-dressing preference. Note the key's spelling (`mtga.fyi:…`, not
+`calendar-…`): `CalendarStrip.test.ts` greps the component for `calendar-*`
+string literals and holds each to a class in the stylesheet, so a storage key
+that looks like a class name fails the suite.
+
 Two secrets, set with `wrangler secret put` from `worker/`:
 `GOOGLE_CALENDAR_ID` and `GOOGLE_API_KEY`. `worker/env.d.ts` is their type —
 hand-written, because nothing generates one for a secret, and declaring them as
