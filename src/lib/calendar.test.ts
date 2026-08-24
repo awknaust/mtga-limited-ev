@@ -25,6 +25,8 @@ const entry = (id: string, start: string, end: string, title = id) => ({
   title,
   start,
   end,
+  // Arbitrary but required: an entry without a recognised type is dropped.
+  type: "other_draft" as const,
 });
 
 const feedOf = (...entries: ReturnType<typeof entry>[]): CalendarFeed => ({
@@ -62,10 +64,26 @@ describe("parseCalendarFeed", () => {
     const feed = parseCalendarFeed({
       version: 1,
       generatedAt: "2026-08-23T09:00:00.000Z",
-      entries: [{ id: "a", title: "Premier Draft", start: "2026-08-21", end: "2026-09-04", note: "hi" }],
+      entries: [
+        {
+          id: "a",
+          title: "Premier Draft",
+          start: "2026-08-21",
+          end: "2026-09-04",
+          note: "hi",
+          type: "other_draft",
+        },
+      ],
     });
     expect(feed?.entries).toEqual([
-      { id: "a", title: "Premier Draft", start: "2026-08-21", end: "2026-09-04", note: "hi" },
+      {
+        id: "a",
+        title: "Premier Draft",
+        start: "2026-08-21",
+        end: "2026-09-04",
+        note: "hi",
+        type: "other_draft",
+      },
     ]);
   });
 
@@ -73,17 +91,24 @@ describe("parseCalendarFeed", () => {
     expect(parseCalendarFeed(feedOf())?.entries).toEqual([]);
   });
 
-  it("carries an entry's type through, and its absence through too", () => {
+  it("drops an entry whose type is missing or unrecognised, keeping the rest", () => {
+    /*
+     * Not the malformed-value contract: a newer Worker may publish a category
+     * an older cached bundle has never heard of, and one strange entry must
+     * not blank the calendar for everyone still on that bundle. A type that
+     * is not a *string* still fails the whole feed, with the other shapes.
+     */
     const feed = parseCalendarFeed({
       version: 1,
       generatedAt: "2026-08-23T09:00:00.000Z",
       entries: [
         { id: "a", title: "a", start: "2026-08-21", end: "2026-08-22", type: "qualifier" },
         { id: "b", title: "b", start: "2026-08-21", end: "2026-08-22" },
+        { id: "c", title: "c", start: "2026-08-21", end: "2026-08-22", type: "midweek_magic" },
       ],
     });
+    expect(feed?.entries.map((e) => e.id)).toEqual(["a"]);
     expect(feed?.entries[0].type).toBe("qualifier");
-    expect(feed?.entries[1]).not.toHaveProperty("type");
   });
 
   it("passes fields it does not know", () => {

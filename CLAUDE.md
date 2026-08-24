@@ -270,9 +270,15 @@ The boundaries that matter, beyond the ones the box-price feed already states:
   (`scripts/calendar/feed.ts`) reads the block out of the text — after HTML
   stripping, so a UI edit that entity-escapes the quotes still parses — and
   publishes the token as the entry's `type`; the block itself, readable or
-  not, never reaches a note or a tooltip. The strip lanes and colours entries
-  sharing a token and learns nothing from its spelling: the kinds live in the
-  calendar, and the author makes one by using it.
+  not, never reaches a note or a tooltip. The tokens are the closed set in
+  `src/lib/eventTypes.ts`, shared by the feed and the app's validator, and
+  **an event whose type is missing, unreadable or not on the list is dropped
+  whole** — untyped events are not possible, so a typo in the calendar loses
+  one entry rather than inventing a lane. Every event losing its annotation
+  at once is refused instead, like an unreadable page: that is the scheme
+  broken, not a quiet week. Adding a category is an edit to `eventTypes.ts`
+  *and* to the calendar; the strip still learns nothing from a token's
+  spelling — it lanes and colours entries sharing one, and that is all.
 - **An empty calendar is a real state and publishes.** The strip renders
   nothing at all for it, which is what a preview and a fresh checkout get.
   What refuses is a page of live items none of which are *readable* — a field

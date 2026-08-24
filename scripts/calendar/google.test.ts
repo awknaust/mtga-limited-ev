@@ -55,6 +55,18 @@ const timed = {
   end: { dateTime: "2026-08-27T18:00:00-07:00", timeZone: "America/Los_Angeles" },
 };
 
+/** A recognised meta block, as the calendar's descriptions carry one. */
+const meta = (type: string) => `[mtga-meta]{"v":1,"eventType":"${type}"}[/mtga-meta]`;
+
+/**
+ * The fixtures as the real calendar annotates them. `buildCalendarFeed` drops
+ * any event without a recognised type, so the feed-level tests start from
+ * these; the raw pair above stays unannotated for `extractEvents`, which does
+ * not read descriptions at all.
+ */
+const allDayTyped = { ...allDay, description: `${allDay.description}${meta("other_draft")}` };
+const timedTyped = { ...timed, description: meta("qualifier") };
+
 const build = (items: unknown[]) => buildCalendarFeed(extractEvents(page(items)).events, NOW);
 
 describe("extractEvents", () => {
@@ -129,7 +141,7 @@ describe("extractEvents", () => {
 
 describe("buildCalendarFeed", () => {
   it("passes an all-day span through, exclusive end and all", () => {
-    const [entry] = build([allDay]).entries;
+    const [entry] = build([allDayTyped]).entries;
     expect(entry.start).toBe("2026-08-21");
     expect(entry.end).toBe("2026-09-04");
   });
@@ -137,7 +149,7 @@ describe("buildCalendarFeed", () => {
   it("widens a timed event to the days it touches", () => {
     // 25th 10:00 to 27th 18:00 covers the 25th, 26th and 27th, so the
     // exclusive end is the 28th.
-    const [entry] = build([timed]).entries;
+    const [entry] = build([timedTyped]).entries;
     expect(entry.start).toBe("2026-08-25");
     expect(entry.end).toBe("2026-08-28");
   });
@@ -146,7 +158,7 @@ describe("buildCalendarFeed", () => {
     // 25th 10:00 to 26th 00:00 is one day. Bumping would draw two.
     const [entry] = build([
       {
-        ...timed,
+        ...timedTyped,
         start: { dateTime: "2026-08-25T10:00:00-07:00" },
         end: { dateTime: "2026-08-26T00:00:00-07:00" },
       },
@@ -158,7 +170,7 @@ describe("buildCalendarFeed", () => {
   it("floors a same-instant event at one day rather than drawing nothing", () => {
     const [entry] = build([
       {
-        ...timed,
+        ...timedTyped,
         start: { dateTime: "2026-08-25T10:00:00-07:00" },
         end: { dateTime: "2026-08-25T10:00:00-07:00" },
       },
@@ -168,29 +180,31 @@ describe("buildCalendarFeed", () => {
 
   it("floors a backwards all-day span the same way", () => {
     const [entry] = build([
-      { ...allDay, start: { date: "2026-08-21" }, end: { date: "2026-08-20" } },
+      { ...allDayTyped, start: { date: "2026-08-21" }, end: { date: "2026-08-20" } },
     ]).entries;
     expect(entry.start).toBe("2026-08-21");
     expect(entry.end).toBe("2026-08-22");
   });
 
   it("reduces a description to text", () => {
-    expect(build([allDay]).entries[0].note).toBe("Runs all fortnight & then rotates");
+    expect(build([allDayTyped]).entries[0].note).toBe("Runs all fortnight & then rotates");
   });
 
   it("leaves an escaped entity as the text it was", () => {
     // `&amp;lt;` is someone writing "&lt;", not a tag. Decoding twice would
     // turn it into one.
-    const [entry] = build([{ ...allDay, description: "a &amp;lt;b&amp;gt; tag" }]).entries;
+    const [entry] = build([{ ...allDay, description: `a &amp;lt;b&amp;gt; tag${meta("other_draft")}` }]).entries;
     expect(entry.note).toBe("a &lt;b&gt; tag");
   });
 
   it("omits a note that strips to nothing", () => {
-    expect(build([{ ...allDay, description: "<p>  </p>" }]).entries[0].note).toBeUndefined();
+    expect(
+      build([{ ...allDay, description: `<p>  </p>${meta("other_draft")}` }]).entries[0].note,
+    ).toBeUndefined();
   });
 
   it("caps a long note", () => {
-    const [entry] = build([{ ...allDay, description: "x".repeat(500) }]).entries;
+    const [entry] = build([{ ...allDay, description: "x".repeat(500) + meta("other_draft") }]).entries;
     expect(entry.note!.length).toBeLessThanOrEqual(200);
     expect(entry.note!.endsWith("…")).toBe(true);
   });
@@ -227,14 +241,21 @@ describe("buildCalendarFeed", () => {
     expect(entry.note).toBeUndefined();
   });
 
-  it("strips an unreadable meta block without taking the entry's type from it", () => {
-    // One typo'd annotation is not a reason to refuse the calendar, but its
-    // wreckage must not surface in the tooltip either.
-    const [entry] = build([
-      { ...allDay, description: "Runs all week. [mtga-meta]{oops[/mtga-meta]" },
-    ]).entries;
-    expect(entry.type).toBeUndefined();
-    expect(entry.note).toBe("Runs all week.");
+  it("drops an event whose only meta block is unreadable", () => {
+    // One typo'd annotation costs the calendar one entry, not the feed.
+    const feed = build([
+      allDayTyped,
+      { ...allDay, id: "evt-typo", description: "Runs all week. [mtga-meta]{oops[/mtga-meta]" },
+    ]);
+    expect(feed.entries.map((e) => e.id)).toEqual(["evt-premier"]);
+  });
+
+  it("drops an event naming a type that is not on the list", () => {
+    const feed = build([
+      allDayTyped,
+      { ...allDay, id: "evt-unknown", description: meta("midweek_magic") },
+    ]);
+    expect(feed.entries.map((e) => e.id)).toEqual(["evt-premier"]);
   });
 
   it("strips the meta before capping, so a truncated note cannot end mid-block", () => {
@@ -248,13 +269,23 @@ describe("buildCalendarFeed", () => {
     expect(entry.note).not.toContain("mtga-meta");
   });
 
-  it("leaves an entry with no meta block untyped", () => {
-    expect(build([allDay]).entries[0].type).toBeUndefined();
+  it("drops an event with no meta block at all", () => {
+    // Untyped events are not possible: the type is the lane, and an event
+    // the author has not categorised has nowhere to be drawn.
+    const feed = build([allDayTyped, { ...timed, id: "evt-plain" }]);
+    expect(feed.entries.map((e) => e.id)).toEqual(["evt-premier"]);
+  });
+
+  it("refuses when events arrive and none carries a recognised type", () => {
+    // The mirror of extractEvents' unreadable-page guard: every event losing
+    // its annotation at once is a broken scheme, and publishing it would
+    // replace a working calendar with a blank that looks like a quiet week.
+    expect(() => build([allDay, timed])).toThrow(SourceError);
   });
 
   it("orders by start, then by length, then by title", () => {
     const at = (id: string, start: string, end: string, summary: string) => ({
-      ...allDay,
+      ...allDayTyped,
       id,
       summary,
       start: { date: start },
@@ -277,11 +308,11 @@ describe("buildCalendarFeed", () => {
     expect(feed.generatedAt).toBe(NOW.toISOString());
   });
 
-  it("resolves every event it is given", () => {
-    // The contract that lets this module hold no guard of its own: a RawEvent
-    // has already been through `extractEvents`, so it has a title and a date
-    // shape, and there is no way for one to fall out here.
-    const feed = build([allDay, timed]);
+  it("resolves every event that carries a recognised type", () => {
+    // A RawEvent has already been through `extractEvents`, so it has a title
+    // and a date shape; with a recognised type on it there is no way for one
+    // to fall out here.
+    const feed = build([allDayTyped, timedTyped]);
     expect(feed.entries).toHaveLength(2);
     for (const entry of feed.entries) {
       expect(entry.start).toMatch(/^\d{4}-\d{2}-\d{2}$/);
@@ -303,7 +334,7 @@ describe("fetchCalendarFeed", () => {
   }
 
   it("asks for expanded single events in start order", async () => {
-    const transport = pages(page([allDay]));
+    const transport = pages(page([allDayTyped]));
     await fetchCalendarFeed("cal@group.calendar.google.com", "KEY", { now: NOW, transport });
     const url = new URL(transport.urls[0]);
     expect(url.pathname).toBe("/calendar/v3/calendars/cal%40group.calendar.google.com/events");
@@ -324,8 +355,8 @@ describe("fetchCalendarFeed", () => {
   });
 
   it("follows the cursor and merges the pages", async () => {
-    const second = { ...allDay, id: "evt-second", summary: "Quick Draft" };
-    const transport = pages(page([allDay], "CAoQAA"), page([second]));
+    const second = { ...allDayTyped, id: "evt-second", summary: "Quick Draft" };
+    const transport = pages(page([allDayTyped], "CAoQAA"), page([second]));
     const feed = await fetchCalendarFeed("cal", "KEY", { now: NOW, transport });
     expect(feed.entries.map((e) => e.id)).toEqual(["evt-premier", "evt-second"]);
     expect(new URL(transport.urls[1]).searchParams.get("pageToken")).toBe("CAoQAA");

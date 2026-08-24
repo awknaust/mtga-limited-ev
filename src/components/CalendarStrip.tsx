@@ -55,11 +55,11 @@ type Hover = { bar: CalendarBar; left: number | null; right: number | null; top:
  * question about value; this answers "is that event still on", which nothing
  * in `src/lib` knows and no amount of arithmetic would tell you. It reads a
  * calendar the Worker publishes and draws it, and it deliberately stops there:
- * no entry is matched to a preset, sorted into a kind the app understands, or
- * linked anywhere. The lanes are not an exception: entries are banded by the
- * `type` token the feed reads from each one's `[mtga-meta]` block — the
- * calendar author's own categorisation, opaque here — so the kinds live in
- * the data, and a new one appears the day the calendar starts using it.
+ * no entry is matched to a preset or linked anywhere. Each entry arrives
+ * carrying its `type` — one of the closed set in `src/lib/eventTypes.ts`,
+ * read from the calendar's own `[mtga-meta]` blocks — and the lanes band by
+ * it without interpreting it: which lane is which colour falls out of the
+ * schedule's order, not out of anything this component knows about Arena.
  *
  * Drawn in HTML rather than SVG, which is worth stating because every other
  * chart here is the other way round. Those sit in a column and are drawn in a
@@ -194,13 +194,8 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
             />
             {layout.lanes.map((lane) => (
               <div
-                className={[
-                  "calendar-lane",
-                  lane.slot === null ? "calendar-lane-slot-misc" : SLOT_CLASS[lane.slot],
-                ].join(" ")}
-                // Prefixed so an author's token can never collide with the
-                // pooled lane's key, whatever they name a type.
-                key={lane.key === null ? "untyped" : `type:${lane.key}`}
+                className={["calendar-lane", SLOT_CLASS[lane.slot]].join(" ")}
+                key={lane.key}
               >
                 {lane.rows.map((row, i) => (
                   // Rows are stacked in flow and sized by the stylesheet; the

@@ -84,10 +84,10 @@ export type CalendarPlacement = {
 };
 
 export type CalendarLane = {
-  /** The shared `type` token, or null for the pooled untyped entries. */
-  key: string | null;
-  /** Which `.calendar-lane-slot-*` colours it; null for the neutral pool. */
-  slot: number | null;
+  /** The `type` its entries share — always present, see `eventTypes.ts`. */
+  key: string;
+  /** Which `.calendar-lane-slot-*` colours it. */
+  slot: number;
   /** Placements grouped by row, in time order within each row. */
   rows: CalendarPlacement[][];
 };
@@ -130,10 +130,9 @@ function packRows(placements: CalendarPlacement[]): CalendarPlacement[][] {
  * `scale` maps a date to a pixel offset — d3's `scaleTime` in the component, a
  * plain linear function in the tests.
  *
- * A lane is a `type` token — the author's category, read from the calendar
- * itself — and entries sharing one share a band and a colour. Entries with no
- * type pool into a single neutral lane rather than each taking a coloured one:
- * an untyped entry is the author not having said, which is not a category.
+ * A lane is a `type` — the author's category, read from the calendar itself
+ * and held to the closed set in `eventTypes.ts`, so every bar arriving here
+ * has one — and entries sharing one share a band and a colour.
  *
  * Colour slots follow the lanes' display order, so adjacent lanes wear
  * *consecutive* palette slots — the pairing the palette's colour-vision gates
@@ -161,29 +160,24 @@ export function layoutCalendar(
   });
 
   const groups = new Map<string, CalendarPlacement[]>();
-  const misc: CalendarPlacement[] = [];
   for (const p of placed) {
-    const key = p.bar.entry.type ?? null;
-    if (key === null) misc.push(p);
-    else groups.set(key, [...(groups.get(key) ?? []), p]);
+    const key = p.bar.entry.type;
+    groups.set(key, [...(groups.get(key) ?? []), p]);
   }
 
   const lanes: CalendarLane[] = [...groups.entries()].map(([key, members]) => ({
     key,
-    slot: null as number | null,
+    slot: 0,
     rows: packRows(members),
   }));
-  if (misc.length > 0) lanes.push({ key: null, slot: null, rows: packRows(misc) });
 
   lanes.sort(
     (a, b) =>
       Math.min(...a.rows.flat().map((p) => p.x)) - Math.min(...b.rows.flat().map((p) => p.x)),
   );
-
-  let slot = 0;
-  for (const lane of lanes) {
-    if (lane.key !== null) lane.slot = slot++ % SLOT_COUNT;
-  }
+  lanes.forEach((lane, i) => {
+    lane.slot = i % SLOT_COUNT;
+  });
 
   return { lanes, rows: lanes.reduce((n, lane) => n + lane.rows.length, 0) };
 }

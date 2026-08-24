@@ -14,14 +14,18 @@
  * app ships stay correct as it ages — it is clipped from the day it is read,
  * not the day it was written.
  *
- * Nothing here refuses, either. Whether the payload was readable at all is
- * settled upstream in `google.ts`, which is where a page of unreadable items
- * becomes a `SourceError`; by the time a `RawEvent` exists it has a title and
- * a date shape, so every one of them resolves to days.
+ * One refusal lives here, mirroring the one in `google.ts`. Events arriving
+ * and *none* of them carrying a recognised `eventType` is the annotation
+ * scheme having broken — a bulk edit gone wrong, a format change — and
+ * publishing that would replace a working calendar with a blank that looks
+ * exactly like a quiet week. A single typo'd event, by contrast, is simply
+ * dropped: see `readEventType`.
  *
  * Pure: no fetching, so it tests against fixture rows under plain Node.
  */
 
+import { isEventType, type EventType } from "../../src/lib/eventTypes.ts";
+import { SourceError } from "../shared/http.ts";
 import { isoDate } from "../shared/dates.ts";
 import type { RawEvent, RawTime } from "./google.ts";
 
@@ -36,12 +40,12 @@ export type CalendarEntry = {
   /** Description as plain text, absent when there was none worth carrying. */
   note?: string;
   /**
-   * The author's category token — `eventType` from the description's
-   * `[mtga-meta]` block — absent when the description carries none. An opaque
-   * string: the strip lanes and colours entries sharing one, and neither this
-   * module nor the app knows what any token means.
+   * The author's category — `eventType` from the description's `[mtga-meta]`
+   * block, held to the closed set in `src/lib/eventTypes.ts`. Always present:
+   * an event whose block is missing, unreadable, or names a type not on the
+   * list never becomes an entry at all.
    */
-  type?: string;
+  type: EventType;
 };
 
 export type CalendarFeed = {
@@ -130,18 +134,27 @@ function stripHtml(html: string): string {
  */
 const META = /\[mtga-meta\](.*?)\[\/mtga-meta\]/g;
 
-/** The block's `eventType`, or null when there is no readable one. */
-function readEventType(text: string): string | null {
+/**
+ * The block's `eventType`, or null when no block names a recognised one.
+ *
+ * Null is a verdict on the whole event: an entry with no recognised type is
+ * skipped entirely — untyped events are not possible — so a typo'd annotation
+ * costs the calendar one entry rather than failing the feed or inventing a
+ * lane. The first block naming a type on the list wins; unreadable blocks
+ * and unknown tokens are passed over (and stripped from the note regardless).
+ */
+function readEventType(text: string): EventType | null {
   for (const match of text.matchAll(META)) {
     try {
       const meta = JSON.parse(match[1]) as unknown;
       if (typeof meta !== "object" || meta === null) continue;
       const type = (meta as Record<string, unknown>).eventType;
-      if (typeof type === "string" && type.trim() !== "") return type.trim();
+      if (typeof type === "string") {
+        const token = type.trim();
+        if (isEventType(token)) return token;
+      }
     } catch {
-      // An unreadable block is still stripped from the note below; it just
-      // contributes no type. Refusing the whole feed for one typo'd
-      // annotation would take the calendar down to fix a colour.
+      // Fall through to the next block, if any.
     }
   }
   return null;
@@ -153,6 +166,7 @@ export function buildCalendarFeed(events: RawEvent[], now: Date): CalendarFeed {
     const span = spanOf(event.start, event.end);
     const text = event.description === null ? "" : stripHtml(event.description);
     const type = readEventType(text);
+    if (type === null) continue;
     // The meta is for machines and must never surface in a tooltip — readable
     // or not — and it is removed *before* the length cap so a truncated note
     // can never end mid-block with the tail of one showing.
@@ -162,11 +176,21 @@ export function buildCalendarFeed(events: RawEvent[], now: Date): CalendarFeed {
       title: event.title,
       start: span.start,
       end: span.end,
+      type,
       ...(note === ""
         ? {}
         : { note: note.length > MAX_NOTE ? `${note.slice(0, MAX_NOTE - 1).trimEnd()}…` : note }),
-      ...(type === null ? {} : { type }),
     });
+  }
+
+  // The refusal the module doc states: all events arriving untyped is the
+  // annotation scheme broken, not a quiet week, and yesterday's KV value
+  // serving on is the better outcome.
+  if (events.length > 0 && entries.length === 0) {
+    throw new SourceError(
+      `calendar: ${events.length} events, none carrying a recognised [mtga-meta] eventType — ` +
+        "refusing to publish a blank calendar",
+    );
   }
 
   // Earliest first, then the shorter of two that start together, then by title

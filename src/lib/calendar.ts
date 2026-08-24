@@ -28,6 +28,7 @@
  */
 
 import baked from "../data/mtg-calendar.json";
+import { isEventType, type EventType } from "./eventTypes";
 
 /** One entry: a name, the days it covers, and the author's category for it. */
 export type CalendarEntry = {
@@ -41,12 +42,13 @@ export type CalendarEntry = {
   /** The entry's description as plain text, where it had one. */
   note?: string;
   /**
-   * The author's category token, from the `[mtga-meta]` block the feed reads
-   * out of each description (`scripts/calendar/feed.ts`). Opaque here as
-   * everywhere: the strip lanes and colours entries sharing one, and never
-   * learns what a token means. Absent when the description carried none.
+   * The author's category, from the `[mtga-meta]` block the feed reads out
+   * of each description (`scripts/calendar/feed.ts`). Always present: an
+   * event without a recognised one is dropped at parse — see `eventTypes.ts`
+   * for the set and the reasoning. The strip lanes and colours entries
+   * sharing one.
    */
-  type?: string;
+  type: EventType;
 };
 
 export type CalendarFeed = {
@@ -90,13 +92,21 @@ export function parseCalendarFeed(data: unknown): CalendarFeed | null {
     if (entry.end <= entry.start) return null;
     if (entry.note !== undefined && typeof entry.note !== "string") return null;
     if (entry.type !== undefined && typeof entry.type !== "string") return null;
+    /*
+     * A type this build does not recognise — or none at all — drops the entry
+     * rather than failing the feed. Not the malformed-value contract above,
+     * deliberately: a newer Worker may publish a category an older cached
+     * bundle has never heard of, and one strange entry must not blank the
+     * calendar for everyone still on that bundle.
+     */
+    if (typeof entry.type !== "string" || !isEventType(entry.type)) continue;
     entries.push({
       id: entry.id,
       title: entry.title,
       start: entry.start,
       end: entry.end,
+      type: entry.type,
       ...(entry.note === undefined ? {} : { note: entry.note }),
-      ...(entry.type === undefined ? {} : { type: entry.type }),
     });
   }
   return { version: 1, generatedAt: feed.generatedAt, entries };

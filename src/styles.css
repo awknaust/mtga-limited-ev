@@ -1674,9 +1674,6 @@ button.box-add:focus-visible {
 .calendar-lane-slot-6 { --lane-color: #9085e9; --lane-ink: #0b1220; }
 .calendar-lane-slot-7 { --lane-color: #e66767; --lane-ink: #0b1220; }
 
-/* The pooled one-off events: deliberately quieter than any category. */
-.calendar-lane-slot-misc { --lane-color: #7d8a9c; --lane-ink: #0b1220; }
-
 .calendar-bar {
   position: absolute;
   top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);

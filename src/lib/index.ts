@@ -17,6 +17,7 @@
  *   boxPrices.ts     the box-price feed, the copy the app ships, and the
  *                    price table read from either
  *   calendar.ts      the event calendar feed, and the window the strip draws
+ *   eventTypes.ts    the closed set of categories a calendar event may carry
  *   mastery.ts       what a Set Mastery Pass returns against what it costs
  */
 
@@ -34,4 +35,5 @@ export * from "./bankrollGrid";
 export * from "./presets";
 export * from "./boxPrices";
 export * from "./calendar";
+export * from "./eventTypes";
 export * from "./mastery";

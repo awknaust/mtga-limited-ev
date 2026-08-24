@@ -10,12 +10,11 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { CalendarBar } from "../lib";
+import type { CalendarBar, EventType } from "../lib";
 import {
   INSIDE_PAD,
   MIN_BAR,
   MIN_INSIDE_LABEL,
-  SLOT_COUNT,
   layoutCalendar,
   tickEvery,
   type CalendarLayout,
@@ -28,14 +27,15 @@ const bar = (
   title: string,
   fromDay: number,
   toDay: number,
-  type?: string,
+  // Arbitrary but required: every entry that reaches the layout has one.
+  type: EventType = "other_draft",
 ): CalendarBar => ({
   entry: {
     id: `${title}@${fromDay}`,
     title,
     start: "unused",
     end: "unused",
-    ...(type === undefined ? {} : { type }),
+    type,
   },
   from: new Date(Date.UTC(2026, 0, 1 + fromDay)),
   to: new Date(Date.UTC(2026, 0, 1 + toDay)),
@@ -113,41 +113,22 @@ describe("layoutCalendar", () => {
     expect(layout.lanes.map((l) => l.slot)).toEqual([0, 1]);
   });
 
-  it("pools untyped entries into a neutral lane", () => {
-    const layout = layoutCalendar(
-      [
-        bar("Play-In", 0, 1, "qualifier"),
-        bar("Weekend", 5, 7, "qualifier"),
-        bar("Challenge", 10, 14),
-        bar("Release day", 20, 21),
-      ],
-      scale,
-    );
-    const misc = layout.lanes.find((l) => l.key === null);
-    expect(misc).toBeDefined();
-    expect(misc!.slot).toBeNull();
-    expect(misc!.rows.flat().map((p) => p.bar.entry.title).sort()).toEqual([
-      "Challenge",
-      "Release day",
-    ]);
-  });
-
   it("hands adjacent lanes consecutive colour slots", () => {
     /*
      * The palette's colour-vision gates were validated on *adjacent* pairs of
      * the slot order, so the stacked lanes must wear the slots in display
-     * order — and the untyped pool, which has no slot, must not consume one.
+     * order — which lane is which colour falls out of the schedule, not out
+     * of the tokens' spellings.
      */
     const layout = layoutCalendar(
       [
         bar("Direct", 0, 5, "arena_direct"),
-        bar("Untyped", 2, 4),
         bar("Play-In", 8, 9, "qualifier"),
         bar("Cube", 12, 20, "cube"),
       ],
       scale,
     );
-    expect(layout.lanes.map((l) => l.slot)).toEqual([0, null, 1, 2]);
+    expect(layout.lanes.map((l) => l.slot)).toEqual([0, 1, 2]);
   });
 
   it("orders lanes by their earliest bar", () => {
@@ -184,7 +165,7 @@ describe("layoutCalendar", () => {
 
   it("splits overlapping events in one lane across rows", () => {
     const layout = layoutCalendar(
-      [bar("Contender", 0, 40, "draft"), bar("Flashback", 5, 15, "draft")],
+      [bar("Contender", 0, 40, "contender_draft"), bar("Flashback", 5, 15, "contender_draft")],
       scale,
     );
     expect(layout.lanes[0].rows.length).toBe(2);
@@ -193,27 +174,19 @@ describe("layoutCalendar", () => {
 
   it("never overlaps two bars on one row", () => {
     // Twenty overlapping spans of assorted lengths across three lanes.
-    const types = ["qualifier", "arena_direct", "draft"];
+    const types: EventType[] = ["qualifier", "arena_direct", "other_draft"];
     const bars = Array.from({ length: 20 }, (_, i) =>
       bar(`Event ${i}`, i * 9, i * 9 + 4 + (i % 7) * 3, types[i % 3]),
     );
     expect(overlapsOnARow(layoutCalendar(bars, scale))).toEqual([]);
   });
 
-  it("wraps slots rather than running out of them", () => {
-    const bars = Array.from({ length: SLOT_COUNT + 1 }, (_, i) =>
-      bar(`Event ${i}`, i * 10, i * 10 + 5, `type_${String.fromCharCode(97 + i)}`),
-    );
-    const layout = layoutCalendar(bars, scale);
-    expect(layout.lanes[SLOT_COUNT].slot).toBe(0);
-  });
-
   it("counts its rows", () => {
     const layout = layoutCalendar(
       [
-        bar("Contender", 0, 40, "draft"),
-        bar("Flashback", 5, 15, "draft"),
-        bar("Challenge", 0, 4),
+        bar("Contender", 0, 40, "contender_draft"),
+        bar("Flashback", 5, 15, "contender_draft"),
+        bar("Challenge", 0, 4, "limited_open"),
       ],
       scale,
     );
