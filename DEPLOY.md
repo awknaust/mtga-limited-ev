@@ -42,9 +42,6 @@ flowchart LR
   Scryfall, and the event calendar from a **public Google Calendar** read through
   the Calendar API.
 
-`mtga-limited-ev.awknaust.me` 301s to `https://mtga.fyi` via a Single Redirect on
-the `awknaust.me` zone; it has no deploy of its own.
-
 ## The pipeline
 
 | Job | Runs on | Does |
@@ -137,6 +134,5 @@ Not in code, and needed to stand this up from scratch:
   secrets.
 - **Web Analytics** on the zone with `auto_install`, which is why
   `static.cloudflareinsights.com` appears in the CSP's `script-src`.
-- The **Single Redirect** on the `awknaust.me` zone.
 - GitHub **environments** `production` and `preview` (public repos only on the
   free plan), which give the deploy a tracked URL.
