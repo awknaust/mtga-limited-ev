@@ -1555,9 +1555,6 @@ button.box-add:focus-visible {
    */
   --calendar-row: 20px;
   --calendar-bar: 14px;
-  /* The popover is positioned against this box, so it has to be the containing
-     block. */
-  position: relative;
   margin-bottom: 1.25rem;
   /*
    * The frame itself comes from the `card` class beside this one — the same
@@ -1720,7 +1717,8 @@ button.box-add:focus-visible {
 /*
  * The small indicator at the head of the line: a diamond, centred on the
  * line's x by its own margin so the component positions both by one number.
- * Doubles as the hover target a 2px rule is too thin to be.
+ * Doubles as the button a 2px rule is too thin to be — hence the reset, as on
+ * `.calendar-bar`.
  */
 .calendar-release-mark {
   position: absolute;
@@ -1728,8 +1726,25 @@ button.box-add:focus-visible {
   width: 9px;
   height: 9px;
   margin-left: -4px;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
   transform: rotate(45deg);
   background: var(--bs-danger);
+}
+
+/* Nine pixels is no tap target; the halo is. Rotated with the diamond, which
+   costs nothing — a bigger square around a square. */
+.calendar-release-mark::before {
+  content: "";
+  position: absolute;
+  inset: -8px;
+}
+
+.calendar-release-selected,
+.calendar-release-mark:focus-visible {
+  outline: 2px solid var(--bs-body-color);
+  outline-offset: 2px;
 }
 
 /* Done with, dimmed like a finished bar — line and mark together. */
@@ -1737,10 +1752,17 @@ button.box-add:focus-visible {
   opacity: 0.45;
 }
 
+/*
+ * A button, since a click on it is what opens the popover — the reset strips
+ * the browser chrome and leaves the mark that was here when it was a span.
+ */
 .calendar-bar {
   position: absolute;
   top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
   height: var(--calendar-bar);
+  border: 0;
+  padding: 0;
+  cursor: pointer;
   /*
    * Softly rounded, not a pill. Full caps looked right on a lone bar and
    * wrong the moment two touched — back-to-back events meet cap to cap, and
@@ -1754,6 +1776,29 @@ button.box-add:focus-visible {
    * touching bars reading as two.
    */
   box-shadow: 0 0 0 1px var(--bs-body-bg);
+}
+
+/*
+ * The rest of the row, claimed for the finger. The bar is 14px in a 20px row;
+ * a tap target that small misses. Vertical only — back-to-back events share a
+ * row touching, and growing sideways would put one bar's target over its
+ * neighbour's.
+ */
+.calendar-bar::before {
+  content: "";
+  position: absolute;
+  inset: -3px 0;
+}
+
+/*
+ * The open entry, and keyboard focus, marked the same way: a ring in the body
+ * colour, which no lane wears — the same separation-by-weight call the today
+ * line makes.
+ */
+.calendar-bar-selected,
+.calendar-bar:focus-visible {
+  outline: 2px solid var(--bs-body-color);
+  outline-offset: 1px;
 }
 
 /*
@@ -1847,31 +1892,51 @@ button.box-add:focus-visible {
 }
 
 /*
- * The hovered entry in full.
+ * The selected entry in full.
  *
- * `title` is left on the bars as a courtesy but is not the reading — the same
- * call `ValueSplitBar` makes, and for the same reason: a native tooltip is
- * drawn by the operating system after a delay it chooses, and here it would be
- * the only way to see a name the row had to truncate.
- *
- * `pointer-events: none` matters. The popover opens *below* the entry it
- * describes, which is over the next row down; catching the pointer there would
- * put it between the reader and the entry underneath, and moving towards it
- * would flicker between the two.
+ * A docked panel, not a floating one. It used to hang off the hovered bar,
+ * anchored to whichever side kept it on the page, and on anything without a
+ * pointer that never worked. Now the bars toggle it and it sits in the one
+ * place — bottom left of the card, under the axis, in normal flow — so there
+ * is nothing to anchor, nothing to clip and nothing it covers, and its close
+ * button is pressable, which the old overlay's `pointer-events: none`
+ * forbade. In flow it is a box on the card, not a thing floating over one,
+ * so it wears the border and not the drop shadow.
  */
 .calendar-popover {
-  position: absolute;
-  z-index: 5;
   max-width: min(20rem, 100%);
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
+  margin-top: 0.4rem;
   padding: 0.4rem 0.6rem;
-  pointer-events: none;
   background: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
   border-radius: var(--bs-border-radius);
-  box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 40%);
+}
+
+.calendar-popover-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* The dismissal the toggle promises: same reset-to-the-type as the strip's
+   own collapse control. */
+.calendar-popover-close {
+  padding: 0;
+  border: 0;
+  background: none;
+  font-size: 0.8rem;
+  line-height: 1;
+  color: var(--bs-secondary-color);
+  cursor: pointer;
+}
+
+.calendar-popover-close:hover,
+.calendar-popover-close:focus-visible {
+  color: var(--bs-body-color);
 }
 
 .calendar-popover-title {

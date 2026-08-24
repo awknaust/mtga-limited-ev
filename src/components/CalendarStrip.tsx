@@ -44,9 +44,6 @@ function rangeText(
   return from.getTime() === to.getTime() ? dayYear(to) : `${day(from)} – ${dayYear(to)}`;
 }
 
-/** What the popover needs: which entry, and where its row sits in the strip. */
-type Hover = { bar: CalendarBar; left: number | null; right: number | null; top: number };
-
 /**
  * Where the reader's collapse choice lives. The first and only localStorage
  * in this app, and deliberately so: everything that changes what the numbers
@@ -96,16 +93,22 @@ const readCollapsed = (): boolean => {
  * the rest of that reasoning.
  */
 export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
-  const strip = useRef<HTMLElement>(null);
   const plot = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
-  const [hover, setHover] = useState<Hover | null>(null);
+  /*
+   * The entry whose details are open, or null. Selection, not hover: the strip
+   * is read on phones and tablets, where hover is a synthetic afterthought —
+   * the old popover opened under the finger that asked for it and vanished
+   * with it. A bar toggles its entry on click or tap, the popover's own close
+   * button and Escape put it away, and a pointer is never required.
+   */
+  const [selected, setSelected] = useState<CalendarBar | null>(null);
   const [open, setOpen] = useState(() => !readCollapsed());
 
   const toggle = () => {
     const next = !open;
     setOpen(next);
-    setHover(null);
+    setSelected(null);
     // Computed outside the try: React Compiler cannot yet compile value
     // blocks inside try/catch and bails out of the whole component —
     // silently, which is what react-compiler.test.ts exists to catch.
@@ -117,30 +120,13 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
     }
   };
 
-  /**
-   * Where to put the popover for a hovered entry, measured off its own row.
-   *
-   * Anchored to whichever side keeps it on the page — left edge to the bar for
-   * an entry in the near half, right edge to it for one in the far half — so
-   * it can never run off, which centring on the bar would do at both ends. The
-   * same reasoning as the name flip in `calendarLayout`, and cheaper, since a
-   * box positioned from an edge needs no knowledge of its own width.
+  /*
+   * A second click on the open entry puts it away; a click on any other
+   * switches to it. One function so the bars and the release marks cannot
+   * drift apart on what a click means.
    */
-  const anchorOf = (el: HTMLElement, bar: CalendarBar): Hover | null => {
-    const host = strip.current;
-    if (host === null) return null;
-    const box = el.getBoundingClientRect();
-    const frame = host.getBoundingClientRect();
-    const bars = el.firstElementChild?.getBoundingClientRect() ?? box;
-    const mid = bars.left + bars.width / 2 - frame.left;
-    const near = mid < frame.width / 2;
-    return {
-      bar,
-      left: near ? Math.max(0, bars.left - frame.left) : null,
-      right: near ? null : Math.max(0, frame.right - bars.right),
-      top: box.bottom - frame.top + 4,
-    };
-  };
+  const select = (bar: CalendarBar) =>
+    setSelected((prev) => (prev?.entry.id === bar.entry.id ? null : bar));
 
   /*
    * The measurement the pixel layout needs.
@@ -219,7 +205,9 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
        */
       className={["calendar-strip", "card"].join(" ")}
       aria-labelledby="calendar-strip-title"
-      ref={strip}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") setSelected(null);
+      }}
     >
       <div className="calendar-strip-head">
         <h2 className="calendar-strip-title" id="calendar-strip-title">
@@ -250,13 +238,9 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
         )}
       </div>
 
-      {/* Leaving the plot clears the popover. The per-entry `onPointerLeave`
-          alone is not enough: a pointer can leave through a gap between two
-          entries, or the row under it can be repacked by a resize, and either
-          way no entry ever gets told. */}
       {open && (
         <>
-        <div className="calendar-plot" ref={plot} onPointerLeave={() => setHover(null)}>
+        <div className="calendar-plot" ref={plot}>
           {layout && (
             <>
               {layout.ticks.map((tick) => (
@@ -285,34 +269,43 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                         const { entry, state, clippedStart, clippedEnd } = bar;
                         const range = rangeText(entry, day, dayYear);
                         return (
-                          <div
-                            key={entry.id}
-                            /*
-                             * Hover is read from the element rather than computed,
-                             * which is what keeps row heights out of JS: the row's
-                             * own box says where the popover goes, so the
-                             * stylesheet stays the only thing that knows how tall
-                             * a row is.
-                             */
-                            onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
-                            onPointerLeave={() => setHover(null)}
-                          >
-                            <span
+                          <div key={entry.id}>
+                            {/*
+                              * The bar is the control: clicking it opens the
+                              * entry in the popover, clicking again closes it.
+                              * A button rather than a span with a handler, so
+                              * the same toggle is a Tab stop and an Enter press
+                              * for anyone not using a pointer.
+                              */}
+                            <button
+                              type="button"
                               className={[
                                 "calendar-bar",
                                 state === "past" ? "calendar-bar-past" : "",
                                 clippedStart ? "calendar-bar-open-start" : "",
                                 clippedEnd ? "calendar-bar-open-end" : "",
+                                selected?.entry.id === entry.id ? "calendar-bar-selected" : "",
                               ]
                                 .filter(Boolean)
                                 .join(" ")}
                               style={{ left: x, width: w }}
-                            />
+                              aria-expanded={selected?.entry.id === entry.id}
+                              onClick={() => select(bar)}
+                            >
+                              {/* Most bars carry no visible name at all, so this
+                                  — the button's accessible name — is the whole
+                                  reading for anyone not using a pointer. The
+                                  text is never cut; only boxes are. */}
+                              <span className="visually-hidden">
+                                {entry.title}, {range}
+                                {entry.note === undefined ? "" : `. ${entry.note}`}
+                              </span>
+                            </button>
                             {labelInside && (
                               /* The name, where the bar can hold a useful amount
                                  of it. aria-hidden because it may be truncated
-                                 and the hidden span below carries the whole
-                                 entry; announcing both would say it twice. */
+                                 and the button already carries the whole entry;
+                                 announcing both would say it twice. */
                               <span
                                 className={[
                                   "calendar-label",
@@ -327,13 +320,6 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                                 {entry.title}
                               </span>
                             )}
-                            {/* Most bars carry no visible name at all now, so
-                                this is the whole reading for anyone not using a
-                                pointer. The text is never cut — only boxes are. */}
-                            <span className="visually-hidden">
-                              {entry.title}, {range}
-                              {entry.note === undefined ? "" : `. ${entry.note}`}
-                            </span>
                           </div>
                         );
                       })}
@@ -356,21 +342,28 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                     ]
                       .filter(Boolean)
                       .join(" ")}
-                    onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
-                    onPointerLeave={() => setHover(null)}
                   >
                     <span className="calendar-release-line" style={{ left: x }} />
                     {/* No name on the chart — the diamond is the whole visible
-                        mark, and the popover names it on hover. */}
-                    <span
-                      className="calendar-release-mark"
+                        mark, doubling as the button that opens the popover,
+                        and the popover carries the rest. */}
+                    <button
+                      type="button"
+                      className={[
+                        "calendar-release-mark",
+                        selected?.entry.id === entry.id ? "calendar-release-selected" : "",
+                      ]
+                        .filter(Boolean)
+                        .join(" ")}
                       style={{ left: x }}
-                      aria-hidden="true"
-                    />
-                    <span className="visually-hidden">
-                      {entry.title}, {range}
-                      {entry.note === undefined ? "" : `. ${entry.note}`}
-                    </span>
+                      aria-expanded={selected?.entry.id === entry.id}
+                      onClick={() => select(bar)}
+                    >
+                      <span className="visually-hidden">
+                        {entry.title}, {range}
+                        {entry.note === undefined ? "" : `. ${entry.note}`}
+                      </span>
+                    </button>
                   </div>
                 );
               })}
@@ -385,40 +378,47 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
             </span>
           ))}
         </div>
-        </>
-      )}
 
-      {/*
-       * The full entry, on hover.
-       *
-       * Rendered here rather than inside the plot because the plot clips —
-       * it has to, so that a name at the right edge is cut rather than
-       * widening the page — and a popover drawn inside it would be clipped
-       * with everything else.
-       *
-       * It carries the name in full, which the row may have had to truncate,
-       * and the dates, which are nowhere on screen. `aria-hidden` because the
-       * same text is already in each entry's own hidden span: announcing it
-       * twice is worse than not announcing it here at all.
-       */}
-      {hover && (
-        <div
-          className="calendar-popover"
-          style={{
-            top: hover.top,
-            ...(hover.left === null ? { right: hover.right! } : { left: hover.left }),
-          }}
-          aria-hidden="true"
-        >
-          <strong className="calendar-popover-title">{hover.bar.entry.title}</strong>
-          <span className="calendar-popover-dates">
-            {rangeText(hover.bar.entry, day, dayYear)}
-            {hover.bar.state === "now" ? " · on now" : ""}
-          </span>
-          {hover.bar.entry.note !== undefined && (
-            <span className="calendar-popover-note">{hover.bar.entry.note}</span>
-          )}
-        </div>
+        {/*
+         * The selected entry in full.
+         *
+         * It used to float beside the hovered bar, and on a phone or tablet
+         * that was unreadable: it opened under the finger that asked for it
+         * and left with it. So it sits in one place instead — the bottom left
+         * of the card, under the axis, in normal flow — where it covers no
+         * bars, needs no anchor arithmetic and no z-index, and its close
+         * button is genuinely pressable, which the old overlay's
+         * `pointer-events: none` forbade.
+         *
+         * It carries the name in full, which the row may have had to
+         * truncate, and the dates, which are nowhere else on screen. The same
+         * text is each bar's accessible name, so a screen reader hears it
+         * from the button already — the duplication is on demand, not
+         * announced twice on the way past.
+         */}
+        {selected && (
+          <div className="calendar-popover">
+            <div className="calendar-popover-head">
+              <strong className="calendar-popover-title">{selected.entry.title}</strong>
+              <button
+                type="button"
+                className="calendar-popover-close"
+                aria-label="Close"
+                onClick={() => setSelected(null)}
+              >
+                <i className="bi bi-x-lg" aria-hidden="true" />
+              </button>
+            </div>
+            <span className="calendar-popover-dates">
+              {rangeText(selected.entry, day, dayYear)}
+              {selected.state === "now" ? " · on now" : ""}
+            </span>
+            {selected.entry.note !== undefined && (
+              <span className="calendar-popover-note">{selected.entry.note}</span>
+            )}
+          </div>
+        )}
+        </>
       )}
     </section>
   );
