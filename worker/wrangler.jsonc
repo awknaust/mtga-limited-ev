@@ -31,6 +31,11 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-08-01",
 
+  // Cache the response at the edge, so a hit serves without running the Worker
+  // or reading KV. No TTL here: Workers Caching reads the Cache-Control that
+  // src/index.ts already returns, which keeps the hour written in one place.
+  "cache": { "enabled": true },
+
   // Route-only on purpose: a workers.dev origin would be a second URL serving
   // the same data with no CSP story. The one origin that matters is the app's.
   "workers_dev": false,
