@@ -33,10 +33,11 @@ esac
 
 [ -n "$cmd" ] || exit 0
 
-# `logout` is deliberately absent: it removes a local credential rather than
-# changing anything deployed, and it is the actual fix this guard only
-# approximates. Blocking it would block the remedy.
-MUTATE="${B_OPEN}(deploy|publish|delete|destroy|rollback|put|create|rename|upload|execute|bulk)${B_CLOSE}"
+# `login` and `logout` are here with the rest: an agent has no business moving
+# the credential either way. Logging out breaks the tooling under whoever is
+# using it, and logging in mints the very capability this guard exists to
+# withhold. Changing that credential is a person's job at their own terminal.
+MUTATE="${B_OPEN}(deploy|publish|delete|destroy|rollback|put|create|rename|upload|execute|bulk|login|logout)${B_CLOSE}"
 
 # wrangler, unless --dry-run makes the invocation inert.
 if has "${B_OPEN}wrangler${B_CLOSE}" && has "$MUTATE" && ! has '[-][-]dry-run'; then

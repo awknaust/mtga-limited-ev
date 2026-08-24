@@ -379,7 +379,11 @@ Over-blocking is the intended trade: a guard that reasons about which words are
 being executed is a guard with a way around it.
 
 Neither guard is a security boundary; both are files an agent can edit. The
-boundary is `wrangler logout`, or a token without `workers_scripts:write`.
+boundary is a token without `workers_scripts:write`, or `wrangler logout` —
+which the hook refuses on an agent's behalf for the same reason it refuses
+`wrangler login`. Moving that credential either way is a person's job at their
+own terminal: logging out breaks the tooling under whoever is using it, and
+logging in mints the capability the guard exists to withhold.
 
 Two notes on the key itself. It is **required even though the calendar is
 public**: everything on `googleapis.com` refuses unregistered callers, so the
