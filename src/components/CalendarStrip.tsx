@@ -62,10 +62,13 @@ type Hover = { bar: CalendarBar; left: number | null; right: number | null; top:
 const COLLAPSE_KEY = "mtga.fyi:collapse-calendar";
 
 const readCollapsed = (): boolean => {
+  // Collapsed until the reader says otherwise: the strip is a glance, and the
+  // folded row already answers it. Only an explicit open ("0") is remembered
+  // as one, so storage denied simply means folded every visit.
   try {
-    return localStorage.getItem(COLLAPSE_KEY) === "1";
+    return localStorage.getItem(COLLAPSE_KEY) !== "0";
   } catch {
-    return false;
+    return true;
   }
 };
 
@@ -298,7 +301,6 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                               className={[
                                 "calendar-bar",
                                 state === "past" ? "calendar-bar-past" : "",
-                                state === "now" ? "calendar-bar-now" : "",
                                 clippedStart ? "calendar-bar-open-start" : "",
                                 clippedEnd ? "calendar-bar-open-end" : "",
                               ]

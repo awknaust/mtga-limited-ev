@@ -1576,7 +1576,9 @@ button.box-add:focus-visible {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.35rem;
+  /* The air under the title belongs to the plot (margin-top there), so the
+     folded card carries none of it. */
+  margin-bottom: 0;
 }
 
 .calendar-strip-title {
@@ -1624,6 +1626,7 @@ button.box-add:focus-visible {
  */
 .calendar-plot {
   position: relative;
+  margin-top: 0.65rem;
   /*
    * A ceiling, not a design. The lane packing works on the bars alone, so the
    * row count no longer depends on the width — a normal couple of months is
@@ -1742,7 +1745,7 @@ button.box-add:focus-visible {
  */
 .calendar-release-mark {
   position: absolute;
-  top: 1px;
+  bottom: 1px;
   width: 9px;
   height: 9px;
   margin-left: -4px;
@@ -1804,16 +1807,10 @@ button.box-add:focus-visible {
 }
 
 /*
- * Running today. Colour belongs to the lane now, so state is a ring: the
- * inner shadow is the same page-colour separator every bar wears, the outer
- * one the highlight. The today line crossing the bar says most of this
- * already; the ring is for the glance that does not follow the line down.
+ * Running today carries no mark of its own: the today line crossing a
+ * full-strength bar says it, and a highlight ring on top was tried and
+ * judged noise. The popover still spells out "on now".
  */
-.calendar-bar-now {
-  box-shadow:
-    0 0 0 1px var(--bs-body-bg),
-    0 0 0 2.5px rgb(255 255 255 / 55%);
-}
 
 /*
  * An end the window cut rather than the event. Squaring off the corner is the

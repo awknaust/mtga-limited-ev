@@ -303,7 +303,8 @@ design reserved every name beside its bar and paid twelve rows for twenty
 events; the doc comments in `calendarLayout.ts` keep that history.
 
 The strip is a card and collapses from its heading, folding to one row that
-still says what is on. The choice is remembered in localStorage — the app's
+still says what is on — and it *starts* folded: the row answers the common
+glance, and opening is one click. The choice is remembered in localStorage — the app's
 only use of it, and deliberately not the URL: a fold changes nothing about
 what the numbers mean, and share links must not become unequal over a
 window-dressing preference. Note the key's spelling (`mtga.fyi:…`, not
