@@ -10,7 +10,7 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { CalendarBar, EventType } from "../lib";
+import type { CalendarBar, CalendarEventType } from "../lib";
 import {
   INSIDE_PAD,
   MIN_BAR,
@@ -28,7 +28,7 @@ const bar = (
   fromDay: number,
   toDay: number,
   // Arbitrary but required: every entry that reaches the layout has one.
-  type: EventType = "other_draft",
+  type: CalendarEventType = "other_draft",
 ): CalendarBar => ({
   entry: {
     id: `${title}@${fromDay}`,
@@ -174,7 +174,7 @@ describe("layoutCalendar", () => {
 
   it("never overlaps two bars on one row", () => {
     // Twenty overlapping spans of assorted lengths across three lanes.
-    const types: EventType[] = ["qualifier", "arena_direct", "other_draft"];
+    const types: CalendarEventType[] = ["qualifier", "arena_direct", "other_draft"];
     const bars = Array.from({ length: 20 }, (_, i) =>
       bar(`Event ${i}`, i * 9, i * 9 + 4 + (i % 7) * 3, types[i % 3]),
     );

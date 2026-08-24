@@ -271,12 +271,12 @@ The boundaries that matter, beyond the ones the box-price feed already states:
   stripping, so a UI edit that entity-escapes the quotes still parses — and
   publishes the token as the entry's `type`; the block itself, readable or
   not, never reaches a note or a tooltip. The tokens are the closed set in
-  `src/lib/eventTypes.ts`, shared by the feed and the app's validator, and
+  `src/lib/calendarEventTypes.ts`, shared by the feed and the app's validator, and
   **an event whose type is missing, unreadable or not on the list is dropped
   whole** — untyped events are not possible, so a typo in the calendar loses
   one entry rather than inventing a lane. Every event losing its annotation
   at once is refused instead, like an unreadable page: that is the scheme
-  broken, not a quiet week. Adding a category is an edit to `eventTypes.ts`
+  broken, not a quiet week. Adding a category is an edit to `calendarEventTypes.ts`
   *and* to the calendar; the strip still learns nothing from a token's
   spelling — it lanes and colours entries sharing one — with a single
   recorded exception: `set_release` is drawn as a dashed rule across the

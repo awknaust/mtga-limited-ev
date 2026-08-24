@@ -24,7 +24,7 @@
  * Pure: no fetching, so it tests against fixture rows under plain Node.
  */
 
-import { isEventType, type EventType } from "../../src/lib/eventTypes.ts";
+import { isCalendarEventType, type CalendarEventType } from "../../src/lib/calendarEventTypes.ts";
 import { SourceError } from "../shared/http.ts";
 import { isoDate } from "../shared/dates.ts";
 import type { RawEvent, RawTime } from "./google.ts";
@@ -41,11 +41,11 @@ export type CalendarEntry = {
   note?: string;
   /**
    * The author's category — `eventType` from the description's `[mtga-meta]`
-   * block, held to the closed set in `src/lib/eventTypes.ts`. Always present:
+   * block, held to the closed set in `src/lib/calendarEventTypes.ts`. Always present:
    * an event whose block is missing, unreadable, or names a type not on the
    * list never becomes an entry at all.
    */
-  type: EventType;
+  type: CalendarEventType;
 };
 
 export type CalendarFeed = {
@@ -143,7 +143,7 @@ const META = /\[mtga-meta\](.*?)\[\/mtga-meta\]/g;
  * lane. The first block naming a type on the list wins; unreadable blocks
  * and unknown tokens are passed over (and stripped from the note regardless).
  */
-function readEventType(text: string): EventType | null {
+function readEventType(text: string): CalendarEventType | null {
   for (const match of text.matchAll(META)) {
     try {
       const meta = JSON.parse(match[1]) as unknown;
@@ -151,7 +151,7 @@ function readEventType(text: string): EventType | null {
       const type = (meta as Record<string, unknown>).eventType;
       if (typeof type === "string") {
         const token = type.trim();
-        if (isEventType(token)) return token;
+        if (isCalendarEventType(token)) return token;
       }
     } catch {
       // Fall through to the next block, if any.

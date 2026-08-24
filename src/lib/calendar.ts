@@ -28,7 +28,7 @@
  */
 
 import baked from "../data/mtg-calendar.json";
-import { isEventType, type EventType } from "./eventTypes";
+import { isCalendarEventType, type CalendarEventType } from "./calendarEventTypes";
 
 /** One entry: a name, the days it covers, and the author's category for it. */
 export type CalendarEntry = {
@@ -44,11 +44,11 @@ export type CalendarEntry = {
   /**
    * The author's category, from the `[mtga-meta]` block the feed reads out
    * of each description (`scripts/calendar/feed.ts`). Always present: an
-   * event without a recognised one is dropped at parse — see `eventTypes.ts`
+   * event without a recognised one is dropped at parse — see `calendarEventTypes.ts`
    * for the set and the reasoning. The strip lanes and colours entries
    * sharing one.
    */
-  type: EventType;
+  type: CalendarEventType;
 };
 
 export type CalendarFeed = {
@@ -99,7 +99,7 @@ export function parseCalendarFeed(data: unknown): CalendarFeed | null {
      * bundle has never heard of, and one strange entry must not blank the
      * calendar for everyone still on that bundle.
      */
-    if (typeof entry.type !== "string" || !isEventType(entry.type)) continue;
+    if (typeof entry.type !== "string" || !isCalendarEventType(entry.type)) continue;
     entries.push({
       id: entry.id,
       title: entry.title,

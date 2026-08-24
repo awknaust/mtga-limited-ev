@@ -15,7 +15,7 @@
  * module dependency-free for that reason — it is imported from both sides of
  * the repository.
  */
-export const EVENT_TYPES = [
+export const CALENDAR_EVENT_TYPES = [
   /** Contender Draft. */
   "contender_draft",
   /** Flashback Draft. */
@@ -38,7 +38,7 @@ export const EVENT_TYPES = [
   "set_release",
 ] as const;
 
-export type EventType = (typeof EVENT_TYPES)[number];
+export type CalendarEventType = (typeof CALENDAR_EVENT_TYPES)[number];
 
-export const isEventType = (value: string): value is EventType =>
-  (EVENT_TYPES as readonly string[]).includes(value);
+export const isCalendarEventType = (value: string): value is CalendarEventType =>
+  (CALENDAR_EVENT_TYPES as readonly string[]).includes(value);

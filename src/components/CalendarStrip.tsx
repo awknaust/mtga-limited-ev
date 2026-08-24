@@ -81,7 +81,7 @@ const readCollapsed = (): boolean => {
  * in `src/lib` knows and no amount of arithmetic would tell you. It reads a
  * calendar the Worker publishes and draws it, and it deliberately stops there:
  * no entry is matched to a preset or linked anywhere. Each entry arrives
- * carrying its `type` — one of the closed set in `src/lib/eventTypes.ts`,
+ * carrying its `type` — one of the closed set in `src/lib/calendarEventTypes.ts`,
  * read from the calendar's own `[mtga-meta]` blocks — and the lanes band by
  * it without interpreting it: which lane is which colour falls out of the
  * schedule's order, not out of anything this component knows about Arena.

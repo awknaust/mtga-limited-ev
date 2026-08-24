@@ -68,7 +68,7 @@ export const SLOT_COUNT = 8;
  * The one type the strip renders as a vertical rule across the whole plot
  * rather than as a bar in a lane: a set release is a moment, not a span.
  * The single point where a token's meaning is read — everything else about
- * the types stays opaque, and `eventTypes.ts` records the exception.
+ * the types stays opaque, and `calendarEventTypes.ts` records the exception.
  */
 export const MARKER_TYPE = "set_release";
 
@@ -93,7 +93,7 @@ export type CalendarPlacement = {
 };
 
 export type CalendarLane = {
-  /** The `type` its entries share — always present, see `eventTypes.ts`. */
+  /** The `type` its entries share — always present, see `calendarEventTypes.ts`. */
   key: string;
   /** Which `.calendar-lane-slot-*` colours it. */
   slot: number;
@@ -149,7 +149,7 @@ function packRows(placements: CalendarPlacement[]): CalendarPlacement[][] {
  * plain linear function in the tests.
  *
  * A lane is a `type` — the author's category, read from the calendar itself
- * and held to the closed set in `eventTypes.ts`, so every bar arriving here
+ * and held to the closed set in `calendarEventTypes.ts`, so every bar arriving here
  * has one — and entries sharing one share a band and a colour.
  *
  * Colour slots follow the lanes' display order, so adjacent lanes wear
