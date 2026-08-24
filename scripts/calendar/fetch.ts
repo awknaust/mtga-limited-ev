@@ -18,7 +18,11 @@
  * streams) that do not run there. Adopting one would fork the single code
  * path the driver and the Worker share. Nor would it retire `google.ts`: a
  * client's types state what Google promises, and the validation there exists
- * because this feed does not publish on a promise.
+ * because this feed does not publish on a promise. The one piece of the
+ * client that does travel is those types — `@googleapis/calendar` rides as a
+ * types-only dev dependency, and `google.test.ts` holds its fixtures to
+ * `Schema$Event`, so "the shape the API documents" is the compiler's word
+ * rather than this comment's.
  */
 
 import { SourceError, request } from "../shared/http.ts";

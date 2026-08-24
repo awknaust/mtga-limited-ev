@@ -6,13 +6,19 @@
  * the *reading* of a payload this repository does not control. A field renamed
  * upstream, or a shape this code quietly mis-narrows, should fail here rather
  * than against the live calendar — which is the same reason `wizards.test.ts`
- * keeps the drop-rates markup.
+ * keeps the drop-rates markup. The event fixtures are additionally held to
+ * `calendar_v3.Schema$Event` from `@googleapis/calendar` — a types-only dev
+ * dependency, the one part of Google's client that runs anywhere — so "in the
+ * shape the API documents" is checked by the compiler rather than claimed.
+ * (The client itself stays out: it is a Node program, and `scripts/calendar/`
+ * deploys to the Workers runtime — see `fetch.ts`.)
  *
  * Nothing here touches the network. The paging tests drive `fetchCalendarFeed`
  * through an injected transport, stubbed by argument rather than by mocking
  * the module, as `registry.test.ts` does.
  */
 
+import type { calendar_v3 } from "@googleapis/calendar";
 import { describe, expect, it } from "vitest";
 
 import { SourceError } from "../shared/http.ts";
@@ -22,7 +28,12 @@ import { extractEvents } from "./google.ts";
 
 const NOW = new Date("2026-08-23T12:00:00Z");
 
-/** One page of `events.list`, in the shape the API documents. */
+/**
+ * One page of `events.list`, in the shape the API documents. Untyped because
+ * `items` deliberately carries malformed rows in the skip-tests; the page
+ * scaffolding around them matches `Schema$Events`, and the well-formed event
+ * fixtures below are held to `Schema$Event` where the compiler can see it.
+ */
 const page = (items: unknown[], nextPageToken?: string) => ({
   kind: "calendar#events",
   etag: '"p32"',
@@ -44,7 +55,7 @@ const allDay = {
   description: "<p>Runs all fortnight &amp; then rotates</p>",
   start: { date: "2026-08-21" },
   end: { date: "2026-09-04" },
-};
+} satisfies calendar_v3.Schema$Event;
 
 const timed = {
   kind: "calendar#event",
@@ -53,7 +64,7 @@ const timed = {
   summary: "Midweek Magic",
   start: { dateTime: "2026-08-25T10:00:00-07:00", timeZone: "America/Los_Angeles" },
   end: { dateTime: "2026-08-27T18:00:00-07:00", timeZone: "America/Los_Angeles" },
-};
+} satisfies calendar_v3.Schema$Event;
 
 /** A recognised meta block, as the calendar's descriptions carry one. */
 const meta = (type: string) => `[mtga-meta]{"v":1,"eventType":"${type}"}[/mtga-meta]`;
