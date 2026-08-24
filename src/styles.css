@@ -30,6 +30,23 @@
 
   /* Panel-2, used by the stat tiles and inputs. */
   --app-raised: #1e242c;
+
+  /*
+   * The chart ramp: the eight hues every categorical chart in the app draws
+   * from, named here once so the Compare tab and the calendar strip can never
+   * drift apart. Each consumer orders them itself — Compare positionally by
+   * preset index (`.compare-series-*`), the calendar in a permutation chosen
+   * for its stacked adjacency (`.calendar-lane-slot-*`) — but the hues are
+   * these and only these.
+   */
+  --ramp-blue: #60a5fa;
+  --ramp-amber: #fbbf24;
+  --ramp-emerald: #34d399;
+  --ramp-pink: #f472b6;
+  --ramp-violet: #a78bfa;
+  --ramp-orange: #fb923c;
+  --ramp-cyan: #22d3ee;
+  --ramp-lime: #a3e635;
 }
 
 body {
@@ -1379,40 +1396,40 @@ button.box-add:focus-visible {
  * rewards; `compareSeries.ts` owns that mapping and its test checks the classes
  * below exist for every value it can return.
  *
- * Eight hues, as far apart as a dark background allows. A ninth event reuses
- * the first hue with a dashed line, which is the second channel the ramp
- * carries.
+ * The eight `--ramp-*` hues, as far apart as a dark background allows. A
+ * ninth event reuses the first hue with a dashed line, which is the second
+ * channel the ramp carries.
  */
 .compare-series-0 {
-  --series: #60a5fa;
+  --series: var(--ramp-blue);
 }
 
 .compare-series-1 {
-  --series: #fbbf24;
+  --series: var(--ramp-amber);
 }
 
 .compare-series-2 {
-  --series: #34d399;
+  --series: var(--ramp-emerald);
 }
 
 .compare-series-3 {
-  --series: #f472b6;
+  --series: var(--ramp-pink);
 }
 
 .compare-series-4 {
-  --series: #a78bfa;
+  --series: var(--ramp-violet);
 }
 
 .compare-series-5 {
-  --series: #fb923c;
+  --series: var(--ramp-orange);
 }
 
 .compare-series-6 {
-  --series: #22d3ee;
+  --series: var(--ramp-cyan);
 }
 
 .compare-series-7 {
-  --series: #a3e635;
+  --series: var(--ramp-lime);
 }
 
 /* The reader's own ladder, which is not one of the sixteen and should not look
@@ -1509,6 +1526,370 @@ button.box-add:focus-visible {
   .compare-end-label {
     font-size: 9px;
   }
+}
+
+/*
+ * The event calendar strip.
+ *
+ * Laid out in HTML rather than SVG, and for a sharper version of the reason
+ * `ValueSplitBar` gives. Every chart here is drawn in a 560-unit viewBox and
+ * stretched to its column, which works because a column is a column; this runs
+ * the full width of the page, from a 320px phone to a 1140px container. Type
+ * sized in viewBox units would come out near 3px at one end and 22px at the
+ * other. So the strip is measured and drawn in pixels — see `CalendarStrip`
+ * for the layout effect that measures it — and everything below is in the
+ * reader's own units, at one size everywhere.
+ *
+ * Row pitch lives here and only here. The component groups its placements into
+ * rows and renders one `.calendar-row` per row, stacked in normal flow, so
+ * nothing in JS knows how tall a row is and changing `--calendar-row` changes
+ * the strip and nothing else. Only the *horizontal* placement crosses over,
+ * which is the half that genuinely needs measuring.
+ */
+.calendar-strip {
+  /*
+   * Row pitch and bar thickness. The bar is deep enough to hold a line of type,
+   * because a wide bar carries its own name — see `labelInside` in
+   * calendarLayout.ts; narrow bars are bare and their lane's colour and the
+   * popover identify them.
+   */
+  --calendar-row: 20px;
+  --calendar-bar: 14px;
+  /* The popover is positioned against this box, so it has to be the containing
+     block. */
+  position: relative;
+  margin-bottom: 1.25rem;
+  /*
+   * The frame itself comes from the `card` class beside this one — the same
+   * chrome every other panel wears, worn the same way so it cannot drift.
+   * Unframed, the strip's bars sat naked on the page background directly
+   * under the site title and read as part of the header. Only the padding is
+   * local: a card's padding lives on `.card-body`, and the strip has no use
+   * for that wrapper.
+   */
+  padding: 0.6rem 0.75rem 0.4rem;
+}
+
+.calendar-strip-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  /* The air under the title belongs to the plot (margin-top there), so the
+     folded card carries none of it. */
+  margin-bottom: 0;
+}
+
+.calendar-strip-title {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--bs-secondary-color);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/*
+ * The heading is the disclosure control. A plain button reset to wear the
+ * heading's own type, so collapsing costs no chrome beyond the chevron.
+ */
+.calendar-strip-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+}
+
+.calendar-strip-toggle:hover,
+.calendar-strip-toggle:focus-visible {
+  color: var(--bs-body-color);
+}
+
+.calendar-strip-stamp {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+/*
+ * The plot takes the height its rows need — no ceiling and no scrolling. An
+ * earlier design capped it and scrolled the overflow, a safety valve for the
+ * packing whose row count grew with narrow widths; lane packing's rows are
+ * bounded by the closed type set instead, the card collapses for anyone who
+ * wants the space back, and the scrollbar that cap could summon read as a
+ * defect in a strip meant to be glanced at.
+ *
+ * `clip`, not `hidden`, for the horizontal cut: a name at the right edge is
+ * clipped rather than widening the page, but `overflow-x: hidden` would
+ * compute the unset vertical axis to `auto` and quietly rebuild the scroll
+ * container this rule exists to not be. Clip boxes never scroll, grow no
+ * gutter, and leave `clientWidth` alone.
+ */
+.calendar-plot {
+  position: relative;
+  margin-top: 0.65rem;
+  overflow-x: clip;
+}
+
+.calendar-gridline {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--bs-border-color);
+  opacity: 0.35;
+}
+
+/*
+ * Where the reader is, and the one line on the strip that has to be found at a
+ * glance — every bar is read as before or after it.
+ *
+ * Twice the width of a gridline and at nearly full strength against their 0.35,
+ * because at 1px and 0.55 the two were the same mark: the first draft of this
+ * put "today" among nine week lines and it disappeared into them. Still the
+ * body colour rather than a signal one — this is chrome, "you are here", the
+ * same reasoning `.chart-rate` gives — so the separation is weight, not hue.
+ */
+.calendar-today {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--bs-body-color);
+  opacity: 0.85;
+}
+
+.calendar-row {
+  position: relative;
+  height: var(--calendar-row);
+}
+
+/*
+ * A lane: one category's band of the strip, colour-coded. The gap is what
+ * separates one band from the next visually; rows *within* a lane sit flush.
+ */
+.calendar-lane {
+  position: relative;
+}
+
+.calendar-lane + .calendar-lane {
+  margin-top: 4px;
+}
+
+/*
+ * The lane palette: the same eight `--ramp-*` hues the Compare tab draws in,
+ * so the two charts read as one system, but in this permutation rather than
+ * Compare's — chosen because stacked lanes wear *consecutive* slots
+ * (calendarLayout.ts hands them out in display order), and this ordering
+ * passes the colour-vision gates on every adjacent pair against this app's
+ * surface (worst deutan ΔE 8.5, worst normal-vision 21.2, all ≥3:1).
+ * Compare's own order warns at pink↔emerald, which its preset-keyed mapping
+ * cannot avoid — the lanes can, so they do.
+ */
+.calendar-lane-slot-0 { --lane-color: var(--ramp-blue); }
+.calendar-lane-slot-1 { --lane-color: var(--ramp-amber); }
+.calendar-lane-slot-2 { --lane-color: var(--ramp-emerald); }
+.calendar-lane-slot-3 { --lane-color: var(--ramp-violet); }
+.calendar-lane-slot-4 { --lane-color: var(--ramp-orange); }
+.calendar-lane-slot-5 { --lane-color: var(--ramp-cyan); }
+.calendar-lane-slot-6 { --lane-color: var(--ramp-pink); }
+.calendar-lane-slot-7 { --lane-color: var(--ramp-lime); }
+
+/*
+ * A set release: a moment, not a span, so it is a dashed rule across the
+ * whole strip — see MARKER_TYPE in calendarLayout.ts — dashed so it cannot
+ * be read as the solid today line, and in the app's danger red, which no
+ * lane wears since the ramp has no red. No name on the chart: the diamond
+ * below is the whole visible mark, and the popover carries the rest.
+ */
+.calendar-release-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed var(--bs-danger);
+}
+
+/*
+ * The small indicator at the head of the line: a diamond, centred on the
+ * line's x by its own margin so the component positions both by one number.
+ * Doubles as the hover target a 2px rule is too thin to be.
+ */
+.calendar-release-mark {
+  position: absolute;
+  bottom: 1px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4px;
+  transform: rotate(45deg);
+  background: var(--bs-danger);
+}
+
+/* Done with, dimmed like a finished bar — line and mark together. */
+.calendar-release-past {
+  opacity: 0.45;
+}
+
+.calendar-bar {
+  position: absolute;
+  top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
+  height: var(--calendar-bar);
+  /*
+   * Softly rounded, not a pill. Full caps looked right on a lone bar and
+   * wrong the moment two touched — back-to-back events meet cap to cap, and
+   * the deep notches read as an overlap rather than a boundary.
+   */
+  border-radius: 3px;
+  background: var(--lane-color, var(--bs-primary));
+  /*
+   * A ring of the page colour. Not decoration: the packing lets back-to-back
+   * events share a row touching (see `packRows`), and this is what keeps two
+   * touching bars reading as two.
+   */
+  box-shadow: 0 0 0 1px var(--bs-body-bg);
+}
+
+/*
+ * A name inside its own bar.
+ *
+ * A sibling of the bar rather than a child, which is what keeps it readable on
+ * a finished event: `.calendar-bar-past` is drawn at 45% opacity, and a child
+ * would fade with it.
+ */
+.calendar-label-inside {
+  /* Dark on every fill: the ramp hues are all light on this background —
+     the same call `.nav-segmented .nav-link.active` makes. */
+  color: #0b1220;
+  line-height: var(--calendar-bar);
+  top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
+}
+
+/*
+ * Except on a finished event, where it flips. A past bar is its lane colour
+ * at 45% over a near-black page, so the fill under the name is dark whatever
+ * the lane and the contrast runs the other way.
+ */
+.calendar-label-inside.calendar-label-past {
+  color: rgb(255 255 255 / 75%);
+}
+
+/*
+ * Done with. Still worth showing — an event that ended on Tuesday is a thing
+ * a reader may be looking for on Thursday — but not competing with what is
+ * on. It keeps its lane's hue rather than greying out, because colour is the
+ * lane's identity and a grey bar would read as a lane of its own.
+ */
+.calendar-bar-past {
+  opacity: 0.45;
+}
+
+/*
+ * Running today carries no mark of its own: the today line crossing a
+ * full-strength bar says it, and a highlight ring on top was tried and
+ * judged noise. The popover still spells out "on now".
+ */
+
+/*
+ * An end the window cut rather than the event. Squaring off the corner is the
+ * whole signal: a rounded end says "this stops here" and a square one says the
+ * bar carries on past the edge, which is exactly the difference.
+ */
+.calendar-bar-open-start {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
+.calendar-bar-open-end {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/*
+ * A name in a bar. `nowrap` is load-bearing: a name that wrapped would be
+ * laid out over the row beneath it.
+ */
+.calendar-label {
+  position: absolute;
+  top: 0;
+  line-height: var(--calendar-row);
+  font-size: 0.72rem;
+  white-space: nowrap;
+  /* The name is held to its own bar's interior — `max-width` comes in from
+     the component — and one longer than that is cut here rather than allowed
+     to run over the next bar on the row. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.calendar-axis {
+  position: relative;
+  height: 1.1rem;
+  margin-top: 0.15rem;
+  border-top: 1px solid var(--bs-border-color);
+}
+
+/* Centred on its gridline, which is why it is shifted by half its own width
+   rather than positioned from an edge. */
+.calendar-tick {
+  position: absolute;
+  top: 0.1rem;
+  transform: translateX(-50%);
+  font-size: 0.7rem;
+  white-space: nowrap;
+  color: var(--bs-secondary-color);
+}
+
+/*
+ * The hovered entry in full.
+ *
+ * `title` is left on the bars as a courtesy but is not the reading — the same
+ * call `ValueSplitBar` makes, and for the same reason: a native tooltip is
+ * drawn by the operating system after a delay it chooses, and here it would be
+ * the only way to see a name the row had to truncate.
+ *
+ * `pointer-events: none` matters. The popover opens *below* the entry it
+ * describes, which is over the next row down; catching the pointer there would
+ * put it between the reader and the entry underneath, and moving towards it
+ * would flicker between the two.
+ */
+.calendar-popover {
+  position: absolute;
+  z-index: 5;
+  max-width: min(20rem, 100%);
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.4rem 0.6rem;
+  pointer-events: none;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  border-radius: var(--bs-border-radius);
+  box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 40%);
+}
+
+.calendar-popover-title {
+  font-size: 0.8rem;
+  line-height: 1.25;
+}
+
+.calendar-popover-dates {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+}
+
+.calendar-popover-note {
+  font-size: 0.75rem;
+  color: var(--bs-secondary-color);
+  /* A note is one line in the feed but can be a long one; wrapping is what the
+     max-width above is for. */
+  white-space: normal;
 }
 
 /* The selection, which doubles as the charts' legend. */

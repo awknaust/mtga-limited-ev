@@ -214,14 +214,115 @@ Boundaries that should outlive any refactor:
   a stump.
 
 The Worker deploys from `deploy.yml` on pushes to main, same credentials as
-the Pages upload. Its KV namespace id sits in `worker/wrangler.jsonc` and is
-not a secret.
+the Pages upload. Its KV namespace ids sit in `worker/wrangler.jsonc` and are
+not secrets.
 
-### The two tool modules
+### The event calendar
+
+The second feed, and the same shape as the first: a cron branch in the same
+Worker reads a **public** Google Calendar of Arena events through the Calendar
+API, normalises it, and serves it at `/api/calendar`. The strip under the page
+title draws it. `scripts/calendar/` is the module, `src/lib/calendar.ts`
+validates and windows it, `src/data/mtg-calendar.json` is the copy the app
+ships.
+
+The boundaries that matter, beyond the ones the box-price feed already states:
+
+- **The Worker reaching Google does not widen the CSP, and must not be read as
+  licence to.** `connect-src 'self'` governs the *page*; a Worker's outbound
+  fetch is not subject to it. The browser still talks only to this origin, and
+  what lands in KV is this repository's own shape — so neither the calendar's
+  owner nor Google's event format reaches a reader. `public/_headers` is
+  untouched and stays that way.
+- **The credential is a header, never the query string.** `scripts/shared/http.ts`
+  puts the URL into every `SourceError` it raises and those are logged by the
+  Worker and by CI, so a key in the query would ride into all of it.
+  Redacting on the error path was the alternative and is the weaker one: the
+  error path is exactly where it gets forgotten.
+- **Two crons, dispatched on `controller.cron`, because of the subrequest
+  budget.** The box-price refresh already spends about 42 of the free plan's
+  50 per invocation and the calendar's paging can want 4 more. Sharing an
+  invocation leaves no headroom.
+- **Follow `nextPageToken`, and never infer completeness from a count.** The
+  API documents that a page "may be less than this value, or none at all, even
+  if there are more events matching the query". Getting this wrong truncates
+  the timeline silently — it stops early and looks entirely correct — so
+  running past the page bound is a `SourceError` rather than a short publish.
+- **Everything is a whole day, and every date is a bare `YYYY-MM-DD` with an
+  *exclusive* end.** Which makes `new Date("2026-08-21")` the standing hazard
+  here: it parses as UTC midnight and renders as the 20th everywhere west of
+  Greenwich, so every bar on the strip would shift a day for half the world.
+  `parseDay` in `src/lib/calendar.ts` is the only way a date becomes a `Date`,
+  and its test asserts the hour as well as the day — that assertion is what
+  fails in positive-offset zones, where the day alone still passes. Run
+  `TZ=Pacific/Auckland npm test` and `TZ=America/Los_Angeles npm test` after
+  touching any of it.
+- **The fetch window is wider than the display window, deliberately.**
+  `scripts/calendar/fetch.ts` takes −31/+120 days; the app clips to −7 back
+  and *up to* +60 ahead from *the day the page is opened*, condensed to the
+  end of the last scheduled event so the axis never pads the future with
+  blank. That is what keeps the shipped copy honest as it ages — a copy built
+  against a +60d fetch would show less and less of the future, where one
+  clipped on read still shows the full window.
+- **An entry's category rides in its description, as
+  `[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]`.** A Google
+  Calendar event has nowhere else to put structured data, so the feed
+  (`scripts/calendar/feed.ts`) reads the block out of the text — after HTML
+  stripping, so a UI edit that entity-escapes the quotes still parses — and
+  publishes the token as the entry's `type`; the block itself, readable or
+  not, never reaches a note or a tooltip. The tokens are the closed set in
+  `src/lib/calendarEventTypes.ts`, shared by the feed and the app's validator, and
+  **an event whose type is missing, unreadable or not on the list is dropped
+  whole** — untyped events are not possible, so a typo in the calendar loses
+  one entry rather than inventing a lane. Every event losing its annotation
+  at once is refused instead, like an unreadable page: that is the scheme
+  broken, not a quiet week. Adding a category is an edit to `calendarEventTypes.ts`
+  *and* to the calendar; the strip still learns nothing from a token's
+  spelling — it lanes and colours entries sharing one — with a single
+  recorded exception: `set_release` is drawn as a dashed rule across the
+  strip rather than a bar in a lane, because a release is a moment, not a
+  span (`MARKER_TYPE` in `calendarLayout.ts`).
+- **An empty calendar is a real state and publishes.** The strip renders
+  nothing at all for it, which is what a preview and a fresh checkout get.
+  What refuses is a page of live items none of which are *readable* — a field
+  renamed upstream — because that would replace a working calendar with a
+  blank one that looks exactly like a quiet week.
+- The same rules the box-price copy has apply to `src/data/mtg-calendar.json`:
+  **no test may pin a title, id or date out of it**, since CI rewrites it on
+  every build, and it is refreshed only in a commit that is about it.
+
+The strip itself breaks one of this repo's conventions on purpose. Every other
+chart is a fixed 560-unit `viewBox` stretched to its column; this one runs the
+full width of the page, where that would render its lettering near 3px on a
+phone and 22px on a desktop. So it is measured and laid out in CSS pixels —
+`CalendarStrip` for the layout effect, `calendarLayout.ts` for the lane
+arithmetic. Bars pack on their spans alone, one band of rows per `type`, and
+a name is drawn only inside a bar wide enough to hold a useful amount of it;
+the popover and each entry's visually-hidden text carry the rest. An earlier
+design reserved every name beside its bar and paid twelve rows for twenty
+events; the doc comments in `calendarLayout.ts` keep that history.
+
+The strip is a card and collapses from its heading, folding to one row that
+still says what is on — and it *starts* folded: the row answers the common
+glance, and opening is one click. The choice is remembered in localStorage — the app's
+only use of it, and deliberately not the URL: a fold changes nothing about
+what the numbers mean, and share links must not become unequal over a
+window-dressing preference. Note the key's spelling (`mtga.fyi:…`, not
+`calendar-…`): `CalendarStrip.test.ts` greps the component for `calendar-*`
+string literals and holds each to a class in the stylesheet, so a storage key
+that looks like a class name fails the suite.
+
+Two secrets, set with `wrangler secret put` from `worker/`:
+`GOOGLE_CALENDAR_ID` and `GOOGLE_API_KEY`. `worker/env.d.ts` is their type —
+hand-written, because nothing generates one for a secret, and declaring them as
+`vars` in `wrangler.jsonc` instead would be a committed plaintext variable that
+silently overrides the secret of the same name.
+
+### The tool modules
 
 Everything under `scripts/` is TypeScript, run directly by Node's type
 stripping (Node 23.6+; no build step), and typechecked in CI by `npm run
-build`. There are two modules, each with a small driver for manual
+build`. There are three modules, each with a small driver for manual
 inspection, standing on a thin `scripts/shared/` floor (http, Scryfall,
 dates):
 
@@ -229,7 +330,45 @@ dates):
 npm run refresh:constants        # scripts/constants/  — every sourced constant, box values included
 npm run box:prices               # scripts/box-prices/ — the feed the Worker publishes
 npm run box:prices -- --write    # ...and write it to src/data/box-prices.json, the app's copy
+npm run calendar                 # scripts/calendar/   — the event calendar feed
+npm run calendar -- --write      # ...and write it to src/data/mtg-calendar.json
 ```
+
+The calendar driver takes its credentials from the environment, under the
+names the Worker holds them as secrets. Locally that is a `.env` — `cp
+.env.example .env` and fill it in. The npm script loads it with Node's own
+`--env-file-if-exists`, so there is no dotenv dependency and a missing file is
+not an error, just a line saying so. **The shell wins**: Node will not let the
+file override a variable already set, which is what lets CI pass the same two
+names in as secrets and run the identical script, and what stops a stale
+`.env` on someone's machine from quietly overriding one.
+
+`.env` is gitignored and `.env.example` is not. Nothing else in this
+repository reads either — the box-price feed and the constants refresh talk to
+sources that need no credential.
+
+**Agents are blocked from the file itself.** `.claude/settings.json` denies
+Read, Edit and Write on `.env`, and a `PreToolUse` hook refuses any Bash
+command that names one — `cat`, `grep`, `source`, a redirect into it, or a
+`cp` that would create one. `.env.example` stays readable, since it is the
+template and carries no values. The point is that a credential should never
+reach a transcript, and none of it stops the tool working: `npm run calendar`
+passes the guard, because the key goes into the child process rather than onto
+a terminal. Note what it does *not* cover — a secret already exported into the
+shell is still printable, and the guard reads the command text rather than
+what the command ultimately does.
+
+Two notes on the key itself. It is **required even though the calendar is
+public**: everything on `googleapis.com` refuses unregistered callers, so the
+key is caller identity for quota rather than permission to read, and the
+keyless route to the same data is the public iCal feed, which was weighed and
+turned down because it carries `RRULE` and a naive parser would show one
+instance of a recurring series as though it were the whole story. And the CI
+refresh **does not run on pull requests**: `npm ci` there executes lifecycle
+scripts from an unreviewed lockfile, which is the reason that job's token is
+powerless, and handing the same job a secret would undo it. A preview shows
+the checked-in copy whether the step ran or not — its route is on the
+production hostname only — so the step costs nothing by sitting out.
 
 **`scripts/constants/`** prints what the sourced constants in
 `src/lib/presets.ts` should be today: a table of names and values, `--verbose`

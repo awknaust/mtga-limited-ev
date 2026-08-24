@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "refresh:constants": "node scripts/constants/main.ts",
-    "box:prices": "node scripts/box-prices/main.ts"
+    "box:prices": "node scripts/box-prices/main.ts",
+    "calendar": "node --env-file-if-exists=.env scripts/calendar/main.ts"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",
@@ -21,17 +22,20 @@
     "bootstrap-icons": "^1.13.1",
     "comlink": "^4.4.2",
     "d3": "^7.9.0",
+    "entities": "^8.0.0",
     "fast-json-stable-stringify": "^2.1.0",
     "lru-cache": "^11.5.2",
     "pure-rand": "^8.4.2",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "striptags": "^3.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.29.7",
     "@babel/plugin-syntax-jsx": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",
     "@cloudflare/workers-types": "^5.20260811.1",
+    "@googleapis/calendar": "^16.0.0",
     "@rolldown/plugin-babel": "^0.2.3",
     "@types/babel__core": "^7.20.5",
     "@types/bootstrap": "^5.2.11",

@@ -68,6 +68,48 @@ jobs:
           $(node -p 'require("./src/data/box-prices.json").generatedAt')) rather
           than a fresh copy. See the step above."
 
+      # The same arrangement for the event calendar (src/data/mtg-calendar.json),
+      # and non-fatal for the same reason with one addition: the two secrets
+      # below may simply not be set, on a fork or before the calendar is wired
+      # up, and that must be an empty strip rather than a red build. The strip
+      # renders nothing at all when the copy has no entries in the window.
+      #
+      # Not on pull requests, and that is the whole reason for the `if`. This
+      # job holds a token that can do nothing on purpose — see the permissions
+      # block above: `npm ci` runs whatever lifecycle scripts the pull
+      # request's own lockfile asks for, which is attacker-controlled code.
+      # A secret in this job is handed to exactly that code, so the one secret
+      # here is kept off the runs where it would be. It costs nothing worth
+      # having: a preview cannot reach /api/calendar in any case, since the
+      # Worker's route is on the production hostname only, so a preview shows
+      # the checked-in copy whether this step ran or not. What the step is
+      # actually for is the artifact that ships from main.
+      #
+      # The exposure it avoids is small — a key restricted to the Calendar API,
+      # against a calendar that has been made public, buys someone a read of
+      # public data and some quota. Small is not none, and this costs one line.
+      - name: Refresh the shipped event calendar
+        id: calendar
+        if: github.event_name != 'pull_request'
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          GOOGLE_CALENDAR_ID: ${{ secrets.GOOGLE_CALENDAR_ID }}
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+        run: npm run calendar -- --write
+
+      # Only when the refresh ran and failed. A skipped step's outcome is
+      # `skipped` rather than `failure`, so a pull request — where the step
+      # above never runs — says nothing, which is right: shipping the
+      # checked-in copy is what a preview is supposed to do.
+      - name: Note when the checked-in calendar shipped instead
+        if: steps.calendar.outcome == 'failure'
+        run: >-
+          echo "::warning title=Calendar refresh failed::The build ships the
+          checked-in src/data/mtg-calendar.json (generated
+          $(node -p 'require("./src/data/mtg-calendar.json").generatedAt')) rather
+          than a fresh copy. See the step above."
+
       - run: npm test
 
       # `npm run build` is `tsc -b && vite build`, so this typechecks as well as

@@ -24,6 +24,9 @@
       SPA's own HTML: a few kilobytes, discarded, harmless.
     -->
     <link rel="preload" href="/api/box-prices" as="fetch" crossorigin />
+    <!-- The event calendar, on the same terms. main.tsx awaits the two
+         together, so this rides alongside the one above rather than after it. -->
+    <link rel="preload" href="/api/calendar" as="fetch" crossorigin />
     <meta
       name="description"
       content="The quest to go infinite. An analyzer for the value of Magic: The Gathering Arena events and passes."

@@ -7,3 +7,11 @@ tsconfig.tsbuildinfo
 
 # Worktrees created by agent sessions, not part of the project.
 .claude/worktrees/
+
+# wrangler dev's local state (KV, caches). Created by running the Worker
+# locally; never part of a deploy.
+.wrangler/
+
+# Local credentials for `npm run calendar`. The tracked template is
+# .env.example; this one holds the real key and must never be committed.
+.env

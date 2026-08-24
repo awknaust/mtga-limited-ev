@@ -55,7 +55,15 @@ const FEED: BoxPriceFeed = {
   unmatched: [],
 };
 
-const NOW = new Date("2026-08-18T12:00:00Z");
+/*
+ * Local noon, built from parts rather than parsed from a UTC stamp.
+ *
+ * `asOf` is stamped with `isoDate`, which is a *local* calendar date, so a
+ * fixture instant of `2026-08-18T12:00:00Z` is the 19th in any zone at UTC+12
+ * or beyond and this suite failed there against the run date spelled below.
+ * Built this way the fixture names the same day everywhere.
+ */
+const NOW = new Date(2026, 7, 18, 12);
 
 function stubSources(): Sources & { requested: string[] } {
   const pending = new Map<string, Promise<unknown>>();

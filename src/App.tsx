@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { money } from "./format";
 import { AdvancedDialog } from "./components/AdvancedDialog";
 import { BoxPricesDialog } from "./components/BoxPricesDialog";
+import { CalendarStrip } from "./components/CalendarStrip";
 import { pickEvents } from "./components/compareEvents";
 import { CustomEventDialog } from "./components/CustomEventDialog";
 import { InputPanel } from "./components/InputPanel";
@@ -20,7 +21,9 @@ import {
   winRateInterval,
   winRatePosterior,
   withLiveBoxPrices,
+  FALLBACK_CALENDAR,
   type BoxPriceFeed,
+  type CalendarFeed,
 } from "./lib";
 import { decodeShareState, encodeShareState, isAdvancedDefault } from "./share";
 import { STARTING_ENTRIES, resetAdvanced, type ShareState } from "./state";
@@ -40,6 +43,7 @@ import { useSimulateBankrolls, useSimulateCompare } from "./hooks/useSimulation"
  */
 export default function App({
   boxFeed,
+  calendar,
 }: {
   /**
    * The live box-price feed, or null where there is none — previews, dev
@@ -48,6 +52,16 @@ export default function App({
    * paint the shipped copy and correct it a moment later.
    */
   boxFeed: BoxPriceFeed | null;
+  /**
+   * The live event calendar, on the same terms and with the same fallback.
+   *
+   * Display only, and the one thing on this page that is not the model: it
+   * reaches no state, no config and no simulation, which is why it is passed
+   * straight to the strip rather than folded into `ShareState` below. Nothing
+   * about it belongs in a link — a link describes a run, and the calendar is
+   * whatever is running the day the link is opened.
+   */
+  calendar: CalendarFeed | null;
 }) {
   /*
    * The query string is the only place state persists. It is read once here
@@ -430,6 +444,13 @@ export default function App({
           </span>
         </button>
       </header>
+
+      {/* What is running, and when. Above the columns because it is context
+          for everything in them and belongs to neither, and because it is one
+          band of rows rather than a panel. It renders nothing at all when the
+          calendar has nothing in the window, which is the state a preview or a
+          fresh checkout is in. */}
+      <CalendarStrip calendar={calendar ?? FALLBACK_CALENDAR} />
 
       <div className="row g-3 align-items-start">
         <InputPanel

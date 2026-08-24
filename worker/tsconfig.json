@@ -28,5 +28,7 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src", "worker-configuration.d.ts"]
+  // env.d.ts is the hand-written half of `Env` — the secrets, which nothing
+  // generates a type for. See the comment in that file.
+  "include": ["src", "worker-configuration.d.ts", "env.d.ts"]
 }

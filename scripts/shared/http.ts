@@ -29,7 +29,19 @@ export const USER_AGENT =
 
 const TIMEOUT_MS = 30_000;
 
-export async function request(url: string, opts: { json?: boolean } = {}): Promise<unknown> {
+/**
+ * `headers` is how a source that needs a credential takes one, and taking it
+ * in a header rather than the query string is the point: every failure here
+ * puts `url` into the `SourceError` message, and those messages are logged —
+ * by the Worker's observability, by CI. A key in the query would ride along
+ * into all of it. Redacting on the error path was the alternative and it is
+ * the weaker one, because the error path is exactly where it would be
+ * forgotten.
+ */
+export async function request(
+  url: string,
+  opts: { json?: boolean; headers?: Record<string, string> } = {},
+): Promise<unknown> {
   const json = opts.json ?? false;
   let res: Response;
   try {
@@ -38,6 +50,7 @@ export async function request(url: string, opts: { json?: boolean } = {}): Promi
         "User-Agent": USER_AGENT,
         Accept: json ? "application/json" : "text/html,application/xhtml+xml",
         "Accept-Language": "en-US,en;q=0.9",
+        ...opts.headers,
       },
       signal: AbortSignal.timeout(TIMEOUT_MS),
     });
