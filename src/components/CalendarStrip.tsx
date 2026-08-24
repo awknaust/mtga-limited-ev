@@ -283,16 +283,13 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                   onPointerLeave={() => setHover(null)}
                 >
                   <span className="calendar-release-line" style={{ left: x }} />
+                  {/* No name on the chart — the diamond is the whole visible
+                      mark, and the popover names it on hover. */}
                   <span
-                    className="calendar-release-label"
-                    // Hung on whichever side keeps it on the page — the same
-                    // reasoning as the popover's anchor, and a release usually
-                    // sits at the axis's far end.
-                    style={x < width / 2 ? { left: x + 5 } : { right: width - x + 5 }}
+                    className="calendar-release-mark"
+                    style={{ left: x }}
                     aria-hidden="true"
-                  >
-                    {entry.title}
-                  </span>
+                  />
                   <span className="visually-hidden">
                     {entry.title}, {range}
                     {entry.note === undefined ? "" : `. ${entry.note}`}

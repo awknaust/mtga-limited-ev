@@ -60,8 +60,7 @@ export const MIN_INSIDE_LABEL = 70;
 /**
  * How many lane colours the stylesheet defines (`.calendar-lane-slot-*`).
  * Slot assignment wraps past this, which no plausible calendar reaches: with
- * MARKER_TYPE drawn as a rule rather than a lane, seven types remain — which
- * is why slot 7's red is free to be the release line's own hue.
+ * MARKER_TYPE drawn as a rule rather than a lane, seven types remain.
  */
 export const SLOT_COUNT = 8;
 

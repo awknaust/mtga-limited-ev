@@ -30,6 +30,23 @@
 
   /* Panel-2, used by the stat tiles and inputs. */
   --app-raised: #1e242c;
+
+  /*
+   * The chart ramp: the eight hues every categorical chart in the app draws
+   * from, named here once so the Compare tab and the calendar strip can never
+   * drift apart. Each consumer orders them itself — Compare positionally by
+   * preset index (`.compare-series-*`), the calendar in a permutation chosen
+   * for its stacked adjacency (`.calendar-lane-slot-*`) — but the hues are
+   * these and only these.
+   */
+  --ramp-blue: #60a5fa;
+  --ramp-amber: #fbbf24;
+  --ramp-emerald: #34d399;
+  --ramp-pink: #f472b6;
+  --ramp-violet: #a78bfa;
+  --ramp-orange: #fb923c;
+  --ramp-cyan: #22d3ee;
+  --ramp-lime: #a3e635;
 }
 
 body {
@@ -1379,40 +1396,40 @@ button.box-add:focus-visible {
  * rewards; `compareSeries.ts` owns that mapping and its test checks the classes
  * below exist for every value it can return.
  *
- * Eight hues, as far apart as a dark background allows. A ninth event reuses
- * the first hue with a dashed line, which is the second channel the ramp
- * carries.
+ * The eight `--ramp-*` hues, as far apart as a dark background allows. A
+ * ninth event reuses the first hue with a dashed line, which is the second
+ * channel the ramp carries.
  */
 .compare-series-0 {
-  --series: #60a5fa;
+  --series: var(--ramp-blue);
 }
 
 .compare-series-1 {
-  --series: #fbbf24;
+  --series: var(--ramp-amber);
 }
 
 .compare-series-2 {
-  --series: #34d399;
+  --series: var(--ramp-emerald);
 }
 
 .compare-series-3 {
-  --series: #f472b6;
+  --series: var(--ramp-pink);
 }
 
 .compare-series-4 {
-  --series: #a78bfa;
+  --series: var(--ramp-violet);
 }
 
 .compare-series-5 {
-  --series: #fb923c;
+  --series: var(--ramp-orange);
 }
 
 .compare-series-6 {
-  --series: #22d3ee;
+  --series: var(--ramp-cyan);
 }
 
 .compare-series-7 {
-  --series: #a3e635;
+  --series: var(--ramp-lime);
 }
 
 /* The reader's own ladder, which is not one of the sixteen and should not look
@@ -1653,56 +1670,55 @@ button.box-add:focus-visible {
 }
 
 /*
- * The lane palette. Slot order and hex values are the dark-mode categorical
- * palette from the dataviz reference, validated against this app's surface
- * (#0f1216): all eight clear the lightness band, the chroma floor, ≥3:1
- * contrast, adjacent-pair CVD ΔE ≥ 8 and normal-vision ΔE ≥ 15. That last
- * gate is *adjacent-pair*, which is why calendarLayout.ts hands slots out in
- * lane display order: stacked neighbours wear consecutive slots, the pairing
- * the validation actually covered.
- *
- * --lane-ink is the type colour for a name inside a bar of this colour: dark
- * on the light-to-mid hues, near-white on the one deep one (green), each pair
- * checked to at least ~4:1.
+ * The lane palette: the same eight `--ramp-*` hues the Compare tab draws in,
+ * so the two charts read as one system, but in this permutation rather than
+ * Compare's — chosen because stacked lanes wear *consecutive* slots
+ * (calendarLayout.ts hands them out in display order), and this ordering
+ * passes the colour-vision gates on every adjacent pair against this app's
+ * surface (worst deutan ΔE 8.5, worst normal-vision 21.2, all ≥3:1).
+ * Compare's own order warns at pink↔emerald, which its preset-keyed mapping
+ * cannot avoid — the lanes can, so they do.
  */
-.calendar-lane-slot-0 { --lane-color: #3987e5; --lane-ink: #0b1220; }
-.calendar-lane-slot-1 { --lane-color: #d95926; --lane-ink: #0b1220; }
-.calendar-lane-slot-2 { --lane-color: #199e70; --lane-ink: #0b1220; }
-.calendar-lane-slot-3 { --lane-color: #c98500; --lane-ink: #0b1220; }
-.calendar-lane-slot-4 { --lane-color: #d55181; --lane-ink: #0b1220; }
-.calendar-lane-slot-5 { --lane-color: #008300; --lane-ink: rgb(255 255 255 / 92%); }
-.calendar-lane-slot-6 { --lane-color: #9085e9; --lane-ink: #0b1220; }
-.calendar-lane-slot-7 { --lane-color: #e66767; --lane-ink: #0b1220; }
+.calendar-lane-slot-0 { --lane-color: var(--ramp-blue); }
+.calendar-lane-slot-1 { --lane-color: var(--ramp-amber); }
+.calendar-lane-slot-2 { --lane-color: var(--ramp-emerald); }
+.calendar-lane-slot-3 { --lane-color: var(--ramp-violet); }
+.calendar-lane-slot-4 { --lane-color: var(--ramp-orange); }
+.calendar-lane-slot-5 { --lane-color: var(--ramp-cyan); }
+.calendar-lane-slot-6 { --lane-color: var(--ramp-pink); }
+.calendar-lane-slot-7 { --lane-color: var(--ramp-lime); }
 
 /*
  * A set release: a moment, not a span, so it is a dashed rule across the
  * whole strip — see MARKER_TYPE in calendarLayout.ts — dashed so it cannot
- * be read as the solid today line. The red is slot 7's: with set_release
- * out of the lanes only seven types remain, so no lane ever wears it and
- * the hue means one thing here.
+ * be read as the solid today line, and in the app's danger red, which no
+ * lane wears since the ramp has no red. No name on the chart: the diamond
+ * below is the whole visible mark, and the popover carries the rest.
  */
 .calendar-release-line {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 0;
-  border-left: 2px dashed #e66767;
+  border-left: 2px dashed var(--bs-danger);
 }
 
-.calendar-release-label {
+/*
+ * The small indicator at the head of the line: a diamond, centred on the
+ * line's x by its own margin so the component positions both by one number.
+ * Doubles as the hover target a 2px rule is too thin to be.
+ */
+.calendar-release-mark {
   position: absolute;
-  top: 0;
-  line-height: 1.5;
-  font-size: 0.68rem;
-  color: #e66767;
-  white-space: nowrap;
-  padding: 0 3px;
-  border-radius: 4px;
-  /* Legible over whatever bar it happens to hang across. */
-  background: color-mix(in srgb, var(--bs-body-bg) 78%, transparent);
+  top: 1px;
+  width: 9px;
+  height: 9px;
+  margin-left: -4px;
+  transform: rotate(45deg);
+  background: var(--bs-danger);
 }
 
-/* Done with, dimmed like a finished bar — line and label together. */
+/* Done with, dimmed like a finished bar — line and mark together. */
 .calendar-release-past {
   opacity: 0.45;
 }
@@ -1729,8 +1745,9 @@ button.box-add:focus-visible {
  * would fade with it.
  */
 .calendar-label-inside {
-  /* Each lane pairs its fill with an ink that clears it — see the slots. */
-  color: var(--lane-ink, #0b1220);
+  /* Dark on every fill: the ramp hues are all light on this background —
+     the same call `.nav-segmented .nav-link.active` makes. */
+  color: #0b1220;
   line-height: var(--calendar-bar);
   top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
 }
