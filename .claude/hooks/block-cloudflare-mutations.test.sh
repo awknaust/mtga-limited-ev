@@ -1,7 +1,7 @@
 #!/bin/bash
-# Pipe-test for block-mutations.sh. DENY = prints JSON, ALLOW = prints nothing.
-# Run after editing the hook: bash .claude/hooks/block-mutations.test.sh
-HOOK="$(cd "$(dirname "$0")" && pwd)/block-mutations.sh"
+# Pipe-test for block-cloudflare-mutations.sh. DENY = prints JSON, ALLOW = prints nothing.
+# Run after editing the hook: bash .claude/hooks/block-cloudflare-mutations.test.sh
+HOOK="$(cd "$(dirname "$0")" && pwd)/block-cloudflare-mutations.sh"
 fail=0
 
 check() { # check <expect: DENY|ALLOW> <tool> <command>

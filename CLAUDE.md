@@ -359,7 +359,7 @@ shell is still printable, and the guard reads the command text rather than
 what the command ultimately does.
 
 **Agents are also blocked from deploying.** A second `PreToolUse` hook,
-`.claude/hooks/block-mutations.sh`, refuses any command that changes deployed
+`.claude/hooks/block-cloudflare-mutations.sh`, refuses any command that changes deployed
 Cloudflare state: mutating `wrangler` (deploy, delete, rollback, `secret put`,
 `kv … put`, and `login`/`logout`), writes to `api.cloudflare.com`, and the
 Cloudflare MCP tools that write. Read-only is untouched, and so is ordinary
@@ -370,7 +370,7 @@ The reason is the one `DEPLOY.md` already states in a sentence — nothing
 deploys from a laptop. `deploy.yml` tests, builds once, and uploads that same
 artifact, so what ships is what passed; running it locally skips all of that
 and leaves `main` behind what is live, which has happened. Shipping is a
-merge, not a command. `block-mutations.test.sh` beside it is 38 cases; run it
+merge, not a command. `block-cloudflare-mutations.test.sh` beside it is 38 cases; run it
 after any edit, since three of them failed the first time. It
 reads the command text, like the `.env` guard, so prose that quotes a blocked
 command trips it — write such lines with Edit rather than a shell heredoc, and

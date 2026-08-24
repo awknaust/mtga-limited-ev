@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-mutations.sh\"",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-cloudflare-mutations.sh\"",
             "timeout": 10,
             "statusMessage": "Checking for production mutations"
           }
