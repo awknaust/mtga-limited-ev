@@ -24,6 +24,9 @@
  * Pure: no fetching, so it tests against fixture rows under plain Node.
  */
 
+import { decodeHTML } from "entities";
+import striptags from "striptags";
+
 import { isCalendarEventType, type CalendarEventType } from "../../src/lib/calendarEventTypes.ts";
 import { SourceError } from "../shared/http.ts";
 import { isoDate } from "../shared/dates.ts";
@@ -103,21 +106,20 @@ function spanOf(start: RawTime, end: RawTime): { start: string; end: string } {
  *
  * `description` "can contain HTML" per the documentation. React escapes it, so
  * this is tidiness rather than a hole — but a tooltip reading
- * `<p>Runs all weekend</p>` is not what anyone wants. `&amp;` is decoded last
- * so that an escaped entity in the source (`&amp;lt;`) survives as the text it
- * was rather than being decoded twice into a tag.
+ * `<p>Runs all weekend</p>` is not what anyone wants. `striptags` takes the
+ * markup (every removed tag becomes a space, which is what keeps two
+ * paragraphs from running together as one word) and `entities` decodes the
+ * whole entity vocabulary — a home-rolled table here once knew five names and
+ * would have shown a reader `&mdash;` verbatim. Both are dependency-free and
+ * run in the Workers runtime, which anything this module imports must.
+ *
+ * Order matters and is load-bearing: tags are stripped while entities are
+ * still encoded, then everything is decoded in one pass — so an escaped
+ * entity in the source (`&amp;lt;`) survives as the text it was rather than
+ * being decoded twice into a tag and stripped.
  */
 function stripHtml(html: string): string {
-  return html
-    .replace(/<br\s*\/?>/gi, " ")
-    .replace(/<\/(p|div|li|tr)>/gi, " ")
-    .replace(/<[^>]*>/g, "")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&amp;/g, "&")
+  return decodeHTML(striptags(html, [], " "))
     .replace(/\s+/g, " ")
     .trim();
 }

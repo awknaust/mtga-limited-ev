@@ -197,6 +197,14 @@ describe("buildCalendarFeed", () => {
     expect(entry.note).toBe("a &lt;b&gt; tag");
   });
 
+  it("decodes the entities a hand-rolled table would miss", () => {
+    // Named and numeric alike — the reason the stripping is a library's job.
+    const [entry] = build([
+      { ...allDay, description: `6&nbsp;wins &mdash; 4,200 gems &#8212; that&#39;s rich${meta("other_draft")}` },
+    ]).entries;
+    expect(entry.note).toBe("6 wins — 4,200 gems — that's rich");
+  });
+
   it("omits a note that strips to nothing", () => {
     expect(
       build([{ ...allDay, description: `<p>  </p>${meta("other_draft")}` }]).entries[0].note,
