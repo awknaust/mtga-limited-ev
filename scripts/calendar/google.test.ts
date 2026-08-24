@@ -255,7 +255,7 @@ describe("buildCalendarFeed", () => {
       allDayTyped,
       { ...allDay, id: "evt-typo", description: "Runs all week. [mtga-meta]{oops[/mtga-meta]" },
     ]);
-    expect(feed.entries.map((e) => e.id)).toEqual(["evt-premier"]);
+    expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 
   it("drops an event naming a type that is not on the list", () => {
@@ -263,7 +263,7 @@ describe("buildCalendarFeed", () => {
       allDayTyped,
       { ...allDay, id: "evt-unknown", description: meta("midweek_magic") },
     ]);
-    expect(feed.entries.map((e) => e.id)).toEqual(["evt-premier"]);
+    expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 
   it("strips the meta before capping, so a truncated note cannot end mid-block", () => {
@@ -281,7 +281,7 @@ describe("buildCalendarFeed", () => {
     // Untyped events are not possible: the type is the lane, and an event
     // the author has not categorised has nowhere to be drawn.
     const feed = build([allDayTyped, { ...timed, id: "evt-plain" }]);
-    expect(feed.entries.map((e) => e.id)).toEqual(["evt-premier"]);
+    expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 
   it("refuses when events arrive and none carries a recognised type", () => {
@@ -305,7 +305,9 @@ describe("buildCalendarFeed", () => {
       at("d", "2026-08-25", "2026-08-26", "Zeta"),
       at("b", "2026-08-25", "2026-08-27", "Alpha"),
     ]);
-    expect(feed.entries.map((e) => e.id)).toEqual(["a", "d", "b", "c"]);
+    // By title now that ids are hashed: a and b share one, and telling them
+    // apart is exactly what the date tiebreaks in between are for.
+    expect(feed.entries.map((e) => e.title)).toEqual(["Alpha", "Zeta", "Alpha", "Beta"]);
   });
 
   it("publishes an empty calendar rather than refusing one", () => {
@@ -366,7 +368,7 @@ describe("fetchCalendarFeed", () => {
     const second = { ...allDayTyped, id: "evt-second", summary: "Quick Draft" };
     const transport = pages(page([allDayTyped], "CAoQAA"), page([second]));
     const feed = await fetchCalendarFeed("cal", "KEY", { now: NOW, transport });
-    expect(feed.entries.map((e) => e.id)).toEqual(["evt-premier", "evt-second"]);
+    expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit", "Quick Draft"]);
     expect(new URL(transport.urls[1]).searchParams.get("pageToken")).toBe("CAoQAA");
   });
 

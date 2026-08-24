@@ -33,7 +33,11 @@ import { isoDate } from "../shared/dates.ts";
 import type { RawEvent, RawTime } from "./google.ts";
 
 export type CalendarEntry = {
-  /** Google's event id — unique per calendar, so it keys a row. */
+  /**
+   * A row key derived from Google's event id — unique per calendar and
+   * stable across runs, so the checked-in copy diffs only when the calendar
+   * moves — but not the id itself: see `rowKey`.
+   */
   id: string;
   title: string;
   /** Inclusive, `YYYY-MM-DD`. */
@@ -162,6 +166,27 @@ function readEventType(text: string): CalendarEventType | null {
   return null;
 }
 
+/**
+ * The published row key: a one-way hash of Google's event id.
+ *
+ * The raw id was the one Google field that survived into the payload, against
+ * this module's own charter of leaving nothing of Google's shape in it. An id
+ * alone fetches nothing — every read needs the calendar id and a key — but a
+ * public feed has no business republishing another system's internal
+ * identifiers, and hashing costs one function. FNV-1a, 64 bits: deterministic
+ * (the checked-in copy stays diff-stable), comfortably collision-free at a
+ * calendar's scale, and synchronous — which `crypto.subtle`, the obvious
+ * alternative, is not in either runtime this module runs in.
+ */
+function rowKey(id: string): string {
+  let hash = 0xcbf29ce484222325n;
+  for (let i = 0; i < id.length; i++) {
+    hash ^= BigInt(id.charCodeAt(i));
+    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
+  }
+  return hash.toString(36);
+}
+
 export function buildCalendarFeed(events: RawEvent[], now: Date): CalendarFeed {
   const entries: CalendarEntry[] = [];
   for (const event of events) {
@@ -174,7 +199,7 @@ export function buildCalendarFeed(events: RawEvent[], now: Date): CalendarFeed {
     // can never end mid-block with the tail of one showing.
     const note = text.replace(META, " ").replace(/\s+/g, " ").trim();
     entries.push({
-      id: event.id,
+      id: rowKey(event.id),
       title: event.title,
       start: span.start,
       end: span.end,

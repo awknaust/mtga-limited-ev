@@ -1,9 +1,9 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-24T03:25:58.302Z",
+  "generatedAt": "2026-08-24T16:13:12.467Z",
   "entries": [
     {
-      "id": "8tc0obtljs8f7fveeggfb2lpo8",
+      "id": "11nxidfnn50v8",
       "title": "Arena Direct — Hobbit Collector Booster boxes",
       "start": "2026-08-14",
       "end": "2026-08-24",
@@ -11,7 +11,7 @@
       "note": "Bo1 Hobbit Sealed. Prizes: gems, packs, and physical Collector Booster boxes at 7 wins (while supplies last). Last day — Aug 23."
     },
     {
-      "id": "1nj13npptuhsd9nldh47ru8d84",
+      "id": "36nmhoauuenq9",
       "title": "Bo1 Qualifier Play-In (Timeless)",
       "start": "2026-08-22",
       "end": "2026-08-23",
@@ -19,7 +19,7 @@
       "note": "Single-day Best-of-One Timeless Qualifier Play-In. Feeds the Aug 29–30 Qualifier Weekend."
     },
     {
-      "id": "1k6u9cbh3o4cohk5s3ddrt2a90",
+      "id": "1qpmedo8ljodi",
       "title": "Contender Draft (Hobbit)",
       "start": "2026-08-24",
       "end": "2026-09-30",
@@ -27,7 +27,7 @@
       "note": "Premier Draft structure with competitive-event prizing. 6 wins: 4,200 gems + 10 packs + 4 mythic packs; 7 wins: 7,200 gems + 12 packs. Ends Sep 29 at 11am PT."
     },
     {
-      "id": "sihhuosm7ui7qrsd9p3pj4j8tc",
+      "id": "1xanbrxr3rmxy",
       "title": "Flashback Draft — Tales of Middle-earth",
       "start": "2026-08-25",
       "end": "2026-09-08",
@@ -35,7 +35,7 @@
       "note": "Flashback Premier Draft: The Lord of the Rings: Tales of Middle-earth. (Also: Hobbit + LTR mixed Sealed runs Aug 28–Sep 3.)"
     },
     {
-      "id": "88irdjeid30hthkovm4l75a43g",
+      "id": "2kcuauf031z8n",
       "title": "Bo3 Qualifier Play-In (Timeless)",
       "start": "2026-08-28",
       "end": "2026-08-29",
@@ -43,7 +43,7 @@
       "note": "Best-of-Three Timeless Qualifier Play-In — last chance to earn a token for the Qualifier Weekend."
     },
     {
-      "id": "gelfi597143obpmmqa47v2v7vc",
+      "id": "1iitt6d7qo6dt",
       "title": "Arena Direct — Hobbit Play Booster boxes",
       "start": "2026-08-28",
       "end": "2026-09-07",
@@ -51,7 +51,7 @@
       "note": "Arena Direct (Bo1). Physical Play Booster boxes for top finishers, while supplies last."
     },
     {
-      "id": "rb5ulafulito0magt4np97m9ns",
+      "id": "racrjtenrbkb",
       "title": "Qualifier Weekend (Timeless)",
       "start": "2026-08-29",
       "end": "2026-08-31",
@@ -59,7 +59,7 @@
       "note": "Two-day Arena Championship Qualifier Weekend, Timeless (Bo3). Requires a Qualifier Token. Each day has a 2-hour entry window — check in-client for exact times."
     },
     {
-      "id": "ojs0tij9q80u0ka89jkivn2b80",
+      "id": "v08fm1oikmtc",
       "title": "Mixed-Up Premier Draft",
       "start": "2026-09-04",
       "end": "2026-09-19",
@@ -67,7 +67,7 @@
       "note": "8-player draft with special packs that can contain any collectible card on Arena."
     },
     {
-      "id": "4ebv1jm41uvf64a0rcisbljjp8",
+      "id": "3t5b0d8a3ktl0",
       "title": "Flashback Draft — Modern Horizons 3",
       "start": "2026-09-08",
       "end": "2026-09-16",
@@ -75,7 +75,7 @@
       "note": "Flashback Premier Draft: Modern Horizons 3."
     },
     {
-      "id": "1rtfea4jcr1vuum2fg3bhtr7t8",
+      "id": "ttmuka7og9u2",
       "title": "Arena Powered Cube",
       "start": "2026-09-08",
       "end": "2026-09-29",
@@ -83,7 +83,7 @@
       "note": "Arena Powered Cube returns for three weeks, with new-to-Arena cards and new cards in the Cube Prize Pack rewards. Events typically open 8am PT on the start date and close to entries 8am PT on the end…"
     },
     {
-      "id": "ga2jn0mi823foukq86sda1h758",
+      "id": "ddsq90ukkxmx",
       "title": "Hobbit Limited Open ($2k top prize)",
       "start": "2026-09-11",
       "end": "2026-09-14",
@@ -91,7 +91,7 @@
       "note": "New competitive draft tournament — two draft events, re-enterable over the weekend, up to $2,000 USD. Not an Arena Limited Championship Qualifier."
     },
     {
-      "id": "2jiq2rtec3noqg4n9dr8i0qvsc",
+      "id": "2uosh8deawxcw",
       "title": "Bo1 Qualifier Play-In (Hobbit Sealed)",
       "start": "2026-09-12",
       "end": "2026-09-13",
@@ -99,7 +99,7 @@
       "note": "Best-of-One Qualifier Play-In. September format: The Hobbit Sealed. Feeds the Sep 19–20 Qualifier Weekend."
     },
     {
-      "id": "o7gmsdtkeq5tsdvkqrvkkoch88",
+      "id": "3oaf65569w6rr",
       "title": "Arena Direct — Aetherdrift Play Booster boxes",
       "start": "2026-09-15",
       "end": "2026-09-21",
@@ -107,7 +107,7 @@
       "note": "Limited-time Arena Direct featuring Aetherdrift Play Booster boxes."
     },
     {
-      "id": "3sd5f87cjbs6mas9ferugoh7ko",
+      "id": "2wp79rmt3xk1m",
       "title": "Flashback Draft — Dominaria United",
       "start": "2026-09-16",
       "end": "2026-09-22",
@@ -115,7 +115,7 @@
       "note": "Flashback Premier Draft: Dominaria United."
     },
     {
-      "id": "qmc9p1271e3m4dftgq3hadsv9c",
+      "id": "civ19n3omci0",
       "title": "Bo3 Qualifier Play-In (Hobbit Sealed)",
       "start": "2026-09-18",
       "end": "2026-09-19",
@@ -123,7 +123,7 @@
       "note": "Best-of-Three Qualifier Play-In, The Hobbit Sealed — last chance for a token before the Qualifier Weekend."
     },
     {
-      "id": "obdll3pautaer4kcj9rop5h37g",
+      "id": "1j5ogfz79qd0j",
       "title": "Qualifier Weekend (Hobbit Sealed)",
       "start": "2026-09-19",
       "end": "2026-09-21",
@@ -131,7 +131,7 @@
       "note": "Two-day Arena Championship Qualifier Weekend, The Hobbit Sealed (Bo3). Requires a Qualifier Token. Each day has a 2-hour entry window — check in-client for exact times."
     },
     {
-      "id": "jd6tqvnt7ckhccgdnigg817c1o",
+      "id": "2x90xnfeqjgea",
       "title": "Flashback Draft — Outlaws of Thunder Junction",
       "start": "2026-09-22",
       "end": "2026-09-29",
@@ -139,7 +139,7 @@
       "note": "Flashback Premier Draft: Outlaws of Thunder Junction."
     },
     {
-      "id": "rvolf0tcf77ub4g9ivqlsmob9g",
+      "id": "3gteut2963azr",
       "title": "Arena Direct — March of the Machine Set Booster boxes",
       "start": "2026-09-25",
       "end": "2026-09-28",
@@ -147,7 +147,7 @@
       "note": "Limited-time Arena Direct featuring March of the Machine Set Booster boxes."
     },
     {
-      "id": "2v39doln53bkmtidbr02edbsf8",
+      "id": "mf2lo8inmjsz",
       "title": "Reality Fracture releases on Arena",
       "start": "2026-09-29",
       "end": "2026-09-30",
