@@ -1806,9 +1806,13 @@ button.box-add:focus-visible {
  *
  * A sibling of the bar rather than a child, which is what keeps it readable on
  * a finished event: `.calendar-bar-past` is drawn at 45% opacity, and a child
- * would fade with it.
+ * would fade with it. But the bar under it is a button now, and a sibling
+ * drawn on top of a button eats its clicks: without `pointer-events: none`
+ * only the sliver of bar before the name was clickable, which on a wide
+ * labelled bar was nearly none of it.
  */
 .calendar-label-inside {
+  pointer-events: none;
   /* Dark on every fill: the ramp hues are all light on this background —
      the same call `.nav-segmented .nav-link.active` makes. */
   color: #0b1220;
@@ -1894,25 +1898,31 @@ button.box-add:focus-visible {
 /*
  * The selected entry in full.
  *
- * A docked panel, not a floating one. It used to hang off the hovered bar,
- * anchored to whichever side kept it on the page, and on anything without a
- * pointer that never worked. Now the bars toggle it and it sits in the one
- * place — bottom left of the card, under the axis, in normal flow — so there
- * is nothing to anchor, nothing to clip and nothing it covers, and its close
- * button is pressable, which the old overlay's `pointer-events: none`
- * forbade. In flow it is a box on the card, not a thing floating over one,
- * so it wears the border and not the drop shadow.
+ * It used to hang off the hovered bar, anchored to whichever side kept it on
+ * the page, and on anything without a pointer that never worked. Now the bars
+ * toggle it and it overlays the plot in one fixed place — the bottom left —
+ * so there is no anchor arithmetic and nowhere for it to run off to. Pinned
+ * to the plot's own left edge, the horizontal clip cannot cut it, and only
+ * the x axis is clipped, so one taller than the plot grows upward out of it
+ * rather than being cropped. It floats over the bars, so it wears the drop
+ * shadow that says so — and it catches the pointer, deliberately, where the
+ * old hover popover could not: its close button has to be pressable, and a
+ * covered corner comes back the moment it is pressed.
  */
 .calendar-popover {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 5;
   max-width: min(20rem, 100%);
   display: flex;
   flex-direction: column;
   gap: 0.1rem;
-  margin-top: 0.4rem;
   padding: 0.4rem 0.6rem;
   background: var(--bs-body-bg);
   border: 1px solid var(--bs-border-color);
   border-radius: var(--bs-border-radius);
+  box-shadow: 0 0.5rem 1rem rgb(0 0 0 / 40%);
 }
 
 .calendar-popover-head {

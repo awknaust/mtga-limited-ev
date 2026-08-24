@@ -369,6 +369,47 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
               })}
             </>
           )}
+
+          {/*
+           * The selected entry in full.
+           *
+           * It used to float beside the hovered bar, and on a phone or tablet
+           * that was unreadable: it opened under the finger that asked for it
+           * and left with it. So it overlays the plot in one fixed place — the
+           * bottom left — with a close button, and a tap or click on a bar
+           * toggles it. Anchored at the plot's own left edge, so the plot's
+           * horizontal clip can never cut it, and yes, it covers the bars
+           * beneath it: the reader asked for it, and the close button and a
+           * second click on the bar both give the corner back.
+           *
+           * It carries the name in full, which the row may have had to
+           * truncate, and the dates, which are nowhere else on screen. The
+           * same text is each bar's accessible name, so a screen reader hears
+           * it from the button already — the duplication is on demand, not
+           * announced twice on the way past.
+           */}
+          {selected && (
+            <div className="calendar-popover">
+              <div className="calendar-popover-head">
+                <strong className="calendar-popover-title">{selected.entry.title}</strong>
+                <button
+                  type="button"
+                  className="calendar-popover-close"
+                  aria-label="Close"
+                  onClick={() => setSelected(null)}
+                >
+                  <i className="bi bi-x-lg" aria-hidden="true" />
+                </button>
+              </div>
+              <span className="calendar-popover-dates">
+                {rangeText(selected.entry, day, dayYear)}
+                {selected.state === "now" ? " · on now" : ""}
+              </span>
+              {selected.entry.note !== undefined && (
+                <span className="calendar-popover-note">{selected.entry.note}</span>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="calendar-axis">
@@ -378,46 +419,6 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
             </span>
           ))}
         </div>
-
-        {/*
-         * The selected entry in full.
-         *
-         * It used to float beside the hovered bar, and on a phone or tablet
-         * that was unreadable: it opened under the finger that asked for it
-         * and left with it. So it sits in one place instead — the bottom left
-         * of the card, under the axis, in normal flow — where it covers no
-         * bars, needs no anchor arithmetic and no z-index, and its close
-         * button is genuinely pressable, which the old overlay's
-         * `pointer-events: none` forbade.
-         *
-         * It carries the name in full, which the row may have had to
-         * truncate, and the dates, which are nowhere else on screen. The same
-         * text is each bar's accessible name, so a screen reader hears it
-         * from the button already — the duplication is on demand, not
-         * announced twice on the way past.
-         */}
-        {selected && (
-          <div className="calendar-popover">
-            <div className="calendar-popover-head">
-              <strong className="calendar-popover-title">{selected.entry.title}</strong>
-              <button
-                type="button"
-                className="calendar-popover-close"
-                aria-label="Close"
-                onClick={() => setSelected(null)}
-              >
-                <i className="bi bi-x-lg" aria-hidden="true" />
-              </button>
-            </div>
-            <span className="calendar-popover-dates">
-              {rangeText(selected.entry, day, dayYear)}
-              {selected.state === "now" ? " · on now" : ""}
-            </span>
-            {selected.entry.note !== undefined && (
-              <span className="calendar-popover-note">{selected.entry.note}</span>
-            )}
-          </div>
-        )}
         </>
       )}
     </section>
