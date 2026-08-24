@@ -70,10 +70,14 @@ logs in and the version that pushes must move together.
 
    The consent prompt asks for the granular scopes named in
    `calendar-sync/appsscript.json` — events on calendars *you own*, plus
-   calendar properties — rather than full Calendar access. A scope cannot
-   name a single calendar, so that is as narrow as Google's model goes
-   without a dedicated account; if a permission error ever names a missing
-   scope, widen that one line and re-run `install()`.
+   calendar properties, plus read-only events access, which is there only
+   because `ScriptApp`'s `forUserCalendar` trigger builder predates the
+   granular scopes and refuses to run without one of the older ones
+   (read-only is the weakest it accepts; writes stay confined to owned
+   calendars). A scope cannot name a single calendar, so that is as narrow
+   as Google's model goes without a dedicated account; if a permission
+   error ever names a missing scope, widen that one line and re-run
+   `install()`.
 
 4. **Verify before repointing anything.**
    - Labels came through: the first `sync()` creates the label definitions

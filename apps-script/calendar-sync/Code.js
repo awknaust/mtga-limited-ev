@@ -401,6 +401,9 @@ function ensureLabels_(calendars, targetId) {
       },
     };
     calendars.patch(body, targetId);
+    console.log(
+      JSON.stringify({ event: "labels-created", names: missing.map((want) => want.name) }),
+    );
     labels = readLabels();
   }
 
@@ -471,6 +474,7 @@ function listWindow_(events, calendarId, timeMin, timeMax) {
  * extras are removed.
  */
 function reconcile_() {
+  const startedAt = Date.now();
   const { stagingId, targetId } = config_();
   const { events, calendars } = calendarService_();
   const labelIds = ensureLabels_(calendars, targetId);
@@ -548,6 +552,7 @@ function reconcile_() {
       created,
       patched,
       deleted,
+      durationMs: Date.now() - startedAt,
     }),
   );
 }
@@ -562,6 +567,7 @@ function reconcile_() {
  * every other error here.
  */
 function sync() {
+  console.log(JSON.stringify({ event: "sync-started" }));
   const lock = LockService.getScriptLock();
   lock.waitLock(120000);
   try {
@@ -581,9 +587,12 @@ function sync() {
  */
 function install() {
   const { stagingId } = config_();
-  for (const trigger of ScriptApp.getProjectTriggers()) {
+  const existing = ScriptApp.getProjectTriggers();
+  console.log(JSON.stringify({ event: "install-started", replacing: existing.length }));
+  for (const trigger of existing) {
     ScriptApp.deleteTrigger(trigger);
   }
   ScriptApp.newTrigger("sync").forUserCalendar(stagingId).onEventUpdated().create();
   ScriptApp.newTrigger("sync").timeBased().everyHours(1).create();
+  console.log(JSON.stringify({ event: "installed", triggers: ["calendar-change", "hourly"] }));
 }
