@@ -151,158 +151,158 @@ describe("extractEvents", () => {
 });
 
 describe("buildCalendarFeed", () => {
-  it("passes an all-day span through, exclusive end and all", () => {
-    const [entry] = build([allDayTyped]).entries;
+  it("passes an all-day span through, exclusive end and all", async () => {
+    const [entry] = (await build([allDayTyped])).entries;
     expect(entry.start).toBe("2026-08-21");
     expect(entry.end).toBe("2026-09-04");
   });
 
-  it("widens a timed event to the days it touches", () => {
+  it("widens a timed event to the days it touches", async () => {
     // 25th 10:00 to 27th 18:00 covers the 25th, 26th and 27th, so the
     // exclusive end is the 28th.
-    const [entry] = build([timedTyped]).entries;
+    const [entry] = (await build([timedTyped])).entries;
     expect(entry.start).toBe("2026-08-25");
     expect(entry.end).toBe("2026-08-28");
   });
 
-  it("does not bump an end that is already midnight", () => {
+  it("does not bump an end that is already midnight", async () => {
     // 25th 10:00 to 26th 00:00 is one day. Bumping would draw two.
-    const [entry] = build([
+    const [entry] = (await build([
       {
         ...timedTyped,
         start: { dateTime: "2026-08-25T10:00:00-07:00" },
         end: { dateTime: "2026-08-26T00:00:00-07:00" },
       },
-    ]).entries;
+    ])).entries;
     expect(entry.start).toBe("2026-08-25");
     expect(entry.end).toBe("2026-08-26");
   });
 
-  it("floors a same-instant event at one day rather than drawing nothing", () => {
-    const [entry] = build([
+  it("floors a same-instant event at one day rather than drawing nothing", async () => {
+    const [entry] = (await build([
       {
         ...timedTyped,
         start: { dateTime: "2026-08-25T10:00:00-07:00" },
         end: { dateTime: "2026-08-25T10:00:00-07:00" },
       },
-    ]).entries;
+    ])).entries;
     expect(entry.end).toBe("2026-08-26");
   });
 
-  it("floors a backwards all-day span the same way", () => {
-    const [entry] = build([
+  it("floors a backwards all-day span the same way", async () => {
+    const [entry] = (await build([
       { ...allDayTyped, start: { date: "2026-08-21" }, end: { date: "2026-08-20" } },
-    ]).entries;
+    ])).entries;
     expect(entry.start).toBe("2026-08-21");
     expect(entry.end).toBe("2026-08-22");
   });
 
-  it("reduces a description to text", () => {
-    expect(build([allDayTyped]).entries[0].note).toBe("Runs all fortnight & then rotates");
+  it("reduces a description to text", async () => {
+    expect((await build([allDayTyped])).entries[0].note).toBe("Runs all fortnight & then rotates");
   });
 
-  it("leaves an escaped entity as the text it was", () => {
+  it("leaves an escaped entity as the text it was", async () => {
     // `&amp;lt;` is someone writing "&lt;", not a tag. Decoding twice would
     // turn it into one.
-    const [entry] = build([{ ...allDay, description: `a &amp;lt;b&amp;gt; tag${meta("other_draft")}` }]).entries;
+    const [entry] = (await build([{ ...allDay, description: `a &amp;lt;b&amp;gt; tag${meta("other_draft")}` }])).entries;
     expect(entry.note).toBe("a &lt;b&gt; tag");
   });
 
-  it("decodes the entities a hand-rolled table would miss", () => {
+  it("decodes the entities a hand-rolled table would miss", async () => {
     // Named and numeric alike — the reason the stripping is a library's job.
-    const [entry] = build([
+    const [entry] = (await build([
       { ...allDay, description: `6&nbsp;wins &mdash; 4,200 gems &#8212; that&#39;s rich${meta("other_draft")}` },
-    ]).entries;
+    ])).entries;
     expect(entry.note).toBe("6 wins — 4,200 gems — that's rich");
   });
 
-  it("omits a note that strips to nothing", () => {
+  it("omits a note that strips to nothing", async () => {
     expect(
-      build([{ ...allDay, description: `<p>  </p>${meta("other_draft")}` }]).entries[0].note,
+      (await build([{ ...allDay, description: `<p>  </p>${meta("other_draft")}` }])).entries[0].note,
     ).toBeUndefined();
   });
 
-  it("caps a long note", () => {
-    const [entry] = build([{ ...allDay, description: "x".repeat(500) + meta("other_draft") }]).entries;
+  it("caps a long note", async () => {
+    const [entry] = (await build([{ ...allDay, description: "x".repeat(500) + meta("other_draft") }])).entries;
     expect(entry.note!.length).toBeLessThanOrEqual(200);
     expect(entry.note!.endsWith("…")).toBe(true);
   });
 
-  it("reads the eventType from a description's mtga-meta block", () => {
-    const [entry] = build([
+  it("reads the eventType from a description's mtga-meta block", async () => {
+    const [entry] = (await build([
       { ...allDay, description: 'Runs all week.\n\n[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]' },
-    ]).entries;
+    ])).entries;
     expect(entry.type).toBe("qualifier");
     // The block is machinery, not prose: nothing of it may reach a tooltip.
     expect(entry.note).toBe("Runs all week.");
   });
 
-  it("reads a meta block whose quotes an HTML edit escaped", () => {
+  it("reads a meta block whose quotes an HTML edit escaped", async () => {
     // Editing a description in Google's UI can turn it to HTML — the JSON's
     // quotes arrive as &quot; and the extraction happens after entity
     // decoding precisely so this keeps working.
-    const [entry] = build([
+    const [entry] = (await build([
       {
         ...allDay,
         description:
           "<p>Runs all week.</p>[mtga-meta]{&quot;v&quot;:1,&quot;eventType&quot;:&quot;cube&quot;}[/mtga-meta]",
       },
-    ]).entries;
+    ])).entries;
     expect(entry.type).toBe("cube");
     expect(entry.note).toBe("Runs all week.");
   });
 
-  it("omits the note when the description was only a meta block", () => {
-    const [entry] = build([
+  it("omits the note when the description was only a meta block", async () => {
+    const [entry] = (await build([
       { ...allDay, description: '[mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]' },
-    ]).entries;
+    ])).entries;
     expect(entry.type).toBe("cube");
     expect(entry.note).toBeUndefined();
   });
 
-  it("drops an event whose only meta block is unreadable", () => {
+  it("drops an event whose only meta block is unreadable", async () => {
     // One typo'd annotation costs the calendar one entry, not the feed.
-    const feed = build([
+    const feed = await build([
       allDayTyped,
       { ...allDay, id: "evt-typo", description: "Runs all week. [mtga-meta]{oops[/mtga-meta]" },
     ]);
     expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 
-  it("drops an event naming a type that is not on the list", () => {
-    const feed = build([
+  it("drops an event naming a type that is not on the list", async () => {
+    const feed = await build([
       allDayTyped,
       { ...allDay, id: "evt-unknown", description: meta("midweek_magic") },
     ]);
     expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 
-  it("strips the meta before capping, so a truncated note cannot end mid-block", () => {
-    const [entry] = build([
+  it("strips the meta before capping, so a truncated note cannot end mid-block", async () => {
+    const [entry] = (await build([
       {
         ...allDay,
         description: `${"x".repeat(500)} [mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]`,
       },
-    ]).entries;
+    ])).entries;
     expect(entry.type).toBe("cube");
     expect(entry.note).not.toContain("mtga-meta");
   });
 
-  it("drops an event with no meta block at all", () => {
+  it("drops an event with no meta block at all", async () => {
     // Untyped events are not possible: the type is the lane, and an event
     // the author has not categorised has nowhere to be drawn.
-    const feed = build([allDayTyped, { ...timed, id: "evt-plain" }]);
+    const feed = await build([allDayTyped, { ...timed, id: "evt-plain" }]);
     expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 
-  it("refuses when events arrive and none carries a recognised type", () => {
+  it("refuses when events arrive and none carries a recognised type", async () => {
     // The mirror of extractEvents' unreadable-page guard: every event losing
     // its annotation at once is a broken scheme, and publishing it would
     // replace a working calendar with a blank that looks like a quiet week.
-    expect(() => build([allDay, timed])).toThrow(SourceError);
+    await expect(build([allDay, timed])).rejects.toThrow(SourceError);
   });
 
-  it("orders by start, then by length, then by title", () => {
+  it("orders by start, then by length, then by title", async () => {
     const at = (id: string, start: string, end: string, summary: string) => ({
       ...allDayTyped,
       id,
@@ -310,7 +310,7 @@ describe("buildCalendarFeed", () => {
       start: { date: start },
       end: { date: end },
     });
-    const feed = build([
+    const feed = await build([
       at("c", "2026-08-25", "2026-08-27", "Beta"),
       at("a", "2026-08-21", "2026-08-22", "Alpha"),
       at("d", "2026-08-25", "2026-08-26", "Zeta"),
@@ -321,19 +321,19 @@ describe("buildCalendarFeed", () => {
     expect(feed.entries.map((e) => e.title)).toEqual(["Alpha", "Zeta", "Alpha", "Beta"]);
   });
 
-  it("publishes an empty calendar rather than refusing one", () => {
+  it("publishes an empty calendar rather than refusing one", async () => {
     // A quiet fortnight is a real state, and the strip renders nothing for it.
-    const feed = build([]);
+    const feed = await build([]);
     expect(feed.entries).toEqual([]);
     expect(feed.version).toBe(1);
     expect(feed.generatedAt).toBe(NOW.toISOString());
   });
 
-  it("resolves every event that carries a recognised type", () => {
+  it("resolves every event that carries a recognised type", async () => {
     // A RawEvent has already been through `extractEvents`, so it has a title
     // and a date shape; with a recognised type on it there is no way for one
     // to fall out here.
-    const feed = build([allDayTyped, timedTyped]);
+    const feed = await build([allDayTyped, timedTyped]);
     expect(feed.entries).toHaveLength(2);
     for (const entry of feed.entries) {
       expect(entry.start).toMatch(/^\d{4}-\d{2}-\d{2}$/);

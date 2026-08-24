@@ -173,21 +173,21 @@ function readEventType(text: string): CalendarEventType | null {
  * this module's own charter of leaving nothing of Google's shape in it. An id
  * alone fetches nothing — every read needs the calendar id and a key — but a
  * public feed has no business republishing another system's internal
- * identifiers, and hashing costs one function. FNV-1a, 64 bits: deterministic
- * (the checked-in copy stays diff-stable), comfortably collision-free at a
- * calendar's scale, and synchronous — which `crypto.subtle`, the obvious
- * alternative, is not in either runtime this module runs in.
+ * identifiers. SHA-256 through Web Crypto, the standard hash both runtimes
+ * ship, and deterministic on purpose: a random UUID would also key the rows,
+ * but every `--write` would then rewrite every id and bury the checked-in
+ * copy's real changes in churn. Truncated to 64 bits — ample for a calendar's
+ * scale, and short enough that the copy stays readable. The `await` this
+ * costs is why `buildCalendarFeed` is async.
  */
-function rowKey(id: string): string {
-  let hash = 0xcbf29ce484222325n;
-  for (let i = 0; i < id.length; i++) {
-    hash ^= BigInt(id.charCodeAt(i));
-    hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
-  }
-  return hash.toString(36);
+async function rowKey(id: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(id));
+  return [...new Uint8Array(digest, 0, 8)]
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
-export function buildCalendarFeed(events: RawEvent[], now: Date): CalendarFeed {
+export async function buildCalendarFeed(events: RawEvent[], now: Date): Promise<CalendarFeed> {
   const entries: CalendarEntry[] = [];
   for (const event of events) {
     const span = spanOf(event.start, event.end);
@@ -199,7 +199,7 @@ export function buildCalendarFeed(events: RawEvent[], now: Date): CalendarFeed {
     // can never end mid-block with the tail of one showing.
     const note = text.replace(META, " ").replace(/\s+/g, " ").trim();
     entries.push({
-      id: rowKey(event.id),
+      id: await rowKey(event.id),
       title: event.title,
       start: span.start,
       end: span.end,
