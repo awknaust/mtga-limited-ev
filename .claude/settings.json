@@ -25,6 +25,17 @@
             "statusMessage": "Checking for .env access"
           }
         ]
+      },
+      {
+        "matcher": "Bash|mcp__plugin_cloudflare_.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/block-mutations.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking for production mutations"
+          }
+        ]
       }
     ]
   }

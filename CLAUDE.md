@@ -358,6 +358,29 @@ a terminal. Note what it does *not* cover — a secret already exported into the
 shell is still printable, and the guard reads the command text rather than
 what the command ultimately does.
 
+**Agents are also blocked from deploying.** A second `PreToolUse` hook,
+`.claude/hooks/block-mutations.sh`, refuses any command that changes deployed
+state: mutating `wrangler` (deploy, delete, rollback, `secret put`, `kv … put`),
+writes to `api.cloudflare.com`, package publishing, and the `gh` commands that
+trigger a release — `workflow run`, `pr merge`, `release create`. Read-only is
+untouched, and so is ordinary work: `whoami`, any `list` or `get`, `tail`,
+`deploy --dry-run`, `git push`, `gh pr create`.
+
+The reason is the one `DEPLOY.md` already states in a sentence — nothing
+deploys from a laptop. `deploy.yml` tests, builds once, and uploads that same
+artifact, so what ships is what passed; running it locally skips all of that
+and leaves `main` behind what is live, which has happened. Shipping is a
+merge, not a command. `block-mutations.test.sh` beside it is 34
+cases; run it after any edit, since three of them failed the first time. It
+reads the command text, like the `.env` guard, so prose that quotes a blocked
+command trips it — write such lines with Edit rather than a shell heredoc, and
+pass a commit message that discusses them via `git commit -F` rather than `-m`.
+Over-blocking is the intended trade: a guard that reasons about which words are
+being executed is a guard with a way around it.
+
+Neither guard is a security boundary; both are files an agent can edit. The
+boundary is `wrangler logout`, or a token without `workers_scripts:write`.
+
 Two notes on the key itself. It is **required even though the calendar is
 public**: everything on `googleapis.com` refuses unregistered callers, so the
 key is caller identity for quota rather than permission to read, and the
