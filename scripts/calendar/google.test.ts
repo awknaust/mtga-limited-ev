@@ -66,17 +66,19 @@ const timed = {
   end: { dateTime: "2026-08-27T18:00:00-07:00", timeZone: "America/Los_Angeles" },
 } satisfies calendar_v3.Schema$Event;
 
-/** A recognised meta block, as the calendar's descriptions carry one. */
-const meta = (type: string) => `[mtga-meta]{"v":1,"eventType":"${type}"}[/mtga-meta]`;
+/** The copier's annotation, as the clean calendar's events carry it. */
+const typed = (type: string) => ({
+  extendedProperties: { shared: { mtgaEventType: type, mtgaSourceId: "src-1" } },
+});
 
 /**
- * The fixtures as the real calendar annotates them. `buildCalendarFeed` drops
- * any event without a recognised type, so the feed-level tests start from
- * these; the raw pair above stays unannotated for `extractEvents`, which does
- * not read descriptions at all.
+ * The fixtures as the clean calendar carries them — typed by the copier's
+ * shared property, the only channel the feed reads. `buildCalendarFeed`
+ * drops any event without a recognised type, so the feed-level tests start
+ * from these; the raw pair above stays unannotated for `extractEvents`.
  */
-const allDayTyped = { ...allDay, description: `${allDay.description}${meta("other_draft")}` };
-const timedTyped = { ...timed, description: meta("qualifier") };
+const allDayTyped = { ...allDay, ...typed("other_draft") } satisfies calendar_v3.Schema$Event;
+const timedTyped = { ...timed, ...typed("qualifier") } satisfies calendar_v3.Schema$Event;
 
 const build = (items: unknown[]) => buildCalendarFeed(extractEvents(page(items)).events, NOW);
 
@@ -91,8 +93,32 @@ describe("extractEvents", () => {
         start: { day: "2026-08-21" },
         end: { day: "2026-09-04" },
         description: "<p>Runs all fortnight &amp; then rotates</p>",
+        eventTypeProperty: null,
       },
     ]);
+  });
+
+  it("carries the copier's shared-property annotation, uninterpreted", () => {
+    const annotated = {
+      ...allDay,
+      extendedProperties: {
+        shared: { mtgaEventType: " limited_open ", mtgaSourceId: "evt-src" },
+      },
+    } satisfies calendar_v3.Schema$Event;
+    // Trimmed but not vetted: whether the token is on the list is feed.ts's
+    // call, so even a nonsense value rides through here.
+    expect(extractEvents(page([annotated])).events[0].eventTypeProperty).toBe("limited_open");
+    const nonsense = { ...allDay, extendedProperties: { shared: { mtgaEventType: "nope" } } };
+    expect(extractEvents(page([nonsense])).events[0].eventTypeProperty).toBe("nope");
+  });
+
+  it.each([
+    ["no extendedProperties at all", allDay],
+    ["a private-only annotation", { ...allDay, extendedProperties: { private: { mtgaEventType: "cube" } } }],
+    ["an empty token", { ...allDay, extendedProperties: { shared: { mtgaEventType: "  " } } }],
+    ["a token that is not a string", { ...allDay, extendedProperties: { shared: { mtgaEventType: 7 } } }],
+  ])("reads %s as null", (_label, item) => {
+    expect(extractEvents(page([item])).events[0].eventTypeProperty).toBeNull();
   });
 
   it("carries a timed event as instants, leaving the flattening to the feed", () => {
@@ -204,94 +230,54 @@ describe("buildCalendarFeed", () => {
   it("leaves an escaped entity as the text it was", async () => {
     // `&amp;lt;` is someone writing "&lt;", not a tag. Decoding twice would
     // turn it into one.
-    const [entry] = (await build([{ ...allDay, description: `a &amp;lt;b&amp;gt; tag${meta("other_draft")}` }])).entries;
+    const [entry] = (await build([{ ...allDayTyped, description: "a &amp;lt;b&amp;gt; tag" }])).entries;
     expect(entry.note).toBe("a &lt;b&gt; tag");
   });
 
   it("decodes the entities a hand-rolled table would miss", async () => {
     // Named and numeric alike — the reason the stripping is a library's job.
     const [entry] = (await build([
-      { ...allDay, description: `6&nbsp;wins &mdash; 4,200 gems &#8212; that&#39;s rich${meta("other_draft")}` },
+      { ...allDayTyped, description: "6&nbsp;wins &mdash; 4,200 gems &#8212; that&#39;s rich" },
     ])).entries;
     expect(entry.note).toBe("6 wins — 4,200 gems — that's rich");
   });
 
   it("omits a note that strips to nothing", async () => {
     expect(
-      (await build([{ ...allDay, description: `<p>  </p>${meta("other_draft")}` }])).entries[0].note,
+      (await build([{ ...allDayTyped, description: "<p>  </p>" }])).entries[0].note,
     ).toBeUndefined();
   });
 
   it("caps a long note", async () => {
-    const [entry] = (await build([{ ...allDay, description: "x".repeat(500) + meta("other_draft") }])).entries;
+    const [entry] = (await build([{ ...allDayTyped, description: "x".repeat(500) }])).entries;
     expect(entry.note!.length).toBeLessThanOrEqual(200);
     expect(entry.note!.endsWith("…")).toBe(true);
   });
 
-  it("reads the eventType from a description's mtga-meta block", async () => {
+  it("types an event from the copier's shared property", async () => {
     const [entry] = (await build([
-      { ...allDay, description: 'Runs all week.\n\n[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]' },
+      { ...allDay, description: "Six wins takes the box.", ...typed("arena_direct") },
     ])).entries;
-    expect(entry.type).toBe("qualifier");
-    // The block is machinery, not prose: nothing of it may reach a tooltip.
-    expect(entry.note).toBe("Runs all week.");
-  });
-
-  it("reads a meta block whose quotes an HTML edit escaped", async () => {
-    // Editing a description in Google's UI can turn it to HTML — the JSON's
-    // quotes arrive as &quot; and the extraction happens after entity
-    // decoding precisely so this keeps working.
-    const [entry] = (await build([
-      {
-        ...allDay,
-        description:
-          "<p>Runs all week.</p>[mtga-meta]{&quot;v&quot;:1,&quot;eventType&quot;:&quot;cube&quot;}[/mtga-meta]",
-      },
-    ])).entries;
-    expect(entry.type).toBe("cube");
-    expect(entry.note).toBe("Runs all week.");
-  });
-
-  it("omits the note when the description was only a meta block", async () => {
-    const [entry] = (await build([
-      { ...allDay, description: '[mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]' },
-    ])).entries;
-    expect(entry.type).toBe("cube");
-    expect(entry.note).toBeUndefined();
-  });
-
-  it("drops an event whose only meta block is unreadable", async () => {
-    // One typo'd annotation costs the calendar one entry, not the feed.
-    const feed = await build([
-      allDayTyped,
-      { ...allDay, id: "evt-typo", description: "Runs all week. [mtga-meta]{oops[/mtga-meta]" },
-    ]);
-    expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
+    expect(entry.type).toBe("arena_direct");
+    expect(entry.note).toBe("Six wins takes the box.");
   });
 
   it("drops an event naming a type that is not on the list", async () => {
-    const feed = await build([
-      allDayTyped,
-      { ...allDay, id: "evt-unknown", description: meta("midweek_magic") },
-    ]);
+    // A copier ahead of the app, or a typo in its map: one entry lost, not
+    // a lane invented and not a failed feed.
+    const feed = await build([allDayTyped, { ...allDay, id: "evt-unknown", ...typed("midweek_magic") }]);
     expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 
-  it("strips the meta before capping, so a truncated note cannot end mid-block", async () => {
-    const [entry] = (await build([
-      {
-        ...allDay,
-        description: `${"x".repeat(500)} [mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]`,
-      },
-    ])).entries;
-    expect(entry.type).toBe("cube");
-    expect(entry.note).not.toContain("mtga-meta");
-  });
-
-  it("drops an event with no meta block at all", async () => {
+  it("drops an event with no annotation at all", async () => {
     // Untyped events are not possible: the type is the lane, and an event
-    // the author has not categorised has nowhere to be drawn.
-    const feed = await build([allDayTyped, { ...timed, id: "evt-plain" }]);
+    // the copier has not annotated has nowhere to be drawn. The [mtga-meta]
+    // blocks cowork writes are no exception — the copier consumes them, and
+    // the feed does not read descriptions for types.
+    const feed = await build([
+      allDayTyped,
+      { ...timed, id: "evt-plain", description: '[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]' },
+    ]);
     expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 

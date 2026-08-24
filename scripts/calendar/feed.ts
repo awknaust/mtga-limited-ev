@@ -16,10 +16,9 @@
  *
  * One refusal lives here, mirroring the one in `google.ts`. Events arriving
  * and *none* of them carrying a recognised `eventType` is the annotation
- * scheme having broken — a bulk edit gone wrong, a format change — and
- * publishing that would replace a working calendar with a blank that looks
- * exactly like a quiet week. A single typo'd event, by contrast, is simply
- * dropped: see `readEventType`.
+ * scheme having broken — a copier bug, a property renamed — and publishing
+ * that would replace a working calendar with a blank that looks exactly like
+ * a quiet week. A single typo'd event, by contrast, is simply dropped.
  *
  * Pure: no fetching, so it tests against fixture rows under plain Node.
  */
@@ -47,10 +46,13 @@ export type CalendarEntry = {
   /** Description as plain text, absent when there was none worth carrying. */
   note?: string;
   /**
-   * The author's category — `eventType` from the description's `[mtga-meta]`
-   * block, held to the closed set in `src/lib/calendarEventTypes.ts`. Always present:
-   * an event whose block is missing, unreadable, or names a type not on the
-   * list never becomes an entry at all.
+   * The author's category — the copier's
+   * `extendedProperties.shared.mtgaEventType`, held to the closed set in
+   * `src/lib/calendarEventTypes.ts`. The one channel there is: cowork's
+   * `[mtga-meta]` description blocks are consumed by the copier
+   * (`apps-script/`) at the staging boundary and never reach this feed.
+   * Always present: an event whose annotation is missing or names a type
+   * not on the list never becomes an entry at all.
    */
   type: CalendarEventType;
 };
@@ -129,44 +131,6 @@ function stripHtml(html: string): string {
 }
 
 /**
- * The machine-readable tail of a description:
- * `[mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta]`.
- *
- * The calendar author's own annotation, carried in the description because a
- * Google Calendar event has nowhere else to put structured data. Matched
- * *after* `stripHtml`, deliberately: an edit made in Google's UI can turn the
- * description to HTML and its quotes to `&quot;`, and the strip's entity
- * decoding is what restores the JSON before this ever sees it.
- */
-const META = /\[mtga-meta\](.*?)\[\/mtga-meta\]/g;
-
-/**
- * The block's `eventType`, or null when no block names a recognised one.
- *
- * Null is a verdict on the whole event: an entry with no recognised type is
- * skipped entirely — untyped events are not possible — so a typo'd annotation
- * costs the calendar one entry rather than failing the feed or inventing a
- * lane. The first block naming a type on the list wins; unreadable blocks
- * and unknown tokens are passed over (and stripped from the note regardless).
- */
-function readEventType(text: string): CalendarEventType | null {
-  for (const match of text.matchAll(META)) {
-    try {
-      const meta = JSON.parse(match[1]) as unknown;
-      if (typeof meta !== "object" || meta === null) continue;
-      const type = (meta as Record<string, unknown>).eventType;
-      if (typeof type === "string") {
-        const token = type.trim();
-        if (isCalendarEventType(token)) return token;
-      }
-    } catch {
-      // Fall through to the next block, if any.
-    }
-  }
-  return null;
-}
-
-/**
  * The published row key: a one-way hash of Google's event id.
  *
  * The raw id was the one Google field that survived into the payload, against
@@ -191,13 +155,16 @@ export async function buildCalendarFeed(events: RawEvent[], now: Date): Promise<
   const entries: CalendarEntry[] = [];
   for (const event of events) {
     const span = spanOf(event.start, event.end);
-    const text = event.description === null ? "" : stripHtml(event.description);
-    const type = readEventType(text);
+    // The one type channel. Null is a verdict on the whole event: an entry
+    // with no recognised type is skipped entirely — untyped events are not
+    // possible — so a typo'd annotation costs the calendar one entry rather
+    // than failing the feed or inventing a lane.
+    const type =
+      event.eventTypeProperty !== null && isCalendarEventType(event.eventTypeProperty)
+        ? event.eventTypeProperty
+        : null;
     if (type === null) continue;
-    // The meta is for machines and must never surface in a tooltip — readable
-    // or not — and it is removed *before* the length cap so a truncated note
-    // can never end mid-block with the tail of one showing.
-    const note = text.replace(META, " ").replace(/\s+/g, " ").trim();
+    const note = event.description === null ? "" : stripHtml(event.description);
     entries.push({
       id: await rowKey(event.id),
       title: event.title,
@@ -215,8 +182,8 @@ export async function buildCalendarFeed(events: RawEvent[], now: Date): Promise<
   // serving on is the better outcome.
   if (events.length > 0 && entries.length === 0) {
     throw new SourceError(
-      `calendar: ${events.length} events, none carrying a recognised [mtga-meta] eventType — ` +
-        "refusing to publish a blank calendar",
+      `calendar: ${events.length} events, none carrying a recognised ` +
+        "extendedProperties.shared.mtgaEventType — refusing to publish a blank calendar",
     );
   }
 

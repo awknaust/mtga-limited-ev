@@ -32,6 +32,13 @@ export type RawEvent = {
   end: RawTime;
   /** Raw `description`, HTML and all. `feed.ts` is what strips it. */
   description: string | null;
+  /**
+   * `extendedProperties.shared.mtgaEventType`, when the event carries one —
+   * the channel the calendar copier writes (`apps-script/`), and the only
+   * one the feed reads. Carried raw: whether the token names a recognised
+   * type is `feed.ts`'s call.
+   */
+  eventTypeProperty: string | null;
 };
 
 export type EventPage = {
@@ -51,6 +58,20 @@ export type EventPage = {
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 /** RFC3339, which is what `dateTime` is documented to be. */
 const INSTANT = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/;
+
+/**
+ * The copier's annotation, out of `extendedProperties.shared`. Absent far
+ * more often than present — the staging calendar has never had one — and
+ * narrowed like every other field: a shape that is not a non-empty string is
+ * null rather than an error, because one odd event is not a broken payload.
+ */
+function readSharedEventType(value: unknown): string | null {
+  if (typeof value !== "object" || value === null) return null;
+  const shared = (value as Record<string, unknown>).shared;
+  if (typeof shared !== "object" || shared === null) return null;
+  const token = (shared as Record<string, unknown>).mtgaEventType;
+  return typeof token === "string" && token.trim() !== "" ? token.trim() : null;
+}
 
 /** A `start` or `end` object, or null if it is neither shape. */
 function readTime(value: unknown): RawTime | null {
@@ -105,6 +126,7 @@ export function extractEvents(payload: unknown): EventPage {
       start,
       end,
       description: typeof item.description === "string" ? item.description : null,
+      eventTypeProperty: readSharedEventType(item.extendedProperties),
     });
   }
 
