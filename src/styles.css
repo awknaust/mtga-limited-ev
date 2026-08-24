@@ -1741,7 +1741,12 @@ button.box-add:focus-visible {
   position: absolute;
   top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);
   height: var(--calendar-bar);
-  border-radius: calc(var(--calendar-bar) / 2);
+  /*
+   * Softly rounded, not a pill. Full caps looked right on a lone bar and
+   * wrong the moment two touched — back-to-back events meet cap to cap, and
+   * the deep notches read as an overlap rather than a boundary.
+   */
+  border-radius: 3px;
   background: var(--lane-color, var(--bs-primary));
   /*
    * A ring of the page colour. Not decoration: the packing lets back-to-back
