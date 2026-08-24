@@ -15,3 +15,9 @@ tsconfig.tsbuildinfo
 # Local credentials for `npm run calendar`. The tracked template is
 # .env.example; this one holds the real key and must never be committed.
 .env
+
+# clasp's login state — an OAuth refresh token. It lives in $HOME normally,
+# but `clasp login --no-localhost` can drop one next to .clasp.json; either
+# way it must never be committed. apps-script/.clasp.json (the script id) is
+# tracked; the credential is not.
+.clasprc.json

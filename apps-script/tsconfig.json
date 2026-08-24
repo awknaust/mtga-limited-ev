@@ -1,0 +1,32 @@
+{
+  // The Apps Script copier (calendar-sync/Code.js). Plain V8 JavaScript,
+  // because Apps Script has no module system and clasp pushes files verbatim
+  // — but still typechecked, as JS with JSDoc under the Apps Script globals.
+  // `checkJs` + `strict` is what makes the annotations in Code.js
+  // load-bearing rather than decorative. Checked in CI via the build script,
+  // like the other tsconfigs.
+  //
+  // Only Code.js is in this program. The guard test beside it
+  // (calendar-sync.test.ts) runs under Node against repo modules, so it is
+  // typechecked in scripts/tsconfig.json instead — it cannot live here,
+  // because @types/google-apps-script declares its own global `console` and
+  // `MimeType` and collides with the DOM lib the repo modules need.
+  //
+  // `moduleDetection` stays on its default deliberately: Code.js has no
+  // imports, so tsc treats it as a *script* whose top-level declarations are
+  // globals — which is exactly what Apps Script makes of it.
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "types": ["google-apps-script"],
+
+    "strict": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["calendar-sync"]
+}

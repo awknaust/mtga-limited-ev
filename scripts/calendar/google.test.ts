@@ -91,8 +91,32 @@ describe("extractEvents", () => {
         start: { day: "2026-08-21" },
         end: { day: "2026-09-04" },
         description: "<p>Runs all fortnight &amp; then rotates</p>",
+        eventTypeProperty: null,
       },
     ]);
+  });
+
+  it("carries the copier's shared-property annotation, uninterpreted", () => {
+    const annotated = {
+      ...allDay,
+      extendedProperties: {
+        shared: { mtgaEventType: " limited_open ", mtgaSourceId: "evt-src" },
+      },
+    } satisfies calendar_v3.Schema$Event;
+    // Trimmed but not vetted: whether the token is on the list is feed.ts's
+    // call, so even a nonsense value rides through here.
+    expect(extractEvents(page([annotated])).events[0].eventTypeProperty).toBe("limited_open");
+    const nonsense = { ...allDay, extendedProperties: { shared: { mtgaEventType: "nope" } } };
+    expect(extractEvents(page([nonsense])).events[0].eventTypeProperty).toBe("nope");
+  });
+
+  it.each([
+    ["no extendedProperties at all", allDay],
+    ["a private-only annotation", { ...allDay, extendedProperties: { private: { mtgaEventType: "cube" } } }],
+    ["an empty token", { ...allDay, extendedProperties: { shared: { mtgaEventType: "  " } } }],
+    ["a token that is not a string", { ...allDay, extendedProperties: { shared: { mtgaEventType: 7 } } }],
+  ])("reads %s as null", (_label, item) => {
+    expect(extractEvents(page([item])).events[0].eventTypeProperty).toBeNull();
   });
 
   it("carries a timed event as instants, leaving the flattening to the feed", () => {
@@ -292,6 +316,53 @@ describe("buildCalendarFeed", () => {
     // Untyped events are not possible: the type is the lane, and an event
     // the author has not categorised has nowhere to be drawn.
     const feed = await build([allDayTyped, { ...timed, id: "evt-plain" }]);
+    expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
+  });
+
+  it("types an event from the copier's shared property alone", async () => {
+    // The clean calendar's channel: no meta block anywhere near the
+    // description, which stays a plain human note.
+    const [entry] = (await build([
+      {
+        ...allDay,
+        description: "Six wins takes the box.",
+        extendedProperties: { shared: { mtgaEventType: "arena_direct", mtgaSourceId: "evt-src" } },
+      },
+    ])).entries;
+    expect(entry.type).toBe("arena_direct");
+    expect(entry.note).toBe("Six wins takes the box.");
+  });
+
+  it("lets a recognised property win over a conflicting block", async () => {
+    const [entry] = (await build([
+      {
+        ...allDay,
+        description: meta("cube"),
+        extendedProperties: { shared: { mtgaEventType: "qualifier" } },
+      },
+    ])).entries;
+    expect(entry.type).toBe("qualifier");
+  });
+
+  it("falls back to the block when the property is not on the list", async () => {
+    // The escape-hatch ordering: a property this repo does not recognise —
+    // a copier ahead of the app, or behind it — must not cost the entry its
+    // block-carried type.
+    const [entry] = (await build([
+      {
+        ...allDay,
+        description: meta("cube"),
+        extendedProperties: { shared: { mtgaEventType: "midweek_magic" } },
+      },
+    ])).entries;
+    expect(entry.type).toBe("cube");
+  });
+
+  it("drops an event whose property is unrecognised and whose block is absent", async () => {
+    const feed = await build([
+      allDayTyped,
+      { ...allDay, id: "evt-odd", description: null, extendedProperties: { shared: { mtgaEventType: "midweek_magic" } } },
+    ]);
     expect(feed.entries.map((e) => e.title)).toEqual(["Premier Draft — Hobbit"]);
   });
 

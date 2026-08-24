@@ -1,0 +1,66 @@
+# Ships apps-script/calendar-sync to its Apps Script project the way
+# deploy.yml ships everything else: from main, after review, never from a
+# laptop. `clasp push` replaces the project's files with the checked-in ones;
+# triggers and script properties live outside the pushed files, so a push
+# never disturbs a running installation (apps-script/README.md).
+#
+# Deliberately minimal: no `npm ci`, so no lifecycle scripts run in the one
+# job that holds CLASPRC_JSON — an OAuth refresh token on the Google account
+# that owns the script. The same reasoning keeps GOOGLE_API_KEY off
+# pull-request runs in deploy.yml; here it is applied by construction rather
+# than by an `if`, since this workflow has no pull_request trigger at all.
+# The trade is that nothing re-runs the tests before pushing — deploy.yml
+# runs them on the same push, and a red main is loud either way, but a
+# broken guard test does not gate this push.
+#
+# clasp is pinned to 2.5.0, the last 2.x: v3 changed the credential file's
+# shape, and the README's login step carries the same pin. Move both
+# together, or the file a login writes stops matching what this job reads.
+name: Apps Script
+
+on:
+  push:
+    branches: [main]
+    paths: ["apps-script/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# Two quick merges should push in order, not in parallel; the second run
+# supersedes the first rather than racing it.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  push-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 22
+
+      # Until someone creates the Apps Script project and commits its id
+      # (apps-script/README.md, step 1), there is nothing to push to — say so
+      # and succeed, so the workflow can land ahead of the bootstrap.
+      - name: Check the script id is real
+        id: ready
+        run: |
+          if grep -q REPLACE_WITH_SCRIPT_ID apps-script/.clasp.json; then
+            echo "::warning title=Apps Script push skipped::apps-script/.clasp.json still carries the placeholder script id — see apps-script/README.md."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push to Apps Script
+        if: steps.ready.outputs.ready == 'true'
+        working-directory: apps-script
+        env:
+          CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
+        run: |
+          printf '%s' "$CLASPRC_JSON" > ~/.clasprc.json
+          npx --yes @google/clasp@2.5.0 push --force

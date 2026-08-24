@@ -1,9 +1,14 @@
 {
-  // The tools: scripts/constants and scripts/box-prices, plus their shared
-  // plumbing. These run directly under Node's type stripping (Node 23.6+;
-  // `node scripts/constants/main.ts`), which is why `erasableSyntaxOnly` is
-  // on and every import names its `.ts` extension — Node strips types, it
-  // does not rewrite import paths.
+  // The tools: scripts/constants, scripts/box-prices and scripts/calendar,
+  // plus their shared plumbing. These run directly under Node's type
+  // stripping (Node 23.6+; `node scripts/constants/main.ts`), which is why
+  // `erasableSyntaxOnly` is on and every import names its `.ts` extension —
+  // Node strips types, it does not rewrite import paths.
+  //
+  // The one entry from outside `scripts/` is the Apps Script port-drift
+  // guard: that test runs under Node against these modules, so it belongs to
+  // this program — it cannot join apps-script/tsconfig.json, whose Apps
+  // Script globals collide with the DOM lib here (both declare `console`).
   //
   // `lib` includes DOM for the fetch/Response/AbortSignal globals, the same
   // trade the app's tsconfig makes for vite.config.ts; `types: ["node"]` adds
@@ -27,5 +32,5 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["shared", "constants", "box-prices"]
+  "include": ["shared", "constants", "box-prices", "calendar", "../apps-script/calendar-sync.test.ts"]
 }
