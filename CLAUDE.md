@@ -278,7 +278,10 @@ The boundaries that matter, beyond the ones the box-price feed already states:
   at once is refused instead, like an unreadable page: that is the scheme
   broken, not a quiet week. Adding a category is an edit to `eventTypes.ts`
   *and* to the calendar; the strip still learns nothing from a token's
-  spelling — it lanes and colours entries sharing one, and that is all.
+  spelling — it lanes and colours entries sharing one — with a single
+  recorded exception: `set_release` is drawn as a dashed rule across the
+  strip rather than a bar in a lane, because a release is a moment, not a
+  span (`MARKER_TYPE` in `calendarLayout.ts`).
 - **An empty calendar is a real state and publishes.** The strip renders
   nothing at all for it, which is what a preview and a fresh checkout get.
   What refuses is a page of live items none of which are *readable* — a field

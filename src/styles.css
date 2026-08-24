@@ -1674,6 +1674,39 @@ button.box-add:focus-visible {
 .calendar-lane-slot-6 { --lane-color: #9085e9; --lane-ink: #0b1220; }
 .calendar-lane-slot-7 { --lane-color: #e66767; --lane-ink: #0b1220; }
 
+/*
+ * A set release: a moment, not a span, so it is a dashed rule across the
+ * whole strip — see MARKER_TYPE in calendarLayout.ts — dashed so it cannot
+ * be read as the solid today line. The red is slot 7's: with set_release
+ * out of the lanes only seven types remain, so no lane ever wears it and
+ * the hue means one thing here.
+ */
+.calendar-release-line {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-left: 2px dashed #e66767;
+}
+
+.calendar-release-label {
+  position: absolute;
+  top: 0;
+  line-height: 1.5;
+  font-size: 0.68rem;
+  color: #e66767;
+  white-space: nowrap;
+  padding: 0 3px;
+  border-radius: 4px;
+  /* Legible over whatever bar it happens to hang across. */
+  background: color-mix(in srgb, var(--bs-body-bg) 78%, transparent);
+}
+
+/* Done with, dimmed like a finished bar — line and label together. */
+.calendar-release-past {
+  opacity: 0.45;
+}
+
 .calendar-bar {
   position: absolute;
   top: calc((var(--calendar-row) - var(--calendar-bar)) / 2);

@@ -30,7 +30,11 @@ export const EVENT_TYPES = [
   "arena_direct",
   /** Limited Open and similar cash/prize Limited tournaments. */
   "limited_open",
-  /** A set arriving on Arena. */
+  /**
+   * A set arriving on Arena. The one type the strip singles out: a release
+   * is drawn as a dated rule across the whole plot rather than a bar in a
+   * lane — see MARKER_TYPE in `calendarLayout.ts`.
+   */
   "set_release",
 ] as const;
 

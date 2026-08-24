@@ -59,9 +59,19 @@ export const MIN_INSIDE_LABEL = 70;
 
 /**
  * How many lane colours the stylesheet defines (`.calendar-lane-slot-*`).
- * Slot assignment wraps past this, which no plausible calendar reaches.
+ * Slot assignment wraps past this, which no plausible calendar reaches: with
+ * MARKER_TYPE drawn as a rule rather than a lane, seven types remain — which
+ * is why slot 7's red is free to be the release line's own hue.
  */
 export const SLOT_COUNT = 8;
+
+/**
+ * The one type the strip renders as a vertical rule across the whole plot
+ * rather than as a bar in a lane: a set release is a moment, not a span.
+ * The single point where a token's meaning is read — everything else about
+ * the types stays opaque, and `eventTypes.ts` records the exception.
+ */
+export const MARKER_TYPE = "set_release";
 
 export type CalendarPlacement = {
   bar: CalendarBar;
@@ -92,11 +102,20 @@ export type CalendarLane = {
   rows: CalendarPlacement[][];
 };
 
+/** A MARKER_TYPE entry: a dated rule across the strip, placed but not packed. */
+export type CalendarMarker = {
+  bar: CalendarBar;
+  /** The line's offset — the start of the release day. */
+  x: number;
+};
+
 export type CalendarLayout = {
   /** In display order: by each lane's earliest visible bar. */
   lanes: CalendarLane[];
   /** Total rows across all lanes, for whoever needs the strip's height. */
   rows: number;
+  /** The release rules, in time order. */
+  markers: CalendarMarker[];
 };
 
 /** Greedy first-fit over the bars alone, returned as rows in x order. */
@@ -146,18 +165,25 @@ export function layoutCalendar(
   bars: readonly CalendarBar[],
   scale: (at: Date) => number,
 ): CalendarLayout {
-  const placed = bars.map((bar): CalendarPlacement => {
+  const markers: CalendarMarker[] = [];
+  const placed: CalendarPlacement[] = [];
+  for (const bar of bars) {
     const x = scale(bar.from);
+    if (bar.entry.type === MARKER_TYPE) {
+      markers.push({ bar, x });
+      continue;
+    }
     const width = Math.max(MIN_BAR, scale(bar.to) - x);
-    return {
+    placed.push({
       bar,
       x,
       width,
       labelInside: width >= MIN_INSIDE_LABEL + 2 * INSIDE_PAD,
       labelMax: Math.max(0, width - 2 * INSIDE_PAD),
       row: 0,
-    };
-  });
+    });
+  }
+  markers.sort((a, b) => a.x - b.x);
 
   const groups = new Map<string, CalendarPlacement[]>();
   for (const p of placed) {
@@ -179,7 +205,7 @@ export function layoutCalendar(
     lane.slot = i % SLOT_COUNT;
   });
 
-  return { lanes, rows: lanes.reduce((n, lane) => n + lane.rows.length, 0) };
+  return { lanes, rows: lanes.reduce((n, lane) => n + lane.rows.length, 0), markers };
 }
 
 /** Room a date label needs before its neighbour, "16 Aug" plus air. */

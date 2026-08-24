@@ -141,9 +141,11 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
     if (width === 0) return null;
     const x = scaleTime().domain(view.domain).range([0, width]);
     const spanDays = (view.domain[1].getTime() - view.domain[0].getTime()) / 86_400_000;
+    const { lanes, markers } = layoutCalendar(view.bars, x);
     return {
       x,
-      lanes: layoutCalendar(view.bars, x).lanes,
+      lanes,
+      markers,
       // Mondays, every `n`th, `n` chosen from the width — see `tickEvery` for
       // why this cannot just ask d3 for a number of ticks.
       ticks: x.ticks(timeMonday.every(tickEvery(width, spanDays)) ?? timeMonday),
@@ -204,9 +206,6 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                     {row.map(({ bar, x, width: w, labelMax, labelInside }) => {
                       const { entry, state, clippedStart, clippedEnd } = bar;
                       const range = rangeText(entry, day, dayYear);
-                      const plain = `${entry.title}\n${range}${
-                        entry.note === undefined ? "" : `\n${entry.note}`
-                      }`;
                       return (
                         <div
                           key={entry.id}
@@ -231,7 +230,6 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                               .filter(Boolean)
                               .join(" ")}
                             style={{ left: x, width: w }}
-                            title={plain}
                           />
                           {labelInside && (
                             /* The name, where the bar can hold a useful amount
@@ -247,7 +245,6 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                                 .filter(Boolean)
                                 .join(" ")}
                               style={{ left: x + INSIDE_PAD, maxWidth: labelMax }}
-                              title={plain}
                               aria-hidden="true"
                             >
                               {entry.title}
@@ -267,6 +264,42 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                 ))}
               </div>
             ))}
+            {/* Set releases: a moment rather than a span, drawn as a rule
+                across the whole strip. Rendered after the lanes so the line
+                crosses the bars it ends — the events whose last day it is. */}
+            {layout.markers.map(({ bar, x }) => {
+              const { entry, state } = bar;
+              const range = rangeText(entry, day, dayYear);
+              return (
+                <div
+                  key={entry.id}
+                  className={[
+                    "calendar-release",
+                    state === "past" ? "calendar-release-past" : "",
+                  ]
+                    .filter(Boolean)
+                    .join(" ")}
+                  onPointerEnter={(e) => setHover(anchorOf(e.currentTarget, bar))}
+                  onPointerLeave={() => setHover(null)}
+                >
+                  <span className="calendar-release-line" style={{ left: x }} />
+                  <span
+                    className="calendar-release-label"
+                    // Hung on whichever side keeps it on the page — the same
+                    // reasoning as the popover's anchor, and a release usually
+                    // sits at the axis's far end.
+                    style={x < width / 2 ? { left: x + 5 } : { right: width - x + 5 }}
+                    aria-hidden="true"
+                  >
+                    {entry.title}
+                  </span>
+                  <span className="visually-hidden">
+                    {entry.title}, {range}
+                    {entry.note === undefined ? "" : `. ${entry.note}`}
+                  </span>
+                </div>
+              );
+            })}
           </>
         )}
       </div>

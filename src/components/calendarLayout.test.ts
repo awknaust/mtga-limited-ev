@@ -194,7 +194,34 @@ describe("layoutCalendar", () => {
   });
 
   it("packs nothing into no lanes", () => {
-    expect(layoutCalendar([], scale)).toEqual({ lanes: [], rows: 0 });
+    expect(layoutCalendar([], scale)).toEqual({ lanes: [], rows: 0, markers: [] });
+  });
+
+  it("draws a set release as a marker, not a lane", () => {
+    // A release is a moment: it gets a rule across the strip, costs no row,
+    // and consumes no colour slot.
+    const layout = layoutCalendar(
+      [
+        bar("Direct", 0, 5, "arena_direct"),
+        bar("Reality Fracture", 20, 21, "set_release"),
+        bar("Cube", 8, 15, "cube"),
+      ],
+      scale,
+    );
+    expect(layout.lanes.map((l) => l.key)).toEqual(["arena_direct", "cube"]);
+    expect(layout.lanes.map((l) => l.slot)).toEqual([0, 1]);
+    expect(layout.rows).toBe(2);
+    expect(layout.markers.map((m) => m.x)).toEqual([20]);
+    expect(layout.markers[0].bar.entry.title).toBe("Reality Fracture");
+  });
+
+  it("keeps markers in time order", () => {
+    const layout = layoutCalendar(
+      [bar("Second", 30, 31, "set_release"), bar("First", 10, 11, "set_release")],
+      scale,
+    );
+    expect(layout.markers.map((m) => m.bar.entry.title)).toEqual(["First", "Second"]);
+    expect(layout.lanes).toEqual([]);
   });
 
   it("keeps each row in time order so the strip draws left to right", () => {
