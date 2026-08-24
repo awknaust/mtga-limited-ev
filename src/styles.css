@@ -1560,13 +1560,13 @@ button.box-add:focus-visible {
   position: relative;
   margin-bottom: 1.25rem;
   /*
-   * The card the rest of the page's panels wear. Unframed, the strip's bars
-   * sat naked on the page background directly under the site title and read
-   * as part of the header; boxed, it is one more panel among the others.
+   * The frame itself comes from the `card` class beside this one — the same
+   * chrome every other panel wears, worn the same way so it cannot drift.
+   * Unframed, the strip's bars sat naked on the page background directly
+   * under the site title and read as part of the header. Only the padding is
+   * local: a card's padding lives on `.card-body`, and the strip has no use
+   * for that wrapper.
    */
-  background: var(--bs-card-bg);
-  border: 1px solid var(--bs-card-border-color);
-  border-radius: var(--bs-border-radius);
   padding: 0.6rem 0.75rem 0.4rem;
 }
 

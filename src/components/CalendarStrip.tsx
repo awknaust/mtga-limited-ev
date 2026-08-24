@@ -204,7 +204,20 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
   const dayYear = timeFormat("%-d %b %Y");
 
   return (
-    <section className="calendar-strip" aria-labelledby="calendar-strip-title" ref={strip}>
+    <section
+      /*
+       * `card` by class rather than by imitation. An earlier pass painted
+       * `var(--bs-card-bg)` on and did not match: Bootstrap's `.card` rule
+       * declares its own `--bs-card-bg: var(--bs-body-bg)`, which beats the
+       * theme block's inherited value, so the real cards resolve to a colour
+       * the variable never shows from outside one. Same class, same
+       * resolution, nothing to drift. Kept as two joined literals so the
+       * class-name test still sees "calendar-strip".
+       */
+      className={["calendar-strip", "card"].join(" ")}
+      aria-labelledby="calendar-strip-title"
+      ref={strip}
+    >
       <div className="calendar-strip-head">
         <h2 className="calendar-strip-title" id="calendar-strip-title">
           <button
