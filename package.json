@@ -11,7 +11,7 @@
     "test": "vitest run",
     "refresh:constants": "node scripts/constants/main.ts",
     "box:prices": "node scripts/box-prices/main.ts",
-    "calendar": "node scripts/calendar/main.ts"
+    "calendar": "node --env-file-if-exists=.env scripts/calendar/main.ts"
   },
   "dependencies": {
     "@popperjs/core": "^2.11.8",

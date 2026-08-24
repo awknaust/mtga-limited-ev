@@ -8,9 +8,17 @@
  *     npm run calendar -- --write   ...and write that payload to BAKED_FEED
  *
  * Takes its credentials from the environment, under the same names the Worker
- * holds them as secrets:
+ * holds them as secrets. Locally that means a `.env` — `cp .env.example .env`
+ * and fill it in; the npm script loads it with Node's own
+ * `--env-file-if-exists`, so a missing file is not an error and nothing here
+ * depends on a dotenv package:
  *
- *     GOOGLE_CALENDAR_ID=… GOOGLE_API_KEY=… npm run calendar
+ *     npm run calendar
+ *
+ * The shell still wins. Node does not let the file override a variable that is
+ * already set, which is what lets CI pass the same two names in as secrets on
+ * the workflow step and run this exact script — and what stops a stale `.env`
+ * on a developer's machine from quietly overriding one.
  *
  * `--write` is the one thing here that writes anywhere, and what it writes is
  * the app's own copy of the feed: `src/data/mtg-calendar.json`, the fallback
@@ -110,7 +118,10 @@ async function write(feed: CalendarFeed): Promise<string> {
 function credential(name: string): string {
   const value = process.env[name];
   if (value === undefined || value === "") {
-    throw new SourceError(`${name} is not set — see the calendar section of CLAUDE.md`);
+    throw new SourceError(
+      `${name} is not set — copy .env.example to .env and fill it in, ` +
+        "or see the calendar section of CLAUDE.md",
+    );
   }
   return value;
 }

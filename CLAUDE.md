@@ -301,8 +301,29 @@ npm run calendar -- --write      # ...and write it to src/data/mtg-calendar.json
 ```
 
 The calendar driver takes its credentials from the environment, under the
-names the Worker holds them as secrets:
-`GOOGLE_CALENDAR_ID=… GOOGLE_API_KEY=… npm run calendar`.
+names the Worker holds them as secrets. Locally that is a `.env` — `cp
+.env.example .env` and fill it in. The npm script loads it with Node's own
+`--env-file-if-exists`, so there is no dotenv dependency and a missing file is
+not an error, just a line saying so. **The shell wins**: Node will not let the
+file override a variable already set, which is what lets CI pass the same two
+names in as secrets and run the identical script, and what stops a stale
+`.env` on someone's machine from quietly overriding one.
+
+`.env` is gitignored and `.env.example` is not. Nothing else in this
+repository reads either — the box-price feed and the constants refresh talk to
+sources that need no credential.
+
+Two notes on the key itself. It is **required even though the calendar is
+public**: everything on `googleapis.com` refuses unregistered callers, so the
+key is caller identity for quota rather than permission to read, and the
+keyless route to the same data is the public iCal feed, which was weighed and
+turned down because it carries `RRULE` and a naive parser would show one
+instance of a recurring series as though it were the whole story. And the CI
+refresh **does not run on pull requests**: `npm ci` there executes lifecycle
+scripts from an unreviewed lockfile, which is the reason that job's token is
+powerless, and handing the same job a secret would undo it. A preview shows
+the checked-in copy whether the step ran or not — its route is on the
+production hostname only — so the step costs nothing by sitting out.
 
 **`scripts/constants/`** prints what the sourced constants in
 `src/lib/presets.ts` should be today: a table of names and values, `--verbose`
