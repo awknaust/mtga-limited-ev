@@ -70,7 +70,7 @@
   // anything in this file.
   "kv_namespaces": [
     { "binding": "BOX_PRICES", "id": "3613fd85a00e4ab3ad5f8fda0bdbc7ff" },
-    { "binding": "CALENDAR", "id": "REPLACE_WITH_KV_NAMESPACE_ID" }
+    { "binding": "CALENDAR", "id": "9c5e7498fd5f4b4da157f9362258f339" }
   ],
 
   "observability": { "enabled": true }
