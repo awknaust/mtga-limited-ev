@@ -1626,19 +1626,22 @@ button.box-add:focus-visible {
   color: var(--bs-secondary-color);
 }
 
-/* As quiet as the stamp beside it until pointed at — a header affordance,
-   not a call to action. Icon-only; the accessible name is on the link. */
+/* Worn as a link on purpose, unlike the stamp beside it: the one clickable
+   thing in the head that is not the disclosure should look clickable. */
 .calendar-strip-link {
   display: inline-flex;
   align-items: center;
-  font-size: 0.85rem;
-  color: var(--bs-secondary-color);
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--bs-link-color);
   text-decoration: none;
+  white-space: nowrap;
 }
 
 .calendar-strip-link:hover,
 .calendar-strip-link:focus-visible {
-  color: var(--bs-body-color);
+  color: var(--bs-link-hover-color);
+  text-decoration: underline;
 }
 
 /*

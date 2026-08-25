@@ -250,8 +250,8 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
             </span>
           )}
           {/* The same schedule as a real calendar: opens the one-click
-              subscribe dialog. Icon-only to keep the head quiet — the name
-              lives in the label and the tooltip. The href is the redirect in
+              subscribe dialog, said in two words and link colour — the
+              tooltip carries the rest. The href is the redirect in
               public/_redirects, the one place that knows where the calendar
               lives, so a calendar migration touches no component. Dev has no
               redirect handling and lands back on the app; every deploy,
@@ -261,10 +261,9 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
             href="/calendars/small/add"
             target="_blank"
             rel="noreferrer"
-            aria-label="Add to Google Calendar"
             title="Add to Google Calendar"
           >
-            <i className="bi bi-calendar-plus" aria-hidden="true" />
+            <i className="bi bi-calendar-plus" aria-hidden="true" /> Add Calendar
           </a>
         </span>
       </div>
