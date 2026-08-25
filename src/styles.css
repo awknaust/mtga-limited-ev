@@ -1613,9 +1613,35 @@ button.box-add:focus-visible {
   color: var(--bs-body-color);
 }
 
+/* The stamp and the outbound link share the head's right side as one group,
+   so the space-between head keeps the title alone on the left. */
+.calendar-strip-meta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.75rem;
+}
+
 .calendar-strip-stamp {
   font-size: 0.75rem;
   color: var(--bs-secondary-color);
+}
+
+/* Worn as a link on purpose, unlike the stamp beside it: the one clickable
+   thing in the head that is not the disclosure should look clickable. */
+.calendar-strip-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--bs-link-color);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.calendar-strip-link:hover,
+.calendar-strip-link:focus-visible {
+  color: var(--bs-link-hover-color);
+  text-decoration: underline;
 }
 
 /*
