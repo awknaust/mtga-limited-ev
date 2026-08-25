@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { scaleTime, timeFormat, timeMonday } from "d3";
 
 import {
@@ -99,8 +99,9 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
    * The entry whose details are open, or null. Selection, not hover: the strip
    * is read on phones and tablets, where hover is a synthetic afterthought —
    * the old popover opened under the finger that asked for it and vanished
-   * with it. A bar toggles its entry on click or tap, the popover's own close
-   * button and Escape put it away, and a pointer is never required.
+   * with it. A bar toggles its entry on click or tap; the close button,
+   * Escape and a click anywhere else put it away; a pointer is never
+   * required.
    */
   const [selected, setSelected] = useState<CalendarBar | null>(null);
   const [open, setOpen] = useState(() => !readCollapsed());
@@ -127,6 +128,28 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
    */
   const select = (bar: CalendarBar) =>
     setSelected((prev) => (prev?.entry.id === bar.entry.id ? null : bar));
+
+  /*
+   * A click anywhere else puts the popover away — the exit a reader reaches
+   * for without thinking, beside the deliberate two (the close button and
+   * Escape). Bars and marks are excluded so a click on a second entry
+   * switches rather than closing what it just opened, and the popover is
+   * excluded so selecting text in a note is not an exit. A document listener
+   * rather than a backdrop, because the page under the popover stays live —
+   * a click out there should *both* do its own work and close this. Bound
+   * only while something is selected, so the page carries no listener the
+   * rest of the time.
+   */
+  useEffect(() => {
+    if (selected === null) return;
+    const away = (e: MouseEvent) => {
+      const at = e.target instanceof Element ? e.target : null;
+      if (at?.closest(".calendar-popover, .calendar-bar, .calendar-release-mark")) return;
+      setSelected(null);
+    };
+    document.addEventListener("click", away);
+    return () => document.removeEventListener("click", away);
+  }, [selected]);
 
   /*
    * The measurement the pixel layout needs.

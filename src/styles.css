@@ -1741,7 +1741,13 @@ button.box-add:focus-visible {
   inset: -8px;
 }
 
-.calendar-release-selected,
+/* Box-shadow for the same reason as `.calendar-bar-selected`: the reboot's
+   focus rule eats an outline on the freshly-clicked button. The inner layer
+   fakes the gap an outline-offset would have given. */
+.calendar-release-selected {
+  box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-body-color);
+}
+
 .calendar-release-mark:focus-visible {
   outline: 2px solid var(--bs-body-color);
   outline-offset: 2px;
@@ -1791,11 +1797,26 @@ button.box-add:focus-visible {
 }
 
 /*
- * The open entry, and keyboard focus, marked the same way: a ring in the body
- * colour, which no lane wears — the same separation-by-weight call the today
- * line makes.
+ * The open entry, marked for as long as the popover is showing it: a ring in
+ * the body colour, which no lane wears — the same separation-by-weight call
+ * the today line makes.
+ *
+ * A ring of box-shadow, not outline, and not by preference: Bootstrap's
+ * reboot carries `button:focus:not(:focus-visible) { outline: 0 }`, and a
+ * bar just clicked with a mouse is exactly that — focused, but not
+ * focus-visible — so an outline-based ring was suppressed the whole time the
+ * clicked bar held focus and surfaced only once focus had moved on. The
+ * shadow stacks outside the 1px page-colour ring every bar already wears,
+ * and `z-index` lifts the marked bar so a touching neighbour's own ring,
+ * painted later, cannot sit on top of the highlight.
  */
-.calendar-bar-selected,
+.calendar-bar-selected {
+  z-index: 1;
+  box-shadow: 0 0 0 1px var(--bs-body-bg), 0 0 0 3px var(--bs-body-color);
+}
+
+/* Keyboard focus keeps the outline — on a keyboard the reboot rule above
+   never matches, so here it works, and it needs no z-order of its own. */
 .calendar-bar:focus-visible {
   outline: 2px solid var(--bs-body-color);
   outline-offset: 1px;
