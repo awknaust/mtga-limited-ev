@@ -104,6 +104,10 @@ const ENTITIES = {
  * the source (`&amp;lt;`) must survive as the text it was rather than decode
  * twice into a tag.
  *
+ * This is the *parse* view, feeding `readEventTypeFrom` and nothing else —
+ * the description a subscriber reads comes from `cleanDescription`, which
+ * keeps the staging text's formatting and removes only the meta block.
+ *
  * @param {string} html
  * @returns {string}
  */
@@ -127,8 +131,25 @@ function stripHtmlText(html) {
   return decoded.replace(/\s+/g, " ").trim();
 }
 
-/** The machine-readable block cowork writes: `[mtga-meta]{…}[/mtga-meta]`. */
-const META_RE = /\[mtga-meta\](.*?)\[\/mtga-meta\]/g;
+/**
+ * The machine-readable block cowork writes: `[mtga-meta]{…}[/mtga-meta]`.
+ * `[\s\S]` rather than `.` because `cleanDescription` matches this against
+ * the raw description, where a UI edit may have folded a line break into the
+ * block; on `readEventTypeFrom`'s flattened text the two are the same.
+ */
+const META_RE = /\[mtga-meta\]([\s\S]*?)\[\/mtga-meta\]/g;
+
+/**
+ * A block that owns its line: leading horizontal whitespace and one trailing
+ * line break — `\n` in cowork's plain text, `<br>` once a Google-UI edit has
+ * HTML-ified the description — so removing it removes the line rather than
+ * leaving a blank one. Built from META_RE so the two spellings of the marker
+ * cannot drift apart.
+ */
+const META_LINE_RE = new RegExp(
+  `^[ \\t]*${META_RE.source}[ \\t]*(?:\\r?\\n|<br\\s*\\/?>)?`,
+  "gim",
+);
 
 /**
  * The block's `eventType`, or null when no block names one on the closed set.
@@ -160,16 +181,36 @@ function readEventTypeFrom(text) {
 }
 
 /**
- * The description a human gets: the staging text with every meta block
- * removed and whitespace collapsed. No length cap — the feed caps its copy at
- * 200 characters because that copy is a tooltip; this one is the event a
- * subscriber opens.
+ * The description a human gets: the staging text as cowork wrote it — line
+ * breaks, HTML and entities untouched, since Google renders whatever is
+ * there — with every meta block removed and the hole it leaves closed up. It
+ * works on the *raw* description where `readEventTypeFrom` works on the
+ * flattened one, and the block still matches here because a Google-UI edit
+ * escapes the JSON's quotes, never the markers' brackets. No length cap —
+ * the feed caps its copy at 200 characters because that copy is a tooltip;
+ * this one is the event a subscriber opens.
  *
- * @param {string} text
+ * @param {string} description
  * @returns {string}
  */
-function cleanDescription(text) {
-  return text.replace(META_RE, " ").replace(/\s+/g, " ").trim();
+function cleanDescription(description) {
+  return (
+    description
+      // A block alone on its line goes with the line; one inline in prose
+      // leaves a single space, and the collapses below tidy what remains
+      // of the seam: doubled spaces, a space stranded at a line end, a run
+      // of blank lines where the block sat between paragraphs.
+      .replace(META_LINE_RE, "")
+      .replace(META_RE, " ")
+      .replace(/[ \t]{2,}/g, " ")
+      .replace(/[ \t]+(\r?\n)/g, "$1")
+      .replace(/\n{3,}/g, "\n\n")
+      // The edges: plain whitespace plus the <br> runs an HTML-ified
+      // description ends lines with, so a block at either end takes its
+      // spacing with it.
+      .replace(/^(?:\s|<br\s*\/?>)+/i, "")
+      .replace(/(?:\s|<br\s*\/?>)+$/i, "")
+  );
 }
 
 /** @typedef {{ date?: string, dateTime?: string, timeZone?: string }} EventTime */
@@ -211,7 +252,7 @@ function timeOf(at) {
  * of them is not a reason to stop mirroring.
  *
  * @param {GoogleAppsScript.Calendar.Schema.Event} event
- * @returns {{ id: string, summary: string, start: EventTime, end: EventTime, text: string } | null}
+ * @returns {{ id: string, summary: string, start: EventTime, end: EventTime, description: string } | null}
  */
 function candidateOf(event) {
   if (event.status === "cancelled") return null;
@@ -225,7 +266,7 @@ function candidateOf(event) {
     summary: event.summary.trim(),
     start,
     end,
-    text: typeof event.description === "string" ? stripHtmlText(event.description) : "",
+    description: typeof event.description === "string" ? event.description : "",
   };
 }
 
@@ -247,13 +288,13 @@ function candidateOf(event) {
 function desiredFor(event, labelIds) {
   const row = candidateOf(event);
   if (row === null) return null;
-  const type = readEventTypeFrom(row.text);
+  const type = readEventTypeFrom(stripHtmlText(row.description));
   if (type === null) return { sourceId: row.id, body: null };
   return {
     sourceId: row.id,
     body: {
       summary: row.summary,
-      description: cleanDescription(row.text),
+      description: cleanDescription(row.description),
       start: row.start,
       end: row.end,
       // Week-long public spans, not appointments: they show as Free, never

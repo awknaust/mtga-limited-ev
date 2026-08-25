@@ -150,7 +150,41 @@ describe("reading cowork's format", () => {
     // tooltip; the copier's is the event a subscriber opens.
     const text = "x".repeat(500);
     const description = `${text} [mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]`;
-    expect(helpers.cleanDescription(helpers.stripHtmlText(description))).toBe(text);
+    expect(helpers.cleanDescription(description)).toBe(text);
+  });
+});
+
+describe("cleanDescription keeps the staging formatting", () => {
+  // The clean description is the raw staging text minus the meta block —
+  // never the flattened parse view, which once leaked out here and turned
+  // every multi-line description into one long line.
+  it.each([
+    [
+      "line breaks, with the block's own line removed whole",
+      '6+ wins: a box\n4–5 wins: gems\n\n[mtga-meta]{"v":1,"eventType":"arena_direct"}[/mtga-meta]',
+      "6+ wins: a box\n4–5 wins: gems",
+    ],
+    [
+      "a block between paragraphs, leaving no hole",
+      'Best-of-one.\n\n[mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]\n\nEntry: 4,000 gold.',
+      "Best-of-one.\n\nEntry: 4,000 gold.",
+    ],
+    [
+      "an inline block, leaving a single space",
+      'Runs all week. [mtga-meta]{"v":1,"eventType":"qualifier"}[/mtga-meta] Sign up early.',
+      "Runs all week. Sign up early.",
+    ],
+    [
+      // A Google-UI edit HTML-ifies the whole description; the markup is
+      // what Google renders, so it rides through untouched — only the
+      // escaped block and the <br> run it hung from come out.
+      "an HTML-ified description, tags and entities untouched",
+      "<b>Prizes</b><br>6+ wins &amp; out: a box<br><br>[mtga-meta]{&quot;v&quot;:1,&quot;eventType&quot;:&quot;arena_direct&quot;}[/mtga-meta]",
+      "<b>Prizes</b><br>6+ wins &amp; out: a box",
+    ],
+    ["a description that is only the block", '[mtga-meta]{"v":1,"eventType":"cube"}[/mtga-meta]', ""],
+  ])("keeps %s", (_label, description, expected) => {
+    expect(helpers.cleanDescription(description)).toBe(expected);
   });
 });
 
@@ -164,12 +198,12 @@ describe("desiredFor", () => {
     end: { date: "2026-08-23" },
   };
 
-  it("builds the clean event: label, shared properties, stripped text", () => {
+  it("builds the clean event: label, shared properties, description kept as written", () => {
     expect(helpers.desiredFor(stagedAllDay, LABEL_IDS)).toEqual({
       sourceId: "evt-1",
       body: {
         summary: "Arena Direct — Hobbit",
-        description: "Six wins takes the box.",
+        description: "<p>Six wins takes the box.</p>",
         start: { date: "2026-08-21" },
         end: { date: "2026-08-23" },
         transparency: "transparent",
