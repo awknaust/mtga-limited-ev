@@ -1629,10 +1629,17 @@ button.box-add:focus-visible {
 /* As quiet as the stamp beside it until pointed at — a header affordance,
    not a call to action. */
 .calendar-strip-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   font-size: 0.75rem;
   color: var(--bs-secondary-color);
   text-decoration: none;
   white-space: nowrap;
+}
+
+.calendar-strip-link svg {
+  flex: none;
 }
 
 .calendar-strip-link:hover,
