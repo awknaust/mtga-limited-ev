@@ -1808,7 +1808,8 @@ button.box-add:focus-visible {
  * clicked bar held focus and surfaced only once focus had moved on. The
  * shadow stacks outside the 1px page-colour ring every bar already wears,
  * and `z-index` lifts the marked bar so a touching neighbour's own ring,
- * painted later, cannot sit on top of the highlight.
+ * painted later, cannot sit on top of the highlight — one notch under the
+ * names, which `.calendar-label-inside` keeps above every bar.
  */
 .calendar-bar-selected {
   z-index: 1;
@@ -1831,9 +1832,14 @@ button.box-add:focus-visible {
  * drawn on top of a button eats its clicks: without `pointer-events: none`
  * only the sliver of bar before the name was clickable, which on a wide
  * labelled bar was nearly none of it.
+ *
+ * Above `.calendar-bar-selected`'s z-index, or selecting a labelled bar
+ * erases its own name: unlayered, the name painted over the bar only by
+ * coming later in the DOM, and the lifted bar beat that.
  */
 .calendar-label-inside {
   pointer-events: none;
+  z-index: 2;
   /* Dark on every fill: the ramp hues are all light on this background —
      the same call `.nav-segmented .nav-link.active` makes. */
   color: #0b1220;
