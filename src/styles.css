@@ -1627,25 +1627,18 @@ button.box-add:focus-visible {
 }
 
 /* As quiet as the stamp beside it until pointed at — a header affordance,
-   not a call to action. */
+   not a call to action. Icon-only; the accessible name is on the link. */
 .calendar-strip-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
-  font-size: 0.75rem;
+  font-size: 0.85rem;
   color: var(--bs-secondary-color);
   text-decoration: none;
-  white-space: nowrap;
-}
-
-.calendar-strip-link svg {
-  flex: none;
 }
 
 .calendar-strip-link:hover,
 .calendar-strip-link:focus-visible {
   color: var(--bs-body-color);
-  text-decoration: underline;
 }
 
 /*

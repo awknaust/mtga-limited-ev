@@ -250,28 +250,21 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
             </span>
           )}
           {/* The same schedule as a real calendar: opens the one-click
-              subscribe dialog. The href is the redirect in public/_redirects,
-              the one place that knows where the calendar lives, so a calendar
-              migration touches no component. Dev has no redirect handling and
-              lands back on the app; every deploy, previews included, serves
-              the real thing. */}
+              subscribe dialog. Icon-only to keep the head quiet — the name
+              lives in the label and the tooltip. The href is the redirect in
+              public/_redirects, the one place that knows where the calendar
+              lives, so a calendar migration touches no component. Dev has no
+              redirect handling and lands back on the app; every deploy,
+              previews included, serves the real thing. */}
           <a
             className="calendar-strip-link"
             href="/calendars/small/add"
             target="_blank"
             rel="noreferrer"
+            aria-label="Add to Google Calendar"
+            title="Add to Google Calendar"
           >
-            {/* Google Calendar's mark, sketched: four colour bands and the
-                folded corner. Inline because the CSP loads nothing off-origin
-                and Bootstrap Icons carries no product marks. */}
-            <svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" focusable="false">
-              <path fill="#fff" d="M5 5h14v14H5z" />
-              <path fill="#4285f4" d="M0 0h24v5H0zM0 5h5v19H0z" />
-              <path fill="#34a853" d="M19 5h5v14h-5z" />
-              <path fill="#fbbc04" d="M5 19h14v5H5z" />
-              <path fill="#ea4335" d="M19 19h5l-5 5z" />
-            </svg>
-            Add to Google Calendar
+            <i className="bi bi-calendar-plus" aria-hidden="true" />
           </a>
         </span>
       </div>
