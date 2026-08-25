@@ -236,18 +236,34 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
             Arena event calendar
           </button>
         </h2>
-        {open ? (
-          <span className="calendar-strip-stamp">
-            as of {dayYear(new Date(view.generatedAt))}
-          </span>
-        ) : (
-          /* Folded away, the row still answers the glance the strip exists
-             for: is anything on. */
-          <span className="calendar-strip-stamp">
-            {view.bars.filter((b) => b.state === "now").length} on now ·{" "}
-            {view.bars.filter((b) => b.state === "upcoming").length} ahead
-          </span>
-        )}
+        <span className="calendar-strip-meta">
+          {open ? (
+            <span className="calendar-strip-stamp">
+              as of {dayYear(new Date(view.generatedAt))}
+            </span>
+          ) : (
+            /* Folded away, the row still answers the glance the strip exists
+               for: is anything on. */
+            <span className="calendar-strip-stamp">
+              {view.bars.filter((b) => b.state === "now").length} on now ·{" "}
+              {view.bars.filter((b) => b.state === "upcoming").length} ahead
+            </span>
+          )}
+          {/* The same schedule as a real calendar — openable, subscribable.
+              The href is the redirect in public/_redirects, the one place
+              that knows where the calendar lives, so a calendar migration
+              touches no component. Dev has no redirect handling and lands
+              back on the app; every deploy, previews included, serves the
+              real thing. */}
+          <a
+            className="calendar-strip-link"
+            href="/calendars/small"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <i className="bi bi-box-arrow-up-right" aria-hidden="true" /> Google Calendar
+          </a>
+        </span>
       </div>
 
       {/* Leaving the plot clears the popover. The per-entry `onPointerLeave`
