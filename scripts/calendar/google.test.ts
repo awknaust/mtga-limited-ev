@@ -254,6 +254,89 @@ describe("buildCalendarFeed", () => {
     expect(entry.note!.endsWith("…")).toBe(true);
   });
 
+  it("carries a trailing More Info link out of the description", async () => {
+    const [entry] = (await build([
+      {
+        ...allDayTyped,
+        description:
+          'Bo1 Hobbit Sealed, while supplies last. <a href="https://magic.wizards.com/en/news?a=1&amp;b=2">More Info</a>',
+      },
+    ])).entries;
+    expect(entry.note).toBe("Bo1 Hobbit Sealed, while supplies last.");
+    // The href decodes like any attribute: &amp; in a query string is one &.
+    expect(entry.link).toEqual({
+      href: "https://magic.wizards.com/en/news?a=1&b=2",
+      text: "More Info",
+    });
+  });
+
+  it("counts an anchor as trailing through markup that strips to nothing", async () => {
+    const [entry] = (await build([
+      {
+        ...allDayTyped,
+        description: '<p>Runs all weekend. <a href="https://example.com/x">More Info</a></p><br>&nbsp;',
+      },
+    ])).entries;
+    expect(entry.note).toBe("Runs all weekend.");
+    expect(entry.link).toEqual({ href: "https://example.com/x", text: "More Info" });
+  });
+
+  it("leaves a mid-sentence anchor as the words it was", async () => {
+    // Cutting one out would take a piece of the sentence with it.
+    const [entry] = (await build([
+      {
+        ...allDayTyped,
+        description: 'Premier Draft of <a href="https://example.com/set">The Hobbit</a> with prizing.',
+      },
+    ])).entries;
+    expect(entry.note).toBe("Premier Draft of The Hobbit with prizing.");
+    expect(entry.link).toBeUndefined();
+  });
+
+  it("extracts only the trailing anchor when there are several", async () => {
+    const [entry] = (await build([
+      {
+        ...allDayTyped,
+        description:
+          'See <a href="https://example.com/a">the announcement</a> for dates. <a href="https://example.com/b">More Info</a>',
+      },
+    ])).entries;
+    expect(entry.note).toBe("See the announcement for dates.");
+    expect(entry.link).toEqual({ href: "https://example.com/b", text: "More Info" });
+  });
+
+  it("flattens a trailing anchor whose scheme is not http(s)", async () => {
+    // The href is headed for an <a> the app renders; any other scheme stays
+    // the text it always was.
+    const [entry] = (await build([
+      { ...allDayTyped, description: 'Runs all weekend. <a href="javascript:alert(1)">More Info</a>' },
+    ])).entries;
+    expect(entry.note).toBe("Runs all weekend. More Info");
+    expect(entry.link).toBeUndefined();
+  });
+
+  it("carries a description that is only its link", async () => {
+    const [entry] = (await build([
+      { ...allDayTyped, description: '<a href="https://example.com/x">More Info</a>' },
+    ])).entries;
+    expect(entry.note).toBeUndefined();
+    expect(entry.link).toEqual({ href: "https://example.com/x", text: "More Info" });
+  });
+
+  it("caps the note without costing the link", async () => {
+    // The link comes off before the cap, so however long the body runs the
+    // call-to-action survives.
+    const [entry] = (await build([
+      {
+        ...allDayTyped,
+        description: `${"x".repeat(500)} <a href="https://example.com/x">More Info</a>`,
+      },
+    ])).entries;
+    expect(entry.note!.length).toBeLessThanOrEqual(200);
+    expect(entry.note!.endsWith("…")).toBe(true);
+    expect(entry.link).toEqual({ href: "https://example.com/x", text: "More Info" });
+  });
+
   it("types an event from the copier's shared property", async () => {
     const [entry] = (await build([
       { ...allDay, description: "Six wins takes the box.", ...typed("arena_direct") },

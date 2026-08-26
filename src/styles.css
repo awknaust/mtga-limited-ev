@@ -2020,6 +2020,14 @@ button.box-add:focus-visible {
   white-space: normal;
 }
 
+/* The description's own trailing link — "More Info" — carried through the
+   feed as an anchor rather than flattened to dead text. Kept to the note's
+   size so the popover reads as one block with one live word in it. */
+.calendar-popover-link {
+  align-self: flex-start;
+  font-size: 0.75rem;
+}
+
 /* The selection, which doubles as the charts' legend. */
 .compare-chips {
   display: flex;

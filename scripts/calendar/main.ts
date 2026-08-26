@@ -94,8 +94,9 @@ function render(feed: CalendarFeed): string {
     );
   }
   const noted = feed.entries.filter((e) => e.note !== undefined).length;
+  const linked = feed.entries.filter((e) => e.link !== undefined).length;
   lines.push("");
-  lines.push(`${feed.entries.length} entries, ${noted} with a description`);
+  lines.push(`${feed.entries.length} entries, ${noted} with a description, ${linked} with a link`);
   return lines.join("\n");
 }
 

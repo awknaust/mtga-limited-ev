@@ -42,6 +42,14 @@ export type CalendarEntry = {
   /** The entry's description as plain text, where it had one. */
   note?: string;
   /**
+   * The call-to-action link the description ended with, where it had one —
+   * "More Info" on every event the clean calendar carries. The feed extracts
+   * it whole (`scripts/calendar/feed.ts`) rather than flattening it to dead
+   * text; the popover renders it as the anchor it was. Always `http(s)`,
+   * which the validator holds it to: the href lands in a DOM `<a>`.
+   */
+  link?: { href: string; text: string };
+  /**
    * The author's category, from the `[mtga-meta]` block the feed reads out
    * of each description (`scripts/calendar/feed.ts`). Always present: an
    * event without a recognised one is dropped at parse — see `calendarEventTypes.ts`
@@ -91,6 +99,17 @@ export function parseCalendarFeed(data: unknown): CalendarFeed | null {
     // entry — it is a producer that has stopped making sense.
     if (entry.end <= entry.start) return null;
     if (entry.note !== undefined && typeof entry.note !== "string") return null;
+    // A link that is not a link is a malformed value like any other, and the
+    // scheme check is load-bearing: the href goes into an `<a>` the reader
+    // clicks, so nothing but http(s) may pass however it got here.
+    let link: { href: string; text: string } | undefined;
+    if (entry.link !== undefined) {
+      if (typeof entry.link !== "object" || entry.link === null) return null;
+      const { href, text } = entry.link as Record<string, unknown>;
+      if (typeof href !== "string" || !/^https?:\/\//i.test(href)) return null;
+      if (typeof text !== "string" || text === "") return null;
+      link = { href, text };
+    }
     if (entry.type !== undefined && typeof entry.type !== "string") return null;
     /*
      * A type this build does not recognise — or none at all — drops the entry
@@ -107,6 +126,7 @@ export function parseCalendarFeed(data: unknown): CalendarFeed | null {
       end: entry.end,
       type: entry.type,
       ...(entry.note === undefined ? {} : { note: entry.note }),
+      ...(link === undefined ? {} : { link }),
     });
   }
   return { version: 1, generatedAt: feed.generatedAt, entries };

@@ -71,6 +71,7 @@ describe("parseCalendarFeed", () => {
           start: "2026-08-21",
           end: "2026-09-04",
           note: "hi",
+          link: { href: "https://magic.wizards.com/en/news", text: "More Info" },
           type: "other_draft",
         },
       ],
@@ -82,6 +83,7 @@ describe("parseCalendarFeed", () => {
         start: "2026-08-21",
         end: "2026-09-04",
         note: "hi",
+        link: { href: "https://magic.wizards.com/en/news", text: "More Info" },
         type: "other_draft",
       },
     ]);
@@ -142,6 +144,17 @@ describe("parseCalendarFeed", () => {
     ["a span that ends where it starts", entry("a", "2026-08-21", "2026-08-21")],
     ["a span that ends before it starts", entry("a", "2026-08-21", "2026-08-20")],
     ["a note that is not a string", { ...entry("a", "2026-08-21", "2026-08-22"), note: 3 }],
+    ["a link that is not an object", { ...entry("a", "2026-08-21", "2026-08-22"), link: "x" }],
+    [
+      "a link with no text",
+      { ...entry("a", "2026-08-21", "2026-08-22"), link: { href: "https://example.com", text: "" } },
+    ],
+    [
+      // The href lands in an <a> the reader clicks; the scheme gate is the
+      // validator's, not just the feed's, because the payload crossed a network.
+      "a link whose scheme is not http(s)",
+      { ...entry("a", "2026-08-21", "2026-08-22"), link: { href: "javascript:alert(1)", text: "More Info" } },
+    ],
     ["a type that is not a string", { ...entry("a", "2026-08-21", "2026-08-22"), type: 7 }],
   ])("fails the whole feed on %s", (_label, bad) => {
     // The same contract as parseBoxPriceFeed: a malformed value means
