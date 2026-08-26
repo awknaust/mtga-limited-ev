@@ -1,62 +1,90 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-24T23:47:49.229Z",
+  "generatedAt": "2026-08-26T21:33:39.208Z",
   "entries": [
     {
       "id": "5e5ea054ea2f405f",
-      "title": "Arena Direct — Hobbit Collector Booster boxes",
+      "title": "Arena Direct: HOB Collector Boxes",
       "start": "2026-08-14",
       "end": "2026-08-24",
       "type": "arena_direct",
-      "note": "Bo1 Hobbit Sealed. Prizes: gems, packs, and physical Collector Booster boxes at 7 wins (while supplies last). Last day — Aug 23."
+      "note": "BO1 Hobbit Sealed. Play for physical Collector Booster boxes, while supplies last.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "6f9ac31db3cea636",
-      "title": "Bo1 Qualifier Play-In (Timeless)",
+      "title": "Qualifier Play-In BO1: Timeless",
       "start": "2026-08-22",
       "end": "2026-08-23",
       "type": "qualifier",
-      "note": "Single-day Best-of-One Timeless Qualifier Play-In. Feeds the Aug 29–30 Qualifier Weekend."
+      "note": "Single-day BO1 Timeless Play-In. Play for a Qualifier Token for the Aug 29-30 Qualifier Weekend.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "4fea791cdc8353ad",
-      "title": "Contender Draft (Hobbit)",
+      "title": "Contender Draft: HOB",
       "start": "2026-08-24",
       "end": "2026-09-30",
       "type": "contender_draft",
-      "note": "Premier Draft structure with competitive-event prizing. Entry 3,000 gems / 20,000 gold; runs to 7 wins or 3 losses. 6 wins: 4,200 gems + 10 packs + 4 mythic packs; 7 wins: 7,200 gems + 12 packs, plus…"
+      "note": "Premier Draft of The Hobbit with competitive prizing. Play for a Draft Contender title.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "034f79286872087a",
-      "title": "Flashback Draft — Tales of Middle-earth",
+      "title": "Flashback Draft: LTR",
       "start": "2026-08-25",
       "end": "2026-09-08",
       "type": "flashback_draft",
-      "note": "Flashback Premier Draft: The Lord of the Rings: Tales of Middle-earth. (Also: Hobbit + LTR mixed Sealed runs Aug 28–Sep 3.)"
+      "note": "Premier Draft of The Lord of the Rings: Tales of Middle-earth, back for a limited window.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "dd6ef876e8995c93",
-      "title": "Bo3 Qualifier Play-In (Timeless)",
+      "title": "Qualifier Play-In BO3: Timeless",
       "start": "2026-08-28",
       "end": "2026-08-29",
       "type": "qualifier",
-      "note": "Best-of-Three Timeless Qualifier Play-In — last chance to earn a token for the Qualifier Weekend."
+      "note": "BO3 Timeless Play-In. Play for a Qualifier Token. Last chance before the Qualifier Weekend.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "682916a0a96e7686",
-      "title": "Arena Direct — Hobbit Play Booster boxes",
+      "title": "Arena Direct: HOB Play Boxes",
       "start": "2026-08-28",
       "end": "2026-09-07",
       "type": "arena_direct",
-      "note": "Arena Direct (Bo1). Physical Play Booster boxes for top finishers, while supplies last."
+      "note": "BO1 Arena Direct. Play for physical Hobbit Play Booster boxes, while supplies last.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "9f0defcd1ac3672a",
-      "title": "Qualifier Weekend (Timeless)",
+      "title": "Qualifier Weekend: Timeless",
       "start": "2026-08-29",
       "end": "2026-08-31",
       "type": "qualifier",
-      "note": "Two-day Arena Championship Qualifier Weekend, Timeless (Bo3). Requires a Qualifier Token. Each day has a 2-hour entry window — check in-client for exact times."
+      "note": "Two-day BO3 Timeless event. Requires a Qualifier Token. Play for an Arena Championship invitation.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "81e387341d676e53",
@@ -64,15 +92,23 @@
       "start": "2026-09-04",
       "end": "2026-09-19",
       "type": "other_draft",
-      "note": "8-player draft with special packs that can contain any collectible card on Arena."
+      "note": "Premier Draft with special packs that can contain any collectible card on Arena.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "990fc6d94c9a96d4",
-      "title": "Flashback Draft — Modern Horizons 3",
+      "title": "Flashback Draft: MH3",
       "start": "2026-09-08",
       "end": "2026-09-16",
       "type": "flashback_draft",
-      "note": "Flashback Premier Draft: Modern Horizons 3."
+      "note": "Premier Draft of Modern Horizons 3, back for a limited window.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "93d01b1e5f9158d9",
@@ -80,79 +116,119 @@
       "start": "2026-09-08",
       "end": "2026-09-29",
       "type": "cube",
-      "note": "Arena Powered Cube returns for three weeks, with new-to-Arena cards and new cards in the Cube Prize Pack rewards. Events typically open 8am PT on the start date and close to entries 8am PT on the end…"
+      "note": "Cube Draft, back for three weeks. Play for Cube Prize Packs, including new-to-Arena cards.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "b218f3521229609d",
-      "title": "Hobbit Limited Open ($2k top prize)",
+      "title": "Limited Open: HOB",
       "start": "2026-09-11",
       "end": "2026-09-14",
       "type": "limited_open",
-      "note": "New competitive draft tournament — two draft events, re-enterable over the weekend, up to $2,000 USD. Not an Arena Limited Championship Qualifier."
+      "note": "Hobbit Draft, re-enterable across the weekend. Play for up to $2,000. Not an Arena Limited Championship Qualifier.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "244a47c5e14c4152",
-      "title": "Bo1 Qualifier Play-In (Hobbit Sealed)",
+      "title": "Qualifier Play-In BO1: HOB Sealed",
       "start": "2026-09-12",
       "end": "2026-09-13",
       "type": "qualifier",
-      "note": "Best-of-One Qualifier Play-In. September format: The Hobbit Sealed. Feeds the Sep 19–20 Qualifier Weekend."
+      "note": "BO1 Hobbit Sealed Play-In. Play for a Qualifier Token for the Sep 19-20 Qualifier Weekend.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "e3560883f95aead3",
-      "title": "Arena Direct — Aetherdrift Play Booster boxes",
+      "title": "Arena Direct: DFT Play Boxes",
       "start": "2026-09-15",
       "end": "2026-09-21",
       "type": "arena_direct",
-      "note": "Limited-time Arena Direct featuring Aetherdrift Play Booster boxes."
+      "note": "Arena Direct. Play for physical Aetherdrift Play Booster boxes, while supplies last.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "a4c88597af79e138",
-      "title": "Flashback Draft — Dominaria United",
+      "title": "Flashback Draft: DMU",
       "start": "2026-09-16",
       "end": "2026-09-22",
       "type": "flashback_draft",
-      "note": "Flashback Premier Draft: Dominaria United."
+      "note": "Premier Draft of Dominaria United, back for a limited window.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "899e37d8786178ee",
-      "title": "Bo3 Qualifier Play-In (Hobbit Sealed)",
+      "title": "Qualifier Play-In BO3: HOB Sealed",
       "start": "2026-09-18",
       "end": "2026-09-19",
       "type": "qualifier",
-      "note": "Best-of-Three Qualifier Play-In, The Hobbit Sealed — last chance for a token before the Qualifier Weekend."
+      "note": "BO3 Hobbit Sealed Play-In. Play for a Qualifier Token. Last chance before the Qualifier Weekend.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "16c7224b8d603cf0",
-      "title": "Qualifier Weekend (Hobbit Sealed)",
+      "title": "Qualifier Weekend: HOB Sealed",
       "start": "2026-09-19",
       "end": "2026-09-21",
       "type": "qualifier",
-      "note": "Two-day Arena Championship Qualifier Weekend, The Hobbit Sealed (Bo3). Requires a Qualifier Token. Each day has a 2-hour entry window — check in-client for exact times."
+      "note": "Two-day BO3 Hobbit Sealed event. Requires a Qualifier Token. Play for an Arena Championship invitation.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "26fc0bf61e5812ee",
-      "title": "Flashback Draft — Outlaws of Thunder Junction",
+      "title": "Flashback Draft: OTJ",
       "start": "2026-09-22",
       "end": "2026-09-29",
       "type": "flashback_draft",
-      "note": "Flashback Premier Draft: Outlaws of Thunder Junction."
+      "note": "Premier Draft of Outlaws of Thunder Junction, back for a limited window.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "604280c7a712eae4",
-      "title": "Arena Direct — March of the Machine Set Booster boxes",
+      "title": "Arena Direct: MOM Set Boxes",
       "start": "2026-09-25",
       "end": "2026-09-28",
       "type": "arena_direct",
-      "note": "Limited-time Arena Direct featuring March of the Machine Set Booster boxes."
+      "note": "Arena Direct. Play for physical March of the Machine Set Booster boxes, while supplies last.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     },
     {
       "id": "c5f0f0ccaf9dbac4",
-      "title": "Reality Fracture releases on Arena",
+      "title": "Release: FRA",
       "start": "2026-09-29",
       "end": "2026-09-30",
       "type": "set_release",
-      "note": "Next Standard set hits Arena. Hobbit Premier/Contender Draft and the current event cycle end this day; a new event schedule will be published shortly before."
+      "note": "Reality Fracture arrives on Arena. The Hobbit event cycle ends this day.",
+      "link": {
+        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "text": "More Info"
+      }
     }
   ]
 }
