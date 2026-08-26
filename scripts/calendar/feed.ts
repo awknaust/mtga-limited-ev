@@ -5,7 +5,12 @@
  * Two things happen here and both are normalisation rather than modelling.
  * Every entry is flattened to a span of days, because the app draws day-wide
  * bars and an hour is not a thing it can show. And every description is
- * reduced to text, because Google's is documented to carry HTML.
+ * reduced to text, because Google's is documented to carry HTML — with one
+ * exception: a description *ending* in a link is a call-to-action ("More
+ * Info", on every event the clean calendar carries), and stripping it to its
+ * text used to leave the words with nowhere to go. That trailing anchor is
+ * carried whole as `link`; anchors in the body of the text still flatten to
+ * their words, since cutting one out would take a piece of a sentence with it.
  *
  * What is deliberately *not* decided here: which entries are worth showing,
  * what window the reader sees, what any of them mean. The window this feed
@@ -45,6 +50,13 @@ export type CalendarEntry = {
   end: string;
   /** Description as plain text, absent when there was none worth carrying. */
   note?: string;
+  /**
+   * The call-to-action link the description ended with, when it did — the
+   * "More Info" anchor the clean calendar's events carry. Only `http(s)`
+   * hrefs qualify: the target is an `<a>` the app renders, and no other
+   * scheme has any business riding a public feed into one.
+   */
+  link?: { href: string; text: string };
   /**
    * The author's category — the copier's
    * `extendedProperties.shared.mtgaEventType`, held to the closed set in
@@ -131,6 +143,36 @@ function stripHtml(html: string): string {
 }
 
 /**
+ * An `<a href=…>…</a>`, groups: quoted or bare href, then the inner markup.
+ * Lazy to the nearest `</a>`, which is right for the flat HTML calendar
+ * descriptions actually are.
+ */
+const ANCHOR = /<a\s[^>]*href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>"']+))[^>]*>([\s\S]*?)<\/a>/gi;
+
+/**
+ * A description split into its body and the link it ended with, if any.
+ *
+ * "Ended with" is judged after stripping: the last anchor counts as trailing
+ * when everything past it — closing tags, `<br>`s, entity whitespace — strips
+ * to nothing, so `<p>text <a …>More Info</a></p>` qualifies and an anchor
+ * mid-sentence never does. An anchor that fails the bar (a non-http(s)
+ * scheme, an empty label, text after it) is left in place for `stripHtml`
+ * to flatten as before, which is the fallback that cannot mangle anything.
+ * The href is entity-decoded like any other attribute — `&amp;` in a query
+ * string is one `&`.
+ */
+function splitTrailingLink(html: string): { body: string; link?: { href: string; text: string } } {
+  const last = [...html.matchAll(ANCHOR)].at(-1);
+  if (last === undefined || stripHtml(html.slice(last.index + last[0].length)) !== "") {
+    return { body: html };
+  }
+  const href = decodeHTML(last[1] ?? last[2] ?? last[3] ?? "").trim();
+  const text = stripHtml(last[4]);
+  if (!/^https?:\/\//i.test(href) || text === "") return { body: html };
+  return { body: html.slice(0, last.index), link: { href, text } };
+}
+
+/**
  * The published row key: a one-way hash of Google's event id.
  *
  * The raw id was the one Google field that survived into the payload, against
@@ -164,7 +206,10 @@ export async function buildCalendarFeed(events: RawEvent[], now: Date): Promise<
         ? event.eventTypeProperty
         : null;
     if (type === null) continue;
-    const note = event.description === null ? "" : stripHtml(event.description);
+    // The link comes off before the cap, so a long description can never
+    // truncate its own call-to-action away.
+    const { body, link } = splitTrailingLink(event.description ?? "");
+    const note = body === "" ? "" : stripHtml(body);
     entries.push({
       id: await rowKey(event.id),
       title: event.title,
@@ -174,6 +219,7 @@ export async function buildCalendarFeed(events: RawEvent[], now: Date): Promise<
       ...(note === ""
         ? {}
         : { note: note.length > MAX_NOTE ? `${note.slice(0, MAX_NOTE - 1).trimEnd()}…` : note }),
+      ...(link === undefined ? {} : { link }),
     });
   }
 

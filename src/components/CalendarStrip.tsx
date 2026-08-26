@@ -449,6 +449,17 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
               {selected.entry.note !== undefined && (
                 <span className="calendar-popover-note">{selected.entry.note}</span>
               )}
+              {selected.entry.link !== undefined && (
+                <a
+                  className="calendar-popover-link"
+                  href={selected.entry.link.href}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {selected.entry.link.text}{" "}
+                  <i className="bi bi-box-arrow-up-right" aria-hidden="true" />
+                </a>
+              )}
             </div>
           )}
         </div>
