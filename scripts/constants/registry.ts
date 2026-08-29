@@ -31,20 +31,11 @@
  *
  * Most entries are sourced — Wizards' drop-rates page, Scryfall, the
  * box-price feed — or read off the client and recorded with a date in
- * `by-hand.ts`. Seven are neither: DEFAULT_WIN_RATE_MATCHES,
- * DEFAULT_GAMES_PER_DAY and BO3_GAMES_PER_MATCH are modelling choices about
- * the reader and the format; DEFAULT_BOX_MARKDOWN is a one-time estimate,
- * checked by hand against Card Kingdom's sealed buylist rather than fetched,
- * since the tool has no parser for that page and one comparison was the
- * point; and DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
- * DEFAULT_COSMETIC_VALUE_GEMS and DEFAULT_DAILY_WIN_ICR_VALUE_GEMS are zeros
- * rather than numbers — the first two because nothing converts to gems at
- * all, the last because what it converts through is duplicate protection on
- * cards drawn from any Standard set, which the model deliberately does not
- * grow a term for; its derivation prints the figure that term would use.
- * Those seven have nothing to fetch, so their `compute` returns the figure
- * with the reasoning and no source, and they are here so the inventory has no
- * holes — not because running this can move them.
+ * `by-hand.ts`. The rest have nothing to fetch — modelling choices, zeros by
+ * refusal, one-time estimates checked by hand — so their `compute` returns
+ * the figure with the reasoning and no source; each entry's own `explain`
+ * says which it is. They are here so the inventory has no holes, not because
+ * running this can move them.
  *
  * The two generic box constants are the heavy ones: their data is the
  * box-price feed (`scripts/box-prices/`, fetched in full when they are asked

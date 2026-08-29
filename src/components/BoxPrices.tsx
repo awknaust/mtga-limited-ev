@@ -173,7 +173,7 @@ export function BoxPrices({
                 Generic
                 <InfoTip
                   label="About the generic box value"
-                  content="What a box starts from when the payout names no set: an average street price across three recent Standard sets, until you edit it under Values & assumptions. A payout naming a set starts from that set's row below. The box markdown then comes off either."
+                  content="Market value assigned to a generic box, for custom-configured events. The box markdown also affects this number."
                 />
               </td>
               <td className="text-end">

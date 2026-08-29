@@ -384,7 +384,7 @@ export function AdvancedDialog({
               Box markdown (%)
               <InfoTip
                 label="About box markdown"
-                content="How far under market price selling a box actually pays. Taken off every box price, whether the payout names a set or not. Default: 15%, about what a patient sale on TCGplayer gives up in fees and shipping; Card Kingdom's cash buylist pays about 23% under."
+                content="How far under market price selling a box actually pays. Default: 15%, about what a patient sale on TCGplayer gives up in fees and shipping."
               />
             </label>
             <NumberInput
