@@ -109,13 +109,22 @@ export const boxPriceSet = (table: BoxPriceTable, code: string) =>
  *
  * The zero check comes first deliberately: a generic rate of zero means boxes
  * are worth nothing, and a named box is still a box.
+ *
+ * Whichever route named the price, the markdown then comes off it. Every
+ * figure above is what a box *trades at* — the feed's market prices and the
+ * generic rates both — and selling one returns less: fees, shipping, and
+ * pricing to actually sell. `config.boxMarkdown` is that haircut, applied
+ * here so every box the model prices pays it exactly once.
  */
 export function boxValueGems(config: EventConfig, box: PayoutBox): number {
   const generic = genericBoxValueGems(config, box.kind);
   if (generic === 0) return 0;
   const code = boxSetCode(config.boxPrices, box);
-  if (code === null) return generic;
-  return boxPriceSet(config.boxPrices, code)?.boxes[box.kind] ?? generic;
+  const market =
+    code === null
+      ? generic
+      : (boxPriceSet(config.boxPrices, code)?.boxes[box.kind] ?? generic);
+  return market * (1 - config.boxMarkdown);
 }
 
 /** A box's identity, which is its kind and the set it names. */

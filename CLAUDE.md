@@ -452,9 +452,10 @@ the date it was decided for a choice — is required alongside it and admits
 no `null`: a value with no date reads as one nobody need look at again,
 which is least true of the choices. Keep that import
 type-only: the tool must never run app code or learn a constant's current
-value, which is why it has no exit code for "a number moved". The six with
+value, which is why it has no exit code for "a number moved". The seven with
 nothing to fetch — the win-rate match count, games per day, Bo3 games per
-match, and the three zero values (qualifier token, cosmetics, the daily-win
+match, the box markdown (a one-time estimate from Card Kingdom's buylist and
+TCGplayer's seller fees), and the three zero values (qualifier token, cosmetics, the daily-win
 ICR — the last of those zero because it would convert through duplicate
 protection on cards from any Standard set, which the model does not grow a
 term for) — are entries all the same, printing the figure and its reasoning so the inventory

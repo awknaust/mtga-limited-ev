@@ -495,6 +495,49 @@ export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
 );
 
 /**
+ * Default share of a box's price lost in actually selling it.
+ *
+ * The two constants above and the live feed's per-set figures are market
+ * prices — what a box trades at — and nobody selling one pockets the trading
+ * price: a buylist pays below market outright, and a marketplace sale gives
+ * up commission, payment fees and shipping. This is that haircut, applied to
+ * *every* box the model prices — named set and generic alike, in
+ * `boxValueGems`. Set the field to 0 to count boxes at their full market
+ * figure.
+ *
+ * Estimated once, on 2026-08-28, by pricing the same twenty boxes — seven
+ * Play, thirteen Collector, the sets both sides carried — three ways against
+ * this repo's feed of TCGplayer market prices (copy of 2026-08-17):
+ *
+ *  - **Card Kingdom's buylist, in cash**: a median 23% under market
+ *    (5%–36%). The floor, since it is selling today — and the newest sets,
+ *    which are the boxes Arena Direct actually pays, were not on the buylist
+ *    at any price.
+ *  - **Card Kingdom's buylist, in store credit**: exactly cash × 1.3, a
+ *    median 0% under market and on some boxes above it. Rejected as the
+ *    default: credit spends only at Card Kingdom, whose retail runs above
+ *    TCGplayer market, so credit at or over market measures their margin
+ *    rather than the box — the same face-value trap
+ *    DEFAULT_PLAY_IN_POINT_VALUE_GEMS documents for points.
+ *  - **Selling it yourself on TCGplayer**: 10.75% marketplace commission
+ *    (capped at $75 an order since 2026-02-10, which is why the dearest
+ *    Collector boxes fee out under 10%) plus 2.5% + $0.30 processing plus
+ *    roughly $12 of shipping — a median 16% under market (8%–22%), assuming
+ *    a patient sale at the market price.
+ *
+ * 15% is the marketplace reading rounded down a point (chosen 2026-08-28): a
+ * prize box arrives unbidden and there is no hurry to move it, so the
+ * patient route is the natural default, and the cash buylist is then the
+ * price of impatience rather than the value of the box. `npm run
+ * refresh:constants -- DEFAULT_BOX_MARKDOWN --verbose` prints the same
+ * derivation.
+ *
+ * @see https://www.cardkingdom.com/purchasing/mtg_sealed
+ * @see https://seller.tcgplayer.com/blog/important-changes-to-tcgplayer-direct-minimum-pricing-and-marketplace-fees
+ */
+export const DEFAULT_BOX_MARKDOWN = 0.15;
+
+/**
  * Default gem value of one Player Draft token.
  *
  * Wizards describes it as "redeemable for a Premier or Traditional Draft entry",
@@ -653,6 +696,7 @@ export function defaultConfig(): EventConfig {
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+    boxMarkdown: DEFAULT_BOX_MARKDOWN,
     // Replaced when the live feed lands. Until then the boxes are named and
     // priced from the feed the app shipped with, which is the same answer,
     // older.
