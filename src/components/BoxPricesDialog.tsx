@@ -36,6 +36,7 @@ export function BoxPricesDialog({
         live={boxFeed !== null}
         playBoxValueGems={config.playBoxValueGems}
         collectorBoxValueGems={config.collectorBoxValueGems}
+        boxMarkdown={config.boxMarkdown}
         gemsPerUsd={gemsPerUsd}
         now={now}
       />

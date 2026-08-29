@@ -6,6 +6,13 @@ import { SectionHeading } from "./SectionHeading";
 const show = (m: Money, n: number): string =>
   Number.isFinite(n) ? approx(m.fmt(n)) : "—";
 
+/*
+ * The markdown as typed, not as `pct` would round it: 12.5% must not read
+ * 13%, and 20% must not read 20.0%. Two decimal places of a percent is the
+ * finest the dialog's own rounding keeps.
+ */
+const markdownPct = (fraction: number): string => `${Math.round(fraction * 1e4) / 100}%`;
+
 /**
  * What a box is valued at, in the one form that is true of both boxes: it
  * depends on the set, and here are the sets. Sized and aligned to sit in a
@@ -135,16 +142,22 @@ export function About({
               <td>Qualifier tokens</td>
               <td>{show(m, config.qualifierTokenValueGems)} each</td>
             </tr>
+            {/* The markdown is part of the rate, so the row that promises
+                every rate is stated has to say it — "varies by set" alone
+                would claim the market price, which no box is valued at while
+                the markdown is non-zero. */}
             <tr>
               <td>Play Booster box</td>
               <td>
                 <BoxPricesLink onClick={onShowBoxPrices} />
+                {config.boxMarkdown > 0 && <>, less {markdownPct(config.boxMarkdown)}</>}
               </td>
             </tr>
             <tr>
               <td>Collector Booster box</td>
               <td>
                 <BoxPricesLink onClick={onShowBoxPrices} />
+                {config.boxMarkdown > 0 && <>, less {markdownPct(config.boxMarkdown)}</>}
               </td>
             </tr>
             {/* Below here nothing is paid by an event ladder — these are the

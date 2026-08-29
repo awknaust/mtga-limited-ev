@@ -44,6 +44,7 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   qualifierTokenValueGems: 4831,
   playBoxValueGems: 1,
   collectorBoxValueGems: 2,
+  boxMarkdown: 0.3,
   /*
    * Not a setting anyone edits — it is what the live feed said — but it is in
    * the key for the reason everything else is: a box repriced overnight is a

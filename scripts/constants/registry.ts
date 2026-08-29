@@ -31,17 +31,11 @@
  *
  * Most entries are sourced — Wizards' drop-rates page, Scryfall, the
  * box-price feed — or read off the client and recorded with a date in
- * `by-hand.ts`. Six are neither: DEFAULT_WIN_RATE_MATCHES,
- * DEFAULT_GAMES_PER_DAY and BO3_GAMES_PER_MATCH are modelling choices about
- * the reader and the format, and DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
- * DEFAULT_COSMETIC_VALUE_GEMS and DEFAULT_DAILY_WIN_ICR_VALUE_GEMS are zeros
- * rather than numbers — the first two because nothing converts to gems at
- * all, the last because what it converts through is duplicate protection on
- * cards drawn from any Standard set, which the model deliberately does not
- * grow a term for; its derivation prints the figure that term would use.
- * Those six have nothing to fetch, so their `compute` returns the figure with
- * the reasoning and no source, and they are here so the inventory has no
- * holes — not because running this can move them.
+ * `by-hand.ts`. The rest have nothing to fetch — modelling choices, zeros by
+ * refusal, one-time estimates checked by hand — so their `compute` returns
+ * the figure with the reasoning and no source; each entry's own `explain`
+ * says which it is. They are here so the inventory has no holes, not because
+ * running this can move them.
  *
  * The two generic box constants are the heavy ones: their data is the
  * box-price feed (`scripts/box-prices/`, fetched in full when they are asked
@@ -417,6 +411,34 @@ export const REGISTRY = {
         value: basis.collectorGems,
         asOf: fetchedOn(ctx),
         explain: explainBoxBasis(basis, "collector"),
+      };
+    },
+  },
+
+  DEFAULT_BOX_MARKDOWN: {
+    summary: "share of a box's market price lost in selling it — a one-time estimate",
+    sources: [],
+    compute() {
+      return {
+        value: 0.15,
+        asOf: "2026-08-28",
+        explain: [
+          "a one-time estimate, not fetched by this tool: the same twenty boxes (7 play, 13 collector)",
+          "  priced three ways on 2026-08-28 against the feed's TCGplayer market prices (copy of 2026-08-17)",
+          "Card Kingdom buylist, cash           median 23% under market (5%..36%) — the sell-it-today floor;",
+          "  the newest sets, which are the boxes Arena Direct pays, were not on the buylist at any price",
+          "Card Kingdom buylist, store credit   exactly cash x 1.3, median 0% and sometimes over market —",
+          "  rejected: credit spends only at their above-market retail, the face-value trap the play-in",
+          "  point entry documents",
+          "selling on TCGplayer yourself        10.75% commission (capped at $75/order since 2026-02-10)",
+          "  + 2.5% + $0.30 processing + ~$12 shipping = median 16% under market (8%..22%), for a patient",
+          "  sale at the market price",
+          "chosen 2026-08-28: 15%, the marketplace reading rounded down a point — a prize box arrives",
+          "  unbidden and there is no hurry to move it, so the patient route is the natural default, and",
+          "  the cash buylist is the price of impatience rather than the value of the box",
+          "  https://www.cardkingdom.com/purchasing/mtg_sealed",
+          "  https://seller.tcgplayer.com/blog/important-changes-to-tcgplayer-direct-minimum-pricing-and-marketplace-fees",
+        ],
       };
     },
   },

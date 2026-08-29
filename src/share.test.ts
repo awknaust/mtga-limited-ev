@@ -235,6 +235,7 @@ describe("round trips", () => {
         qualifierTokenValueGems: 4830,
         playBoxValueGems: 60000,
         collectorBoxValueGems: 250000,
+        boxMarkdown: 0.15,
         payouts: [
           { wins: 0, gems: 10, packs: 1 },
           { wins: 1, gems: 20, packs: 1 },
@@ -343,6 +344,7 @@ describe("resetting advanced settings", () => {
         qualifierTokenValueGems: 4830,
         playBoxValueGems: 60_000,
         collectorBoxValueGems: 250_000,
+        boxMarkdown: 0.25,
         otherGoldPerDay: 900,
         gamesPerDay: 30,
         gamesPerMatch: 2.5,
@@ -402,6 +404,7 @@ describe("resetting advanced settings", () => {
 
     expect([...before.keys()].filter((k) => !after.has(k)).sort()).toEqual([
       "avatarValue",
+      "boxMarkdown",
       "cardStyleValue",
       "collectorBoxValue",
       "companionValue",
@@ -455,6 +458,7 @@ describe("resetting advanced settings", () => {
     expect(reset.config.qualifierTokenValueGems).toBe(config.qualifierTokenValueGems);
     expect(reset.config.playBoxValueGems).toBe(config.playBoxValueGems);
     expect(reset.config.collectorBoxValueGems).toBe(config.collectorBoxValueGems);
+    expect(reset.config.boxMarkdown).toBe(config.boxMarkdown);
     // The mastery track's rates, which the reset reaches for the same reason it
     // reaches the rest: `resetAdvanced` names what it keeps, not what it clears,
     // so a rate added to the dialog is restored without anyone editing it.

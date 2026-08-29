@@ -495,6 +495,22 @@ export const DEFAULT_COLLECTOR_BOX_VALUE_GEMS = Math.round(
 );
 
 /**
+ * Default share of a box's price lost in actually selling it.
+ *
+ * The two constants above and the live feed's per-set figures are market
+ * prices — what a box trades at — and nobody selling one pockets the trading
+ * price. Applied to *every* box the model prices — named set and generic
+ * alike, in `boxValueGems`. Set the field to 0 to count boxes at their full
+ * market figure.
+ *
+ * A one-time estimate, chosen 2026-08-28: about what a patient sale on
+ * TCGplayer gives up in fees and shipping. The derivation lives in the
+ * constants registry — `npm run refresh:constants -- DEFAULT_BOX_MARKDOWN
+ * --verbose` prints it.
+ */
+export const DEFAULT_BOX_MARKDOWN = 0.15;
+
+/**
  * Default gem value of one Player Draft token.
  *
  * Wizards describes it as "redeemable for a Premier or Traditional Draft entry",
@@ -653,6 +669,7 @@ export function defaultConfig(): EventConfig {
     draftPackValueGems: DEFAULT_DRAFT_PACK_VALUE_GEMS,
     playBoxValueGems: DEFAULT_PLAY_BOX_VALUE_GEMS,
     collectorBoxValueGems: DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+    boxMarkdown: DEFAULT_BOX_MARKDOWN,
     // Replaced when the live feed lands. Until then the boxes are named and
     // priced from the feed the app shipped with, which is the same answer,
     // older.

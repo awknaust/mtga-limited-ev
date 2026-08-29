@@ -102,6 +102,7 @@ export function AdvancedDialog({
     funValue: `${uid}-fun-value`,
     playBoxValue: `${uid}-play-box-value`,
     collectorBoxValue: `${uid}-collector-box-value`,
+    boxMarkdown: `${uid}-box-markdown`,
     draftTokenValue: `${uid}-draft-token-value`,
     mythicIcrValue: `${uid}-mythic-icr-value`,
     rareCardValue: `${uid}-rare-card-value`,
@@ -376,6 +377,28 @@ export function AdvancedDialog({
               gemsPerUsd={gemsPerUsd}
               gemValue={config.collectorBoxValueGems}
               onChange={(n) => set("collectorBoxValueGems", n)}
+            />
+          </div>
+          <div className="col-6">
+            <label htmlFor={ids.boxMarkdown} className="form-label">
+              Box markdown (%)
+              <InfoTip
+                label="About box markdown"
+                content="How far under market price selling a box actually pays. Default: 15%, about what a patient sale on TCGplayer gives up in fees and shipping."
+              />
+            </label>
+            <NumberInput
+              id={ids.boxMarkdown}
+              min={0}
+              fractional
+              /*
+               * Held as a fraction, edited as a percent — and rounded on the
+               * way out, because 0.2 × 100 is 20.000000000000004 in floating
+               * point and the field would echo the artefact. Six places on
+               * the fraction, matching the share link's own precision.
+               */
+              value={Math.round(config.boxMarkdown * 1e6) / 1e4}
+              onChange={(n) => set("boxMarkdown", Math.min(100, Math.max(0, n)) / 100)}
             />
           </div>
           {/* From here down: what the mastery track pays, which no

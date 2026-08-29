@@ -16,6 +16,7 @@ import {
   DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+  DEFAULT_BOX_MARKDOWN,
   EMPTY_BOX_PRICES,
   GEMS_PER_USD,
   GEMS_PER_10K_GOLD,
@@ -765,11 +766,13 @@ describe("holdings", () => {
      * Boxes have no rate here at all, and that is the point of naming them:
      * what one is worth is that product's own price, which `boxValueGems`
      * answers and `heldValue` applies. The generic rates below are what a box
-     * naming no set falls back to.
+     * naming no set falls back to — less the markdown, which every box pays.
      */
-    expect(boxValueGems(config, { kind: "play" })).toBe(DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(boxValueGems(config, { kind: "play" })).toBe(
+      DEFAULT_PLAY_BOX_VALUE_GEMS * (1 - DEFAULT_BOX_MARKDOWN),
+    );
     expect(boxValueGems(config, { kind: "collector" })).toBe(
-      DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+      DEFAULT_COLLECTOR_BOX_VALUE_GEMS * (1 - DEFAULT_BOX_MARKDOWN),
     );
     // Gold valued at nothing drops out, the same way runValue treats it.
     expect(holdingRate({ ...config, gemsPer10kGold: 0 }, "gold")).toBe(0);
@@ -975,12 +978,13 @@ describe("bankroll", () => {
      * single "play boxes" figure could not say.
      */
     const p = ev.outcomes;
+    const sold = (market: number) => market * (1 - config.boxMarkdown);
     expect(split[boxHoldingKey({ kind: "play", set: "spm" })]).toBeCloseTo(
-      (p[6].probability + p[7].probability) * 25_538,
+      (p[6].probability + p[7].probability) * sold(25_538),
       9,
     );
     expect(split[boxHoldingKey({ kind: "play", set: "msh" })]).toBeCloseTo(
-      p[7].probability * 23_444,
+      p[7].probability * sold(23_444),
       9,
     );
   });
@@ -2358,10 +2362,13 @@ describe("presets", () => {
     const msh = boxValueGems(config, { kind: "play", set: "msh" });
     expect(grossValue(config, 7)).toBe(spm + msh);
     expect(grossValue(config, 6)).toBe(spm);
-    // With no table at all, both fall back to the generic rate.
+    // With no table at all, both fall back to the generic rate — which pays
+    // the markdown like any other price.
     const bare = { ...config, boxPrices: EMPTY_BOX_PRICES };
-    expect(grossValue(bare, 7)).toBe(2 * config.playBoxValueGems);
-    expect(grossValue(bare, 6)).toBe(config.playBoxValueGems);
+    expect(grossValue(bare, 7)).toBe(
+      2 * (config.playBoxValueGems * (1 - config.boxMarkdown)),
+    );
+    expect(grossValue(bare, 6)).toBe(config.playBoxValueGems * (1 - config.boxMarkdown));
     // Valuing boxes at nothing strips the top two tiers back to zero, and it
     // has to do so for a box that names a set as much as for one that does not
     // — otherwise "zero these out" would leave an Arena Direct priced.
@@ -2386,13 +2393,47 @@ describe("presets", () => {
     };
     // Six wins is one Spider-Man box; seven is that and a Marvel Super Heroes
     // box, which are different prices — the thing a count times a rate cannot
-    // express.
-    expect(grossValue(config, 6)).toBe(25_538);
-    expect(grossValue(config, 7)).toBe(25_538 + 23_444);
+    // express. Each is its market price less the markdown.
+    const sold = (market: number) => market * (1 - config.boxMarkdown);
+    expect(grossValue(config, 6)).toBe(sold(25_538));
+    expect(grossValue(config, 7)).toBe(sold(25_538) + sold(23_444));
     // A set the feed does not carry falls back to the generic rate rather
     // than to nothing.
     const thin = { ...config, boxPrices: { ...config.boxPrices, sets: [config.boxPrices.sets[0]] } };
-    expect(grossValue(thin, 7)).toBe(25_538 + DEFAULT_PLAY_BOX_VALUE_GEMS);
+    expect(grossValue(thin, 7)).toBe(sold(25_538) + sold(DEFAULT_PLAY_BOX_VALUE_GEMS));
+  });
+
+  it("takes the markdown off every route a box gets priced by", () => {
+    /*
+     * The markdown is the gap between what a box trades at and what selling
+     * one returns, so it has to come off whichever figure named the price —
+     * a feed row, the resolved newest set, or the generic rate. A markdown
+     * applied on only one route would make a feed outage move the answer by
+     * more than the missing feed, which is the "never worse than an old one"
+     * rule broken quietly.
+     */
+    const table = {
+      sets: [
+        { code: "msh", name: "Marvel Super Heroes", releasedAt: "2026-06-26", boxes: { play: 20_000 } },
+      ],
+      latest: { play: "msh" },
+      generatedAt: "2026-08-16T00:00:00.000Z",
+    };
+    const config = { ...defaultConfig(), boxPrices: table, boxMarkdown: 0.25 };
+    expect(boxValueGems(config, { kind: "play", set: "msh" })).toBe(15_000);
+    expect(boxValueGems(config, { kind: "play", set: LATEST_SET })).toBe(15_000);
+    expect(boxValueGems(config, { kind: "play" })).toBe(
+      config.playBoxValueGems * 0.75,
+    );
+
+    // Zero restores the full market figure — the pre-markdown behaviour.
+    const full = { ...config, boxMarkdown: 0 };
+    expect(boxValueGems(full, { kind: "play", set: "msh" })).toBe(20_000);
+    expect(boxValueGems(full, { kind: "play" })).toBe(config.playBoxValueGems);
+
+    // The default is the constant, applied without anyone opening a dialog.
+    expect(defaultConfig().boxMarkdown).toBe(DEFAULT_BOX_MARKDOWN);
+    expect(DEFAULT_BOX_MARKDOWN).toBe(0.15);
   });
 
   it("resolves the newest-set boxes the sealed Arena Directs pay", () => {
@@ -2404,17 +2445,21 @@ describe("presets", () => {
       latest: { play: "hob", collector: "hob" },
       generatedAt: "2026-08-16T00:00:00.000Z",
     };
+    // The newest set's market price, less the markdown every box pays.
+    const sold = (market: number) => market * (1 - DEFAULT_BOX_MARKDOWN);
     const play = { ...configFromPreset(ARENA_DIRECT_PLAY, defaultConfig()), boxPrices };
-    expect(grossValue(play, 6) - grossValue(play, 5) + 10_800 + 24 * play.packValueGems).toBe(
-      38_658,
-    );
-    expect(boxValueGems(play, { kind: "play", set: LATEST_SET })).toBe(38_658);
+    expect(
+      grossValue(play, 6) - grossValue(play, 5) + 10_800 + 24 * play.packValueGems,
+    ).toBeCloseTo(sold(38_658), 6);
+    expect(boxValueGems(play, { kind: "play", set: LATEST_SET })).toBe(sold(38_658));
 
     const collector = {
       ...configFromPreset(ARENA_DIRECT_COLLECTOR, defaultConfig()),
       boxPrices,
     };
-    expect(boxValueGems(collector, { kind: "collector", set: LATEST_SET })).toBe(164_554);
+    expect(boxValueGems(collector, { kind: "collector", set: LATEST_SET })).toBe(
+      sold(164_554),
+    );
 
     // Nothing newest to resolve to — the feed has no collector price at all —
     // and the generic rate stands in.
@@ -2423,7 +2468,7 @@ describe("presets", () => {
       boxPrices: { ...boxPrices, latest: { play: "hob" } },
     };
     expect(boxValueGems(noCollector, { kind: "collector", set: LATEST_SET })).toBe(
-      DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
+      sold(DEFAULT_COLLECTOR_BOX_VALUE_GEMS),
     );
   });
 

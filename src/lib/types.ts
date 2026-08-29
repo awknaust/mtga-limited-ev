@@ -340,6 +340,18 @@ export type EventConfig = {
   /** Gem value of a generic Collector Booster box; see `playBoxValueGems`. */
   collectorBoxValueGems: number;
   /**
+   * The share of a box's price lost in actually selling it, 0..1.
+   *
+   * Every box price the model holds — the feed's per-set market figures and
+   * the two generic rates above — is what a box *trades at*, and a seller
+   * pockets less than that: marketplace fees, shipping, and listing under the
+   * going rate to actually move it. This is that haircut, taken off every box
+   * the model prices — named set, `latest` and generic alike — at the one
+   * place a box becomes a number (`boxValueGems`). 0 counts a box at its full
+   * market figure.
+   */
+  boxMarkdown: number;
+  /**
    * What each set's boxes trade for, from the live feed.
    *
    * Empty until the fetch lands, and empty for good on previews and in dev

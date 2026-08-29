@@ -135,13 +135,14 @@ const gemsAt = (config: EventConfig, wins: number): number =>
  * Gems one box is worth, re-derived rather than through `boxValueGems`:
  * nothing if the generic rate for its kind is zero; otherwise the price the
  * config's own table carries for the set it names, `latest` resolved through
- * that table too; and the generic rate where the table has none. The rule is
- * three lines and the table is input rather than the model's answer, so
- * reading it keeps this file's promise. It has to be read: a `defaultConfig()`
- * carries the feed the app shipped with, so a fresh Arena Direct really is
- * priced set by set here, and pricing its two boxes at one generic rate put
- * the reference 6,000 gems from the simulation — seven times its own noise —
- * the day the table stopped being empty.
+ * that table too; the generic rate where the table has none; and the markdown
+ * off whichever of those it was, since every one is a market price and
+ * selling returns less. The rule is four lines and the table is input rather
+ * than the model's answer, so reading it keeps this file's promise. It has to
+ * be read: a `defaultConfig()` carries the feed the app shipped with, so a
+ * fresh Arena Direct really is priced set by set here, and pricing its two
+ * boxes at one generic rate put the reference 6,000 gems from the simulation
+ * — seven times its own noise — the day the table stopped being empty.
  */
 function boxAt(config: EventConfig, box: PayoutBox): number {
   const generic =
@@ -149,7 +150,7 @@ function boxAt(config: EventConfig, box: PayoutBox): number {
   if (generic === 0) return 0;
   const code = box.set === LATEST_SET ? config.boxPrices.latest[box.kind] : box.set;
   const table = config.boxPrices.sets.find((s) => s.code === code)?.boxes[box.kind];
-  return table ?? generic;
+  return (table ?? generic) * (1 - config.boxMarkdown);
 }
 
 /**

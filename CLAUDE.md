@@ -452,13 +452,10 @@ the date it was decided for a choice — is required alongside it and admits
 no `null`: a value with no date reads as one nobody need look at again,
 which is least true of the choices. Keep that import
 type-only: the tool must never run app code or learn a constant's current
-value, which is why it has no exit code for "a number moved". The six with
-nothing to fetch — the win-rate match count, games per day, Bo3 games per
-match, and the three zero values (qualifier token, cosmetics, the daily-win
-ICR — the last of those zero because it would convert through duplicate
-protection on cards from any Standard set, which the model does not grow a
-term for) — are entries all the same, printing the figure and its reasoning so the inventory
-has no holes; a run cannot move them and says so. `registry.test.ts` then runs every entry
+value, which is why it has no exit code for "a number moved". The entries with
+nothing to fetch — modelling choices, zeros by refusal, one-time estimates —
+print the figure and its reasoning all the same, so the inventory has no
+holes; a run cannot move them and says so. `registry.test.ts` then runs every entry
 against stubbed sources, since the types cannot see a `compute` that throws
 or returns `NaN`. Figures only in the client
 live in `by-hand.ts` with the date each was last confirmed, and `--verbose`

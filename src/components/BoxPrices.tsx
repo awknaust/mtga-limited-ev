@@ -27,6 +27,10 @@ const priceText = (usd: number, gemsPerUsd: number): string =>
 const gemPriceText = (gems: number, gemsPerUsd: number): string =>
   `${usdAmount(gems / gemsPerUsd)} = ${approx(REAL_GEMS.fmt(gems))}`;
 
+/** The markdown as typed — 12.5% must not read 13%, nor 20% read 20.0%. */
+const markdownText = (fraction: number): string =>
+  `${Math.round(fraction * 1e4) / 100}%`;
+
 /** A market price, or an em dash where nothing has sold. */
 const marketText = (
   stats: BoxPriceStats | undefined,
@@ -70,6 +74,7 @@ export function BoxPrices({
   live,
   playBoxValueGems,
   collectorBoxValueGems,
+  boxMarkdown,
   gemsPerUsd,
   now,
 }: {
@@ -84,6 +89,13 @@ export function BoxPrices({
    */
   playBoxValueGems: number;
   collectorBoxValueGems: number;
+  /**
+   * The share the model takes off every price below — this table quotes what
+   * boxes trade at, and the model values them at less. Stated over the table
+   * so the figures here and the ones in the breakdowns do not silently
+   * disagree by exactly this much.
+   */
+  boxMarkdown: number;
   /** The reader's own rate, as Advanced settings has it. */
   gemsPerUsd: number;
   now: Date;
@@ -120,6 +132,16 @@ export function BoxPrices({
           tcgcsv
         </a>
         .
+        {/* The one adjustment between this table and the model's box figures,
+            said here so a breakdown card quoting less than a row below is not
+            read as a bug. */}
+        {boxMarkdown > 0 && (
+          <>
+            {" "}
+            The model values every box at {markdownText(boxMarkdown)} under
+            these prices — the box markdown in Values &amp; assumptions.
+          </>
+        )}
       </p>
       <div className="table-responsive box-price-scroll">
         <table className="table table-sm align-middle mb-0">
@@ -151,7 +173,7 @@ export function BoxPrices({
                 Generic
                 <InfoTip
                   label="About the generic box value"
-                  content="What the model prices a box at when the payout names no set: an average street price across three recent Standard sets, until you edit it under Values & assumptions. A payout naming a set is priced from that set's row below."
+                  content="Market value assigned to a generic box, for custom-configured events. The box markdown also affects this number."
                 />
               </td>
               <td className="text-end">

@@ -121,6 +121,9 @@ const CONFIG_NUMBERS = [
   ["qualifierTokenValue", "qualifierTokenValueGems"],
   ["playBoxValue", "playBoxValueGems"],
   ["collectorBoxValue", "collectorBoxValueGems"],
+  // A fraction like `wr`, and the one rate here that is not a gem amount: the
+  // share of a box's market price lost in selling it, taken off every box.
+  ["boxMarkdown", "boxMarkdown"],
   /*
    * The mastery rates. Nothing but the Mastery tab reads them, but they are
    * ordinary reward values sitting in Advanced settings beside the rest, and a
@@ -493,12 +496,13 @@ export function decodeShareState(search: string): ShareState {
   // does not match the table it also names, and the model requires that it does.
   const payouts = resizePayouts(decoded ?? base.payouts, maxPossibleWins(structure));
 
-  // Win rate is a probability; the rest are unbounded non-negative amounts.
+  // Win rate and the box markdown are fractions; the rest are unbounded
+  // non-negative amounts.
   const numbers = Object.fromEntries(
     CONFIG_NUMBERS.map(([key, field]) => [
       field,
       numberFrom(params, key, base[field] as number, {
-        max: field === "winRate" ? 1 : undefined,
+        max: field === "winRate" || field === "boxMarkdown" ? 1 : undefined,
       }),
     ]),
   ) as Pick<EventConfig, (typeof CONFIG_NUMBERS)[number][1]>;
