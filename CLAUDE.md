@@ -335,7 +335,10 @@ still says what is on — and it *starts* folded: the row answers the common
 glance, and opening is one click. The choice is remembered in localStorage — the app's
 only use of it, and deliberately not the URL: a fold changes nothing about
 what the numbers mean, and share links must not become unequal over a
-window-dressing preference. Note the key's spelling (`mtga.fyi:…`, not
+window-dressing preference. The memory is honoured only on a bare visit: a
+load whose URL already carries a query starts folded whatever is stored
+(`calendarStartsOpen` in `calendarFold.ts`), because such an arrival is about
+the numbers the query spells out. Note the key's spelling (`mtga.fyi:…`, not
 `calendar-…`): `CalendarStrip.test.ts` greps the component for `calendar-*`
 string literals and holds each to a class in the stylesheet, so a storage key
 that looks like a class name fails the suite.

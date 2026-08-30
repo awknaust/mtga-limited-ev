@@ -80,10 +80,18 @@ export function MultiSelect<K extends string>({
     setOpen(true);
   };
 
-  // Focus moves into the listbox once it exists, which is the commit after
-  // `open` flips rather than the handler that flipped it.
+  /*
+   * Focus moves into the listbox once it exists, which is the commit after
+   * `open` flips rather than the handler that flipped it. `preventScroll`,
+   * because a panel opened by tap must not move under the finger: focusing an
+   * element below the fold scrolls it into view — animated in Safari — so a
+   * tap already aimed at All or None lands on whatever slid beneath it, which
+   * for the row nearest the trigger is the page outside the panel, and the
+   * press that was meant to commit dismisses instead. Every other dropdown
+   * opens in place; this one only did not because it takes focus.
+   */
   useEffect(() => {
-    if (open) listbox.current?.focus();
+    if (open) listbox.current?.focus({ preventScroll: true });
   }, [open]);
 
   /*
@@ -177,7 +185,21 @@ export function MultiSelect<K extends string>({
 
       {open && (
         <div className="multiselect-panel">
-          <div className="multiselect-actions">
+          {/*
+           * `preventDefault` on mousedown, so pressing All or None moves no
+           * focus at all. Safari does not focus a tapped button — it lets the
+           * focus fall wherever it falls — and the `focusout` that raises has
+           * already closed this panel out from under one tap (the iPad affair
+           * `focusLeftControl` recounts). With no focus moved there is no
+           * `focusout` to misread, in any browser's telling of where the
+           * focus went, and the listbox keeps it, so the arrow keys still
+           * work after a press. The click is unaffected: it pairs with
+           * mouseup, not with mousedown's default.
+           */}
+          <div
+            className="multiselect-actions"
+            onMouseDown={(e) => e.preventDefault()}
+          >
             <button
               type="button"
               className="btn btn-sm btn-outline-secondary"
@@ -227,6 +249,9 @@ export function MultiSelect<K extends string>({
                         setActive(flat.findIndex((o) => o.key === option.key));
                         toggle(option.key);
                       }}
+                      // The same mousedown guard as the action row: committing
+                      // an option must not move focus off the listbox.
+                      onMouseDown={(e) => e.preventDefault()}
                     >
                       <i
                         className={`bi ${isChosen ? "bi-check-square" : "bi-square"}`}

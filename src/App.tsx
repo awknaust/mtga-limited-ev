@@ -89,6 +89,14 @@ export default function App({
       ? decoded
       : { ...decoded, config: withLiveBoxPrices(decoded.config, boxFeed, new Date()) };
   });
+  /*
+   * Whether this page was opened on a URL already carrying a query — a share
+   * link, or a reload of an edited page. Captured once, because the effect
+   * below rewrites the query on every edit: read live, this would flip at the
+   * first keystroke. Only the calendar strip reads it, to mount folded on an
+   * arrival that is about the numbers in the link.
+   */
+  const [arrivedOnShareLink] = useState(() => window.location.search !== "");
   /**
    * A field or two at a time, which is how every control here edits.
    *
@@ -450,7 +458,10 @@ export default function App({
           band of rows rather than a panel. It renders nothing at all when the
           calendar has nothing in the window, which is the state a preview or a
           fresh checkout is in. */}
-      <CalendarStrip calendar={calendar ?? FALLBACK_CALENDAR} />
+      <CalendarStrip
+        calendar={calendar ?? FALLBACK_CALENDAR}
+        arrivedOnShareLink={arrivedOnShareLink}
+      />
 
       <div className="row g-3 align-items-start">
         <InputPanel
