@@ -8,7 +8,6 @@ import {
   type CalendarBar,
   type CalendarFeed,
 } from "../lib";
-import { calendarStartsOpen } from "./calendarFold";
 import { INSIDE_PAD, layoutCalendar, tickEvery } from "./calendarLayout";
 
 /**
@@ -46,34 +45,6 @@ function rangeText(
 }
 
 /**
- * Where the reader's collapse choice lives. The first and only localStorage
- * in this app, and deliberately so: everything that changes what the numbers
- * mean rides in the link, and folding the calendar away changes nothing about
- * them — it is a device preference, like a window size, and putting it in the
- * URL would make two otherwise-identical links unequal. Storage being denied
- * (private browsing, hardened settings) costs only the memory of the choice.
- * The same reasoning cuts the other way on arrival: a load that carries a
- * query is about that query's numbers, so it starts folded whatever is
- * remembered — `calendarStartsOpen` in `calendarFold.ts` is the decision.
- *
- * Namespaced with the site, and not spelled `calendar-…`, which
- * `CalendarStrip.test.ts` would read as a class name to hold the stylesheet
- * to.
- */
-const COLLAPSE_KEY = "mtga.fyi:collapse-calendar";
-
-const readStored = (): string | null => {
-  // What the fold decision means is `calendarStartsOpen`'s to say; this is
-  // only the read. Storage denied (private browsing, hardened settings) reads
-  // as no choice recorded, which mounts folded.
-  try {
-    return localStorage.getItem(COLLAPSE_KEY);
-  } catch {
-    return null;
-  }
-};
-
-/**
  * What is running, and when — a week back and two months on — above everything
  * else on the page.
  *
@@ -96,19 +67,7 @@ const readStored = (): string | null => {
  * measures itself and lays out in the reader's own pixels. `styles.css` has
  * the rest of that reasoning.
  */
-export function CalendarStrip({
-  calendar,
-  arrivedOnShareLink,
-}: {
-  calendar: CalendarFeed;
-  /**
-   * Whether the page was opened on a URL already carrying a query — a share
-   * link, or a reload of an edited page. Captured by App at mount, because
-   * the URL is rewritten on every edit after that; here it decides only how
-   * the strip mounts (`calendarStartsOpen`), never how it behaves.
-   */
-  arrivedOnShareLink: boolean;
-}) {
+export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
   const plot = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(0);
   /*
@@ -120,23 +79,19 @@ export function CalendarStrip({
    * required.
    */
   const [selected, setSelected] = useState<CalendarBar | null>(null);
-  const [open, setOpen] = useState(() =>
-    calendarStartsOpen(readStored(), arrivedOnShareLink),
-  );
+  /*
+   * Folded on every mount, and deliberately remembered nowhere. Not in the
+   * URL, where a window-dressing preference would make two otherwise-equal
+   * links unequal; not in localStorage either — that was shipped and backed
+   * out, because an open remembered on one visit surfaced the calendar above
+   * the numbers of every later share link. The strip is a glance, the folded
+   * row already answers it, and opening is one click.
+   */
+  const [open, setOpen] = useState(false);
 
   const toggle = () => {
-    const next = !open;
-    setOpen(next);
+    setOpen(!open);
     setSelected(null);
-    // Computed outside the try: React Compiler cannot yet compile value
-    // blocks inside try/catch and bails out of the whole component —
-    // silently, which is what react-compiler.test.ts exists to catch.
-    const stored = next ? "0" : "1";
-    try {
-      localStorage.setItem(COLLAPSE_KEY, stored);
-    } catch {
-      // The choice is not remembered; the toggle still works.
-    }
   };
 
   /*
