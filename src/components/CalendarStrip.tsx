@@ -45,31 +45,6 @@ function rangeText(
 }
 
 /**
- * Where the reader's collapse choice lives. The first and only localStorage
- * in this app, and deliberately so: everything that changes what the numbers
- * mean rides in the link, and folding the calendar away changes nothing about
- * them — it is a device preference, like a window size, and putting it in the
- * URL would make two otherwise-identical links unequal. Storage being denied
- * (private browsing, hardened settings) costs only the memory of the choice.
- *
- * Namespaced with the site, and not spelled `calendar-…`, which
- * `CalendarStrip.test.ts` would read as a class name to hold the stylesheet
- * to.
- */
-const COLLAPSE_KEY = "mtga.fyi:collapse-calendar";
-
-const readCollapsed = (): boolean => {
-  // Collapsed until the reader says otherwise: the strip is a glance, and the
-  // folded row already answers it. Only an explicit open ("0") is remembered
-  // as one, so storage denied simply means folded every visit.
-  try {
-    return localStorage.getItem(COLLAPSE_KEY) !== "0";
-  } catch {
-    return true;
-  }
-};
-
-/**
  * What is running, and when — a week back and two months on — above everything
  * else on the page.
  *
@@ -104,21 +79,19 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
    * required.
    */
   const [selected, setSelected] = useState<CalendarBar | null>(null);
-  const [open, setOpen] = useState(() => !readCollapsed());
+  /*
+   * Folded on every mount, and deliberately remembered nowhere. Not in the
+   * URL, where a window-dressing preference would make two otherwise-equal
+   * links unequal; not in localStorage either — that was shipped and backed
+   * out, because an open remembered on one visit surfaced the calendar above
+   * the numbers of every later share link. The strip is a glance, the folded
+   * row already answers it, and opening is one click.
+   */
+  const [open, setOpen] = useState(false);
 
   const toggle = () => {
-    const next = !open;
-    setOpen(next);
+    setOpen(!open);
     setSelected(null);
-    // Computed outside the try: React Compiler cannot yet compile value
-    // blocks inside try/catch and bails out of the whole component —
-    // silently, which is what react-compiler.test.ts exists to catch.
-    const stored = next ? "0" : "1";
-    try {
-      localStorage.setItem(COLLAPSE_KEY, stored);
-    } catch {
-      // The choice is not remembered; the toggle still works.
-    }
   };
 
   /*
