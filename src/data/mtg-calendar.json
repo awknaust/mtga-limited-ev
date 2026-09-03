@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-08-26T21:33:39.208Z",
+  "generatedAt": "2026-09-03T21:23:25.401Z",
   "entries": [
     {
       "id": "5e5ea054ea2f405f",
@@ -92,9 +92,9 @@
       "start": "2026-09-04",
       "end": "2026-09-19",
       "type": "other_draft",
-      "note": "Premier Draft with special packs that can contain any collectible card on Arena.",
+      "note": "Premier Draft from packs containing cards from a variety of Standard-legal sets.",
       "link": {
-        "href": "https://magic.wizards.com/en/news/mtg-arena/the-hobbit-event-schedule",
+        "href": "https://magic.wizards.com/en/news/mtg-arena/announcements-august-31-2026",
         "text": "More Info"
       }
     },
