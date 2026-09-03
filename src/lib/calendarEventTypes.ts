@@ -31,11 +31,23 @@ export const CALENDAR_EVENT_TYPES = [
   /** Limited Open and similar cash/prize Limited tournaments. */
   "limited_open",
   /**
-   * A set arriving on Arena. The one type the strip singles out: a release
-   * is drawn as a dated rule across the whole plot rather than a bar in a
-   * lane — see MARKER_TYPE in `calendarLayout.ts`.
+   * A one-off celebration or promotional event — Yargle Day and the like —
+   * that is none of the categories above.
+   */
+  "special_event",
+  /**
+   * A set arriving on Arena. One of the two types the strip singles out: a
+   * release is a moment rather than a span, so it is drawn as a dated rule
+   * across the whole plot rather than a bar in a lane — see MARKER_KIND in
+   * `calendarLayout.ts`.
    */
   "set_release",
+  /**
+   * A ranked season ending and the next beginning. The other moment: drawn
+   * as a rule like a release, in its own look so the two read apart when
+   * they fall within days of each other, as they tend to.
+   */
+  "season_rollover",
 ] as const;
 
 export type CalendarEventType = (typeof CALENDAR_EVENT_TYPES)[number];

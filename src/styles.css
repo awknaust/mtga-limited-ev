@@ -1726,27 +1726,52 @@ button.box-add:focus-visible {
 .calendar-lane-slot-7 { --lane-color: var(--ramp-lime); }
 
 /*
- * A set release: a moment, not a span, so it is a dashed rule across the
- * whole strip — see MARKER_TYPE in calendarLayout.ts — dashed so it cannot
- * be read as the solid today line, and in the app's danger red, which no
- * lane wears since the ramp has no red. No name on the chart: the diamond
- * below is the whole visible mark, and the popover carries the rest.
+ * A rule: a moment rather than a span — a set release, a season rollover —
+ * drawn as a vertical line across the whole strip, see MARKER_KIND in
+ * calendarLayout.ts. Never solid, so it cannot be read as the today line;
+ * the kind rules below choose the colour and the pattern. No name on the
+ * chart: the head is the whole visible mark, and the popover carries the
+ * rest.
  */
-.calendar-release-line {
+.calendar-rule-line {
   position: absolute;
   top: 0;
   bottom: 0;
   width: 0;
-  border-left: 2px dashed var(--bs-danger);
+  border-left: 2px var(--rule-style) var(--rule-color);
 }
 
 /*
- * The small indicator at the head of the line: a diamond, centred on the
- * line's x by its own margin so the component positions both by one number.
- * Doubles as the button a 2px rule is too thin to be — hence the reset, as on
- * `.calendar-bar`.
+ * The two kinds, told apart on both axes a 2px line has — hue and pattern —
+ * because they fall within days of each other and one look would read as a
+ * line drawn twice.
+ *
+ * A release is dashed, in the app's danger red, which no lane wears since
+ * the ramp has no red, with a diamond at its head. A rollover is dotted, in
+ * the body colour at part strength, with a dot: a season turning is
+ * calendar chrome next to a set landing, quieter on purpose, and the dotting
+ * is what keeps it apart from the solid today line in the same colour.
  */
-.calendar-release-mark {
+.calendar-rule-release {
+  --rule-color: var(--bs-danger);
+  --rule-style: dashed;
+  --rule-head-radius: 0;
+}
+
+.calendar-rule-rollover {
+  --rule-color: var(--bs-body-color);
+  --rule-style: dotted;
+  --rule-head-radius: 50%;
+  opacity: 0.7;
+}
+
+/*
+ * The small indicator at the head of the line — a diamond or a dot, by the
+ * kind's radius — centred on the line's x by its own margin so the component
+ * positions both by one number. Doubles as the button a 2px rule is too thin
+ * to be — hence the reset, as on `.calendar-bar`.
+ */
+.calendar-rule-mark {
   position: absolute;
   bottom: 1px;
   width: 9px;
@@ -1756,12 +1781,13 @@ button.box-add:focus-visible {
   padding: 0;
   cursor: pointer;
   transform: rotate(45deg);
-  background: var(--bs-danger);
+  border-radius: var(--rule-head-radius);
+  background: var(--rule-color);
 }
 
 /* Nine pixels is no tap target; the halo is. Rotated with the diamond, which
    costs nothing — a bigger square around a square. */
-.calendar-release-mark::before {
+.calendar-rule-mark::before {
   content: "";
   position: absolute;
   inset: -8px;
@@ -1770,17 +1796,19 @@ button.box-add:focus-visible {
 /* Box-shadow for the same reason as `.calendar-bar-selected`: the reboot's
    focus rule eats an outline on the freshly-clicked button. The inner layer
    fakes the gap an outline-offset would have given. */
-.calendar-release-selected {
+.calendar-rule-selected {
   box-shadow: 0 0 0 2px var(--bs-body-bg), 0 0 0 4px var(--bs-body-color);
 }
 
-.calendar-release-mark:focus-visible {
+.calendar-rule-mark:focus-visible {
   outline: 2px solid var(--bs-body-color);
   outline-offset: 2px;
 }
 
-/* Done with, dimmed like a finished bar — line and mark together. */
-.calendar-release-past {
+/* Done with, dimmed like a finished bar — line and mark together. After the
+   kind rules, so a finished rollover dims to this rather than keeping its
+   own part strength. */
+.calendar-rule-past {
   opacity: 0.45;
 }
 

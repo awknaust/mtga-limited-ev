@@ -33,7 +33,7 @@
  * narrowed; this one is the same arrangement at every width, only scaled.
  */
 
-import type { CalendarBar } from "../lib";
+import type { CalendarBar, CalendarEventType } from "../lib";
 
 /** Between a bar's edge and a name sitting inside it. */
 export const INSIDE_PAD = 6;
@@ -59,18 +59,33 @@ export const MIN_INSIDE_LABEL = 70;
 
 /**
  * How many lane colours the stylesheet defines (`.calendar-lane-slot-*`).
- * Slot assignment wraps past this, which no plausible calendar reaches: with
- * MARKER_TYPE drawn as a rule rather than a lane, seven types remain.
+ * Slot assignment wraps past this, and the closed type set is what keeps it
+ * from happening: with the MARKER_KIND types drawn as rules rather than
+ * lanes, eight types remain — one per slot, with none to spare. A ninth lane
+ * type would wear a colour twice, and the layout test holds the count.
  */
 export const SLOT_COUNT = 8;
 
 /**
- * The one type the strip renders as a vertical rule across the whole plot
- * rather than as a bar in a lane: a set release is a moment, not a span.
- * The single point where a token's meaning is read — everything else about
- * the types stays opaque, and `calendarEventTypes.ts` records the exception.
+ * The look a rule wears — the stylesheet's vocabulary for the two kinds of
+ * moment, which the component maps to `.calendar-rule-*` classes.
  */
-export const MARKER_TYPE = "set_release";
+export type MarkerKind = "release" | "rollover";
+
+/**
+ * The types the strip renders as a vertical rule across the whole plot
+ * rather than as a bar in a lane, and the look each gets. A set release and
+ * a ranked season rollover are moments, not spans. They get *different*
+ * looks because they fall together — a set tends to land in the last week of
+ * a month and the season turns at its end — and two identical rules a day
+ * apart would read as one drawn twice. The single point where a token's
+ * meaning is read: everything else about the types stays opaque, and
+ * `calendarEventTypes.ts` records the exception.
+ */
+export const MARKER_KIND: Partial<Record<CalendarEventType, MarkerKind>> = {
+  set_release: "release",
+  season_rollover: "rollover",
+};
 
 export type CalendarPlacement = {
   bar: CalendarBar;
@@ -101,10 +116,12 @@ export type CalendarLane = {
   rows: CalendarPlacement[][];
 };
 
-/** A MARKER_TYPE entry: a dated rule across the strip, placed but not packed. */
+/** A MARKER_KIND entry: a dated rule across the strip, placed but not packed. */
 export type CalendarMarker = {
   bar: CalendarBar;
-  /** The line's offset — the start of the release day. */
+  /** Which look it wears — see MARKER_KIND. */
+  kind: MarkerKind;
+  /** The line's offset — the start of the entry's day. */
   x: number;
 };
 
@@ -113,7 +130,7 @@ export type CalendarLayout = {
   lanes: CalendarLane[];
   /** Total rows across all lanes, for whoever needs the strip's height. */
   rows: number;
-  /** The release rules, in time order. */
+  /** The rules — releases and rollovers — in time order. */
   markers: CalendarMarker[];
 };
 
@@ -168,8 +185,9 @@ export function layoutCalendar(
   const placed: CalendarPlacement[] = [];
   for (const bar of bars) {
     const x = scale(bar.from);
-    if (bar.entry.type === MARKER_TYPE) {
-      markers.push({ bar, x });
+    const kind = MARKER_KIND[bar.entry.type];
+    if (kind !== undefined) {
+      markers.push({ bar, kind, x });
       continue;
     }
     const width = Math.max(MIN_BAR, scale(bar.to) - x);

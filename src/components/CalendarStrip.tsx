@@ -8,7 +8,7 @@ import {
   type CalendarBar,
   type CalendarFeed,
 } from "../lib";
-import { INSIDE_PAD, layoutCalendar, tickEvery } from "./calendarLayout";
+import { INSIDE_PAD, layoutCalendar, tickEvery, type MarkerKind } from "./calendarLayout";
 
 /**
  * One class per palette slot, spelled out so `CalendarStrip.test.ts` — which
@@ -26,6 +26,16 @@ const SLOT_CLASS = [
   "calendar-lane-slot-6",
   "calendar-lane-slot-7",
 ] as const;
+
+/**
+ * One class per rule kind, spelled out for the same reason as SLOT_CLASS.
+ * The kind is the layout's reading of the type (`MARKER_KIND`); the
+ * stylesheet gives each its line and its head.
+ */
+const RULE_CLASS: Record<MarkerKind, string> = {
+  release: "calendar-rule-release",
+  rollover: "calendar-rule-rollover",
+};
 
 /**
  * An entry's dates as a reader says them.
@@ -96,7 +106,7 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
 
   /*
    * A second click on the open entry puts it away; a click on any other
-   * switches to it. One function so the bars and the release marks cannot
+   * switches to it. One function so the bars and the rule marks cannot
    * drift apart on what a click means.
    */
   const select = (bar: CalendarBar) =>
@@ -117,7 +127,7 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
     if (selected === null) return;
     const away = (e: MouseEvent) => {
       const at = e.target instanceof Element ? e.target : null;
-      if (at?.closest(".calendar-popover, .calendar-bar, .calendar-release-mark")) return;
+      if (at?.closest(".calendar-popover, .calendar-bar, .calendar-rule-mark")) return;
       setSelected(null);
     };
     document.addEventListener("click", away);
@@ -341,31 +351,33 @@ export function CalendarStrip({ calendar }: { calendar: CalendarFeed }) {
                   ))}
                 </div>
               ))}
-              {/* Set releases: a moment rather than a span, drawn as a rule
-                  across the whole strip. Rendered after the lanes so the line
-                  crosses the bars it ends — the events whose last day it is. */}
-              {layout.markers.map(({ bar, x }) => {
+              {/* Set releases and season rollovers: moments rather than
+                  spans, drawn as rules across the whole strip, each kind in
+                  its own look. Rendered after the lanes so the line crosses
+                  the bars it ends — the events whose last day it is. */}
+              {layout.markers.map(({ bar, kind, x }) => {
                 const { entry, state } = bar;
                 const range = rangeText(entry, day, dayYear);
                 return (
                   <div
                     key={entry.id}
                     className={[
-                      "calendar-release",
-                      state === "past" ? "calendar-release-past" : "",
+                      "calendar-rule",
+                      RULE_CLASS[kind],
+                      state === "past" ? "calendar-rule-past" : "",
                     ]
                       .filter(Boolean)
                       .join(" ")}
                   >
-                    <span className="calendar-release-line" style={{ left: x }} />
-                    {/* No name on the chart — the diamond is the whole visible
+                    <span className="calendar-rule-line" style={{ left: x }} />
+                    {/* No name on the chart — the head is the whole visible
                         mark, doubling as the button that opens the popover,
                         and the popover carries the rest. */}
                     <button
                       type="button"
                       className={[
-                        "calendar-release-mark",
-                        selected?.entry.id === entry.id ? "calendar-release-selected" : "",
+                        "calendar-rule-mark",
+                        selected?.entry.id === entry.id ? "calendar-rule-selected" : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}

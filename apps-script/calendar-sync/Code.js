@@ -48,7 +48,9 @@ const LABEL_BY_TYPE = {
   qualifier: { name: "Qualifier", backgroundColor: "#d50000" }, // Tomato
   arena_direct: { name: "Arena Direct", backgroundColor: "#f4511e" }, // Tangerine
   limited_open: { name: "Limited Open", backgroundColor: "#f6bf26" }, // Banana
+  special_event: { name: "Special Event", backgroundColor: "#e67c73" }, // Flamingo
   set_release: { name: "Set Release", backgroundColor: "#0b8043" }, // Basil
+  season_rollover: { name: "Season Rollover", backgroundColor: "#616161" }, // Graphite
 };
 
 /**

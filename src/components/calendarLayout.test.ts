@@ -10,11 +10,13 @@
 
 import { describe, expect, it } from "vitest";
 
-import type { CalendarBar, CalendarEventType } from "../lib";
+import { CALENDAR_EVENT_TYPES, type CalendarBar, type CalendarEventType } from "../lib";
 import {
   INSIDE_PAD,
+  MARKER_KIND,
   MIN_BAR,
   MIN_INSIDE_LABEL,
+  SLOT_COUNT,
   layoutCalendar,
   tickEvery,
   type CalendarLayout,
@@ -213,6 +215,41 @@ describe("layoutCalendar", () => {
     expect(layout.rows).toBe(2);
     expect(layout.markers.map((m) => m.x)).toEqual([20]);
     expect(layout.markers[0].bar.entry.title).toBe("Reality Fracture");
+    expect(layout.markers[0].kind).toBe("release");
+  });
+
+  it("draws a season rollover as a marker of its own kind", () => {
+    // The other moment: the same treatment as a release — a rule, no row, no
+    // colour slot — in a look of its own, since the two fall within days of
+    // each other and one look would read as a line drawn twice.
+    const layout = layoutCalendar(
+      [
+        bar("Release: FRA", 20, 21, "set_release"),
+        bar("Season Rollover", 21, 22, "season_rollover"),
+        bar("Cube", 8, 15, "cube"),
+      ],
+      scale,
+    );
+    expect(layout.lanes.map((l) => l.key)).toEqual(["cube"]);
+    expect(layout.rows).toBe(1);
+    expect(layout.markers.map((m) => [m.bar.entry.title, m.kind, m.x])).toEqual([
+      ["Release: FRA", "release", 20],
+      ["Season Rollover", "rollover", 21],
+    ]);
+  });
+
+  it("gives every type on the closed set a lane or a rule, never both", () => {
+    for (const type of CALENDAR_EVENT_TYPES) {
+      const layout = layoutCalendar([bar("Probe", 0, 3, type)], scale);
+      expect(layout.lanes.length + layout.markers.length, type).toBe(1);
+    }
+  });
+
+  it("has a colour slot for every lane type", () => {
+    // What SLOT_COUNT's comment claims: adding a lane type without a ninth
+    // palette entry would wrap a colour, and this is where it says so.
+    const laneTypes = CALENDAR_EVENT_TYPES.filter((type) => MARKER_KIND[type] === undefined);
+    expect(laneTypes.length).toBeLessThanOrEqual(SLOT_COUNT);
   });
 
   it("keeps markers in time order", () => {
