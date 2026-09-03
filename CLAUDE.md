@@ -307,9 +307,14 @@ The boundaries that matter, beyond the ones the box-price feed already states:
   `calendarEventTypes.ts`, to the copier's label map (forgetting that half
   is a red build — the guard test) *and* to the calendar; the strip still
   learns nothing from a token's spelling — it lanes and colours entries
-  sharing one — with a single recorded exception: `set_release` is drawn as
-  a dashed rule across the strip rather than a bar in a lane, because a
-  release is a moment, not a span (`MARKER_TYPE` in `calendarLayout.ts`).
+  sharing one — with one recorded exception, the two *moments*:
+  `set_release` and `season_rollover` are drawn as vertical rules across the
+  strip rather than bars in a lane, because neither is a span, and in two
+  looks — dashed red with a diamond, dotted body colour with a dot — because
+  a set tends to land within days of a season turning and one look would
+  read as a line drawn twice (`MARKER_KIND` in `calendarLayout.ts`). Eight
+  lane types remain, which is the palette exactly: a ninth would wrap a
+  colour, and `calendarLayout.test.ts` holds the count.
 - **An empty calendar is a real state and publishes.** The strip renders
   nothing at all for it, which is what a preview and a fresh checkout get.
   What refuses is a page of live items none of which are *readable* — a field
