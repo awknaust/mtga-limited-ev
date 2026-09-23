@@ -32,6 +32,7 @@ export const TIER_REWARD_KEYS = [
   "cubePacks",
   "playInPoints",
   "qualifierTokens",
+  "invitationTokens",
 ] as const;
 
 export type TierRewardKey = (typeof TIER_REWARD_KEYS)[number];
@@ -112,6 +113,14 @@ export const HOLDINGS = [
     label: "Qualifier tokens",
     whole: true,
     rateKey: "qualifierTokenValueGems",
+  },
+  {
+    // Wizards' name for the Limited Open's Draft 2 entry. Beside the Qualifier
+    // token rather than folded into it: a different seat, at its own rate.
+    key: "invitationTokens",
+    label: "Invitation tokens",
+    whole: true,
+    rateKey: "invitationTokenValueGems",
   },
   {
     // "Draft packs", matching the input that sets them, rather than "drafted

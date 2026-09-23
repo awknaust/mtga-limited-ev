@@ -626,6 +626,22 @@ export const REGISTRY = {
     },
   },
 
+  DEFAULT_INVITATION_TOKEN_VALUE_GEMS: {
+    summary: "gem value of one Invitation Token, the Limited Open's Draft 2 entry — zero by refusal",
+    sources: [],
+    compute() {
+      return {
+        value: 0,
+        // Made with the Limited Open preset; see the git history for this file.
+        asOf: "2026-09-23",
+        explain: [
+          "zero: a token is not sold, not bought, and converts to a Draft 2 entry rather than anything Arena pays out;",
+          "  what that entry returns depends on the rate it is played at, which is what the app's own knob is for",
+        ],
+      };
+    },
+  },
+
   DEFAULT_COSMETIC_VALUE_GEMS: {
     summary: "gem value of an orb, style, sleeve, avatar or companion — zero by refusal",
     sources: [],

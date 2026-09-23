@@ -48,6 +48,7 @@ const normalizeTier = (t: PayoutTier): NormalTier => ({
   cubePacks: t.cubePacks ?? 0,
   playInPoints: t.playInPoints ?? 0,
   qualifierTokens: t.qualifierTokens ?? 0,
+  invitationTokens: t.invitationTokens ?? 0,
   boxes: (t.boxes ?? []).map(boxId).sort(),
 });
 

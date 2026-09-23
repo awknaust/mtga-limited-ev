@@ -75,8 +75,25 @@ export type PayoutTier = {
    * Qualifier Tokens earned beyond the first are redundant", so a run that won
    * two did not win twice. That is why the app reports a *chance* of one and
    * never an expected count.
+   *
+   * The Limited Open's Draft 2 entry is not one of these; it is
+   * `invitationTokens`, and the reasons are on that field.
    */
   qualifierTokens?: number;
+  /**
+   * Invitation Tokens — Wizards' name for the Limited Open's Draft 2 entry,
+   * which its Draft 1 pays at the top win count and nowhere else. Optional,
+   * and absent means none.
+   *
+   * A field of its own rather than a second use of `qualifierTokens`, because
+   * it is a different seat: a Draft 2 entry rather than a Qualifier Weekend,
+   * priced by its own rate, and not redundant past the first — Draft 2 may be
+   * entered "as many times as your tokens allow" — so it is reported as a
+   * count like the packs are, where the Qualifier token is reported as a
+   * chance. `DEFAULT_INVITATION_TOKEN_VALUE_GEMS` prices it, at 0, and says
+   * what a seat returns.
+   */
+  invitationTokens?: number;
   /**
    * Physical booster boxes, shipped after the event. Arena Direct only, so
    * this is optional and absent means none.
@@ -324,6 +341,14 @@ export type EventConfig = {
    * repeats a long run picked up.
    */
   qualifierTokenValueGems: number;
+  /**
+   * Gem value of one Invitation Token, the Limited Open's Draft 2 entry.
+   *
+   * Zero by default — see `DEFAULT_INVITATION_TOKEN_VALUE_GEMS` for the
+   * figure to type here. Valued linearly like every holding, and unlike the
+   * Qualifier token that is right: a second invitation is a second entry.
+   */
+  invitationTokenValueGems: number;
   /**
    * Gem value of a *generic* Play Booster box — one that names no set.
    *

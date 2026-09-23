@@ -99,6 +99,7 @@ export function AdvancedDialog({
     cubePackValue: `${uid}-cube-pack-value`,
     playInValue: `${uid}-play-in-value`,
     qualifierTokenValue: `${uid}-qualifier-token-value`,
+    invitationTokenValue: `${uid}-invitation-token-value`,
     funValue: `${uid}-fun-value`,
     playBoxValue: `${uid}-play-box-value`,
     collectorBoxValue: `${uid}-collector-box-value`,
@@ -227,6 +228,7 @@ export function AdvancedDialog({
                 cubePackValueGems: 0,
                 playInPointValueGems: 0,
                 qualifierTokenValueGems: 0,
+                invitationTokenValueGems: 0,
                 playBoxValueGems: 0,
                 collectorBoxValueGems: 0,
                 draftTokenValueGems: 0,
@@ -334,6 +336,21 @@ export function AdvancedDialog({
               m={m}
               gemValue={config.qualifierTokenValueGems}
               onChange={(n) => set("qualifierTokenValueGems", n)}
+            />
+          </div>
+          <div className="col-6">
+            <label htmlFor={ids.invitationTokenValue} className="form-label">
+              Invitation token value ({m.label})
+              <InfoTip
+                label="About invitation token value"
+                content="What a Limited Open Draft 2 seat is worth to you. Zero by default because nothing sells one. Draft 2 pays 6,500 to 10,000 gems at one to four wins, and cash at five and six."
+              />
+            </label>
+            <MoneyInput
+              id={ids.invitationTokenValue}
+              m={m}
+              gemValue={config.invitationTokenValueGems}
+              onChange={(n) => set("invitationTokenValueGems", n)}
             />
           </div>
           <div className="col-6">

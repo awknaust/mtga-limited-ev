@@ -59,6 +59,12 @@ const PAYOUT_COLUMNS: PayoutColumn[] = [
     cleared: { qualifierTokens: undefined },
   },
   {
+    key: "invitationTokens",
+    label: "Invites",
+    icon: "bi-envelope-open",
+    cleared: { invitationTokens: undefined },
+  },
+  {
     key: "boxes",
     label: "Boxes",
     icon: "bi-box-seam",
@@ -81,9 +87,9 @@ const paidBy = (payouts: PayoutTier[], col: PayoutColumn): boolean =>
  * they are still zero. The rest are the exceptions they were before they were
  * columns anyone could add: mythic packs belong to Contender's top two rungs,
  * Cube Prize Packs to the cube drafts, points to the traditional events,
- * Qualifier tokens to the Play-Ins' top win count, and boxes to the Arena
- * Directs. A ladder paying none of them has no use for five columns of
- * nothing.
+ * Qualifier tokens to the Play-Ins' top win count, invitation tokens to the
+ * Limited Open's, and boxes to the Arena Directs. A ladder paying none of
+ * them has no use for six columns of nothing.
  */
 const defaultColumns = (payouts: PayoutTier[]): PayoutColumn["key"][] =>
   PAYOUT_COLUMNS.filter(

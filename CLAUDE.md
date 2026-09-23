@@ -47,6 +47,7 @@ community sites, and it is the standing weak point in this repo's data.
 | Source | Covers | Detail |
 | --- | --- | --- |
 | [Arena Open terms and conditions](https://magic.wizards.com/en/news/mtg-arena/arena-open-terms-and-conditions) | Arena Open, both days | Complete, quoted tables; also archives past events, which have been running the same structures |
+| [Limited Open terms and conditions](https://magic.wizards.com/en/news/mtg-arena/limited-open-terms-and-conditions) | Limited Open, both drafts | Complete, quoted tables for Draft 1 and Draft 2; says nothing about whether the cards are kept |
 | Set event schedules, e.g. [Secrets of Strixhaven](https://magic.wizards.com/en/news/mtg-arena/secrets-of-strixhaven-event-schedule) | Contender Draft and other timed events | Full entry cost and ladder; evergreen events listed but rewards "not detailed" |
 | [Arena Direct](https://magic.wizards.com/en/news/mtg-arena/arena-direct) | Arena Direct | Partial — gems and packs at 3–5 wins, physical boxes at 6+ |
 | Announcement posts under `/news/mtg-arena/` | Changes to entries and rewards | Worth checking when a number looks stale |

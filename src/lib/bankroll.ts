@@ -223,7 +223,8 @@ export type BankrollResult = {
    *
    * Null when it does not, which is every event here but the two Play-Ins. It
    * is the only figure the app reports about tokens, and deliberately: a second
-   * token is redundant, so a mean would count something nobody receives.
+   * token is redundant, so a mean would count something nobody receives. The
+   * Limited Open's invitation is a holding like the packs, not a chance here.
    */
   tokenChance: PrizeChance | null;
   /** Gems plus the gem value of everything won along the way. */
@@ -399,6 +400,7 @@ export type EventLog = {
   cubePacks: number;
   playInPoints: number;
   qualifierTokens: number;
+  invitationTokens: number;
   /**
    * The boxes it paid, named — the tier's own list, not a copy.
    *
@@ -455,6 +457,8 @@ export type BankrollRun = {
   playInPoints: number;
   /** Qualifier Weekend tokens won. Redundant past the first; see the tile. */
   qualifierTokens: number;
+  /** Invitation Tokens won, each a Draft 2 entry, so every one counts. */
+  invitationTokens: number;
   /**
    * Boxes won, one count per product the ladder pays, in `LadderBoxes.products`
    * order.
@@ -543,6 +547,7 @@ export function simulateBankroll(
   // A balance, so it opens at what was banked rather than at nothing.
   let playInPoints = bankroll.startingPlayInPoints;
   let qualifierTokens = 0;
+  let invitationTokens = 0;
   // One running count per box the ladder pays, in the order `priceTiers` put
   // them; zero-length when it pays none, which is every event but two.
   const boxes = new Array<number>(priced.products.length).fill(0);
@@ -583,6 +588,7 @@ export function simulateBankroll(
     // ladder that pays them puts them back into the same balance.
     playInPoints += tier.playInPoints ?? 0;
     qualifierTokens += tier.qualifierTokens ?? 0;
+    invitationTokens += tier.invitationTokens ?? 0;
     const won = tierBoxesAt(priced, wins);
     for (let i = 0; i < won.length; i++) boxes[i] += won[i];
     gold += goldEarned;
@@ -604,6 +610,7 @@ export function simulateBankroll(
         cubePacks: tier.cubePacks ?? 0,
         playInPoints: tier.playInPoints ?? 0,
         qualifierTokens: tier.qualifierTokens ?? 0,
+        invitationTokens: tier.invitationTokens ?? 0,
         boxes: tier.boxes ?? NO_BOXES,
         gemBalance: gems,
         goldBalance: gold,
@@ -625,6 +632,7 @@ export function simulateBankroll(
     draftPacks,
     playInPoints,
     qualifierTokens,
+    invitationTokens,
     boxes,
     survived: events >= bankroll.maxEvents,
     log: record ? log : undefined,
@@ -730,6 +738,7 @@ export function heldBy(
       | "draftPacks"
       | "playInPoints"
       | "qualifierTokens"
+      | "invitationTokens"
   ];
 }
 

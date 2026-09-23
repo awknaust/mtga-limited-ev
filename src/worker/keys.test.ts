@@ -42,6 +42,7 @@ const MUTATED: { [K in keyof EventConfig]: EventConfig[K] } = {
   cubePackValueGems: 52,
   playInPointValueGems: 201,
   qualifierTokenValueGems: 4831,
+  invitationTokenValueGems: 4832,
   playBoxValueGems: 1,
   collectorBoxValueGems: 2,
   boxMarkdown: 0.3,

@@ -41,10 +41,13 @@ const REWARDS = [
   // are as cramped as they get here, and nobody calls them that.
   { key: "cubePacks", one: "cube pack", many: "cube packs" },
   { key: "playInPoints", one: "point", many: "points" },
-  // "Token" unqualified: the only token a ladder pays is the Qualifier
-  // Weekend one, and the cell has no room for the adjective. The tile and the
-  // breakdown card, which do, both say "qualifier".
+  // "Token" unqualified: the cell has no room for "qualifier", and the tile
+  // and the breakdown card, which do, both say it. The other seat a ladder can
+  // pay is spelled out on the next line, so the two never read alike.
   { key: "qualifierTokens", one: "token", many: "tokens" },
+  // "Invitation" rather than "token": Wizards' own word for the Limited Open's
+  // Draft 2 entry, and the one that keeps it apart from the line above.
+  { key: "invitationTokens", one: "invitation", many: "invitations" },
 ] as const;
 
 export type PayoutContents = {
@@ -54,6 +57,7 @@ export type PayoutContents = {
   cubePacks: number;
   playInPoints: number;
   qualifierTokens: number;
+  invitationTokens: number;
   boxes: readonly PayoutBox[];
 };
 
