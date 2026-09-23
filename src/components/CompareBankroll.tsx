@@ -340,15 +340,15 @@ export function CompareBankroll({
                   className="compare-box"
                 />
                 {/* Over the fill, same geometry: the box keeps its colour and
-                    the slashes are cut out of it. */}
-                {row.hatched && (
+                    the hatch is cut out of it. */}
+                {row.hatch !== "plain" && (
                   <rect
                     x={x(row.span.p25)}
                     width={Math.max(1, x(row.span.p75) - x(row.span.p25))}
                     height={boxH}
                     y={mid - boxH / 2}
                     rx={2}
-                    fill={hatchFill(hatchId, true)}
+                    fill={hatchFill(hatchId, row.hatch)}
                   />
                 )}
                 <line

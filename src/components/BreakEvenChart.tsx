@@ -124,14 +124,14 @@ export function BreakEvenChart({
                   className={`compare-bar ${row.colorClass}`}
                 />
                 {/* Over the fill, same geometry: the bar keeps its colour and
-                    the slashes are cut out of it. */}
-                {row.hatched && (
+                    the hatch is cut out of it. */}
+                {row.hatch !== "plain" && (
                   <rect
                     x={0}
                     width={Math.max(0, x(row.rate))}
                     height={y.bandwidth()}
                     rx={3}
-                    fill={hatchFill(hatchId, true)}
+                    fill={hatchFill(hatchId, row.hatch)}
                   />
                 )}
                 <text

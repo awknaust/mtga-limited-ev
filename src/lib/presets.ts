@@ -14,6 +14,7 @@ import { ARENA_DIRECT_COLLECTOR } from "../data/presets/arena-direct-collector";
 import { ARENA_DIRECT_PLAY } from "../data/presets/arena-direct-play";
 import { CONSTRUCTED_EVENT } from "../data/presets/constructed-event";
 import { CONTENDER_DRAFT } from "../data/presets/contender-draft";
+import { LIMITED_OPEN_DRAFT_1 } from "../data/presets/limited-open-draft-1";
 import { PICK_TWO_DRAFT } from "../data/presets/pick-two-draft";
 import { PREMIER_CUBE_DRAFT } from "../data/presets/premier-cube-draft";
 import { PREMIER_DRAFT } from "../data/presets/premier-draft";
@@ -36,6 +37,7 @@ export {
   ARENA_DIRECT_PLAY,
   CONSTRUCTED_EVENT,
   CONTENDER_DRAFT,
+  LIMITED_OPEN_DRAFT_1,
   PICK_TWO_DRAFT,
   PREMIER_CUBE_DRAFT,
   PREMIER_DRAFT,
@@ -79,6 +81,12 @@ export const PRESETS: EventPreset[] = [
   // whose real prize is a tournament seat rather than anything model can price.
   QUALIFIER_PLAY_IN_BO1,
   QUALIFIER_PLAY_IN_BO3,
+  // The Limited Open last, though it is a draft and is listed among them: the
+  // Compare tab colours an event by its index here, so a preset added
+  // mid-list would recolour every event after it on the day it shipped. The
+  // selector groups by `group`, so only the custom-event dialog's list, which
+  // reads this order raw, shows it last.
+  LIMITED_OPEN_DRAFT_1,
 ];
 
 /**
@@ -254,6 +262,35 @@ export const DEFAULT_PLAY_IN_POINT_VALUE_GEMS =
 export const DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS = 0;
 
 /**
+ * Default gem value of one Invitation Token — Wizards' name for the Limited
+ * Open's Draft 2 entry, which its Draft 1 pays at seven wins.
+ *
+ * Zero, for the reason DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS is: nothing sells
+ * one, and what it converts to is an entry rather than a payout. Its own
+ * constant and its own field rather than a second use of the Qualifier one,
+ * because it is a different seat at a different table — a Draft 2 entry
+ * rather than a Qualifier Weekend — and, unlike that one, not redundant past
+ * the first: "You may participate in Draft 2 as many times as your tokens
+ * allow", so the linear count every holding gets is the right one here, and
+ * it is reported as a count where the Qualifier token is reported as a
+ * chance.
+ *
+ * What a seat returns, if you want a figure: Draft 2 is six wins or two
+ * losses, paying nothing at no wins, 6,500 / 7,500 / 8,500 / 10,000 gems at
+ * one to four, and cash at the top — $1,000 at five, $2,000 at six. Weighted
+ * by the exact distribution at a 55% match rate the gem rungs come to ≈4,900
+ * gems and the cash ones to ≈$270, which is ≈53,000 gems at GEMS_PER_USD —
+ * and, being cash, worth what it says rather than what a gem is to you. Both
+ * move a long way with the rate, and everyone in Draft 2 went 7–x to get
+ * there, so the rate to weight by is not necessarily the one on the slider.
+ * A stage model that plays Draft 2 at the reader's own rate would replace
+ * this knob; until then it is the one figure the seat has.
+ *
+ * @see https://magic.wizards.com/en/news/mtg-arena/limited-open-terms-and-conditions
+ */
+export const DEFAULT_INVITATION_TOKEN_VALUE_GEMS = 0;
+
+/**
  * Gems 10,000 gold is worth — the rate the gold an event is credited converts
  * at in the per-event gross, and the rate a leftover balance is priced at on
  * the Bankroll tab.
@@ -266,16 +303,17 @@ export const DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS = 0;
  * Premier entry is worth exactly the share of the gem price it would have
  * paid.
  *
- * The Qualifier Play-Ins are the one exception: 20,000 gold against 4,000 gems
- * implies 2,000 per 10,000, so gold buys more entry there than it does
- * anywhere else — 20,000 gold is 3,000 gems' worth at the rate below, against
- * a 4,000-gem price, which makes gold the cheaper door by a quarter. The
- * figure stays at what every other event charges — one competitive entry does
- * not reprice a rate the whole draft queue agrees on — but it is no longer
- * universal, and a reader pricing a Play-In in gold should know the model
- * values the gold it credits them, and any balance they hold, at less than
- * Arena lets it buy there. The test that holds every preset to this ratio
- * names that exemption, so a *new* event breaking it stays loud.
+ * The Qualifier Play-Ins and the Limited Open are the exceptions: 20,000 gold
+ * against 4,000 gems, and 25,000 against 5,000, both imply 2,000 per 10,000,
+ * so gold buys more entry there than it does anywhere else — 20,000 gold is
+ * 3,000 gems' worth at the rate below, against a 4,000-gem price, which makes
+ * gold the cheaper door by a quarter. The figure stays at what every other
+ * event charges — the competitive entries do not reprice a rate the whole
+ * draft queue agrees on — but it is no longer universal, and a reader pricing
+ * one of them in gold should know the model values the gold it credits them,
+ * and any balance they hold, at less than Arena lets it buy there. The test
+ * that holds every preset to this ratio names those exemptions, so a *new*
+ * event breaking it stays loud.
  *
  * It only holds while you have something to spend gold on. Gold you never use
  * is worth nothing, and it cannot be bought or sold, so this overstates a
@@ -661,6 +699,7 @@ export function defaultConfig(): EventConfig {
     cubePackValueGems: DEFAULT_CUBE_PACK_VALUE_GEMS,
     playInPointValueGems: DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
     qualifierTokenValueGems: DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
+    invitationTokenValueGems: DEFAULT_INVITATION_TOKEN_VALUE_GEMS,
     otherGoldPerDay: DEFAULT_OTHER_GOLD_PER_DAY,
     gamesPerDay: DEFAULT_GAMES_PER_DAY,
     // Overwritten by `configFromPreset` from the preset's `bestOf`.

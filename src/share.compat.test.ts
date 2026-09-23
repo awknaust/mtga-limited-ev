@@ -64,7 +64,7 @@ function fingerprint(state: ShareState): string {
     `structure  ${JSON.stringify(c.structure)}`,
     `entry      ${price(c.entryCostGems)} gems / ${price(c.entryCostGold)} gold / ${price(c.entryCostPlayInPoints)} points`,
     `draft      ${c.draftPacks} packs @ ${c.draftPackValueGems}`,
-    `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} qualToken=${c.qualifierTokenValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems} boxMarkdown=${c.boxMarkdown} dailyIcr=${c.dailyWinIcrValueGems}`,
+    `values     pack=${c.packValueGems} mythicPack=${c.mythicPackValueGems} cubePack=${c.cubePackValueGems} playIn=${c.playInPointValueGems} qualToken=${c.qualifierTokenValueGems} inviteToken=${c.invitationTokenValueGems} playBox=${c.playBoxValueGems} collBox=${c.collectorBoxValueGems} boxMarkdown=${c.boxMarkdown} dailyIcr=${c.dailyWinIcrValueGems}`,
     `gold       other=${c.otherGoldPerDay}/day over ${c.gamesPerDay} games at ${c.gamesPerMatch}/match, goldPer10k=${c.gemsPer10kGold}`,
     /*
      * Derived rather than stored, and that is the point. A link pins inputs,
@@ -272,6 +272,7 @@ describe("the parameter names are the contract", () => {
         cubePackValueGems: 28,
         playInPointValueGems: 9,
         qualifierTokenValueGems: 28,
+        invitationTokenValueGems: 29,
         playBoxValueGems: 10,
         collectorBoxValueGems: 11,
         boxMarkdown: 0.25,
@@ -338,6 +339,7 @@ describe("the parameter names are the contract", () => {
       "gemsPerUsd",
       "goldPer10k",
       "goldPerDay",
+      "invitationTokenValue",
       "maxGames",
       "maxLosses",
       "maxWins",
@@ -456,6 +458,7 @@ describe("the parameter names are the contract", () => {
       "traditional-constructed-event",
       "qualifier-play-in-bo1",
       "qualifier-play-in-bo3",
+      "limited-open-draft-1",
     ]);
   });
 });
@@ -472,7 +475,7 @@ describe("the defaults are the contract", () => {
       structure  {"kind":"elimination","maxWins":7,"maxLosses":3}
       entry      1500 gems / 10000 gold / none points
       draft      3 packs @ 23
-      values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 playBox=29866 collBox=120116 boxMarkdown=0.15 dailyIcr=0
+      values     pack=22 mythicPack=37 cubePack=51 playIn=200 qualToken=0 inviteToken=0 playBox=29866 collBox=120116 boxMarkdown=0.15 dailyIcr=0
       gold       other=600/day over 12 games at 1/match, goldPer10k=1500
       credits    616.0 gold/event = 92.4 gems, cards = 0.0 gems
       payouts    50-1_100-1_250-2_1000-2_1400-3_1600-4_1800-5_2200-6

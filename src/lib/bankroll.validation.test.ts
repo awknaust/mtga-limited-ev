@@ -166,6 +166,7 @@ function valueAt(config: EventConfig, wins: number): number {
     row.packs * config.packValueGems +
     (row.playInPoints ?? 0) * config.playInPointValueGems +
     (row.qualifierTokens ?? 0) * config.qualifierTokenValueGems +
+    (row.invitationTokens ?? 0) * config.invitationTokenValueGems +
     (row.boxes ?? []).reduce((acc, box) => acc + boxAt(config, box), 0) +
     config.draftPacks * config.draftPackValueGems
   );

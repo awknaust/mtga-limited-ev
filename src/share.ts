@@ -119,6 +119,7 @@ const CONFIG_NUMBERS = [
   ["cubePackValue", "cubePackValueGems"],
   ["playInValue", "playInPointValueGems"],
   ["qualifierTokenValue", "qualifierTokenValueGems"],
+  ["invitationTokenValue", "invitationTokenValueGems"],
   ["playBoxValue", "playBoxValueGems"],
   ["collectorBoxValue", "collectorBoxValueGems"],
   // A fraction like `wr`, and the one rate here that is not a gem amount: the
@@ -279,6 +280,7 @@ const COUNT_TOKENS = [
   ["mythic", "mythicPacks"],
   ["cube", "cubePacks"],
   ["token", "qualifierTokens"],
+  ["invite", "invitationTokens"],
 ] as const satisfies readonly (readonly [string, keyof PayoutTier])[];
 
 /** The tier fields those tokens write, which are all optional counts. */

@@ -700,6 +700,15 @@ body {
 }
 
 /*
+ * The Limited Open's Draft 2 entry, which is not a Qualifier token and should
+ * not read as its neighbour: a rose, away from the two purples above and from
+ * the orange of the daily cards.
+ */
+.slice-invitationTokens {
+  --slice: #fb7185;
+}
+
+/*
  * Every box, whichever set and whichever kind. A ladder names its own boxes,
  * so there is no fixed list of them to give hues to — and the difference a
  * reader is after is boxes against packs and gems, not one set against
@@ -1397,8 +1406,8 @@ button.box-add:focus-visible {
  * below exist for every value it can return.
  *
  * The eight `--ramp-*` hues, as far apart as a dark background allows. A
- * ninth event reuses the first hue with a dashed line, which is the second
- * channel the ramp carries.
+ * ninth event reuses the first hue with a dashed line and a seventeenth with
+ * a dotted one, which is the second channel the ramp carries.
  */
 .compare-series-0 {
   --series: var(--ramp-blue);
@@ -1432,7 +1441,7 @@ button.box-add:focus-visible {
   --series: var(--ramp-lime);
 }
 
-/* The reader's own ladder, which is not one of the sixteen and should not look
+/* The reader's own ladder, which is not one of the presets and should not look
    like one of them. Near-white, so it reads as the odd one out it is. */
 .compare-series-custom {
   --series: #e2e8f0;
@@ -1483,10 +1492,11 @@ button.box-add:focus-visible {
 }
 
 /*
- * The slashes over a second-lap event's fill. The card's own background, so a
- * hatched bar is its colour with gaps in it rather than a paler colour — see
- * `CompareHatch.tsx`. Wide enough to read at a glance against the ~19px rows,
- * thin enough that a bar stays mostly itself.
+ * The lines over a later-lap event's fill — slashes on the second lap, a grid
+ * on the third. The card's own background, so a hatched bar is its colour with
+ * gaps in it rather than a paler colour — see `CompareHatch.tsx`. Wide enough
+ * to read at a glance against the ~19px rows, thin enough that a bar stays
+ * mostly itself.
  */
 .compare-hatch-line {
   stroke: var(--bs-card-bg);

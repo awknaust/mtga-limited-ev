@@ -43,7 +43,8 @@ const RUN_REWARDS: {
     | "cubePacks"
     | "draftPacks"
     | "playInPoints"
-    | "qualifierTokens";
+    | "qualifierTokens"
+    | "invitationTokens";
   one: string;
   many: string;
 }[] = [
@@ -56,6 +57,7 @@ const RUN_REWARDS: {
   // that started on twenty points and spent them ends holding none.
   { key: "playInPoints", one: "play-in point", many: "play-in points" },
   { key: "qualifierTokens", one: "qualifier token", many: "qualifier tokens" },
+  { key: "invitationTokens", one: "invitation token", many: "invitation tokens" },
 ];
 
 /**

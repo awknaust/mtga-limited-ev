@@ -303,7 +303,8 @@ export function BankrollTab({
    * *for* is the Qualifier Weekend seat, which is won at the top and nowhere
    * else. There is no expected-tokens counterpart to this on the other tab, and
    * there should not be: a second token is redundant, so a mean would count
-   * something nobody receives.
+   * something nobody receives. The Limited Open's invitation is the other
+   * case — every one is an entry — and is a counted holding, not a tile.
    *
    * Two chance tiles never appear together on any preset — no ladder pays both
    * a box and a token — so this costs the strip nothing where it is not shown.

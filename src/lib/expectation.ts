@@ -30,6 +30,8 @@ export type WinOutcome = {
   playInPoints: number;
   /** Qualifier Weekend tokens paid at this win count; at most one, in practice. */
   qualifierTokens: number;
+  /** Invitation Tokens paid at this win count; at most one, in practice. */
+  invitationTokens: number;
   /**
    * Boxes paid at this win count, all products together.
    *
@@ -91,6 +93,7 @@ export function eventExpectation(config: EventConfig): EventExpectation {
       cubePacks: tier.cubePacks ?? 0,
       playInPoints: tier.playInPoints ?? 0,
       qualifierTokens: tier.qualifierTokens ?? 0,
+      invitationTokens: tier.invitationTokens ?? 0,
       boxes: tier.boxes?.length ?? 0,
     };
   });
@@ -172,7 +175,8 @@ export function boxChancePerEvent(config: EventConfig, p = matchWinRate(config))
  *
  * There is no expected-tokens counterpart on purpose. A second token is
  * redundant, so a mean would count something nobody receives; see
- * `PayoutTier.qualifierTokens`.
+ * `PayoutTier.qualifierTokens`. The Limited Open's invitation is the other
+ * way round — every one is an entry — and is a counted holding instead.
  */
 export function tokenChancePerEvent(
   config: EventConfig,

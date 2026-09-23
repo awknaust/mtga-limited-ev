@@ -142,6 +142,10 @@ export function About({
               <td>Qualifier tokens</td>
               <td>{show(m, config.qualifierTokenValueGems)} each</td>
             </tr>
+            <tr>
+              <td>Invitation tokens</td>
+              <td>{show(m, config.invitationTokenValueGems)} each</td>
+            </tr>
             {/* The markdown is part of the rate, so the row that promises
                 every rate is stated has to say it — "varies by set" alone
                 would claim the market price, which no box is valued at while

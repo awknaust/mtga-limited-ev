@@ -38,6 +38,11 @@ export function qualifierTokensFor(config: EventConfig, wins: number): number {
   return payoutFor(config, wins).qualifierTokens ?? 0;
 }
 
+/** Invitation Tokens awarded at a win count; absent means none. */
+export function invitationTokensFor(config: EventConfig, wins: number): number {
+  return payoutFor(config, wins).invitationTokens ?? 0;
+}
+
 /**
  * Gross value in gems for a given win count.
  *
@@ -66,6 +71,7 @@ export function grossValue(config: EventConfig, wins: number): number {
     (tier.cubePacks ?? 0) * config.cubePackValueGems +
     (tier.playInPoints ?? 0) * config.playInPointValueGems +
     (tier.qualifierTokens ?? 0) * config.qualifierTokenValueGems +
+    (tier.invitationTokens ?? 0) * config.invitationTokenValueGems +
     boxes
   );
 }
@@ -119,6 +125,8 @@ export function grossSplit(config: EventConfig): Record<HoldingKey, number> {
       mean((wins) => playInPointsFor(config, wins)) * config.playInPointValueGems,
     qualifierTokens:
       mean((wins) => qualifierTokensFor(config, wins)) * config.qualifierTokenValueGems,
+    invitationTokens:
+      mean((wins) => invitationTokensFor(config, wins)) * config.invitationTokenValueGems,
     // One entry per box the ladder pays, each at its own price — two play
     // boxes of different sets are different amounts and different rows.
     ...boxSplit(priced, (i) =>
@@ -154,6 +162,7 @@ export function grossCounts(config: EventConfig): Record<HoldingKey, number> {
     cubePacks: mean((wins) => cubePacksFor(config, wins)),
     playInPoints: mean((wins) => playInPointsFor(config, wins)),
     qualifierTokens: mean((wins) => qualifierTokensFor(config, wins)),
+    invitationTokens: mean((wins) => invitationTokensFor(config, wins)),
     ...boxSplit(priced, (i) => mean((wins) => tierBoxesAt(priced, wins)[i] ?? 0)),
     draftPacks: config.draftPacks,
   };

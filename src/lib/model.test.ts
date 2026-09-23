@@ -13,6 +13,7 @@ import {
   DEFAULT_MYTHIC_PACK_VALUE_GEMS,
   DEFAULT_PACK_VALUE_GEMS,
   DEFAULT_PLAY_IN_POINT_VALUE_GEMS,
+  DEFAULT_INVITATION_TOKEN_VALUE_GEMS,
   DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS,
   DEFAULT_PLAY_BOX_VALUE_GEMS,
   DEFAULT_COLLECTOR_BOX_VALUE_GEMS,
@@ -20,6 +21,7 @@ import {
   EMPTY_BOX_PRICES,
   GEMS_PER_USD,
   GEMS_PER_10K_GOLD,
+  LIMITED_OPEN_DRAFT_1,
   PICK_TWO_DRAFT,
   PREMIER_DRAFT,
   PRESETS,
@@ -83,6 +85,7 @@ import {
   paysBoxes,
   paysTokens,
   playInPointsFor,
+  invitationTokensFor,
   qualifierTokensFor,
   tokenChancePerEvent,
   resizePayouts,
@@ -1243,6 +1246,7 @@ describe("bankroll", () => {
       draftPacks: 0,
       playInPoints: 0,
       qualifierTokens: 0,
+      invitationTokens: 0,
       boxes: [],
       survived: false,
     };
@@ -1552,6 +1556,52 @@ describe("the chance of a qualifier token", () => {
     const config = bo1();
     expect(heldKeys(config)).toContain("playInPoints");
     expect(heldKeys(config)).toContain("qualifierTokens");
+  });
+});
+
+describe("the invitation token", () => {
+  /*
+   * The Limited Open's Draft 2 entry is a reward of its own rather than a
+   * second use of the Qualifier token: a different seat, priced by its own
+   * rate, and counted rather than reported as a chance because a second one
+   * is a second entry. These pin the two apart, so that neither knob nor tile
+   * can quietly start reading the other's reward.
+   */
+  const open = () => configFromPreset(LIMITED_OPEN_DRAFT_1, defaultConfig());
+
+  it("is what the Limited Open pays at the top, and not a Qualifier token", () => {
+    expect(paidRewards(LIMITED_OPEN_DRAFT_1.payouts)).toEqual(["invitationTokens"]);
+    expect(paysTokens(LIMITED_OPEN_DRAFT_1.payouts)).toBe(false);
+    const config = open();
+    expect(invitationTokensFor(config, 7)).toBe(1);
+    expect(invitationTokensFor(config, 6)).toBe(0);
+    expect(qualifierTokensFor(config, 7)).toBe(0);
+    expect(heldKeys(config)).toContain("invitationTokens");
+  });
+
+  it("prices the seat at nothing until someone says otherwise, off its own knob", () => {
+    expect(DEFAULT_INVITATION_TOKEN_VALUE_GEMS).toBe(0);
+    const config = open();
+    expect(holdingRate(config, "invitationTokens")).toBe(0);
+    // Quoted from the terms: seven wins pays 5,500 gems to six wins' 5,000, so
+    // the rungs differ by the gems alone until the seat is priced.
+    expect(grossValue(config, 7)).toBe(grossValue(config, 6) + 500);
+    const priced = { ...config, invitationTokenValueGems: 4900 };
+    expect(grossValue(priced, 7)).toBe(grossValue(priced, 6) + 500 + 4900);
+    // The Qualifier knob does not reach it.
+    const otherKnob = { ...config, qualifierTokenValueGems: 4900 };
+    expect(grossValue(otherKnob, 7)).toBe(grossValue(config, 7));
+  });
+
+  it("is tallied by a run as its own holding, with no qualifier chance beside it", () => {
+    // A certain rate and one event: the run goes 7-0 and holds exactly one.
+    const config = { ...open(), winRate: 1, winRateMatches: 0 };
+    const one = { startingGems: 5_000, startingGold: 0, startingPlayInPoints: 0, maxEvents: 1 };
+    const run = simulateBankroll(config, one, seededRandom(1));
+    expect(run.wins).toBe(7);
+    expect(run.invitationTokens).toBe(1);
+    expect(run.qualifierTokens).toBe(0);
+    expect(simulateBankrolls(config, one, 20, 1).tokenChance).toBeNull();
   });
 });
 
@@ -2054,13 +2104,19 @@ describe("gold earnings", () => {
     // telling one story about Premier at 1,500 gems or 10,000 gold. Pinned
     // for every dual-priced preset rather than assumed from the constant.
     //
-    // The Qualifier Play-Ins are the exception, and named as such — the same
-    // exemption the rate test below carries. Arena lets 20,000 gold buy a
-    // 4,000-gem seat there, 2,000 per 10,000, so gold spent on that door goes
-    // further than the credit values it: the credit stays at the rate every
-    // other event agrees on, and a Play-In priced in gold reads a quarter
-    // poorer here than at the door. `GEMS_PER_10K_GOLD`'s comment says why.
-    const EXEMPT = ["Qualifier Play-In (Bo1)", "Qualifier Play-In (Bo3)"];
+    // The Qualifier Play-Ins and the Limited Open are the exceptions, and
+    // named as such — the same exemption the rate test below carries. Arena
+    // lets 20,000 gold buy a 4,000-gem seat at a Play-In and 25,000 buy the
+    // Open's 5,000-gem one, 2,000 per 10,000 either way, so gold spent on
+    // those doors goes further than the credit values it: the credit stays at
+    // the rate every other event agrees on, and either priced in gold reads a
+    // quarter poorer here than at the door. `GEMS_PER_10K_GOLD`'s comment says
+    // why.
+    const EXEMPT = [
+      "Qualifier Play-In (Bo1)",
+      "Qualifier Play-In (Bo3)",
+      "Limited Open (Draft 1)",
+    ];
     const dual = PRESETS.filter((p) => (p.entryCostGold ?? 0) > 0);
     expect(dual.map((p) => p.name)).toEqual(expect.arrayContaining(EXEMPT));
     for (const preset of dual) {
@@ -2275,7 +2331,7 @@ describe("presets", () => {
     );
   });
 
-  it("exposes all fourteen presets", () => {
+  it("exposes every preset, in order", () => {
     expect(PRESETS.map((p) => p.name)).toEqual([
       "Premier Draft",
       "Quick Draft",
@@ -2293,6 +2349,7 @@ describe("presets", () => {
       "Traditional Constructed Event",
       "Qualifier Play-In (Bo1)",
       "Qualifier Play-In (Bo3)",
+      "Limited Open (Draft 1)",
     ]);
   });
 
@@ -2303,16 +2360,20 @@ describe("presets", () => {
      * Constructed prices both ways, at 2,500 gold against 375 gems, and lands
      * on it exactly.
      *
-     * The Qualifier Play-Ins are exempt, and named rather than filtered by
-     * their ratio: 20,000 gold against 4,000 gems implies 2,000 gems per
-     * 10,000 gold rather than 1,500, so gold buys more entry here than it does
-     * anywhere else — 20,000 gold is 3,000 gems' worth at the standard rate
-     * against a 4,000-gem price, making gold the cheaper door by a quarter.
-     * Naming them is what keeps this
-     * test loud — a *new* event breaking the rate fails here rather than
-     * quietly joining an exemption defined as "whatever does not match".
+     * The Qualifier Play-Ins and the Limited Open are exempt, and named rather
+     * than filtered by their ratio: 20,000 gold against 4,000 gems, and 25,000
+     * against 5,000, imply 2,000 gems per 10,000 gold rather than 1,500, so
+     * gold buys more entry there than it does anywhere else — 20,000 gold is
+     * 3,000 gems' worth at the standard rate against a 4,000-gem price, making
+     * gold the cheaper door by a quarter. Naming them is what keeps this test
+     * loud — a *new* event breaking the rate fails here rather than quietly
+     * joining an exemption defined as "whatever does not match".
      */
-    const EXEMPT = ["Qualifier Play-In (Bo1)", "Qualifier Play-In (Bo3)"];
+    const EXEMPT = [
+      "Qualifier Play-In (Bo1)",
+      "Qualifier Play-In (Bo3)",
+      "Limited Open (Draft 1)",
+    ];
     const dual = PRESETS.filter((p) => (p.entryCostGold ?? 0) > 0);
     expect(dual.map((p) => p.name)).toContain("Constructed Event");
     expect(dual.map((p) => p.name)).toEqual(expect.arrayContaining(EXEMPT));
@@ -2320,7 +2381,7 @@ describe("presets", () => {
       expect((p.entryCostGems! / p.entryCostGold!) * 10_000).toBe(GEMS_PER_10K_GOLD);
     }
     // And the exemption is exactly what it claims to be, rather than a licence
-    // to drift: both Play-Ins imply 2,000 per 10,000 and nothing else does.
+    // to drift: all three imply 2,000 per 10,000 and nothing else does.
     for (const name of EXEMPT) {
       const p = PRESETS.find((x) => x.name === name)!;
       expect((p.entryCostGems! / p.entryCostGold!) * 10_000).toBe(2000);

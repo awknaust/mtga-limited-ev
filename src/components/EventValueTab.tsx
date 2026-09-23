@@ -325,6 +325,7 @@ export function EventValueTab({
                         cubePacks: b.cubePacks,
                         playInPoints: b.playInPoints,
                         qualifierTokens: b.qualifierTokens,
+                        invitationTokens: b.invitationTokens,
                         boxes: tier.boxes ?? [],
                       }}
                     />

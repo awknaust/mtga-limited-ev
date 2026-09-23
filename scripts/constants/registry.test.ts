@@ -157,6 +157,7 @@ describe("the registry", () => {
     expect(r.get("DEFAULT_GAMES_PER_DAY")!.asOf).toBe("2026-08-19");
     expect(r.get("BO3_GAMES_PER_MATCH")!.asOf).toBe("2026-08-19");
     expect(r.get("DEFAULT_DAILY_WIN_ICR_VALUE_GEMS")!.asOf).toBe("2026-08-20");
+    expect(r.get("DEFAULT_INVITATION_TOKEN_VALUE_GEMS")!.asOf).toBe("2026-09-23");
     // The check date lives in the field, not the prose. (Other dates — the
     // mythic-rate window, set releases — are derivation inputs and stay.)
     for (const [name, c] of r) expect(c.explain.join("\n"), name).not.toMatch(/checked by hand on/);
@@ -205,10 +206,11 @@ describe("the registry", () => {
     expect(r.get("DEFAULT_PLAY_BOX_VALUE_GEMS")!.explain.join("\n")).toMatch(/PLAY_BOX_USD = \[140\.00, 120\.00, 100\.00\]/);
   });
 
-  it("holds the six unsourced entries at their figures, each saying what kind of number it is", async () => {
+  it("holds the seven unsourced entries at their figures, each saying what kind of number it is", async () => {
     const r = await computeAll();
     for (const name of [
       "DEFAULT_QUALIFIER_TOKEN_VALUE_GEMS",
+      "DEFAULT_INVITATION_TOKEN_VALUE_GEMS",
       "DEFAULT_COSMETIC_VALUE_GEMS",
       "DEFAULT_DAILY_WIN_ICR_VALUE_GEMS",
     ] as const) {

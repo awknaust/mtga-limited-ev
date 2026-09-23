@@ -90,8 +90,8 @@ describe("every event is drawn distinguishably", () => {
   it("gives no two presets the same colour and lap treatment", () => {
     const seen = new Map<string, string>();
     for (const preset of PRESETS) {
-      const { colorClass, dash, hatched } = compareSeries(preset.name);
-      const signature = `${colorClass}|${dash ?? "solid"}|${hatched ? "hatched" : "plain"}`;
+      const { colorClass, dash, hatch } = compareSeries(preset.name);
+      const signature = `${colorClass}|${dash ?? "solid"}|${hatch}`;
       const clash = seen.get(signature);
       expect(
         clash,
@@ -115,11 +115,11 @@ describe("every event is drawn distinguishably", () => {
       sharing.set(colorClass, [...(sharing.get(colorClass) ?? []), preset.name]);
     }
     const shared = [...sharing.values()].filter((names) => names.length > 1);
-    // Today the ramp is exactly half the preset count, so this is not vacuous.
+    // Seventeen presets on an eight-hue ramp, so this is not vacuous.
     expect(shared.length).toBeGreaterThan(0);
     for (const names of shared) {
       const dashes = new Set(names.map((n) => compareSeries(n).dash ?? "solid"));
-      const fills = new Set(names.map((n) => compareSeries(n).hatched));
+      const fills = new Set(names.map((n) => compareSeries(n).hatch));
       expect(dashes.size, `${names.join(" and ")} draw the same line`).toBe(names.length);
       expect(fills.size, `${names.join(" and ")} draw the same fill`).toBe(names.length);
     }

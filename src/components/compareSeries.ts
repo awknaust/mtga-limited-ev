@@ -6,6 +6,8 @@ import {
   type EventPreset,
 } from "../lib";
 
+import type { Hatch } from "./CompareHatch";
+
 export type CompareGroup = {
   label: string;
   /** Preset names, in the order the selector lists them. */
@@ -60,13 +62,15 @@ export const COMPARE_GROUPS: CompareGroup[] = compareGroups(PRESETS);
  *
  * Eight is about as many series as can be told apart by colour at once, and a
  * lap's treatment is a second channel rather than a decoration: eight hues
- * times two laps is sixteen distinct series, which is exactly `PRESETS.length`
- * today.
+ * times three laps is twenty-four distinct series, against seventeen presets
+ * today. The third lap arrived with the seventeenth, the Limited Open, when
+ * two laps met sixteen presets exactly.
  *
- * That the two numbers meet exactly is why the uniqueness test matters. A
- * seventeenth preset has nowhere to go, and the test says so on the build that
- * adds it; the fix is one more entry in `LAPS` (worth eight more series) or one
- * more hue, plus the matching `.compare-series-*` rule in `styles.css`.
+ * The uniqueness test is what says when the ramp is full again. A twenty-fifth
+ * preset has nowhere to go, and the test says so on the build that adds it;
+ * the fix is one more entry in `LAPS` (worth eight more series, and needing a
+ * texture `CompareHatch` draws) or one more hue, plus the matching
+ * `.compare-series-*` rule in `styles.css`.
  */
 const RAMP_LENGTH = 8;
 
@@ -84,13 +88,14 @@ const RAMP_LENGTH = 8;
 type Lap = {
   /** `stroke-dasharray` for a plotted line; null is solid. */
   dash: string | null;
-  /** Whether a filled shape is slashed through; see `CompareHatch`. */
-  hatched: boolean;
+  /** How a filled shape is textured; see `CompareHatch`. */
+  hatch: Hatch;
 };
 
 const LAPS: Lap[] = [
-  { dash: null, hatched: false },
-  { dash: "6 4", hatched: true },
+  { dash: null, hatch: "plain" },
+  { dash: "6 4", hatch: "slash" },
+  { dash: "2 3", hatch: "cross" },
 ];
 
 export type CompareSeries = Lap & {

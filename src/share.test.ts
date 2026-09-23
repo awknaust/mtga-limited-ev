@@ -233,6 +233,7 @@ describe("round trips", () => {
         packValueGems: 132,
         playInPointValueGems: 250,
         qualifierTokenValueGems: 4830,
+        invitationTokenValueGems: 4831,
         playBoxValueGems: 60000,
         collectorBoxValueGems: 250000,
         boxMarkdown: 0.15,
@@ -342,6 +343,7 @@ describe("resetting advanced settings", () => {
         packValueGems: 132,
         playInPointValueGems: 250,
         qualifierTokenValueGems: 4830,
+        invitationTokenValueGems: 4831,
         playBoxValueGems: 60_000,
         collectorBoxValueGems: 250_000,
         boxMarkdown: 0.25,
@@ -415,6 +417,7 @@ describe("resetting advanced settings", () => {
       "gemsPerUsd",
       "goldPer10k",
       "goldPerDay",
+      "invitationTokenValue",
       "mythicIcrValue",
       "orbValue",
       "packValue",
@@ -748,6 +751,25 @@ describe("payout table codec", () => {
     );
     // And a row may not say the count twice, as for the pack kinds.
     expect(decodePayouts("0-0-token.1-token.1")).toBeNull();
+  });
+
+  it("names the invitation token apart from the qualifier one", () => {
+    // Both are named counts, spelled differently, so a link says which seat a
+    // rung pays rather than a "token" that could be either.
+    expect(
+      encodePayouts([{ wins: 0, gems: 5500, packs: 0, invitationTokens: 1 }]),
+    ).toBe("5500-0-invite.1");
+    const payouts = [
+      { wins: 0, gems: 5000, packs: 0 },
+      { wins: 1, gems: 5500, packs: 0, invitationTokens: 1 },
+    ];
+    expect(decodePayouts(encodePayouts(payouts))).toEqual(payouts);
+    // Neither spelling reads as the other, and a row may pay both.
+    expect(decodePayouts("5500-0-token.1")?.[0].invitationTokens).toBeUndefined();
+    expect(decodePayouts("5500-0-invite.1")?.[0].qualifierTokens).toBeUndefined();
+    expect(decodePayouts("0-0-token.1-invite.1")).toEqual([
+      { wins: 0, gems: 0, packs: 0, qualifierTokens: 1, invitationTokens: 1 },
+    ]);
   });
 
   it("refuses a malformed box rather than guessing at it", () => {
